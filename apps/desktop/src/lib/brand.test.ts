@@ -1,0 +1,29 @@
+import { describe, expect, it } from 'vitest'
+
+import { AGENT_NAME, APP_ID, applyProductBrand, brandTranslationTree, PRODUCT_NAME } from './brand'
+
+describe('Aino product brand overlay', () => {
+  it('exposes the independent product identity', () => {
+    expect(PRODUCT_NAME).toBe('Aino')
+    expect(AGENT_NAME).toBe('Aino Agent')
+    expect(APP_ID).toBe('com.ablankpaper.aino')
+  })
+
+  it('rebrands visible product labels while preserving compatibility snippets', () => {
+    expect(applyProductBrand('Hermes Desktop is ready')).toBe('Aino is ready')
+    expect(applyProductBrand('Hermes Agent uses ~/.hermes and `hermes gateway`')).toBe(
+      'Aino Agent uses ~/.hermes and `hermes gateway`'
+    )
+    expect(applyProductBrand('Hermes Cloud is unavailable')).toBe('Nous Cloud is unavailable')
+  })
+
+  it('wraps dynamic and nested translation values without changing shape', () => {
+    const branded = brandTranslationTree({
+      heading: 'About Hermes Desktop',
+      nested: { message: (count: number) => `${count} Hermes tasks` }
+    })
+
+    expect(branded.heading).toBe('About Aino')
+    expect(branded.nested.message(3)).toBe('3 Aino tasks')
+  })
+})

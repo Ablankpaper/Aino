@@ -1,0 +1,10 @@
+{
+  "productName": "Aino",
+  "agentName": "Aino Agent",
+  "appId": "com.ablankpaper.aino",
+  "homeDirName": "aino",
+  "primaryProtocol": "aino",
+  "legacyProtocol": "hermes",
+  "repositoryUrl": "https://github.com/Ablankpaper/Aino",
+  "upstreamRepositoryUrl": "https://github.com/NousResearch/hermes-agent"
+}

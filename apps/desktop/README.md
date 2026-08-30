@@ -1,4 +1,4 @@
-# Hermes Desktop ☤
+# Aino Desktop ☤
 
 <p align="center">
   <a href="https://github.com/NousResearch/hermes-agent/releases"><img src="https://img.shields.io/badge/Download-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-FFD700?style=for-the-badge" alt="Download"></a>
@@ -7,7 +7,9 @@
   <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
 </p>
 
-**The native desktop app for [Hermes Agent](../../README.md) — the self-improving AI agent from [Nous Research](https://nousresearch.com).** Same agent, same skills, same memory as the CLI and gateway, in a polished native window — chat with streaming tool output, side-by-side previews, a file browser, voice, and settings, no terminal required. Available for **macOS, Windows, and Linux**.
+**Aino Desktop is the native desktop surface for the Hermes Agent runtime.** It keeps the same skills, memory, and gateway capabilities in a separate Aino application identity — with streaming tool output, side-by-side previews, a file browser, voice, and settings, no terminal required. Available for **macOS, Windows, and Linux**.
+
+The runtime remains upstream-compatible: the `hermes` command, `HERMES_HOME` override, gateway RPC names, and legacy `hermes://` links are retained. Aino's default local roots are `~/.aino` (macOS/Linux) and `%LOCALAPPDATA%\\aino` (Windows); existing Hermes data is not copied automatically. See [`docs/aino-brand-boundary.md`](../../docs/aino-brand-boundary.md).
 
 <table>
 <tr><td><b>Chat with the full agent</b></td><td>Streaming responses, live tool activity, structured tool summaries, and the same conversation history as every other Hermes surface.</td></tr>

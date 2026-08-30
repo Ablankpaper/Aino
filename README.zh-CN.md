@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Hermes Agent" width="100%">
+  <img src="assets/aino-banner.svg" alt="Aino" width="100%">
 </p>
 
-# Hermes Agent ☤
+# Aino ☤
 
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
@@ -13,7 +13,9 @@
   <a href="README.ur-pk.md"><img src="https://img.shields.io/badge/Lang-اردو-green?style=for-the-badge" alt="اردو"></a>
 </p>
 
-**由 [Nous Research](https://nousresearch.com) 构建的自进化 AI 代理。** 它是唯一内置学习闭环的智能代理——从经验中创建技能，在使用中改进技能，主动持久化知识，搜索过往对话，并在跨会话中逐步构建对你的深度理解。可以在 $5 的 VPS 上运行，也可以在 GPU 集群上运行，或者使用几乎零成本的 Serverless 基础设施。它不绑定你的笔记本——你可以在 Telegram 上与它对话，而它在云端 VM 上工作。
+**Aino 是基于 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 运行时的独立发行版。** 它保留了运行时的自进化学习闭环——从经验创建技能、在使用中改进技能、持久化知识、搜索过往对话，并在跨会话中逐步建立对你的理解——同时建立 Aino 自己的产品身份。MIT 许可证和上游署名均保留。
+
+命令行和协议标识仍有意保留为 `hermes` 以确保兼容。Aino Desktop 使用独立的应用身份和本地数据根目录；具体范围和迁移策略见[品牌边界说明](docs/aino-brand-boundary.md)。
 
 支持任意模型——[Nous Portal](https://portal.nousresearch.com)、[OpenRouter](https://openrouter.ai)（200+ 模型）、[NVIDIA NIM](https://build.nvidia.com)（Nemotron）、[小米 MiMo](https://platform.xiaomimimo.com)、[z.ai/GLM](https://z.ai)、[Kimi/Moonshot](https://platform.moonshot.ai)、[MiniMax](https://www.minimax.io)、[Hugging Face](https://huggingface.co)、OpenAI，或自定义端点。使用 `hermes model` 即可切换——无需改代码，无锁定。
 

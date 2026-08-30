@@ -252,10 +252,9 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
 - Pick the vocabulary by semantic context and reuse the existing icon for an
   action. Do not introduce a third icon set or mix styles within one control
   group.
-- **`BrandMark`** (`src/components/brand-mark.tsx`) is the brand glyph — the
-  `nous-girl` mark on a white tile, softly rounded, identical in light/dark.
-  It replaced scattered Sparkles glyphs in updates / onboarding / about. Use it
-  for hero/brand moments; don't reintroduce decorative star/sparkle icons.
+- **`BrandMark`** (`src/components/brand-mark.tsx`) is the Aino brand glyph — a
+  small vector mark, softly rounded and identical in light/dark. Use it for
+  hero/brand moments; don't reintroduce decorative star/sparkle icons.
 
 ## Motion
 

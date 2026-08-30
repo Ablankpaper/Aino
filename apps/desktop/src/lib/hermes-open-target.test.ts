@@ -20,6 +20,11 @@ describe('normalizeHermesOpenString', () => {
     )
   })
 
+  it('maps Aino deep links while retaining the Hermes compatibility alias', () => {
+    expect(normalizeHermesOpenString('aino://index-network/intent/1')).toBe('/index-network/intent/1')
+    expect(normalizeHermesOpenString('aino://open/settings/plugins')).toBe('/settings/plugins')
+  })
+
   it('maps hermes://open/… deep links by stripping the open host', () => {
     expect(normalizeHermesOpenString('hermes://open/index-network/intent/1')).toBe('/index-network/intent/1')
     expect(normalizeHermesOpenString('hermes://open/settings/plugins')).toBe('/settings/plugins')

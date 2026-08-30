@@ -42,6 +42,7 @@ import { onGatewayEvent } from '@/contrib/events'
 import { registry } from '@/contrib/registry'
 import type { WorkspaceMode } from '@/contrib/types'
 import { deleteProfile, getLogs, getStatus, hermesApi, type HermesGateway } from '@/hermes'
+import { PRODUCT_NAME } from '@/lib/brand'
 import {
   $gateway,
   activeGatewayConnectionId,
@@ -767,7 +768,7 @@ export const host = {
     const bridge = window.hermesDesktop?.connections
 
     if (!bridge) {
-      throw new Error('This Desktop build has no connection registry. Update Hermes Desktop.')
+      throw new Error(`This Desktop build has no connection registry. Update ${PRODUCT_NAME}.`)
     }
 
     const registryPayload = await bridge.list()
@@ -784,7 +785,7 @@ export const host = {
     const roster = window.hermesDesktop?.getAgentRoster
 
     if (!roster) {
-      throw new Error('This Desktop build cannot enumerate multi-source agents. Update Hermes Desktop.')
+      throw new Error(`This Desktop build cannot enumerate multi-source agents. Update ${PRODUCT_NAME}.`)
     }
 
     return roster()
@@ -1183,7 +1184,7 @@ export const host = {
       const openTab = $newSessionTabAction.get()
 
       if (!openTab) {
-        notify({ kind: 'error', message: 'Update Hermes Desktop to open another Bot chat.' })
+        notify({ kind: 'error', message: `Update ${PRODUCT_NAME} to open another Bot chat.` })
 
         return
       }
@@ -1237,7 +1238,7 @@ export const host = {
     const getProfileRoutes = desktop?.getProfileRoutes
 
     if (!getProfileRoutes) {
-      throw new Error('Hermes Desktop connection routing unavailable')
+      throw new Error(`${PRODUCT_NAME} connection routing unavailable`)
     }
 
     let profiles = $profiles.get()
@@ -1477,7 +1478,7 @@ export { SkillsView } from '@/app/skills'
  *  `host.getGateway()`) and an optional `profile` to scope it to one bot. */
 export { McpTab } from '@/app/skills/mcp-tab'
 /** The oversized Collapse lettering an empty chat is titled with — core writes
- *  "HERMES AGENT" with it, a `chat.empty` contribution writes its own name. */
+ *  the Aino agent name with it, a `chat.empty` contribution writes its own name. */
 export { Wordmark } from '@/components/chat/wordmark'
 /** Pane placement roles. `'floating'` is the one NON-tiling value: the pane is
  *  excluded from the layout tree and rendered as a fixed, draggable card above
