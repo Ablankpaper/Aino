@@ -8,7 +8,8 @@ import {
   defaultUserDataPath,
   HOME_DIR_NAME,
   PRIMARY_PROTOCOL,
-  PRODUCT_NAME
+  PRODUCT_NAME,
+  REPOSITORY_SSH_URL
 } from './product-identity'
 
 test('Aino product identity is stable across desktop entry points', () => {
@@ -16,6 +17,7 @@ test('Aino product identity is stable across desktop entry points', () => {
   assert.equal(APP_ID, 'com.ablankpaper.aino')
   assert.equal(HOME_DIR_NAME, 'aino')
   assert.equal(PRIMARY_PROTOCOL, 'aino')
+  assert.equal(REPOSITORY_SSH_URL, 'git@github.com:Ablankpaper/Aino.git')
 })
 
 test('default agent home is isolated from the Hermes home on POSIX', () => {

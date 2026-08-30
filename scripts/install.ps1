@@ -383,8 +383,20 @@ $script:ResolvedPathReport = @{
 # Configuration
 # ============================================================================
 
-$RepoUrlSsh = "git@github.com:NousResearch/hermes-agent.git"
-$RepoUrlHttps = "https://github.com/NousResearch/hermes-agent.git"
+# Keep the canonical Hermes URLs for CLI/server installs, while allowing a
+# branded desktop bootstrap to select the repository that supplied its
+# installer and build stamp.  The desktop runner sets both values explicitly;
+# an unset override preserves the upstream installer behavior.
+$RepoUrlSsh = if ($env:HERMES_INSTALL_REPOSITORY_SSH_URL) {
+    $env:HERMES_INSTALL_REPOSITORY_SSH_URL
+} else {
+    "git@github.com:NousResearch/hermes-agent.git"
+}
+$RepoUrlHttps = if ($env:HERMES_INSTALL_REPOSITORY_URL) {
+    $env:HERMES_INSTALL_REPOSITORY_URL
+} else {
+    "https://github.com/NousResearch/hermes-agent.git"
+}
 $PythonVersion = "3.11"
 # Minor versions the installer accepts when the requested $PythonVersion isn't
 # available, in preference order.  uv discovers both uv-managed and system
@@ -2385,17 +2397,28 @@ function Install-Repository {
             if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir -ErrorAction SilentlyContinue }
             Write-Warn "Git clone failed -- downloading ZIP archive instead..."
             try {
+                # Keep the archive fallback on the same repository as the git
+                # clone.  A branded desktop install must never silently fall
+                # back to the upstream Hermes source after an Aino clone
+                # failure.  GitHub archive URLs are only available when the
+                # selected HTTPS remote is a GitHub repository; other remotes
+                # have already had their git path attempted above.
+                $archiveRepo = $RepoUrlHttps.TrimEnd('/') -replace '\.git$', ''
+                if ($archiveRepo -notmatch '^https://github\.com/[^/]+/[^/]+$') {
+                    throw "ZIP fallback requires a GitHub HTTPS repository URL; selected remote: $RepoUrlHttps"
+                }
+
                 # Pick the ZIP URL for the most-specific ref the caller asked
                 # for.  GitHub supports archive URLs for commits, tags, and
                 # branches; we honour Commit > Tag > Branch.
                 if ($Commit) {
-                    $zipUrl = "https://github.com/NousResearch/hermes-agent/archive/$Commit.zip"
+                    $zipUrl = "$archiveRepo/archive/$Commit.zip"
                     $zipLabel = $Commit
                 } elseif ($Tag) {
-                    $zipUrl = "https://github.com/NousResearch/hermes-agent/archive/refs/tags/$Tag.zip"
+                    $zipUrl = "$archiveRepo/archive/refs/tags/$Tag.zip"
                     $zipLabel = $Tag
                 } else {
-                    $zipUrl = "https://github.com/NousResearch/hermes-agent/archive/refs/heads/$Branch.zip"
+                    $zipUrl = "$archiveRepo/archive/refs/heads/$Branch.zip"
                     $zipLabel = $Branch
                 }
                 $zipPath = "$env:TEMP\hermes-agent-$zipLabel.zip"

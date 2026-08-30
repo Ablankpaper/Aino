@@ -43,8 +43,12 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-REPO_URL_SSH="git@github.com:NousResearch/hermes-agent.git"
-REPO_URL_HTTPS="https://github.com/NousResearch/hermes-agent.git"
+# Keep the canonical Hermes URLs for CLI/server installs, while allowing a
+# branded desktop bootstrap to select the repository that supplied its
+# installer and build stamp.  The desktop runner sets both values explicitly;
+# an unset override preserves the upstream installer behavior.
+REPO_URL_SSH="${HERMES_INSTALL_REPOSITORY_SSH_URL:-git@github.com:NousResearch/hermes-agent.git}"
+REPO_URL_HTTPS="${HERMES_INSTALL_REPOSITORY_URL:-https://github.com/NousResearch/hermes-agent.git}"
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an

@@ -38,7 +38,7 @@ import fsp from 'node:fs/promises'
 import https from 'node:https'
 import path from 'node:path'
 
-import { REPOSITORY_PATH } from './product-identity'
+import { REPOSITORY_PATH, REPOSITORY_SSH_URL, REPOSITORY_URL } from './product-identity'
 import { hiddenWindowsChildOptions } from './windows-child-options'
 
 const IS_WINDOWS = process.platform === 'win32'
@@ -457,6 +457,22 @@ function resolveWindowsPowerShell() {
   return 'powershell.exe'
 }
 
+function buildInstallerEnv(
+  hermesHome: string | null | undefined,
+  baseEnv: NodeJS.ProcessEnv = process.env
+): NodeJS.ProcessEnv {
+  return {
+    ...baseEnv,
+    HERMES_HOME: hermesHome || baseEnv.HERMES_HOME || '',
+    // The installer defaults remain upstream-compatible for direct CLI use.
+    // Desktop bootstrap must install from the same branded repository as the
+    // script/build stamp; otherwise a downstream branch is looked up on the
+    // upstream remote and fresh install fails before the venv stage.
+    HERMES_INSTALL_REPOSITORY_URL: REPOSITORY_URL,
+    HERMES_INSTALL_REPOSITORY_SSH_URL: REPOSITORY_SSH_URL
+  }
+}
+
 function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, hermesHome }: any = {}) {
   return new Promise<any>((resolve, reject) => {
     const ps = process.platform === 'win32' ? resolveWindowsPowerShell() : 'pwsh'
@@ -467,12 +483,7 @@ function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, herme
       fullArgs,
       hiddenWindowsChildOptions({
         stdio: ['ignore', 'pipe', 'pipe'],
-        env: {
-          ...process.env,
-          // Pass HERMES_HOME through so install.ps1 respects the caller's
-          // choice rather than re-computing the default.
-          HERMES_HOME: hermesHome || process.env.HERMES_HOME || ''
-        }
+        env: buildInstallerEnv(hermesHome)
       })
     )
 
@@ -565,10 +576,7 @@ function spawnBash(scriptPath, args, { emit, stageName, abortSignal, hermesHome 
   return new Promise<any>((resolve, reject) => {
     const child = spawn('bash', [scriptPath, ...args], {
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        HERMES_HOME: hermesHome || process.env.HERMES_HOME || ''
-      }
+      env: buildInstallerEnv(hermesHome)
     })
 
     let stdout = ''
@@ -1021,6 +1029,7 @@ async function runBootstrap(opts) {
 }
 
 export {
+  buildInstallerEnv,
   buildPinArgs,
   buildPosixPinArgs,
   cachedScriptPath,

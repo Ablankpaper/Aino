@@ -11,6 +11,7 @@ export const LEGACY_PROTOCOL = identity.legacyProtocol
 export const REPOSITORY_URL = identity.repositoryUrl
 export const UPSTREAM_REPOSITORY_URL = identity.upstreamRepositoryUrl
 export const REPOSITORY_PATH = REPOSITORY_URL.replace(/^https:\/\/github\.com\//, '').replace(/\/$/, '')
+export const REPOSITORY_SSH_URL = `git@github.com:${REPOSITORY_PATH.replace(/\.git$/, '')}.git`
 
 /** Resolve the default Aino agent data root for a host platform. */
 export function defaultAgentHomePath({

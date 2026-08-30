@@ -6,6 +6,7 @@ import path from 'node:path'
 import { test } from 'vitest'
 
 import {
+  buildInstallerEnv,
   buildPinArgs,
   buildPosixPinArgs,
   cachedScriptPath,
@@ -108,6 +109,20 @@ test('existing-checkout bootstrap args keep branch but skip the packaged commit 
     }),
     ['--dir', '/tmp/hermes-agent', '--hermes-home', '/tmp/hermes', '--branch', 'main']
   )
+})
+
+test('installer child environment points at the branded Aino repository', () => {
+  const env = buildInstallerEnv('/tmp/aino-home', {
+    PATH: '/usr/bin',
+    HERMES_HOME: '/tmp/old-hermes-home',
+    HERMES_INSTALL_REPOSITORY_URL: 'https://github.com/NousResearch/hermes-agent.git',
+    HERMES_INSTALL_REPOSITORY_SSH_URL: 'git@github.com:NousResearch/hermes-agent.git'
+  })
+
+  assert.equal(env.PATH, '/usr/bin')
+  assert.equal(env.HERMES_HOME, '/tmp/aino-home')
+  assert.equal(env.HERMES_INSTALL_REPOSITORY_URL, 'https://github.com/Ablankpaper/Aino')
+  assert.equal(env.HERMES_INSTALL_REPOSITORY_SSH_URL, 'git@github.com:Ablankpaper/Aino.git')
 })
 
 test('fallback install stamps use an unpinned branch ref', () => {
