@@ -1693,6 +1693,17 @@ export interface Translations {
       unavailableDescription: string
       setupImageGeneration: string
       grabKeyFrom: string
+      background: {
+        view: string
+        draftsReadyTitle: string
+        draftsReadyMessage: string
+        generationFailedTitle: string
+        retryMessage: string
+        hatchedTitle: string
+        hatchedMessage: string
+        hatchingFailedTitle: string
+        hatchingFailedMessage: string
+      }
       examples: Record<string, string>
     }
     installTheme: {

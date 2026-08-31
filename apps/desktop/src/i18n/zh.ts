@@ -2102,6 +2102,17 @@ export const zh: Translations = {
       unavailableDescription: '孵化自定义宠物需要能够使用参考图的提供方。',
       setupImageGeneration: '设置图像生成',
       grabKeyFrom: '从以下位置获取密钥',
+      background: {
+        view: '查看',
+        draftsReadyTitle: '宠物草图已就绪',
+        draftsReadyMessage: '宠物造型已完成——请选择一个进行孵化。',
+        generationFailedTitle: '宠物生成失败',
+        retryMessage: '重新打开以重试。',
+        hatchedTitle: '你的宠物已孵化',
+        hatchedMessage: '重新打开，为它命名并领养。',
+        hatchingFailedTitle: '孵化失败',
+        hatchingFailedMessage: '重新打开以重试。'
+      },
       examples: {
         'bubble-tea otter': '奶茶水獭',
         'sock elf': '袜子精灵',

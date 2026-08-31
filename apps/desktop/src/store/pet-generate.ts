@@ -1,5 +1,6 @@
 import { atom } from 'nanostores'
 
+import { translateNow } from '@/i18n'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { persistBoolean, persistString, storedBoolean, storedString } from '@/lib/storage'
 import { capitalize } from '@/lib/text'
@@ -220,7 +221,12 @@ function notifyPetGenDone(title: string, message: string, kind: 'error' | 'succe
     return
   }
 
-  notify({ kind, title, message, action: { label: 'View', onClick: openPetGenerate } })
+  notify({
+    kind,
+    title,
+    message,
+    action: { label: translateNow('commandCenter.generatePet.background.view'), onClick: openPetGenerate }
+  })
   // Pet generation isn't tied to a chat session — mark it global so the OS
   // notification fires whenever the user is away, even with no active session
   // (the common case: generating from the command center with no conversation).
@@ -426,7 +432,11 @@ export async function generateDrafts(request: GatewayRequest, options: GenerateO
     $petGenDrafts.set(result.drafts)
     $petGenSelected.set(result.drafts[0]?.index ?? 0)
     $petGenStatus.set('ready')
-    notifyPetGenDone('Pet drafts ready', 'Your pet looks finished — pick one to hatch.', 'success')
+    notifyPetGenDone(
+      translateNow('commandCenter.generatePet.background.draftsReadyTitle'),
+      translateNow('commandCenter.generatePet.background.draftsReadyMessage'),
+      'success'
+    )
 
     return true
   } catch (e) {
@@ -439,7 +449,11 @@ export async function generateDrafts(request: GatewayRequest, options: GenerateO
     } else {
       $petGenStatus.set('error')
       $petGenError.set(e instanceof Error ? e.message : 'Could not generate pet drafts.')
-      notifyPetGenDone('Pet generation failed', 'Reopen to try again.', 'error')
+      notifyPetGenDone(
+        translateNow('commandCenter.generatePet.background.generationFailedTitle'),
+        translateNow('commandCenter.generatePet.background.retryMessage'),
+        'error'
+      )
     }
 
     return false
@@ -545,7 +559,11 @@ export async function hatchSelected(request: GatewayRequest, options: HatchOptio
 
     $petGenPreview.set({ ...result.pet, enabled: true })
     $petGenStatus.set('preview')
-    notifyPetGenDone('Your pet hatched', 'Reopen to name and adopt it.', 'success')
+    notifyPetGenDone(
+      translateNow('commandCenter.generatePet.background.hatchedTitle'),
+      translateNow('commandCenter.generatePet.background.hatchedMessage'),
+      'success'
+    )
 
     return true
   } catch (e) {
@@ -555,7 +573,11 @@ export async function hatchSelected(request: GatewayRequest, options: HatchOptio
 
     $petGenStatus.set('error')
     $petGenError.set(e instanceof Error ? e.message : 'Could not hatch the pet.')
-    notifyPetGenDone('Hatching failed', 'Reopen to try again.', 'error')
+    notifyPetGenDone(
+      translateNow('commandCenter.generatePet.background.hatchingFailedTitle'),
+      translateNow('commandCenter.generatePet.background.hatchingFailedMessage'),
+      'error'
+    )
 
     return false
   } finally {

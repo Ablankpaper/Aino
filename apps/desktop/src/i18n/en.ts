@@ -1927,6 +1927,17 @@ export const en: Translations = {
       unavailableDescription: 'Hatching a custom pet needs a provider that can use a reference image.',
       setupImageGeneration: 'Set up image generation',
       grabKeyFrom: 'Grab a key from',
+      background: {
+        view: 'View',
+        draftsReadyTitle: 'Pet drafts ready',
+        draftsReadyMessage: 'Your pet looks finished — pick one to hatch.',
+        generationFailedTitle: 'Pet generation failed',
+        retryMessage: 'Reopen to try again.',
+        hatchedTitle: 'Your pet hatched',
+        hatchedMessage: 'Reopen to name and adopt it.',
+        hatchingFailedTitle: 'Hatching failed',
+        hatchingFailedMessage: 'Reopen to try again.'
+      },
       examples: {
         'bubble-tea otter': 'bubble-tea otter',
         'sock elf': 'sock elf',
