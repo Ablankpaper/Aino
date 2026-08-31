@@ -245,6 +245,24 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('ui.actions.labels.tokens')).toBe('词元数')
   })
 
+  it('uses the same 配置档案 term for profile navigation and status copy', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('keybinds.categories.profiles')).toBe('配置档案')
+
+    const keybindActions = TRANSLATIONS.zh.keybinds.actions
+
+    expect(keybindActions['nav.profiles']).toBe('打开配置档案')
+    expect(keybindActions['profile.default']).toBe('切换到默认配置档案')
+    expect(keybindActions['profile.switch.3']).toBe('切换到配置档案 3')
+    expect(keybindActions['profile.next']).toBe('下一个配置档案')
+    expect(keybindActions['profile.toggleAll']).toBe('切换全部配置档案视图')
+    expect(keybindActions['profile.create']).toBe('创建配置档案')
+    expect(translateNow('commandCenter.contributedActions.exportProfile')).toBe('导出配置档案…')
+    expect(translateNow('commandCenter.contributedActions.importProfile')).toBe('导入配置档案…')
+    expect(translateNow('sidebar.row.ownedByProfile', '工作')).toBe('配置档案：工作')
+  })
+
   it('describes the embedded skills-hub action in Simplified Chinese', () => {
     setRuntimeI18nLocale('zh')
 
