@@ -58,6 +58,9 @@ type BotsMessages = {
     currentGateway: string
     staleRefresh: string
     gatewayUnreachable: (gateway: string) => string
+    newMessageFor: (name: string) => string
+    hasNewActivity: (name: string) => string
+    openChatToSeeIt: string
     staleWaiting: string
     gatewayError: string
     deleteDescription: (name: string, path: string) => string
@@ -486,6 +489,9 @@ const en: BotsMessages = {
     currentGateway: 'Current gateway',
     staleRefresh: 'Roster refresh failed — showing the last good list.',
     gatewayUnreachable: gateway => `Could not reach ${gateway}`,
+    newMessageFor: name => `🤖 New message for ${name}`,
+    hasNewActivity: name => `${name} has new activity`,
+    openChatToSeeIt: 'Open the chat to see it.',
     staleWaiting: 'Waiting for the gateway to reconnect…',
     gatewayError: 'gateway error',
     deleteDescription: (name, path) =>
@@ -904,6 +910,9 @@ const ja: BotsMessages = {
     currentGateway: '現在のゲートウェイ',
     staleRefresh: '名簿の更新に失敗しました。最後に取得した一覧を表示しています。',
     gatewayUnreachable: gateway => `${gateway} に接続できませんでした`,
+    newMessageFor: name => `🤖 ${name} に新しいメッセージ`,
+    hasNewActivity: name => `${name} に新しいアクティビティ`,
+    openChatToSeeIt: 'チャットを開いて確認してください。',
     staleWaiting: 'ゲートウェイの再接続を待っています…',
     gatewayError: 'ゲートウェイエラー',
     deleteDescription: (name, path) =>
@@ -1323,6 +1332,9 @@ const zh: BotsMessages = {
     currentGateway: '当前网关',
     staleRefresh: '名单刷新失败 — 显示上次成功获取的列表。',
     gatewayUnreachable: gateway => `无法连接 ${gateway}`,
+    newMessageFor: name => `🤖 ${name} 有新消息`,
+    hasNewActivity: name => `${name} 有新活动`,
+    openChatToSeeIt: '打开聊天查看。',
     staleWaiting: '等待网关重新连接…',
     gatewayError: '网关错误',
     deleteDescription: (name, path) => `将永久删除机器人 ${name} 及其 Hermes 配置档案（${path}）。此操作无法撤销。`,
@@ -1733,6 +1745,9 @@ const zhHant: BotsMessages = {
     currentGateway: '目前閘道',
     staleRefresh: '名單重新整理失敗 — 顯示上次成功取得的清單。',
     gatewayUnreachable: gateway => `無法連線 ${gateway}`,
+    newMessageFor: name => `🤖 ${name} 有新訊息`,
+    hasNewActivity: name => `${name} 有新的活動`,
+    openChatToSeeIt: '開啟聊天查看。',
     staleWaiting: '正在等待閘道重新連線…',
     gatewayError: '閘道錯誤',
     deleteDescription: (name, path) => `將永久刪除機器人 ${name} 及其 Hermes 設定檔（${path}）。此操作無法復原。`,

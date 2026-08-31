@@ -18,12 +18,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RosterRow } from './types'
 
-const { hostMock, markUnreadMock, storageMock } = vi.hoisted(() => ({
+const { hostMock, i18nMock, markUnreadMock, storageMock } = vi.hoisted(() => ({
   hostMock: {
     notify: vi.fn(),
     request: vi.fn(),
     state: { connectionId: { get: () => 'local' }, focusedSessionOwner: null, profile: { get: () => 'default' } }
   },
+  i18nMock: { t: vi.fn((key: string) => key) },
   markUnreadMock: vi.fn(),
   storageMock: { get: vi.fn(), set: vi.fn() }
 }))
@@ -46,7 +47,7 @@ vi.mock('@hermes/plugin-sdk', async () => {
 vi.mock('./shared', () => ({
   bumpBotOpenGeneration: vi.fn(),
   getBotOpenGeneration: vi.fn(),
-  getPluginCtx: () => ({ storage: storageMock }),
+  getPluginCtx: () => ({ i18n: i18nMock, storage: storageMock }),
   ID: 'hermes-bots'
 }))
 
@@ -85,6 +86,7 @@ async function loadActions() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  i18nMock.t.mockImplementation((key: string) => key)
 })
 
 describe('the first poll only seeds watermarks', () => {
@@ -133,6 +135,44 @@ describe('new activity after the seed', () => {
 
     trackInboundActivity([chatting('researcher', 7000, 'finished the run')])
     expect(hostMock.notify.mock.calls[1][0].title).toMatch(/has new activity/)
+  })
+
+  it('uses the active Simplified Chinese bundle for activity notifications', async () => {
+    i18nMock.t.mockImplementation((key: string, ...args: unknown[]) => {
+      const name = String(args[0] ?? '')
+
+      if (key === 'roster.newMessageFor') {
+        return `🤖 ${name} 有新消息`
+      }
+
+      if (key === 'roster.hasNewActivity') {
+        return `${name} 有新活动`
+      }
+
+      if (key === 'roster.openChatToSeeIt') {
+        return '打开聊天查看。'
+      }
+
+      return key
+    })
+
+    const { $activityToasts, trackInboundActivity } = await loadActions()
+
+    $activityToasts.set(true)
+    trackInboundActivity([chatting('researcher', 5000)])
+    trackInboundActivity([chatting('researcher', 6000, 'Message from 🤖 manager (@manager): ship it')])
+
+    expect(hostMock.notify.mock.calls[0][0]).toMatchObject({
+      title: '🤖 Researcher 有新消息',
+      message: 'Message from 🤖 manager (@manager): ship it'
+    })
+
+    trackInboundActivity([chatting('researcher', 7000, '')])
+
+    expect(hostMock.notify.mock.calls[1][0]).toMatchObject({
+      title: 'Researcher 有新活动',
+      message: '打开聊天查看。'
+    })
   })
 
   it('never badges the bot the user is currently looking at', async () => {

@@ -99,8 +99,8 @@ export function trackInboundActivity(roster: RosterRow[]) {
       const inbound = /^Message from/i.test(preview)
       host.notify({
         kind: 'info',
-        title: inbound ? `\uD83E\uDD16 New message for ${label}` : `${label} has new activity`,
-        message: preview.slice(0, 140) || 'Open the chat to see it.'
+        title: inbound ? botsText().roster.newMessageFor(label) : botsText().roster.hasNewActivity(label),
+        message: preview.slice(0, 140) || botsText().roster.openChatToSeeIt
       })
     }
   }
