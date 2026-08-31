@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale, translateNow } from '@/i18n'
+
 // Registry-agent scoping regression (multi-source roster): the active key can
 // name a `conn:<id>::<profile>` scope whose secondaries entry gets evicted by
 // a teardown path (closeSecondaryGateways during a soft gateway switch,
@@ -44,7 +46,9 @@ const {
   ensureGatewayForAgent,
   ensureGatewayForProfile,
   isActivePrimary,
+  openGatewayForAgent,
   pruneSecondaryGateways,
+  requestGatewayForAgent,
   setPrimaryGateway
 } = await import('./gateway')
 
@@ -83,15 +87,29 @@ function installAgentDesktop(): DesktopStub {
 
 beforeEach(() => {
   configureGatewayRegistry({ onEvent: vi.fn() })
+  setRuntimeI18nLocale('en')
 })
 
 afterEach(() => {
   closeSecondaryGateways()
+  setRuntimeI18nLocale('en')
   vi.clearAllMocks()
   delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
 })
 
 describe('registry-agent scope eviction (activeGateway must never silently hit the primary)', () => {
+  it.each([
+    ['requestGatewayForAgent', () => requestGatewayForAgent('homelab', 'research', 'session.list')],
+    ['openGatewayForAgent', () => openGatewayForAgent('homelab', 'research')],
+    ['ensureGatewayForAgent', () => ensureGatewayForAgent('homelab', 'research')]
+  ])('uses Simplified Chinese copy when %s needs a newer desktop bridge', async (_name, action) => {
+    setRuntimeI18nLocale('zh')
+    installDesktop({ getConnection: vi.fn(async () => agentConn), getConnectionFor: undefined as never })
+
+    await expect(action()).rejects.toThrow(translateNow('settings.gateway.registryConnectionsUnsupported'))
+    await expect(action()).rejects.toThrow('此桌面版本无法连接已注册的网关。请更新 Aino。')
+  })
+
   it('activates the agent socket, not the primary, for a registry scope', async () => {
     const primary = makePrimary()
     setPrimaryGateway(primary as never, 'default')

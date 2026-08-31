@@ -1084,6 +1084,7 @@ export const en: Translations = {
       loading: 'Loading gateway settings...',
       unavailableTitle: 'Gateway settings unavailable',
       unavailableDesc: 'The desktop IPC bridge does not expose gateway settings.',
+      registryConnectionsUnsupported: 'This Desktop build cannot connect to registered gateways. Update Hermes Desktop.',
       title: 'Gateway Connection',
       envOverride: 'env override',
       intro:

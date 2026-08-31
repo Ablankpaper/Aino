@@ -926,6 +926,7 @@ export interface Translations {
       loading: string
       unavailableTitle: string
       unavailableDesc: string
+      registryConnectionsUnsupported: string
       title: string
       envOverride: string
       intro: string

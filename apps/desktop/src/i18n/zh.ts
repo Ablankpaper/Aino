@@ -1275,6 +1275,7 @@ export const zh: Translations = {
       loading: '正在加载网关设置...',
       unavailableTitle: '网关设置不可用',
       unavailableDesc: '桌面 IPC 桥未暴露网关设置。',
+      registryConnectionsUnsupported: '此桌面版本无法连接已注册的网关。请更新 Hermes Desktop。',
       title: '网关连接',
       envOverride: '环境变量覆盖',
       intro:
