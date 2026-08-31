@@ -147,6 +147,12 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('settings.profileScope.editsProfile', '工作')).toBe('此页面的更改将应用于“工作”配置档案。')
   })
 
+  it('describes the embedded skills-hub action in Simplified Chinese', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('skills.hub.pickerHint')).toBe('点击任意技能卡片上的“添加到此智能体”按钮即可安装，安装后会出现在上方列表中。')
+  })
+
   it('falls back to English when the active locale cannot resolve a key', () => {
     const boot = TRANSLATIONS.ja.boot as { ready?: string }
     const originalReady = boot.ready

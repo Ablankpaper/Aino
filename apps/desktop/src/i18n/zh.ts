@@ -2040,7 +2040,7 @@ export const zh: Translations = {
       pickerTitle: '技能中心',
       pickerBrowse: '浏览完整技能中心',
       pickerHide: '隐藏技能中心浏览器',
-      pickerHint: '点击任意技能上的“+ Add to this Agent”即可安装，安装后会出现在上方列表中。',
+      pickerHint: '点击任意技能卡片上的“添加到此智能体”按钮即可安装，安装后会出现在上方列表中。',
       loadFailed: '技能中心加载失败',
       previewFailed: '技能预览失败',
       scanFailed: '安全扫描失败',
