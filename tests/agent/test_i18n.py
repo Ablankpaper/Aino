@@ -70,6 +70,29 @@ def test_catalog_placeholders_match_english(lang: str):
         )
 
 
+def test_simplified_chinese_localizes_gateway_context_and_status_copy():
+    """High-traffic gateway diagnostics must not fall through to English."""
+    assert i18n.t("gateway.context.header", lang="zh") == "🧠 **上下文窗口**"
+    assert i18n.t("gateway.context.model", lang="zh", model="gpt") == "模型：`gpt`"
+    assert i18n.t("gateway.context.window", lang="zh", total=4096) == "窗口：4096 个词元"
+    assert i18n.t("gateway.context.in_use", lang="zh", used=12, total=100, pct=12) == "已使用：12 / 100（12%）"
+    assert i18n.t("gateway.context.headroom", lang="zh", headroom=88) == "距离上限还剩：88 个词元"
+    assert i18n.t("gateway.context.compressions", lang="zh", count=3) == "本会话压缩次数：3"
+    assert i18n.t("gateway.context.totals_header", lang="zh", calls=4) == "会话总计（累计 4 次 API 调用）"
+    assert i18n.t("gateway.context.estimated", lang="zh", count=1200, messages=8) == "估计上下文：约 1200 个词元，分布在 8 条消息中"
+    assert i18n.t("gateway.status.matrix_scope_header", lang="zh") == "**Matrix 作用域：**"
+    assert i18n.t("gateway.status.matrix_scope_room", lang="zh", room="room-a") == "  房间：room-a"
+    assert i18n.t("gateway.status.matrix_scope_room_id", lang="zh", room_id="r1") == "  房间 ID：r1"
+    assert i18n.t("gateway.status.matrix_scope_thread", lang="zh", thread_id="t1") == "  线程 ID：t1"
+    assert i18n.t("gateway.status.matrix_scope_mode", lang="zh", scope="room") == "  会话作用域：room"
+    assert i18n.t("gateway.status.matrix_scope_key", lang="zh", session_key="k1") == "  会话键：k1"
+    assert i18n.t("gateway.status.model", lang="zh", model="gpt") == "**模型：** `gpt`"
+    assert i18n.t("gateway.status.model_provider", lang="zh", model="gpt", provider="OpenAI") == "**模型：** `gpt`（OpenAI）"
+    assert i18n.t("gateway.status.context", lang="zh", used=12, total=100, pct=12) == "**上下文：** 12 / 100（12%）"
+    assert i18n.t("gateway.status.context_used", lang="zh", used=12) == "**上下文：** 约 12 个词元"
+    assert i18n.t("gateway.status.tokens", lang="zh", tokens=500) == "**累计计费词元：** 500 _（不是当前上下文大小；使用 `/context` 查看）_"
+
+
 # ---------------------------------------------------------------------------
 # Language resolution
 # ---------------------------------------------------------------------------
@@ -138,5 +161,4 @@ def test_locales_dir_env_override_ignored_when_missing(tmp_path, monkeypatch):
     assert result != tmp_path / "does-not-exist"
     # In a source checkout this is the repo-root locales dir.
     assert result.name == "locales"
-
 
