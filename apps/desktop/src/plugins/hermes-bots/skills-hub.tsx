@@ -137,14 +137,14 @@ export function HubSkillsSection({ forProfile, onInstalled }: HubSkillsSectionPr
       }))
       host.notify({
         kind: 'success',
-        message: `Skill "${label}" installed`
+        message: b.tools.installed(label)
       })
 
       if (typeof onInstalled === 'function') {
         onInstalled(label)
       }
     } catch (err) {
-      host.notifyError(err, `Installing "${label}" failed`)
+      host.notifyError(err, b.tools.installFailed(label))
     } finally {
       setInstalling(null)
     }
@@ -155,14 +155,14 @@ export function HubSkillsSection({ forProfile, onInstalled }: HubSkillsSectionPr
   return (
     <div className="grid gap-1.5 border-t border-(--ui-stroke-secondary) pt-2">
       <div className="flex items-baseline justify-between gap-2">
-        <div className="text-[0.7rem] font-medium text-(--ui-text-secondary)">Skills Hub</div>
+        <div className="text-[0.7rem] font-medium text-(--ui-text-secondary)">{b.tools.skillsHub}</div>
         <Button
           className="text-[0.65rem] text-(--ui-text-quaternary) hover:text-(--ui-text-secondary)"
           onClick={() => setBrowseHub(v => !v)}
           size="inline"
           variant="text"
         >
-          {browseHub ? 'hide the hub browser' : 'browse the full hub ▾'}
+          {browseHub ? b.tools.hideHub : b.tools.browseHub}
         </Button>
       </div>
       {browseHub ? (
@@ -197,9 +197,7 @@ export function HubSkillsSection({ forProfile, onInstalled }: HubSkillsSectionPr
             />
           </div>
           <div className="px-1 text-[0.65rem] leading-4 text-(--ui-text-quaternary)">
-            {installing
-              ? `Installing "${installing}"…`
-              : 'Hit "+ Add to this Agent" on any skill — it installs and appears in the list above. Drag the corner to resize.'}
+            {installing ? b.tools.installing(installing) : b.tools.hubHint}
           </div>
         </div>
       ) : null}
@@ -222,16 +220,12 @@ export function HubSkillsSection({ forProfile, onInstalled }: HubSkillsSectionPr
           value={query}
         />
         <Button disabled={searching || !query.trim()} onClick={() => void search()} size="sm" variant="secondary">
-          {searching ? 'Searching…' : 'Search'}
+          {searching ? b.tools.searchingShort : b.tools.search}
         </Button>
       </div>
-      {searching ? (
-        <div className="px-1 text-[0.65rem] text-(--ui-text-quaternary)">
-          Searching community + well-known sources — can take ~10s…
-        </div>
-      ) : null}
+      {searching ? <div className="px-1 text-[0.65rem] text-(--ui-text-quaternary)">{b.tools.searching}</div> : null}
       {results === null ? null : results.length === 0 ? (
-        <div className="px-1 py-1.5 text-[0.7rem] text-(--ui-text-quaternary)">No hub skills matched.</div>
+        <div className="px-1 py-1.5 text-[0.7rem] text-(--ui-text-quaternary)">{b.tools.noHubMatch}</div>
       ) : (
         <div
           className="overflow-y-auto overscroll-contain"
@@ -249,14 +243,14 @@ export function HubSkillsSection({ forProfile, onInstalled }: HubSkillsSectionPr
                   ) : null}
                 </div>
                 {installed[r.name] ? (
-                  <span className="shrink-0 text-[0.65rem] text-(--ui-text-tertiary)">✓ added</span>
+                  <span className="shrink-0 text-[0.65rem] text-(--ui-text-tertiary)">{b.tools.added}</span>
                 ) : (
                   <Button
                     className="shrink-0 px-2 font-semibold"
                     disabled={installing !== null}
                     onClick={() => void install(r.name)}
                     size="sm"
-                    title={`Install "${r.name}" and add it to the list above`}
+                    title={b.tools.installTitle(r.name)}
                     variant="ghost"
                   >
                     {installing === r.name ? '…' : '+'}

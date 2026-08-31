@@ -320,11 +320,15 @@ type BotsMessages = {
     noMcpServers: string
     noHubMatch: string
     working: string
+    search: string
+    searchingShort: string
     browseHub: string
     hideHub: string
     hubHint: string
     searching: string
     added: string
+    installed: (name: string) => string
+    installTitle: (name: string) => string
     installing: (name: string) => string
     installFailed: (name: string) => string
   }
@@ -705,18 +709,22 @@ const en: BotsMessages = {
     activityToastsTip: 'Activity toasts'
   },
   tools: {
-    skillsHub: 'Hermes Skills Hub',
+    skillsHub: 'Skills Hub',
     filterSkills: 'Filter skills…',
     searchHub: 'Search the hub (community + well-known sources)…',
     noMcpServers: 'No MCP servers configured or in the catalog.',
     noHubMatch: 'No hub skills matched.',
     working: 'Working…',
+    search: 'Search',
+    searchingShort: 'Searching…',
     browseHub: 'browse the full hub ▾',
     hideHub: 'hide the hub browser',
     hubHint:
       'Hit "+ Add to this Agent" on any skill — it installs and appears in the list above. Drag the corner to resize.',
     searching: 'Searching community + well-known sources — can take ~10s…',
     added: '✓ added',
+    installed: name => `Skill "${name}" installed`,
+    installTitle: name => `Install "${name}" and add it to the list above`,
     installing: name => `Installing "${name}"…`,
     installFailed: name => `Installing "${name}" failed`
   },
@@ -1095,12 +1103,16 @@ const ja: BotsMessages = {
     noMcpServers: '設定済みまたはカタログ内の MCP サーバーはありません。',
     noHubMatch: 'ハブに一致するスキルはありません。',
     working: '処理中…',
+    search: '検索',
+    searchingShort: '検索中…',
     browseHub: '完全なハブを閲覧 ▾',
     hideHub: 'ハブブラウザーを隠す',
     hubHint:
       '任意のスキルで「+ Add to this Agent」を押すとインストールされ、上の一覧に表示されます。角をドラッグしてサイズを変更できます。',
     searching: 'コミュニティと既知のソースを検索中 — 約10秒かかることがあります…',
     added: '✓ 追加済み',
+    installed: name => `スキル「${name}」をインストールしました`,
+    installTitle: name => `「${name}」をインストールして上の一覧に追加`,
     installing: name => `「${name}」をインストール中…`,
     installFailed: name => `「${name}」のインストールに失敗しました`
   },
@@ -1473,11 +1485,15 @@ const zh: BotsMessages = {
     noMcpServers: '未配置 MCP 服务器，目录中也没有。',
     noHubMatch: '没有匹配的技能。',
     working: '处理中…',
+    search: '搜索',
+    searchingShort: '搜索中…',
     browseHub: '浏览完整技能中心 ▾',
     hideHub: '隐藏技能中心浏览器',
     hubHint: '点击任意技能上的“+ Add to this Agent”即可安装，安装后会出现在上方列表中。拖动角落可调整大小。',
     searching: '正在搜索社区和常见来源 — 可能需要约 10 秒…',
     added: '✓ 已添加',
+    installed: name => `已安装技能“${name}”`,
+    installTitle: name => `安装“${name}”并添加到上方列表`,
     installing: name => `正在安装“${name}”…`,
     installFailed: name => `安装“${name}”失败`
   },
@@ -1849,11 +1865,15 @@ const zhHant: BotsMessages = {
     noMcpServers: '未設定 MCP 伺服器，目錄中也沒有。',
     noHubMatch: '沒有符合的技能。',
     working: '處理中…',
+    search: '搜尋',
+    searchingShort: '搜尋中…',
     browseHub: '瀏覽完整技能中心 ▾',
     hideHub: '隱藏技能中心瀏覽器',
     hubHint: '點擊任意技能上的「+ Add to this Agent」即可安裝，安裝後會出現在上方清單中。拖曳角落可調整大小。',
     searching: '正在搜尋社群和常見來源 — 可能需要約 10 秒…',
     added: '✓ 已新增',
+    installed: name => `已安裝技能「${name}」`,
+    installTitle: name => `安裝「${name}」並新增到上方清單`,
     installing: name => `正在安裝「${name}」…`,
     installFailed: name => `安裝「${name}」失敗`
   },
@@ -1970,10 +1990,22 @@ function bind<T extends object>(t: PluginTranslate, template: T, prefix = ''): B
     const path = prefix ? `${prefix}.${key}` : key
     out[key] =
       typeof value === 'function'
-        ? (...args: unknown[]) => t(path, ...args)
+        ? (...args: unknown[]) => {
+            const translated = t(path, ...args)
+
+            // Test harnesses and older hosts can expose a translator before
+            // the plugin bundle has been registered. In that case the core
+            // resolver returns the raw dotted key; keep the English bundle as
+            // the final local fallback so a key never leaks into the UI.
+            return translated === path ? (value as (...a: unknown[]) => string)(...args) : translated
+          }
         : value && typeof value === 'object'
           ? bind(t, value as object, path)
-          : t(path)
+          : (() => {
+              const translated = t(path)
+
+              return translated === path ? value : translated
+            })()
   }
 
   return out as Bound<T>
