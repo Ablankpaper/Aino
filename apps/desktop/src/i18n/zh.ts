@@ -3881,6 +3881,9 @@ export const zh: Translations = {
       moreEmoji: '更多表情',
       removeReaction: emoji => `移除 ${emoji} 回应`,
       reactedBy: product => `${product} 的回应`,
+      reactFailed: '回应失败',
+      noActiveSession: '没有活跃会话',
+      gatewayNotConnected: '网关未连接',
       steered: '已引导',
       dismissError: '关闭错误',
       errorLayers: {

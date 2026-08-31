@@ -3197,6 +3197,9 @@ export interface Translations {
       moreEmoji: string
       removeReaction: (emoji: string) => string
       reactedBy: (product: string) => string
+      reactFailed: string
+      noActiveSession: string
+      gatewayNotConnected: string
       steered: string
       dismissError: string
       /** Layer titles for the structured error card (agent/error_surface.py).

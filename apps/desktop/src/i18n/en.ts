@@ -3739,6 +3739,9 @@ export const en: Translations = {
       moreEmoji: 'More emoji',
       removeReaction: emoji => `Remove ${emoji} reaction`,
       reactedBy: product => `Reacted by ${product}`,
+      reactFailed: 'Could not react',
+      noActiveSession: 'No active session',
+      gatewayNotConnected: 'Gateway not connected',
       steered: 'steered',
       dismissError: 'Dismiss error',
       errorLayers: {
