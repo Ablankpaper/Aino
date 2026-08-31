@@ -36,18 +36,20 @@ import {
 } from '@hermes/plugin-sdk'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { useAccent } from './i18n'
+
 // Named reference points, with their OKLCH hue — the ones worth comparing while
 // judging an accent. The hue spread across the blues is the whole reason this
 // control exists: they look far apart and are 6° apart.
-const SWATCHES: ReadonlyArray<{ hex: string; name: string }> = [
-  { hex: '#0053FD', name: 'Nous blue · 263° (light seed)' },
-  { hex: '#4a84fe', name: 'Nous blue · 263° (dark seed)' },
-  { hex: '#1540B1', name: 'Psyche blue · 264°' },
-  { hex: '#0969da', name: 'GitHub blue · 257°' },
-  { hex: '#196d31', name: 'GitHub green · 148°' },
-  { hex: '#8250df', name: 'GitHub purple · 303°' },
-  { hex: '#bf3989', name: 'GitHub pink · 354°' },
-  { hex: '#bc4c00', name: 'GitHub orange · 52°' }
+const SWATCHES: ReadonlyArray<{ hex: string; id: string }> = [
+  { hex: '#0053FD', id: 'nousBlueLight' },
+  { hex: '#4a84fe', id: 'nousBlueDark' },
+  { hex: '#1540B1', id: 'psycheBlue' },
+  { hex: '#0969da', id: 'githubBlue' },
+  { hex: '#196d31', id: 'githubGreen' },
+  { hex: '#8250df', id: 'githubPurple' },
+  { hex: '#bf3989', id: 'githubPink' },
+  { hex: '#bc4c00', id: 'githubOrange' }
 ]
 
 const FIELD_W = 224
@@ -199,6 +201,7 @@ function HueRail({ lch, onPick }: { lch: Oklch; onPick: (h: number) => void }) {
 }
 
 function AccentPicker() {
+  const k = useAccent()
   const { theme, renderedMode } = useTheme()
   const override = useValue($accentOverride)
   const painted = theme.colors.primary
@@ -238,6 +241,7 @@ function AccentPicker() {
       <div className="flex items-center gap-1.5">
         <span className="size-5 shrink-0 rounded-sm border border-(--dt-border)" style={{ background: painted }} />
         <input
+          aria-label={k.hexInputLabel}
           className="min-w-0 flex-1 rounded-sm border border-(--dt-border) bg-transparent px-1.5 py-0.5 font-mono text-[11px] uppercase"
           onChange={event => {
             setText(event.target.value)
@@ -251,7 +255,7 @@ function AccentPicker() {
           onClick={() => setAccentOverride(null)}
           type="button"
         >
-          reset
+          {k.reset}
         </button>
       </div>
 
@@ -262,7 +266,7 @@ function AccentPicker() {
             key={swatch.hex}
             onClick={() => setAccentOverride(swatch.hex)}
             style={{ background: swatch.hex }}
-            title={`${swatch.name} · ${swatch.hex}`}
+            title={k.swatchTitle(swatch.id, swatch.hex)}
             type="button"
           />
         ))}
@@ -278,8 +282,12 @@ function AccentPicker() {
           H<span className="inline-block w-[3ch] text-right">{Math.round(lch.h)}</span> L{lch.l.toFixed(2)} C
           {lch.c.toFixed(3)}
         </span>
-        <span className={ratio >= 4.5 ? '' : 'text-(--dt-destructive)'}>
-          {renderedMode} {ratio.toFixed(1)}:1
+        <span
+          aria-label={k.contrastLabel}
+          className={ratio >= 4.5 ? '' : 'text-(--dt-destructive)'}
+          title={k.contrastLabel}
+        >
+          {k.modeLabel(renderedMode)} {ratio.toFixed(1)}:1
         </span>
       </div>
       {/* Always occupies its row, even when empty — this line appears exactly
@@ -287,7 +295,7 @@ function AccentPicker() {
           would grow the panel while the pointer is inside it. */}
       <p className="h-3 font-mono text-[10px] leading-tight text-(--ui-text-tertiary)">
         {override && override.toLowerCase() !== painted.toLowerCase()
-          ? `picked ${override} → ${painted} for contrast`
+          ? k.pickedForContrast(override, painted)
           : '\u00a0'}
       </p>
     </div>
@@ -295,6 +303,7 @@ function AccentPicker() {
 }
 
 export function AccentPickerTrigger() {
+  const k = useAccent()
   const { theme } = useTheme()
 
   return (
@@ -302,7 +311,8 @@ export function AccentPickerTrigger() {
       <PopoverTrigger asChild>
         <button
           className="inline-flex h-full items-center gap-1.5 px-1.5 text-[0.6875rem] text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground"
-          title="Accent color (dev)"
+          aria-label={k.triggerTitle}
+          title={k.triggerTitle}
           type="button"
         >
           <span

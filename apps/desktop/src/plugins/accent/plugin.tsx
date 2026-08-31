@@ -17,6 +17,7 @@ import type { HermesPlugin, PaletteContribution } from '@hermes/plugin-sdk'
 import { $accentOverride, PALETTE_AREA, setAccentOverride, STATUSBAR_AREAS } from '@hermes/plugin-sdk'
 
 import { AccentPickerTrigger } from './picker'
+import { ACCENT_LOCALES } from './i18n'
 
 const plugin: HermesPlugin = {
   id: 'accent',
@@ -25,6 +26,8 @@ const plugin: HermesPlugin = {
     'Pick the theme accent from an OKLCH color picker in the status bar; the palette re-derives live. Authoring tool — the color is not persisted.',
   defaultEnabled: false,
   register(ctx) {
+    ctx.i18n.register(ACCENT_LOCALES)
+
     // The override is a scratch value, not a setting. Dropping it on unregister
     // means disabling the plugin (or reloading) returns every surface to the
     // authored theme instead of stranding a color with no control to clear it.
@@ -42,7 +45,7 @@ const plugin: HermesPlugin = {
         area: PALETTE_AREA,
         data: {
           id: 'accent.reset',
-          label: 'Accent: reset to the theme default',
+          label: ctx.i18n.t('resetCommand'),
           keywords: ['accent', 'color', 'theme', 'reset', 'default'],
           run: () => setAccentOverride(null)
         } satisfies PaletteContribution
@@ -52,7 +55,7 @@ const plugin: HermesPlugin = {
         area: PALETTE_AREA,
         data: {
           id: 'accent.copy',
-          label: 'Accent: copy the current color',
+          label: ctx.i18n.t('copyCommand'),
           keywords: ['accent', 'color', 'hex', 'copy', 'clipboard'],
           run: () => {
             const hex = $accentOverride.get()
