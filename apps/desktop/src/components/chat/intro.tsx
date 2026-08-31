@@ -1,9 +1,11 @@
 import { useState } from 'react'
 
+import { type Locale, useI18n } from '@/i18n'
 import { AGENT_NAME, PRODUCT_NAME } from '@/lib/brand'
 import { capitalize, normalize } from '@/lib/text'
 
 import introCopyJsonl from './intro-copy.jsonl?raw'
+import introCopyZhJsonl from './intro-copy.zh.jsonl?raw'
 import { Wordmark } from './wordmark'
 
 type IntroCopy = {
@@ -42,6 +44,29 @@ const FALLBACK_COPY: IntroCopy[] = [
   {
     headline: 'What needs attention?',
     body: "Send the context you have. I'll help sort it into a plan or a fix."
+  }
+]
+
+const FALLBACK_COPY_ZH: IntroCopy[] = [
+  {
+    headline: '今天要处理什么？',
+    body: '告诉我一个问题、计划或粗略想法。我会先查看，再把它变成下一步可执行的行动。'
+  },
+  {
+    headline: '你在想什么？',
+    body: '贴上代码、错误或文件路径。我会从这里开始，帮你推进工作。'
+  },
+  {
+    headline: `让 ${PRODUCT_NAME} 看看什么？`,
+    body: '描述任务或正在构建的东西。我会选择合适的工具，陪你把它做完。'
+  },
+  {
+    headline: '从哪里开始？',
+    body: '把问题、目标或文件交给我。我会先调查，并让下一步保持清晰。'
+  },
+  {
+    headline: '有什么需要关注？',
+    body: '分享你已有的上下文。我会帮你整理成计划或修复方案。'
   }
 ]
 
@@ -106,17 +131,47 @@ function parseIntroCopy(raw: string): Record<string, IntroCopy[]> {
 }
 
 const INTRO_COPY_BY_PERSONALITY = parseIntroCopy(introCopyJsonl)
+const INTRO_COPY_BY_PERSONALITY_ZH = parseIntroCopy(introCopyZhJsonl)
 
-function neutralCopy(): IntroCopy[] {
+function neutralCopy(locale: Locale): IntroCopy[] {
+  if (locale === 'zh') {
+    return INTRO_COPY_BY_PERSONALITY_ZH.none || INTRO_COPY_BY_PERSONALITY_ZH.default || FALLBACK_COPY_ZH
+  }
+
   return INTRO_COPY_BY_PERSONALITY.none || INTRO_COPY_BY_PERSONALITY.default || FALLBACK_COPY
 }
 
-function fallbackCopyForPersonality(personalityKey: string): IntroCopy[] {
+function fallbackCopyForPersonality(personalityKey: string, locale: Locale): IntroCopy[] {
   if (NEUTRAL_PERSONALITIES.has(personalityKey)) {
-    return neutralCopy()
+    return neutralCopy(locale)
   }
 
   const label = titleize(personalityKey)
+
+  if (locale === 'zh') {
+    return [
+      {
+        headline: `${label} 模式已开启。我们要处理什么？`,
+        body: '告诉我任务、文件或粗略想法。我会使用你配置的语气，并让工作扎根于这个仓库。'
+      },
+      {
+        headline: `${label} 需要先看看什么？`,
+        body: '带来上下文或卡住的部分。我会适应你配置的人格。'
+      },
+      {
+        headline: `${label} 模式已就绪。`,
+        body: '发送问题、文件或想法。我会遵循你配置的风格。'
+      },
+      {
+        headline: `${label} 要解决什么？`,
+        body: '把任务交给我。我会让工作始终扎根于这个仓库。'
+      },
+      {
+        headline: '我们从哪里开始？',
+        body: `给我上下文，我会用${label}模式回答。`
+      }
+    ]
+  }
 
   return [
     {
@@ -148,19 +203,21 @@ function pickCopy(copies: IntroCopy[], seed = 0): IntroCopy {
 
 const WORDMARK = AGENT_NAME.toUpperCase()
 
-function resolveCopy(personality?: string, seed?: number): IntroCopy {
+function resolveCopy(personality: string | undefined, seed: number | undefined, locale: Locale): IntroCopy {
   const personalityKey = normalizeKey(personality)
+  const byPersonality = locale === 'zh' ? INTRO_COPY_BY_PERSONALITY_ZH : INTRO_COPY_BY_PERSONALITY
 
   const copies = NEUTRAL_PERSONALITIES.has(personalityKey)
-    ? INTRO_COPY_BY_PERSONALITY[personalityKey] || neutralCopy()
-    : INTRO_COPY_BY_PERSONALITY[personalityKey] || fallbackCopyForPersonality(personalityKey)
+    ? byPersonality[personalityKey] || neutralCopy(locale)
+    : byPersonality[personalityKey] || fallbackCopyForPersonality(personalityKey, locale)
 
-  return pickCopy(copies, seed)
+  return pickCopy(copies, seed) || (locale === 'zh' ? FALLBACK_COPY_ZH[0] : FALLBACK_COPY[0])
 }
 
 export function Intro({ personality, seed }: IntroProps) {
+  const { locale } = useI18n()
   const [mountSeed] = useState(() => Math.floor(Math.random() * 100000))
-  const copy = resolveCopy(personality, mountSeed + (seed ?? 0))
+  const copy = resolveCopy(personality, mountSeed + (seed ?? 0), locale)
 
   return (
     <div
