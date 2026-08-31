@@ -499,7 +499,13 @@ export const zh: Translations = {
       'view.toggleTabStrip': '切换标签',
       'view.showFiles': '显示文件浏览器',
       'view.showBrowser': '打开浏览器',
+      'view.toggleHud': '切换 HUD 模式',
+      'hud.snapToPointer': '将 HUD 移至指针位置（全局快捷键，仅在 HUD 打开时）',
       'view.showTerminal': '显示终端',
+      'view.newTerminal': '新建终端',
+      'view.nextTerminal': '下一个终端',
+      'view.prevTerminal': '上一个终端',
+      'view.closeTerminal': '关闭终端',
       'view.selectionToComposer': '将选区发送到输入框',
       'view.terminalCopy': '复制终端选区',
       'view.terminalPaste': '粘贴到终端',
@@ -704,6 +710,7 @@ export const zh: Translations = {
       appearance: '外观',
       workspace: '工作区',
       safety: '安全',
+      browser: '浏览器',
       memory: '记忆与上下文',
       voice: '语音',
       advanced: '高级'
@@ -933,7 +940,8 @@ export const zh: Translations = {
       },
       browser: {
         allowPrivateUrls: '浏览器私有 URL',
-        autoLocalForPrivateUrls: '私有 URL 使用本地浏览器'
+        autoLocalForPrivateUrls: '私有 URL 使用本地浏览器',
+        useRealProfile: '使用真实浏览器配置'
       },
       checkpoints: {
         enabled: '文件检查点',
@@ -946,6 +954,7 @@ export const zh: Translations = {
       },
       stt: {
         enabled: '语音转文字',
+        echoTranscripts: '回显转写文本',
         provider: '语音转文字提供方',
         local: {
           model: '本地转写模型',
@@ -1011,6 +1020,10 @@ export const zh: Translations = {
         },
         piper: {
           voice: 'Piper 语音'
+        },
+        deepinfra: {
+          model: 'DeepInfra TTS 模型',
+          voice: 'DeepInfra 语音'
         }
       },
       memory: {
@@ -1055,6 +1068,10 @@ export const zh: Translations = {
         repoScanExcludePaths: '发现代码仓库时跳过这些文件夹及其子目录。'
       },
       timezone: '当 Hermes 需要本地时间上下文时使用。留空则使用系统时区。',
+      browser: {
+        useRealProfile:
+          '本地浏览会使用你的真实登录信息。Hermes 会将默认浏览器的配置文件（Cookie、登录信息、偏好设置）复制到受管理的快照中，并使用随附的 Chromium 驱动该快照——不会直接打开你的实时配置文件，每次运行都会从中刷新副本。即使已配置云端浏览器后端，也允许智能体按需打开本地真实配置文件会话。仅支持 Chromium 浏览器（Chrome、Edge、Brave、Brave Origin、Chromium）；如果默认浏览器不是 Chromium，会显示明确的错误信息。默认关闭。'
+      },
       agent: {
         imageInputMode: '控制图片附件如何发送给模型。',
         maxTurns: 'Hermes 停止一次运行前工具调用轮次的上限。'
@@ -1062,7 +1079,11 @@ export const zh: Translations = {
       terminal: {
         cwd: '工具与终端操作的默认项目目录。',
         persistentShell: '当后端支持时，在命令之间保留 Shell 状态。',
-        envPassthrough: '传入工具执行的环境变量。'
+        envPassthrough: '传入工具执行的环境变量。',
+        dockerImage: '使用 Docker 执行后端时采用的容器镜像。',
+        singularityImage: '使用 Singularity 执行后端时采用的镜像。',
+        modalImage: '使用 Modal 执行后端时采用的镜像。',
+        daytonaImage: '使用 Daytona 执行后端时采用的镜像。'
       },
       codeExecution: {
         mode: '代码执行被限定到当前项目的严格程度。'
@@ -1093,8 +1114,23 @@ export const zh: Translations = {
       },
       stt: {
         enabled: '启用本地或提供方支持的语音转写。',
+        echoTranscripts: '将语音消息的原始 🎙️ 转写文本发回聊天。',
         elevenlabs: {
           languageCode: '可选的 ISO-639-3 语言代码。留空让 ElevenLabs 自动检测。'
+        }
+      },
+      tts: {
+        xai: {
+          voiceId: 'xAI 语音 ID（例如 eve）或自定义语音 ID。',
+          language: '语音语言代码（例如 en、pt-BR），或使用“auto”自动检测。',
+          speed: '播放速度。0.7 = 较慢，1.0 = 正常，1.5 = 较快。',
+          autoSpeechTags: '让 LLM 在合成前将富有表现力的音频标签（[laughing]、[sighs]）插入脚本。',
+          optimizeStreamingLatency: '延迟与质量的权衡。0 = 最高质量，2 = 最低延迟。',
+          sampleRate: '音频采样率（Hz）。数值越高质量越好，文件越大。',
+          bitRate: 'MP3 比特率（bps）。仅在编解码器为 mp3 时适用。'
+        },
+        neutts: {
+          device: 'NeuTTS 的本地推理设备。'
         }
       },
       updates: {
