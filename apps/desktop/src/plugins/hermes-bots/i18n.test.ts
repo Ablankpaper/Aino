@@ -51,6 +51,39 @@ describe('BOTS_LOCALES', () => {
     }
   })
 
+  it('covers the roster, row, and avatar controls used by the desktop shell', () => {
+    const samples = [
+      'roster.title',
+      'roster.newMenu',
+      'roster.activityToastsOn',
+      'roster.filterRoster',
+      'roster.globalGroupChats',
+      'roster.currentGateway',
+      'roster.staleRefresh',
+      'roster.deleteDescription',
+      'roster.deletedProfile',
+      'bot.pinToTop',
+      'bot.unpin',
+      'bot.manageGroups',
+      'bot.duplicating',
+      'bot.attentionProviderAuth',
+      'group.you',
+      'group.botCount',
+      'group.availability',
+      'avatar.lockFace',
+      'avatar.faceLocked',
+      'avatar.noImageModel',
+      'avatar.chooseImage'
+    ] as const
+    const enByPath = Object.fromEntries(leafEntries(en))
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    for (const path of samples) {
+      expect(zhByPath[path], path).toBeDefined()
+      expect(zhByPath[path], path).not.toBe(enByPath[path])
+    }
+  })
+
   it('keeps interpolator arguments in the translated string', () => {
     const sentinel = 'QUERY_SENTINEL'
     const gateway = 'GATEWAY_SENTINEL'

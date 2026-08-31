@@ -11,6 +11,7 @@ import { Codicon, ConnectionGlyph, DisclosureCaret, RowButton, Tip } from '@herm
 
 import { botHandle, botRosterKey, botSourceStatus, filterBots } from './data'
 import { displayName } from './labels'
+import { botsText } from './i18n'
 import { botRosterMeta } from './routing'
 import type { BotMeta, GatewaySource, RosterRow } from './types'
 
@@ -188,7 +189,7 @@ export function rosterGatewaySections<TRow extends RosterGatewayRow>(
       option: {
         connectionId: id,
         kind: bot?.connectionKind || 'remote',
-        label: bot?.connectionLabel || (id === 'legacy' ? 'Current gateway' : id),
+        label: bot?.connectionLabel || (id === 'legacy' ? botsText().roster.currentGateway : id),
         reachable: bot?.sourceReachable,
         error: bot?.sourceError
       },
@@ -285,7 +286,7 @@ export function GatewaySectionHeading({ collapsed, count, onToggle, option }: Ga
     sourceReachable: option?.reachable
   })
 
-  const label = option?.label || option?.connectionId || 'Current gateway'
+  const label = option?.label || option?.connectionId || botsText().roster.currentGateway
   const kind = option?.kind || 'remote'
 
   return (

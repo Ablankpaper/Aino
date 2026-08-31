@@ -37,6 +37,7 @@ import { getPluginCtx } from './shared'
 type BotsMessages = {
   /** Left rail: the bot + group-chat roster. */
   roster: {
+    title: string
     search: string
     searchPlaceholder: string
     newBotOrGroup: string
@@ -48,6 +49,23 @@ type BotsMessages = {
     noMatchFiltersOn: (gateway: string) => string
     noMatchFilters: string
     clearFilters: string
+    newMenu: string
+    activityToastsOn: string
+    activityToastsOff: string
+    filterRoster: string
+    filterRosterActive: (count: number) => string
+    globalGroupChats: (count: number) => string
+    currentGateway: string
+    staleRefresh: string
+    staleWaiting: string
+    gatewayError: string
+    deleteDescription: (name: string, path: string) => string
+    deletedProfile: (name: string) => string
+    deletedGroup: (name: string) => string
+    deleting: string
+    deleted: string
+    allGateways: string
+    hidden: string
     allHidden: string
     allHiddenDesc: string
     showHidden: string
@@ -101,6 +119,26 @@ type BotsMessages = {
     chatEmpty: string
     /** First line of a brand-new bot's forever-chat — see `kickoffText`. */
     kickoff: string
+    pinToTop: string
+    unpin: string
+    hide: string
+    unhide: string
+    pinnedNotice: (name: string) => string
+    unpinnedNotice: (name: string) => string
+    hiddenNotice: (name: string) => string
+    unhiddenNotice: (name: string) => string
+    metadataLoadFailed: string
+    loadFailed: string
+    groupsLoadFailed: string
+    manageGroups: string
+    groupsLabel: (groups: string) => string
+    duplicating: (name: string) => string
+    duplicated: (name: string, source: string) => string
+    attentionProviderAuth: string
+    attentionQuota: string
+    attentionMissingConfig: string
+    attentionBlocked: string
+    attentionGeneric: string
   }
   /** Avatar picker: shapes, blobs, pets, uploads, generation. */
   avatar: {
@@ -108,6 +146,8 @@ type BotsMessages = {
     blobFromName: string
     unlockFollowsName: string
     randomize: string
+    auto: string
+    autoTitle: string
     /** The picker's four tabs, in order. */
     tabBot: string
     tabGenerate: string
@@ -126,6 +166,14 @@ type BotsMessages = {
     savedLocallyDescriptionFailed: string
     generate: string
     generating: string
+    keepExactFace: string
+    lockFace: string
+    unlockFace: string
+    faceLocked: string
+    faceFollowsName: string
+    noImageModel: string
+    checkingImageBackend: string
+    chooseImage: string
   }
   /** Group chats: the room, its composer, threads and activity feed. */
   group: {
@@ -192,6 +240,31 @@ type BotsMessages = {
     wantsToRunCommand: (handle: string) => string
     asks: (handle: string) => string
     answerTo: (member: string) => string
+    openGroupChat: string
+    you: string
+    botCount: (count: number) => string
+    availability: (available: number, total: number) => string
+    noBotsInChat: string
+    back: string
+    hideFullHandle: string
+    showFullHandle: string
+    attachedFile: string
+    attachedImage: string
+    answerWithChoices: string
+    answerPlaceholder: string
+    answerOwnPlaceholder: string
+    sending: string
+    respond: string
+    answer: string
+    newDescription: (max: number) => string
+    createAndJoin: string
+    newGroupPlaceholder: string
+    groupNameExample: string
+    createdWith: (name: string, count: number) => string
+    noBotsMatch: (query: string) => string
+    noBotsYet: string
+    pickAtLeast: (count: number) => string
+    activityToastsTip: string
   }
   /** Skills hub + MCP setup surfaces embedded in the bot editor. */
   tools: {
@@ -199,6 +272,15 @@ type BotsMessages = {
     filterSkills: string
     searchHub: string
     noMcpServers: string
+    noHubMatch: string
+    working: string
+    browseHub: string
+    hideHub: string
+    hubHint: string
+    searching: string
+    added: string
+    installing: (name: string) => string
+    installFailed: (name: string) => string
   }
 
   /** Bot-scoped scheduled jobs. Generic scheduling chrome (weekday names,
@@ -242,11 +324,29 @@ type BotsMessages = {
     runsInterval: (count: number, unit: string) => string
     runsRaw: string
     timesTotal: (count: number) => string
+    jobDescription: string
+    stopAfter: string
+    runsForever: string
+    detailStatus: string
+    detailSchedule: string
+    detailScheduleRaw: string
+    detailRepeat: string
+    detailNextRun: string
+    detailLastRun: string
+    detailLastResult: string
+    detailDeliversTo: string
+    detailModel: string
+    detailWorkingDirectory: string
+    pausedSecurity: string
+    onceMinutes: string
+    onceHours: string
+    onceDays: string
   }
 }
 
 const en: BotsMessages = {
   roster: {
+    title: 'Bots',
     search: 'Search bots and group chats',
     searchPlaceholder: 'Search bots and group chats…',
     newBotOrGroup: 'New bot or group chat',
@@ -258,6 +358,24 @@ const en: BotsMessages = {
     noMatchFiltersOn: gateway => `No bots or group chats match these filters on ${gateway}`,
     noMatchFilters: 'No bots or group chats match these filters.',
     clearFilters: 'Clear filters',
+    newMenu: 'New…',
+    activityToastsOn: 'Activity toasts on — click to silence',
+    activityToastsOff: 'Activity toasts off — click to enable',
+    filterRoster: 'Filter roster',
+    filterRosterActive: count => `Filter roster, ${count} active`,
+    globalGroupChats: count => `${count} global group chat${count === 1 ? '' : 's'}`,
+    currentGateway: 'Current gateway',
+    staleRefresh: 'Roster refresh failed — showing the last good list.',
+    staleWaiting: 'Waiting for the gateway to reconnect…',
+    gatewayError: 'gateway error',
+    deleteDescription: (name, path) =>
+      `This will permanently delete the bot ${name} and its associated Hermes profile at ${path}. This cannot be undone.`,
+    deletedProfile: name => `Deleted profile ${name}`,
+    deletedGroup: name => `Deleted group “${name}”`,
+    deleting: 'Deleting…',
+    deleted: 'Deleted',
+    allGateways: 'All gateways',
+    hidden: 'Hidden',
     allHidden: 'All bots are hidden',
     allHiddenDesc: 'They keep working and retain their history.',
     showHidden: 'Show hidden bots',
@@ -304,13 +422,35 @@ const en: BotsMessages = {
     openAnotherChatUnsupported: 'Update Hermes Desktop to open another Bot chat.',
     remoteConnectionsUnsupported: 'Update Hermes Desktop to chat with bots on other connections.',
     chatEmpty: 'Say something to get started.',
-    kickoff: 'Hey, tell me about yourself!'
+    kickoff: 'Hey, tell me about yourself!',
+    pinToTop: 'Pin to top',
+    unpin: 'Unpin',
+    hide: 'Hide',
+    unhide: 'Unhide',
+    pinnedNotice: name => `${name} pinned to top`,
+    unpinnedNotice: name => `${name} unpinned`,
+    hiddenNotice: name => `${name} hidden — use the eye button in the Bots header to see hidden bots`,
+    unhiddenNotice: name => `${name} is back in the roster`,
+    metadataLoadFailed: 'Could not load bot metadata',
+    loadFailed: 'Could not load bot',
+    groupsLoadFailed: 'Could not load bot groups',
+    manageGroups: 'Manage groups…',
+    groupsLabel: groups => `Groups: ${groups}…`,
+    duplicating: name => `Duplicating ${name}…`,
+    duplicated: (name, source) => `Created ${name} — full copy of ${source}`,
+    attentionProviderAuth: 'Sign in again for this profile',
+    attentionQuota: 'Quota or balance exhausted',
+    attentionMissingConfig: 'Provider not configured — run hermes model',
+    attentionBlocked: 'Bot is blocked — see its last message',
+    attentionGeneric: 'Needs attention'
   },
   avatar: {
     classicShapes: 'Classic shapes',
     blobFromName: 'Blob face — drawn from the bot’s name',
     unlockFollowsName: 'Unlock — the face follows the bot’s name again',
     randomize: 'Randomize',
+    auto: 'Auto',
+    autoTitle: 'Auto — the name decides',
     tabBot: 'Bot',
     tabGenerate: 'Generate',
     upload: 'Upload',
@@ -327,7 +467,16 @@ const en: BotsMessages = {
     savedLocally: 'Saved look locally; remote persistence failed',
     savedLocallyDescriptionFailed: 'Saved look locally; description update failed',
     generate: 'Generate',
-    generating: 'Generating…'
+    generating: 'Generating…',
+    keepExactFace: 'Keep this exact face even if the name changes',
+    lockFace: 'Lock face',
+    unlockFace: 'Unlock',
+    faceLocked: 'Face locked — renaming won’t change it.',
+    faceFollowsName: 'Face follows the name.',
+    noImageModel:
+      'No image model available. If you just enabled one (or updated Hermes), restart the gateway: Ctrl+K → "Restart gateway".',
+    checkingImageBackend: 'Checking image backend…',
+    chooseImage: 'Choose an image…'
   },
   group: {
     newTitle: 'New group chat',
@@ -391,13 +540,49 @@ const en: BotsMessages = {
     answerFailed: (handle, error) => `Could not send the answer to @${handle}: ${error}`,
     wantsToRunCommand: handle => `@${handle} wants to run a command:`,
     asks: handle => `@${handle} asks:`,
-    answerTo: member => `Answer @${member}`
+    answerTo: member => `Answer @${member}`,
+    openGroupChat: 'Open Group Chat',
+    you: 'You',
+    botCount: count => `${count} bots`,
+    availability: (available, total) => `${available} of ${total} available`,
+    noBotsInChat: 'No bots in this group chat',
+    back: 'Back',
+    hideFullHandle: 'Hide full handle',
+    showFullHandle: 'Show full handle',
+    attachedFile: 'attached file',
+    attachedImage: 'attached image',
+    answerWithChoices: 'Or type your own answer…',
+    answerPlaceholder: 'Type your answer…',
+    answerOwnPlaceholder: 'Or type your own answer…',
+    sending: 'Sending…',
+    respond: 'Respond',
+    answer: 'Answer',
+    newDescription: max =>
+      `Pick 2–${max} bots. Local memberships sync through each Bot profile; cross-machine members stay scoped to this room.`,
+    createAndJoin: 'Create & join',
+    newGroupPlaceholder: 'New group…',
+    groupNameExample: 'Group name (e.g. Research)',
+    createdWith: (name, count) => `“${name}” created with ${count} bots`,
+    noBotsMatch: query => `No bots match “${query}”`,
+    noBotsYet: 'No bots yet — create one first.',
+    pickAtLeast: count => `Pick at least ${count} bots`,
+    activityToastsTip: 'Activity toasts'
   },
   tools: {
     skillsHub: 'Hermes Skills Hub',
     filterSkills: 'Filter skills…',
     searchHub: 'Search the hub (community + well-known sources)…',
-    noMcpServers: 'No MCP servers configured or in the catalog.'
+    noMcpServers: 'No MCP servers configured or in the catalog.',
+    noHubMatch: 'No hub skills matched.',
+    working: 'Working…',
+    browseHub: 'browse the full hub ▾',
+    hideHub: 'hide the hub browser',
+    hubHint:
+      'Hit "+ Add to this Agent" on any skill — it installs and appears in the list above. Drag the corner to resize.',
+    searching: 'Searching community + well-known sources — can take ~10s…',
+    added: '✓ added',
+    installing: name => `Installing "${name}"…`,
+    installFailed: name => `Installing "${name}" failed`
   },
   cron: {
     filterHint:
@@ -436,12 +621,30 @@ const en: BotsMessages = {
     runsMonthly: (day, time) => `Runs on day ${day} of each month at ${time}`,
     runsInterval: (count, unit) => `Runs every ${count} ${unit}`,
     runsRaw: 'Raw schedule — every Nm/Nh/Nd or 5-field cron',
-    timesTotal: count => `, ${count} time(s) total`
+    timesTotal: count => `, ${count} time(s) total`,
+    jobDescription: 'What this job runs, and when it runs next.',
+    stopAfter: 'Stop after',
+    runsForever: 'runs (blank = forever)',
+    detailStatus: 'Status',
+    detailSchedule: 'Schedule',
+    detailScheduleRaw: 'Schedule (raw)',
+    detailRepeat: 'Repeat',
+    detailNextRun: 'Next run',
+    detailLastRun: 'Last run',
+    detailLastResult: 'Last result',
+    detailDeliversTo: 'Delivers to',
+    detailModel: 'Model',
+    detailWorkingDirectory: 'Working directory',
+    pausedSecurity: 'Paused for security: delete and recreate this legacy job before running it again.',
+    onceMinutes: 'minutes from now',
+    onceHours: 'hours from now',
+    onceDays: 'days from now'
   }
 }
 
 const ja: BotsMessages = {
   roster: {
+    title: 'ボット',
     search: 'ボットとグループチャットを検索',
     searchPlaceholder: 'ボットとグループチャットを検索…',
     newBotOrGroup: '新しいボットまたはグループチャット',
@@ -453,6 +656,24 @@ const ja: BotsMessages = {
     noMatchFiltersOn: gateway => `${gateway} にこれらのフィルタに一致するボットやグループチャットはありません`,
     noMatchFilters: 'これらのフィルタに一致するボットやグループチャットはありません。',
     clearFilters: 'フィルタをクリア',
+    newMenu: '新規…',
+    activityToastsOn: 'アクティビティ通知オン — クリックで消音',
+    activityToastsOff: 'アクティビティ通知オフ — クリックで有効化',
+    filterRoster: '名簿を絞り込み',
+    filterRosterActive: count => `名簿を絞り込み（${count}件有効）`,
+    globalGroupChats: count => `全体グループチャット${count === 1 ? '' : '（' + count + '）'}`,
+    currentGateway: '現在のゲートウェイ',
+    staleRefresh: '名簿の更新に失敗しました。最後に取得した一覧を表示しています。',
+    staleWaiting: 'ゲートウェイの再接続を待っています…',
+    gatewayError: 'ゲートウェイエラー',
+    deleteDescription: (name, path) =>
+      `ボット${name}と関連するHermesプロファイル（${path}）を完全に削除します。この操作は取り消せません。`,
+    deletedProfile: name => `プロファイル${name}を削除しました`,
+    deletedGroup: name => `グループ「${name}」を削除しました`,
+    deleting: '削除中…',
+    deleted: '削除しました',
+    allGateways: 'すべてのゲートウェイ',
+    hidden: '非表示',
     allHidden: 'すべてのボットが非表示です',
     allHiddenDesc: '非表示でも動作を続け、履歴も残ります。',
     showHidden: '非表示のボットを表示',
@@ -498,13 +719,35 @@ const ja: BotsMessages = {
     openAnotherChatUnsupported: '別のボットチャットを開くには Hermes Desktop を更新してください。',
     remoteConnectionsUnsupported: '他の接続上のボットとチャットするには Hermes Desktop を更新してください。',
     chatEmpty: '何か書いて始めましょう。',
-    kickoff: 'こんにちは、自己紹介をしてください！'
+    kickoff: 'こんにちは、自己紹介をしてください！',
+    pinToTop: '上部にピン留め',
+    unpin: 'ピン留めを解除',
+    hide: '非表示',
+    unhide: '再表示',
+    pinnedNotice: name => `${name}を上部にピン留めしました`,
+    unpinnedNotice: name => `${name}のピン留めを解除しました`,
+    hiddenNotice: name => `${name}を非表示にしました — ボットヘッダーの目のボタンで表示できます`,
+    unhiddenNotice: name => `${name}を名簿に戻しました`,
+    metadataLoadFailed: 'ボットのメタデータを読み込めませんでした',
+    loadFailed: 'ボットを読み込めませんでした',
+    groupsLoadFailed: 'ボットのグループを読み込めませんでした',
+    manageGroups: 'グループを管理…',
+    groupsLabel: groups => `グループ: ${groups}…`,
+    duplicating: name => `${name}を複製中…`,
+    duplicated: (name, source) => `${name}を作成しました — ${source}の完全なコピー`,
+    attentionProviderAuth: 'このプロファイルにもう一度サインインしてください',
+    attentionQuota: 'クォータまたは残高が不足しています',
+    attentionMissingConfig: 'プロバイダー未設定 — hermes model を実行してください',
+    attentionBlocked: 'ボットがブロックされています — 最新メッセージを確認してください',
+    attentionGeneric: '要対応'
   },
   avatar: {
     classicShapes: 'クラシックシェイプ',
     blobFromName: 'ブロブ顔 — ボットの名前から描画',
     unlockFollowsName: 'ロック解除 — 顔がボットの名前に再び追従します',
     randomize: 'ランダム',
+    auto: '自動',
+    autoTitle: '自動 — 名前で決まります',
     tabBot: 'ボット',
     tabGenerate: '生成',
     upload: 'アップロード',
@@ -521,7 +764,16 @@ const ja: BotsMessages = {
     savedLocally: '見た目はローカルに保存されましたが、リモートへの保存に失敗しました',
     savedLocallyDescriptionFailed: '見た目はローカルに保存されましたが、説明の更新に失敗しました',
     generate: '生成',
-    generating: '生成中…'
+    generating: '生成中…',
+    keepExactFace: '名前が変わってもこの顔を固定',
+    lockFace: '顔を固定',
+    unlockFace: '固定を解除',
+    faceLocked: '顔を固定中 — 名前を変更しても変わりません。',
+    faceFollowsName: '顔は名前に合わせて変わります。',
+    noImageModel:
+      '画像モデルがありません。有効化またはHermes更新直後の場合は、ゲートウェイを再起動してください（Ctrl+K →「ゲートウェイを再起動」）。',
+    checkingImageBackend: '画像バックエンドを確認中…',
+    chooseImage: '画像を選択…'
   },
   group: {
     newTitle: '新しいグループチャット',
@@ -585,13 +837,49 @@ const ja: BotsMessages = {
     answerFailed: (handle, error) => `@${handle}に回答を送信できませんでした: ${error}`,
     wantsToRunCommand: handle => `@${handle}がコマンドを実行しようとしています:`,
     asks: handle => `@${handle}からの質問:`,
-    answerTo: member => `@${member}に回答`
+    answerTo: member => `@${member}に回答`,
+    openGroupChat: 'グループチャットを開く',
+    you: 'あなた',
+    botCount: count => `ボット${count}体`,
+    availability: (available, total) => `${total}体中${available}体が利用可能`,
+    noBotsInChat: 'このグループチャットにボットはいません',
+    back: '戻る',
+    hideFullHandle: '完全なハンドルを隠す',
+    showFullHandle: '完全なハンドルを表示',
+    attachedFile: '添付ファイル',
+    attachedImage: '添付画像',
+    answerWithChoices: 'または回答を入力…',
+    answerPlaceholder: '回答を入力…',
+    answerOwnPlaceholder: 'または回答を入力…',
+    sending: '送信中…',
+    respond: '応答',
+    answer: '回答',
+    newDescription: max =>
+      `2〜${max}体のボットを選択。ローカルの所属は各ボットプロファイルに同期され、別マシンのメンバーはこのルームに紐づきます。`,
+    createAndJoin: '作成して参加',
+    newGroupPlaceholder: '新しいグループ…',
+    groupNameExample: 'グループ名（例: Research）',
+    createdWith: (name, count) => `「${name}」を${count}体のボットで作成しました`,
+    noBotsMatch: query => `「${query}」に一致するボットはありません`,
+    noBotsYet: 'ボットはまだありません — 先に作成してください。',
+    pickAtLeast: count => `ボットを${count}体以上選択してください`,
+    activityToastsTip: 'アクティビティ通知'
   },
   tools: {
     skillsHub: 'Hermes スキルハブ',
     filterSkills: 'スキルを絞り込み…',
     searchHub: 'ハブを検索（コミュニティと既知のソース）…',
-    noMcpServers: '設定済みまたはカタログ内の MCP サーバーはありません。'
+    noMcpServers: '設定済みまたはカタログ内の MCP サーバーはありません。',
+    noHubMatch: 'ハブに一致するスキルはありません。',
+    working: '処理中…',
+    browseHub: '完全なハブを閲覧 ▾',
+    hideHub: 'ハブブラウザーを隠す',
+    hubHint:
+      '任意のスキルで「+ Add to this Agent」を押すとインストールされ、上の一覧に表示されます。角をドラッグしてサイズを変更できます。',
+    searching: 'コミュニティと既知のソースを検索中 — 約10秒かかることがあります…',
+    added: '✓ 追加済み',
+    installing: name => `「${name}」をインストール中…`,
+    installFailed: name => `「${name}」のインストールに失敗しました`
   },
   cron: {
     filterHint:
@@ -630,12 +918,30 @@ const ja: BotsMessages = {
     runsMonthly: (day, time) => `毎月${day}日の${time}に実行します`,
     runsInterval: (count, unit) => `${count}${unit}ごとに実行します`,
     runsRaw: '生のスケジュール — Nm/Nh/Nd または5フィールドのcron',
-    timesTotal: count => `、合計${count}回`
+    timesTotal: count => `、合計${count}回`,
+    jobDescription: 'このジョブの内容と次回の実行日時。',
+    stopAfter: '停止する回数',
+    runsForever: '回（空欄 = 無期限）',
+    detailStatus: '状態',
+    detailSchedule: 'スケジュール',
+    detailScheduleRaw: 'スケジュール（raw）',
+    detailRepeat: '繰り返し',
+    detailNextRun: '次回実行',
+    detailLastRun: '前回実行',
+    detailLastResult: '前回の結果',
+    detailDeliversTo: '配信先',
+    detailModel: 'モデル',
+    detailWorkingDirectory: '作業ディレクトリ',
+    pausedSecurity: '安全のため停止中です。この古いジョブを削除して作り直してから実行してください。',
+    onceMinutes: '分後',
+    onceHours: '時間後',
+    onceDays: '日後'
   }
 }
 
 const zh: BotsMessages = {
   roster: {
+    title: '机器人',
     search: '搜索机器人和群聊',
     searchPlaceholder: '搜索机器人和群聊…',
     newBotOrGroup: '新建机器人或群聊',
@@ -647,6 +953,23 @@ const zh: BotsMessages = {
     noMatchFiltersOn: gateway => `${gateway} 上没有机器人或群聊匹配这些筛选条件`,
     noMatchFilters: '没有机器人或群聊匹配这些筛选条件。',
     clearFilters: '清除筛选',
+    newMenu: '新建…',
+    activityToastsOn: '活动通知已开启 — 点击静音',
+    activityToastsOff: '活动通知已关闭 — 点击开启',
+    filterRoster: '筛选名单',
+    filterRosterActive: count => `筛选名单（${count} 项已启用）`,
+    globalGroupChats: count => `${count} 个全局群聊`,
+    currentGateway: '当前网关',
+    staleRefresh: '名单刷新失败 — 显示上次成功获取的列表。',
+    staleWaiting: '等待网关重新连接…',
+    gatewayError: '网关错误',
+    deleteDescription: (name, path) => `将永久删除机器人 ${name} 及其 Hermes 配置档案（${path}）。此操作无法撤销。`,
+    deletedProfile: name => `已删除配置档案 ${name}`,
+    deletedGroup: name => `已删除群组“${name}”`,
+    deleting: '删除中…',
+    deleted: '已删除',
+    allGateways: '所有网关',
+    hidden: '已隐藏',
     allHidden: '所有机器人都已隐藏',
     allHiddenDesc: '它们会继续运行，并保留各自的历史。',
     showHidden: '显示已隐藏的机器人',
@@ -691,13 +1014,35 @@ const zh: BotsMessages = {
     openAnotherChatUnsupported: '请更新 Hermes Desktop 以打开另一个机器人聊天。',
     remoteConnectionsUnsupported: '请更新 Hermes Desktop 以与其他连接上的机器人聊天。',
     chatEmpty: '说点什么开始吧。',
-    kickoff: '你好，介绍一下你自己吧！'
+    kickoff: '你好，介绍一下你自己吧！',
+    pinToTop: '置顶',
+    unpin: '取消置顶',
+    hide: '隐藏',
+    unhide: '取消隐藏',
+    pinnedNotice: name => `已将 ${name} 置顶`,
+    unpinnedNotice: name => `已取消 ${name} 的置顶`,
+    hiddenNotice: name => `已隐藏 ${name} — 点击机器人标题栏中的眼睛按钮可查看隐藏项`,
+    unhiddenNotice: name => `已将 ${name} 恢复到名单`,
+    metadataLoadFailed: '无法加载机器人元数据',
+    loadFailed: '无法加载机器人',
+    groupsLoadFailed: '无法加载机器人群组',
+    manageGroups: '管理群组…',
+    groupsLabel: groups => `群组：${groups}…`,
+    duplicating: name => `正在复制 ${name}…`,
+    duplicated: (name, source) => `已创建 ${name} — ${source} 的完整副本`,
+    attentionProviderAuth: '请重新登录此配置档案',
+    attentionQuota: '配额或余额已用尽',
+    attentionMissingConfig: '提供方未配置 — 请运行 hermes model',
+    attentionBlocked: '机器人已被阻止 — 查看它的最后一条消息',
+    attentionGeneric: '需要处理'
   },
   avatar: {
     classicShapes: '经典形状',
     blobFromName: '斑点脸 — 根据机器人名称绘制',
     unlockFollowsName: '解锁 — 面孔再次跟随机器人名称',
     randomize: '随机',
+    auto: '自动',
+    autoTitle: '自动 — 由名称决定',
     tabBot: '机器人',
     tabGenerate: '生成',
     upload: '上传',
@@ -714,7 +1059,15 @@ const zh: BotsMessages = {
     savedLocally: '外观已保存在本地；远程持久化失败',
     savedLocallyDescriptionFailed: '外观已保存在本地；描述更新失败',
     generate: '生成',
-    generating: '生成中…'
+    generating: '生成中…',
+    keepExactFace: '即使名称改变也保持此头像',
+    lockFace: '锁定头像',
+    unlockFace: '解锁',
+    faceLocked: '头像已锁定 — 重命名不会改变它。',
+    faceFollowsName: '头像会跟随名称变化。',
+    noImageModel: '没有可用的图像模型。如果你刚启用模型或更新了 Hermes，请重启网关：Ctrl+K →“重启网关”。',
+    checkingImageBackend: '正在检查图像后端…',
+    chooseImage: '选择图片…'
   },
   group: {
     newTitle: '新建群聊',
@@ -778,13 +1131,48 @@ const zh: BotsMessages = {
     answerFailed: (handle, error) => `无法将回答发送给 @${handle}：${error}`,
     wantsToRunCommand: handle => `@${handle} 想执行一个命令：`,
     asks: handle => `@${handle} 的提问：`,
-    answerTo: member => `回答 @${member}`
+    answerTo: member => `回答 @${member}`,
+    openGroupChat: '打开群聊',
+    you: '你',
+    botCount: count => `${count} 个机器人`,
+    availability: (available, total) => `${total} 个中 ${available} 个可用`,
+    noBotsInChat: '此群聊中没有机器人',
+    back: '返回',
+    hideFullHandle: '隐藏完整句柄',
+    showFullHandle: '显示完整句柄',
+    attachedFile: '附件',
+    attachedImage: '图片附件',
+    answerWithChoices: '或输入自定义回答…',
+    answerPlaceholder: '输入回答…',
+    answerOwnPlaceholder: '或输入自定义回答…',
+    sending: '发送中…',
+    respond: '响应',
+    answer: '回答',
+    newDescription: max =>
+      `请选择 2–${max} 个机器人。本地成员关系会同步到各自的机器人配置档案；跨机器成员会限定在此房间内。`,
+    createAndJoin: '创建并加入',
+    newGroupPlaceholder: '新建群组…',
+    groupNameExample: '群组名称（例如：Research）',
+    createdWith: (name, count) => `已创建“${name}”，包含 ${count} 个机器人`,
+    noBotsMatch: query => `没有机器人匹配“${query}”`,
+    noBotsYet: '还没有机器人 — 请先创建一个。',
+    pickAtLeast: count => `至少选择 ${count} 个机器人`,
+    activityToastsTip: '活动通知'
   },
   tools: {
     skillsHub: 'Hermes 技能中心',
     filterSkills: '筛选技能…',
     searchHub: '搜索技能中心（社区和常见来源）…',
-    noMcpServers: '未配置 MCP 服务器，目录中也没有。'
+    noMcpServers: '未配置 MCP 服务器，目录中也没有。',
+    noHubMatch: '没有匹配的技能。',
+    working: '处理中…',
+    browseHub: '浏览完整技能中心 ▾',
+    hideHub: '隐藏技能中心浏览器',
+    hubHint: '点击任意技能上的“+ Add to this Agent”即可安装，安装后会出现在上方列表中。拖动角落可调整大小。',
+    searching: '正在搜索社区和常见来源 — 可能需要约 10 秒…',
+    added: '✓ 已添加',
+    installing: name => `正在安装“${name}”…`,
+    installFailed: name => `安装“${name}”失败`
   },
   cron: {
     filterHint:
@@ -823,12 +1211,30 @@ const zh: BotsMessages = {
     runsMonthly: (day, time) => `每月 ${day} 日 ${time} 运行`,
     runsInterval: (count, unit) => `每 ${count} ${unit}运行`,
     runsRaw: '原始计划 — every Nm/Nh/Nd 或 5 段 cron',
-    timesTotal: count => `，共 ${count} 次`
+    timesTotal: count => `，共 ${count} 次`,
+    jobDescription: '此任务运行的内容，以及下次运行时间。',
+    stopAfter: '停止于',
+    runsForever: '次（留空 = 永久）',
+    detailStatus: '状态',
+    detailSchedule: '计划',
+    detailScheduleRaw: '计划（原始）',
+    detailRepeat: '重复',
+    detailNextRun: '下次运行',
+    detailLastRun: '上次运行',
+    detailLastResult: '上次结果',
+    detailDeliversTo: '发送到',
+    detailModel: '模型',
+    detailWorkingDirectory: '工作目录',
+    pausedSecurity: '出于安全原因已暂停：请删除并重新创建此旧任务后再运行。',
+    onceMinutes: '分钟后',
+    onceHours: '小时后',
+    onceDays: '天后'
   }
 }
 
 const zhHant: BotsMessages = {
   roster: {
+    title: '機器人',
     search: '搜尋機器人和群組聊天',
     searchPlaceholder: '搜尋機器人和群組聊天…',
     newBotOrGroup: '新增機器人或群組聊天',
@@ -840,6 +1246,23 @@ const zhHant: BotsMessages = {
     noMatchFiltersOn: gateway => `${gateway} 上沒有機器人或群組聊天符合這些篩選條件`,
     noMatchFilters: '沒有機器人或群組聊天符合這些篩選條件。',
     clearFilters: '清除篩選',
+    newMenu: '新增…',
+    activityToastsOn: '活動通知已開啟 — 點擊靜音',
+    activityToastsOff: '活動通知已關閉 — 點擊開啟',
+    filterRoster: '篩選名單',
+    filterRosterActive: count => `篩選名單（${count} 項已啟用）`,
+    globalGroupChats: count => `${count} 個全域群組聊天`,
+    currentGateway: '目前閘道',
+    staleRefresh: '名單重新整理失敗 — 顯示上次成功取得的清單。',
+    staleWaiting: '正在等待閘道重新連線…',
+    gatewayError: '閘道錯誤',
+    deleteDescription: (name, path) => `將永久刪除機器人 ${name} 及其 Hermes 設定檔（${path}）。此操作無法復原。`,
+    deletedProfile: name => `已刪除設定檔 ${name}`,
+    deletedGroup: name => `已刪除群組「${name}」`,
+    deleting: '刪除中…',
+    deleted: '已刪除',
+    allGateways: '所有閘道',
+    hidden: '隱藏',
     allHidden: '所有機器人都已隱藏',
     allHiddenDesc: '它們會繼續運作，並保留各自的歷史。',
     showHidden: '顯示已隱藏的機器人',
@@ -884,13 +1307,35 @@ const zhHant: BotsMessages = {
     openAnotherChatUnsupported: '請更新 Hermes Desktop 以開啟另一個機器人聊天。',
     remoteConnectionsUnsupported: '請更新 Hermes Desktop 以與其他連線上的機器人聊天。',
     chatEmpty: '說點什麼開始吧。',
-    kickoff: '你好，介紹一下你自己吧！'
+    kickoff: '你好，介紹一下你自己吧！',
+    pinToTop: '釘選到頂端',
+    unpin: '取消釘選',
+    hide: '隱藏',
+    unhide: '取消隱藏',
+    pinnedNotice: name => `已將 ${name} 釘選到頂端`,
+    unpinnedNotice: name => `已取消 ${name} 的釘選`,
+    hiddenNotice: name => `已隱藏 ${name} — 點擊機器人標題列的眼睛按鈕即可查看`,
+    unhiddenNotice: name => `已將 ${name} 放回名單`,
+    metadataLoadFailed: '無法載入機器人中繼資料',
+    loadFailed: '無法載入機器人',
+    groupsLoadFailed: '無法載入機器人群組',
+    manageGroups: '管理群組…',
+    groupsLabel: groups => `群組：${groups}…`,
+    duplicating: name => `正在複製 ${name}…`,
+    duplicated: (name, source) => `已建立 ${name} — ${source} 的完整副本`,
+    attentionProviderAuth: '請重新登入此設定檔',
+    attentionQuota: '配額或餘額已用盡',
+    attentionMissingConfig: '提供者尚未設定 — 請執行 hermes model',
+    attentionBlocked: '機器人已遭封鎖 — 查看它的最後一則訊息',
+    attentionGeneric: '需要處理'
   },
   avatar: {
     classicShapes: '經典形狀',
     blobFromName: '斑點臉 — 依機器人名稱繪製',
     unlockFollowsName: '解鎖 — 面孔再次跟隨機器人名稱',
     randomize: '隨機',
+    auto: '自動',
+    autoTitle: '自動 — 由名稱決定',
     tabBot: '機器人',
     tabGenerate: '生成',
     upload: '上傳',
@@ -907,7 +1352,15 @@ const zhHant: BotsMessages = {
     savedLocally: '外觀已儲存在本機；遠端持久化失敗',
     savedLocallyDescriptionFailed: '外觀已儲存在本機；描述更新失敗',
     generate: '生成',
-    generating: '生成中…'
+    generating: '生成中…',
+    keepExactFace: '即使名稱變更也保持此頭像',
+    lockFace: '鎖定頭像',
+    unlockFace: '解除鎖定',
+    faceLocked: '頭像已鎖定 — 重新命名不會改變它。',
+    faceFollowsName: '頭像會跟隨名稱變化。',
+    noImageModel: '沒有可用的圖片模型。如果你剛啟用模型或更新 Hermes，請重新啟動閘道：Ctrl+K →「重新啟動閘道」。',
+    checkingImageBackend: '正在檢查圖片後端…',
+    chooseImage: '選擇圖片…'
   },
   group: {
     newTitle: '新增群組聊天',
@@ -971,13 +1424,48 @@ const zhHant: BotsMessages = {
     answerFailed: (handle, error) => `無法將回答傳送給 @${handle}：${error}`,
     wantsToRunCommand: handle => `@${handle} 想執行一個命令：`,
     asks: handle => `@${handle} 的提問：`,
-    answerTo: member => `回覆 @${member}`
+    answerTo: member => `回覆 @${member}`,
+    openGroupChat: '開啟群組聊天',
+    you: '你',
+    botCount: count => `${count} 個機器人`,
+    availability: (available, total) => `${total} 個中 ${available} 個可用`,
+    noBotsInChat: '此群組聊天中沒有機器人',
+    back: '返回',
+    hideFullHandle: '隱藏完整控制代碼',
+    showFullHandle: '顯示完整控制代碼',
+    attachedFile: '附件檔案',
+    attachedImage: '圖片附件',
+    answerWithChoices: '或輸入自訂回答…',
+    answerPlaceholder: '輸入回答…',
+    answerOwnPlaceholder: '或輸入自訂回答…',
+    sending: '傳送中…',
+    respond: '回應',
+    answer: '回答',
+    newDescription: max =>
+      `請選擇 2–${max} 個機器人。本機成員關係會同步到各自的機器人設定檔；跨機器成員會限定在此房間內。`,
+    createAndJoin: '建立並加入',
+    newGroupPlaceholder: '新增群組…',
+    groupNameExample: '群組名稱（例如：Research）',
+    createdWith: (name, count) => `已建立「${name}」，包含 ${count} 個機器人`,
+    noBotsMatch: query => `沒有機器人符合「${query}」`,
+    noBotsYet: '還沒有機器人 — 請先建立一個。',
+    pickAtLeast: count => `至少選擇 ${count} 個機器人`,
+    activityToastsTip: '活動通知'
   },
   tools: {
     skillsHub: 'Hermes 技能中心',
     filterSkills: '篩選技能…',
     searchHub: '搜尋技能中心（社群和常見來源）…',
-    noMcpServers: '未設定 MCP 伺服器，目錄中也沒有。'
+    noMcpServers: '未設定 MCP 伺服器，目錄中也沒有。',
+    noHubMatch: '沒有符合的技能。',
+    working: '處理中…',
+    browseHub: '瀏覽完整技能中心 ▾',
+    hideHub: '隱藏技能中心瀏覽器',
+    hubHint: '點擊任意技能上的「+ Add to this Agent」即可安裝，安裝後會出現在上方清單中。拖曳角落可調整大小。',
+    searching: '正在搜尋社群和常見來源 — 可能需要約 10 秒…',
+    added: '✓ 已新增',
+    installing: name => `正在安裝「${name}」…`,
+    installFailed: name => `安裝「${name}」失敗`
   },
   cron: {
     filterHint:
@@ -1016,7 +1504,24 @@ const zhHant: BotsMessages = {
     runsMonthly: (day, time) => `每月 ${day} 日 ${time} 執行`,
     runsInterval: (count, unit) => `每 ${count} ${unit}執行`,
     runsRaw: '原始排程 — every Nm/Nh/Nd 或 5 段 cron',
-    timesTotal: count => `，共 ${count} 次`
+    timesTotal: count => `，共 ${count} 次`,
+    jobDescription: '此工作執行的內容與下次執行時間。',
+    stopAfter: '停止於',
+    runsForever: '次（留白 = 永遠）',
+    detailStatus: '狀態',
+    detailSchedule: '排程',
+    detailScheduleRaw: '排程（原始）',
+    detailRepeat: '重複',
+    detailNextRun: '下次執行',
+    detailLastRun: '上次執行',
+    detailLastResult: '上次結果',
+    detailDeliversTo: '傳送到',
+    detailModel: '模型',
+    detailWorkingDirectory: '工作目錄',
+    pausedSecurity: '基於安全考量已暫停：請刪除並重新建立此舊工作後再執行。',
+    onceMinutes: '分鐘後',
+    onceHours: '小時後',
+    onceDays: '天後'
   }
 }
 
