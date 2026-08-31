@@ -212,6 +212,186 @@ export const en: Translations = {
     dismiss: 'Dismiss'
   },
 
+  billing: {
+    heading: 'Billing',
+    preview: 'preview',
+    previewAria: 'Billing preview fixture (dev only)',
+    live: 'live',
+    summary: {
+      balance: 'Balance',
+      plan: 'Plan',
+      autoRefill: 'Auto-refill'
+    },
+    sections: {
+      plan: 'Plan',
+      paymentCredits: 'Payment & credits',
+      usage: 'Usage',
+      invoices: 'Invoices'
+    },
+    notice: {
+      loggedOutTitle: 'Connect your Nous account',
+      loggedOutMessage: 'Run /portal in the TUI or open the Nous portal to connect your account.',
+      openPortal: 'Open portal ↗',
+      addCard: 'Add card ↗',
+      noCardTitle: 'No payment method on file',
+      noCardMessage:
+        'Buying top-up credits and auto-refill stay disabled until a card is on file. Add one on the portal.'
+    },
+    plan: {
+      detailsUnavailable: 'Subscription details are unavailable; opening the portal is still available.',
+      changesTo: (tier, when) => `Changes to ${tier} on ${when}.`,
+      cancelsOn: when => `Cancels on ${when}.`,
+      renews: when => `Renews ${when}`,
+      noActive: 'No active subscription — paid models draw down top-up credits.',
+      monthlyPrice: price => `${price}/mo`,
+      changePlan: 'Change plan',
+      viewPlans: 'View plans',
+      adjustPlan: 'Adjust plan ↗',
+      choose: 'Choose ↗',
+      current: 'Current plan',
+      scheduled: 'Scheduled',
+      downgrade: 'Downgrade',
+      checking: 'Checking this change…',
+      cannotMake: 'That change cannot be made here.',
+      alreadyOn: tier => `You are already on ${tier} — nothing to change.`,
+      scheduledChange: (tier, when, delta) =>
+        `Change to ${tier} — takes effect ${when}. No charge now; you keep your current plan until then.${delta ? ` Monthly credits change: ${delta}.` : ''}`,
+      cannotSchedule: 'This change cannot be scheduled here.',
+      scheduling: 'Scheduling…',
+      confirmDowngrade: 'Confirm downgrade',
+      back: 'Back to billing',
+      title: 'Plans',
+      noPlans: 'No plans are available to change to right now.',
+      tryAgain: 'Try again',
+      cancel: 'Cancel',
+      undo: 'Undo',
+      undoing: 'Undoing…'
+    },
+    payment: {
+      title: 'Payment method',
+      addMethod: 'Add payment method',
+      update: 'Update',
+      description: 'Manage the card used for top-ups and subscription renewals.',
+      differentCard: 'a different card',
+      provenance: {
+        autoRefill: 'auto-refill card',
+        customerDefault: 'customer default',
+        subPin: 'subscription card'
+      }
+    },
+    credits: {
+      title: 'Buy credits now',
+      description: 'A single charge on your card, added to your balance today.',
+      buy: 'Buy',
+      customAmountAria: 'Custom credit amount',
+      processing: 'Processing… checking settlement',
+      added: amount => `${amount} added.`,
+      balanceRefreshing: 'Balance is refreshing.',
+      openPortal: 'Open portal',
+      retry: 'Retry'
+    },
+    refill: {
+      title: 'Refill when low',
+      genericDescription: 'Keep your balance topped up when it drops below your threshold.',
+      managePortal: 'Manage auto-refill from the portal.',
+      turnOnPortal: 'Turn on auto-refill from the portal',
+      reconcile: 'Reconcile ↗',
+      reconcileCaption: card => `Auto-refill charges ${card} — reconcile on the portal`,
+      enabled: 'Enabled',
+      off: 'Off',
+      threshold: 'Threshold',
+      reloadTo: 'Reload to',
+      thresholdAria: 'Auto-refill threshold',
+      reloadToAria: 'Auto-refill reload-to amount',
+      turnOffQuestion: 'Turn off auto-refill?',
+      turnOff: 'Turn off',
+      disable: 'Disable',
+      saving: 'Saving…',
+      save: 'Save',
+      cancel: 'Cancel',
+      manage: 'Manage',
+      updated: 'Auto-refill updated.',
+      turnedOff: 'Auto-refill turned off.',
+      chargeDescription: (reloadTo, threshold) =>
+        `Charges ${reloadTo} automatically when your balance falls below ${threshold}.`,
+      validationDollar: label => `${label}: enter a dollar amount with at most 2 decimal places.`,
+      validationPositive: label => `${label}: amount must be greater than $0.`,
+      validationMinimum: (label, amount) => `${label}: minimum is ${amount}.`,
+      validationMaximum: (label, amount) => `${label}: maximum is ${amount}.`,
+      validationGreater: 'Reload-to amount must be greater than the threshold.'
+    },
+    usage: {
+      subscriptionRemaining: 'Subscription credits remaining',
+      subscriptionCredits: 'Subscription credits',
+      creditsPerMonth: amount => `${amount} credits/mo`,
+      resets: date => `Resets ${date}`,
+      left: (remaining, monthly) => `${remaining} of ${monthly} left`,
+      over: amount => `${amount} over`,
+      topupCredits: 'Top-up credits',
+      doesNotExpire: 'Does not expire',
+      monthlySpendCapUsed: 'Monthly spend cap used',
+      monthlySpendCap: 'Monthly spend cap',
+      defaultCeiling: 'Default ceiling',
+      monthlyRemoteSpending: 'Monthly remote spending',
+      used: (spent, limit) => `${spent} of ${limit} used`,
+      usageFallback: label => `${label} usage`
+    },
+    status: {
+      enabled: 'Enabled',
+      off: 'Off'
+    },
+    stepUp: {
+      openVerification: 'Open verification page',
+      dismiss: 'Dismiss',
+      waiting: 'Waiting for verification link…',
+      verify: 'Verify to continue'
+    },
+    refusal: {
+      cardConfirmationTitle: 'Card confirmation needed',
+      cardConfirmationMessage: 'Confirm this card for terminal charges in the portal',
+      remoteApprovalTitle: 'Remote Spending needs approval',
+      remoteApprovalMessage: 'This needs Remote Spending allowed. Start a top-up to allow it, then retry.',
+      remoteStoppedTitle: 'Remote spending was stopped',
+      remoteStoppedByAdmin: 'An admin stopped remote spending for this terminal.',
+      remoteStoppedByYou: 'You stopped remote spending for this terminal.',
+      reconnectDevice: 'Reconnect from Settings → Gateway to re-authorize this device.',
+      sessionLoggedOutTitle: 'Session logged out',
+      sessionLoggedOutMessage: 'Your session was logged out. Sign in again from Settings → Gateway.',
+      spendingOffTitle: 'Remote spending is off',
+      spendingOffMessage:
+        "Remote spending is off for this account — a billing admin can turn it on from the portal's Hermes Agent page.",
+      adminRoleTitle: 'Admin role required',
+      adminRoleMessage: 'Adding funds needs an org admin/owner. Ask an admin, or manage on the portal.',
+      freshTopupTitle: 'Start a fresh top-up',
+      freshTopupMessage: '🔴 That charge key was already used for a different amount. Start a fresh top-up.',
+      noSavedCardTitle: 'No saved card',
+      noSavedCardMessage:
+        "💳 No saved card for terminal charges yet. Set one up on the portal (one-time credit buys don't save a reusable card).",
+      orgAccessDeniedTitle: 'Org access denied',
+      orgAccessDeniedMessage: "This token isn't bound to an org you can manage",
+      monthlyCapTitle: 'Monthly spend cap reached',
+      monthlyCapReached: '🔴 Monthly spend cap reached.',
+      monthlyCapRemaining: remaining => `🔴 Monthly spend cap reached — $${remaining} headroom left.`,
+      tooManyTitle: 'Too many charges right now',
+      tooManyMessage: minutes =>
+        `🟡 Too many charges right now${minutes == null ? '' : ` (try again in ~${Math.max(1, Math.round(minutes))} min)`}. This isn't a payment failure.`,
+      stripeTitle: 'Stripe is having trouble',
+      stripeMessage: minutes =>
+        `Stripe is having trouble — try again shortly${minutes == null ? '' : ` (try again in ~${Math.max(1, Math.round(minutes))} min)`}`,
+      dailyLimitTitle: 'Daily plan-change limit reached',
+      dailyLimitMessage: 'Daily plan-change limit reached — try again tomorrow',
+      endpointUnavailableTitle: 'Billing endpoint unavailable',
+      endpointUnavailableMessage:
+        'Billing endpoint returned a non-JSON response (it may not be available on this deployment).',
+      requestTimedOutTitle: 'Billing request timed out',
+      requestTimedOutMessage: 'Billing request timed out.',
+      connectionFailedTitle: 'Billing connection failed',
+      connectionFailedMessage: 'Billing request failed before reaching the gateway.',
+      requestFailedTitle: 'Billing request failed',
+      requestFailedMessage: 'Billing request failed.'
+    }
+  },
+
   sendDiagnostics: {
     title: 'Send diagnostics to Nous',
     privacyNotice:
@@ -1674,7 +1854,20 @@ export const en: Translations = {
       referenceImageTooLarge: 'Reference image is too large. Use one under 16 MB.',
       referenceImageInvalid: 'Could not read that reference image. Try a PNG, JPG, WebP, or GIF.',
       adopt: 'Adopt',
-      startOver: 'Start over'
+      startOver: 'Start over',
+      addReference: 'Add a reference',
+      unavailableTitle: 'Add an image backend to generate',
+      unavailableDescription: 'Hatching a custom pet needs a provider that can use a reference image.',
+      setupImageGeneration: 'Set up image generation',
+      grabKeyFrom: 'Grab a key from',
+      examples: {
+        'bubble-tea otter': 'bubble-tea otter',
+        'sock elf': 'sock elf',
+        'pixel dragon': 'pixel dragon',
+        'office cat': 'office cat',
+        'neon axolotl': 'neon axolotl',
+        'moss golem': 'moss golem'
+      }
     },
     installTheme: {
       title: 'Install theme…',

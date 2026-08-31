@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
+
 import { formatMoney } from './billing-amounts'
 import {
   billingDevFixtures,
@@ -48,15 +50,17 @@ vi.mock('./api', () => ({
   })
 }))
 
-function renderBilling(initialEntries: string[] = ['/settings?tab=billing']) {
+function renderBilling(initialEntries: string[] = ['/settings?tab=billing'], locale: 'en' | 'zh' = 'en') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
   render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <QueryClientProvider client={client}>
-        <BillingSettings />
-      </QueryClientProvider>
-    </MemoryRouter>
+    <I18nProvider configClient={null} initialLocale={locale}>
+      <MemoryRouter initialEntries={initialEntries}>
+        <QueryClientProvider client={client}>
+          <BillingSettings />
+        </QueryClientProvider>
+      </MemoryRouter>
+    </I18nProvider>
   )
 
   return client
@@ -79,6 +83,18 @@ afterEach(() => {
 })
 
 describe('BillingSettings', () => {
+  it('renders the billing chrome in Simplified Chinese', async () => {
+    renderBilling(['/settings?tab=billing'], 'zh')
+
+    expect(await screen.findByText('账单')).toBeTruthy()
+    expect(await screen.findByText('$996.47')).toBeTruthy()
+    expect(screen.getAllByText('套餐').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('付款与额度')).toBeTruthy()
+    expect(screen.getByText('用量')).toBeTruthy()
+    expect(screen.getAllByText('充值额度').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByRole('button', { name: '管理' })).toBeTruthy()
+  })
+
   it('renders the deployed-today payload with buy controls hidden and usage rows visible', async () => {
     renderBilling()
 
@@ -87,7 +103,7 @@ describe('BillingSettings', () => {
     expect(screen.getByText('Visa •••• 3206')).toBeTruthy()
     expect(
       screen.getByText(
-        "Remote spending is off for this account — a billing admin can turn it on from the portal's Hermes Agent page."
+        "Remote spending is off for this account — a billing admin can turn it on from the portal's Aino Agent page."
       )
     ).toBeTruthy()
     expect(screen.queryByRole('button', { name: '$100' })).toBeNull()

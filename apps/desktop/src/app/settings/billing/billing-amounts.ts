@@ -1,4 +1,6 @@
 import type { BillingStateResponse } from './types'
+import { en } from '@/i18n/en'
+import type { BillingCopy } from './use-billing-state'
 import { EMPTY_BILLING_VALUE } from './use-billing-state'
 
 export function clampAmount(raw: string, billing: Pick<BillingStateResponse, 'max_usd' | 'min_usd'>): string {
@@ -49,22 +51,23 @@ export function initialAutoReloadAmount(...candidates: Array<null | string | und
 export function validateAutoReloadInputs(
   thresholdRaw: string,
   reloadToRaw: string,
-  bounds: Pick<BillingStateResponse, 'max_usd' | 'min_usd'>
+  bounds: Pick<BillingStateResponse, 'max_usd' | 'min_usd'>,
+  copy: BillingCopy['refill'] = en.billing.refill
 ): { error?: string; values?: { reloadTo: string; threshold: string } } {
-  const threshold = validateBillingAmount('Threshold', thresholdRaw, bounds)
+  const threshold = validateBillingAmount(copy.threshold, thresholdRaw, bounds, copy)
 
   if (threshold.error || threshold.amount == null) {
     return { error: threshold.error }
   }
 
-  const reloadTo = validateBillingAmount('Reload-to', reloadToRaw, bounds)
+  const reloadTo = validateBillingAmount(copy.reloadTo, reloadToRaw, bounds, copy)
 
   if (reloadTo.error || reloadTo.amount == null) {
     return { error: reloadTo.error }
   }
 
   if (reloadTo.amount <= threshold.amount) {
-    return { error: 'Reload-to amount must be greater than the threshold.' }
+    return { error: copy.validationGreater }
   }
 
   return {
@@ -78,30 +81,31 @@ export function validateAutoReloadInputs(
 export function validateBillingAmount(
   label: string,
   raw: string,
-  bounds: Pick<BillingStateResponse, 'max_usd' | 'min_usd'>
+  bounds: Pick<BillingStateResponse, 'max_usd' | 'min_usd'>,
+  copy: BillingCopy['refill'] = en.billing.refill
 ): { amount?: number; error?: string } {
   const cleaned = raw.trim().replace(/^\$/, '').trim()
 
   if (!cleaned || !/^\d+(\.\d{1,2})?$/.test(cleaned)) {
-    return { error: `${label}: enter a dollar amount with at most 2 decimal places.` }
+    return { error: copy.validationDollar(label) }
   }
 
   const amount = Number(cleaned)
 
   if (!(amount > 0)) {
-    return { error: `${label}: amount must be greater than $0.` }
+    return { error: copy.validationPositive(label) }
   }
 
   const min = parseAmount(bounds.min_usd)
 
   if (min != null && amount < min) {
-    return { error: `${label}: minimum is ${formatMoney(min)}.` }
+    return { error: copy.validationMinimum(label, formatMoney(min)) }
   }
 
   const max = parseAmount(bounds.max_usd)
 
   if (max != null && amount > max) {
-    return { error: `${label}: maximum is ${formatMoney(max)}.` }
+    return { error: copy.validationMaximum(label, formatMoney(max)) }
   }
 
   return { amount }

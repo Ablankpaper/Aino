@@ -205,6 +205,181 @@ export const zh: Translations = {
     dismiss: '忽略'
   },
 
+  billing: {
+    heading: '账单',
+    preview: '预览',
+    previewAria: '账单预览夹具（仅开发环境）',
+    live: '实时',
+    summary: {
+      balance: '余额',
+      plan: '套餐',
+      autoRefill: '自动充值'
+    },
+    sections: {
+      plan: '套餐',
+      paymentCredits: '付款与额度',
+      usage: '用量',
+      invoices: '发票'
+    },
+    notice: {
+      loggedOutTitle: '连接你的 Nous 账户',
+      loggedOutMessage: '在 TUI 中运行 /portal，或打开 Nous 门户来连接你的账户。',
+      openPortal: '打开门户 ↗',
+      addCard: '添加银行卡 ↗',
+      noCardTitle: '尚未设置付款方式',
+      noCardMessage: '在添加银行卡前，购买充值额度和自动充值功能会保持禁用。请前往门户添加。'
+    },
+    plan: {
+      detailsUnavailable: '无法获取订阅详情；你仍可以打开门户进行管理。',
+      changesTo: (tier, when) => `将于 ${when} 切换到 ${tier}。`,
+      cancelsOn: when => `将于 ${when} 取消。`,
+      renews: when => `${when}续订`,
+      noActive: '当前没有有效订阅 — 付费模型会消耗充值额度。',
+      monthlyPrice: price => `${price}/月`,
+      changePlan: '更改套餐',
+      viewPlans: '查看套餐',
+      adjustPlan: '调整套餐 ↗',
+      choose: '选择 ↗',
+      current: '当前套餐',
+      scheduled: '已排期',
+      downgrade: '降级',
+      checking: '正在检查此更改…',
+      cannotMake: '无法在此处进行此更改。',
+      alreadyOn: tier => `你已经在使用 ${tier}，无需更改。`,
+      scheduledChange: (tier, when, delta) =>
+        `将切换到 ${tier} — ${when}生效。现在不会扣费；在此之前会继续使用当前套餐。${delta ? ` 每月额度变化：${delta}。` : ''}`,
+      cannotSchedule: '无法在此处安排此更改。',
+      scheduling: '正在排期…',
+      confirmDowngrade: '确认降级',
+      back: '返回账单',
+      title: '套餐',
+      noPlans: '目前没有可切换的套餐。',
+      tryAgain: '重试',
+      cancel: '取消',
+      undo: '撤销',
+      undoing: '正在撤销…'
+    },
+    payment: {
+      title: '付款方式',
+      addMethod: '添加付款方式',
+      update: '更新',
+      description: '管理用于购买额度和续订套餐的银行卡。',
+      differentCard: '其他银行卡',
+      provenance: {
+        autoRefill: '自动充值卡',
+        customerDefault: '账户默认卡',
+        subPin: '订阅卡'
+      }
+    },
+    credits: {
+      title: '充值额度',
+      description: '从银行卡扣除一次费用，并立即加入余额。',
+      buy: '购买',
+      customAmountAria: '自定义额度金额',
+      processing: '正在处理…检查结算状态',
+      added: amount => `已添加 ${amount}。`,
+      balanceRefreshing: '余额正在刷新。',
+      openPortal: '打开门户',
+      retry: '重试'
+    },
+    refill: {
+      title: '余额不足时充值',
+      genericDescription: '余额低于阈值时自动补充。',
+      managePortal: '在门户管理自动充值。',
+      turnOnPortal: '在门户开启自动充值',
+      reconcile: '去门户核对 ↗',
+      reconcileCaption: card => `自动充值将从${card}扣款 — 请在门户核对`,
+      enabled: '已开启',
+      off: '已关闭',
+      threshold: '触发阈值',
+      reloadTo: '充值至',
+      thresholdAria: '自动充值触发阈值',
+      reloadToAria: '自动充值目标金额',
+      turnOffQuestion: '关闭自动充值？',
+      turnOff: '关闭',
+      disable: '停用',
+      saving: '保存中…',
+      save: '保存',
+      cancel: '取消',
+      manage: '管理',
+      updated: '自动充值已更新。',
+      turnedOff: '自动充值已关闭。',
+      chargeDescription: (reloadTo, threshold) => `余额低于 ${threshold} 时自动充值 ${reloadTo}。`,
+      validationDollar: label => `${label}：请输入最多两位小数的美元金额。`,
+      validationPositive: label => `${label}：金额必须大于 $0。`,
+      validationMinimum: (label, amount) => `${label}：最低为 ${amount}。`,
+      validationMaximum: (label, amount) => `${label}：最高为 ${amount}。`,
+      validationGreater: '充值目标金额必须大于触发阈值。'
+    },
+    usage: {
+      subscriptionRemaining: '剩余订阅额度',
+      subscriptionCredits: '订阅额度',
+      creditsPerMonth: amount => `${amount} 额度/月`,
+      resets: date => `${date}重置`,
+      left: (remaining, monthly) => `剩余 ${remaining}（共 ${monthly}）`,
+      over: amount => `超出 ${amount}`,
+      topupCredits: '充值额度',
+      doesNotExpire: '不过期',
+      monthlySpendCapUsed: '每月消费上限使用量',
+      monthlySpendCap: '每月消费上限',
+      defaultCeiling: '默认上限',
+      monthlyRemoteSpending: '每月远程消费',
+      used: (spent, limit) => `已用 ${spent}（共 ${limit}）`,
+      usageFallback: label => `${label}用量`
+    },
+    status: {
+      enabled: '已开启',
+      off: '已关闭'
+    },
+    stepUp: {
+      openVerification: '打开验证页面',
+      dismiss: '关闭提示',
+      waiting: '等待验证链接…',
+      verify: '验证后继续'
+    },
+    refusal: {
+      cardConfirmationTitle: '需要确认银行卡',
+      cardConfirmationMessage: '请在门户中确认这张银行卡，才能用于终端扣款。',
+      remoteApprovalTitle: '需要允许远程消费',
+      remoteApprovalMessage: '此操作需要开启“远程消费”。先发起一次充值即可允许，然后重试。',
+      remoteStoppedTitle: '远程消费已停止',
+      remoteStoppedByAdmin: '管理员已停止此终端的远程消费。',
+      remoteStoppedByYou: '你已停止此终端的远程消费。',
+      reconnectDevice: '请从“设置 → 网关”重新连接，以重新授权此设备。',
+      sessionLoggedOutTitle: '会话已退出登录',
+      sessionLoggedOutMessage: '你的会话已退出登录。请从“设置 → 网关”重新登录。',
+      spendingOffTitle: '远程消费已关闭',
+      spendingOffMessage: '此账户的远程消费已关闭 — 账单管理员可以在门户的 Hermes Agent 页面中开启。',
+      adminRoleTitle: '需要管理员权限',
+      adminRoleMessage: '添加资金需要组织管理员/所有者权限。请联系管理员，或在门户中管理。',
+      freshTopupTitle: '发起新的充值',
+      freshTopupMessage: '🔴 该扣款密钥已用于其他金额。请发起新的充值。',
+      noSavedCardTitle: '没有已保存的银行卡',
+      noSavedCardMessage: '💳 还没有用于终端扣款的已保存银行卡。请在门户设置（一次性购买额度不会保存可复用的银行卡）。',
+      orgAccessDeniedTitle: '无权访问组织',
+      orgAccessDeniedMessage: '此令牌未绑定到你有权管理的组织。',
+      monthlyCapTitle: '已达到每月消费上限',
+      monthlyCapReached: '🔴 已达到每月消费上限。',
+      monthlyCapRemaining: remaining => `🔴 已达到每月消费上限 — 还剩 $${remaining} 可用额度。`,
+      tooManyTitle: '当前扣款次数过多',
+      tooManyMessage: minutes =>
+        `🟡 当前扣款次数过多${minutes == null ? '' : `（约 ${Math.max(1, Math.round(minutes))} 分钟后重试）`}。这不是付款失败。`,
+      stripeTitle: 'Stripe 暂时遇到问题',
+      stripeMessage: minutes =>
+        `Stripe 暂时遇到问题 — 请稍后重试${minutes == null ? '' : `（约 ${Math.max(1, Math.round(minutes))} 分钟后）`}`,
+      dailyLimitTitle: '已达到每日套餐更改上限',
+      dailyLimitMessage: '已达到每日套餐更改上限 — 请明天再试。',
+      endpointUnavailableTitle: '账单端点不可用',
+      endpointUnavailableMessage: '账单端点返回了非 JSON 响应（当前部署可能不提供此功能）。',
+      requestTimedOutTitle: '账单请求超时',
+      requestTimedOutMessage: '账单请求超时。',
+      connectionFailedTitle: '账单连接失败',
+      connectionFailedMessage: '账单请求在到达网关前失败。',
+      requestFailedTitle: '账单请求失败',
+      requestFailedMessage: '账单请求失败。'
+    }
+  },
+
   sendDiagnostics: {
     title: '向 Nous 发送诊断信息',
     privacyNotice:
@@ -1854,7 +2029,20 @@ export const zh: Translations = {
       referenceImageTooLarge: '参考图过大。请使用小于 16 MB 的图片。',
       referenceImageInvalid: '无法读取该参考图。请尝试 PNG、JPG、WebP 或 GIF。',
       adopt: '领养',
-      startOver: '重新开始'
+      startOver: '重新开始',
+      addReference: '添加参考图',
+      unavailableTitle: '添加图像提供方以生成宠物',
+      unavailableDescription: '孵化自定义宠物需要能够使用参考图的提供方。',
+      setupImageGeneration: '设置图像生成',
+      grabKeyFrom: '从以下位置获取密钥',
+      examples: {
+        'bubble-tea otter': '奶茶水獭',
+        'sock elf': '袜子精灵',
+        'pixel dragon': '像素龙',
+        'office cat': '办公室猫咪',
+        'neon axolotl': '霓虹六角恐龙',
+        'moss golem': '苔藓魔像'
+      }
     },
     installTheme: {
       title: '安装主题…',
