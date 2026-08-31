@@ -1855,6 +1855,19 @@ export const en: Translations = {
     commandCenter: 'Command Center',
     appearance: 'Appearance',
     settings: 'Settings',
+    contributedActions: {
+      layoutEditMode: 'Toggle layout edit mode',
+      reloadPlugins: 'Reload desktop plugins',
+      resetLayout: 'Reset layout',
+      toggleStatusbar: 'Toggle status bar',
+      toggleTabs: 'Toggle tabs',
+      keyboardShortcuts: 'Keyboard shortcuts',
+      exportProfile: 'Export profile…',
+      importProfile: 'Import profile…',
+      toggleTerminal: 'Toggle terminal',
+      toggleLogs: 'Toggle logs',
+      toggleYolo: 'Toggle yolo'
+    },
     changeTheme: 'Change theme',
     changeColorMode: 'Change color mode…',
     pets: {
@@ -3606,6 +3619,19 @@ export const en: Translations = {
   },
 
   zones: {
+    paneTitles: {
+      sessions: 'Sessions',
+      terminal: 'Terminal',
+      files: 'Files',
+      review: 'Review',
+      logs: 'Logs'
+    },
+    layoutTitles: {
+      default: 'Default',
+      focus: 'Focus',
+      terminalDeck: 'Terminal deck',
+      quad: 'Quad'
+    },
     showTabStrip: 'Show tabs',
     hideTabStrip: 'Hide tabs',
     showStripTab: title => `Show ${title}`,

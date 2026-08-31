@@ -20,6 +20,7 @@ import { KbdCombo } from '@/components/ui/kbd'
 import { getHermesConfigRecord, listAllProfileSessions } from '@/hermes'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n'
+import { localizedPaletteLabel } from '@/i18n/contributions'
 import { sessionTitle } from '@/lib/chat-runtime'
 import {
   Activity,
@@ -882,7 +883,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
                 id: item.key,
                 keepOpen: item.keepOpen,
                 keywords: item.keywords,
-                label: item.label,
+                label: localizedPaletteLabel(t, item.contributionId, item.label, item.source),
                 run: item.run
               }))
             }

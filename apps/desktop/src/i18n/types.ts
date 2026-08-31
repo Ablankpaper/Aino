@@ -1622,6 +1622,19 @@ export interface Translations {
     commandCenter: string
     appearance: string
     settings: string
+    contributedActions: {
+      layoutEditMode: string
+      reloadPlugins: string
+      resetLayout: string
+      toggleStatusbar: string
+      toggleTabs: string
+      keyboardShortcuts: string
+      exportProfile: string
+      importProfile: string
+      toggleTerminal: string
+      toggleLogs: string
+      toggleYolo: string
+    }
     changeTheme: string
     changeColorMode: string
     pets: {
@@ -3068,6 +3081,19 @@ export interface Translations {
   }
 
   zones: {
+    paneTitles: {
+      sessions: string
+      terminal: string
+      files: string
+      review: string
+      logs: string
+    }
+    layoutTitles: {
+      default: string
+      focus: string
+      terminalDeck: string
+      quad: string
+    }
     showTabStrip: string
     hideTabStrip: string
     showStripTab: (title: string) => string

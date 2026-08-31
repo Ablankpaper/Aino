@@ -28,6 +28,7 @@ import {
 import { ContribBoundary, ContribRender } from '@/contrib/react/boundary'
 import { useContributions } from '@/contrib/react/use-contributions'
 import { useI18n } from '@/i18n'
+import { localizedPaneTitle } from '@/i18n/contributions'
 import { useKeybindHint } from '@/lib/keybinds/use-keybind-hint'
 import { cn } from '@/lib/utils'
 import { closeAllOpenSessionTiles } from '@/store/session-states'
@@ -175,7 +176,9 @@ function ZoneMenu({
                 renderActionItem(kit, {
                   icon: tab.hidden ? 'eye' : 'eye-closed',
                   key: `strip-tab-${tab.id}`,
-                  label: tab.hidden ? t.zones.showStripTab(tab.title) : t.zones.hideStripTab(tab.title),
+                  label: tab.hidden
+                    ? t.zones.showStripTab(localizedPaneTitle(t, tab.id, tab.title, undefined))
+                    : t.zones.hideStripTab(localizedPaneTitle(t, tab.id, tab.title, undefined)),
                   onSelect: () => setStripTabHidden(tab.id, !tab.hidden)
                 })
               )}
@@ -260,6 +263,12 @@ export function TreeGroup({
   const paneEpochs = useStore($treePaneEpochs)
 
   const paneFor = (id: string) => panes.find(p => p.id === id)
+
+  const paneTitle = (id: string) => {
+    const pane = paneFor(id)
+
+    return localizedPaneTitle(t, id, String(pane?.title ?? id), pane?.source)
+  }
 
   // Unregistered (plugin not loaded), chrome-toggled-off, and narrow-collapsed
   // panes drop out of the header; the active pane falls back to the first
@@ -395,7 +404,7 @@ export function TreeGroup({
     !paneChrome(paneFor(paneId)).hideOnly && (!paneChrome(paneFor(paneId)).uncloseable || panesWithCloser.has(paneId))
 
   // A pane's own live label when it has one, else its registered string.
-  const tabLabel = (paneId: string) => paneChrome(paneFor(paneId)).tabTitle?.() ?? paneFor(paneId)?.title ?? paneId
+  const tabLabel = (paneId: string) => paneChrome(paneFor(paneId)).tabTitle?.() ?? paneTitle(paneId)
 
   // Collapse/restore a tool panel (or plain minimize elsewhere) — the header
   // chevron, routed so ⌃`/the titlebar toggle stay truthful. The strip itself
@@ -505,7 +514,7 @@ export function TreeGroup({
                 e,
                 node.minimized ? () => restoreTreePane(activeId) : undefined,
                 undefined,
-                active?.title ?? activeId
+                paneTitle(activeId)
               )
             }
             ref={stripRef}
@@ -531,7 +540,7 @@ export function TreeGroup({
               const isActive = paneId === activeId && !node.minimized
               const chrome = paneChrome(paneFor(paneId))
               const closeable = closeableTab(paneId)
-              const title = paneFor(paneId)?.title ?? paneId
+              const title = paneTitle(paneId)
               const isSelected = tabSelection?.groupId === node.id && tabSelection.ids.has(paneId)
 
               const tab = (
@@ -732,7 +741,7 @@ export function TreeGroup({
             // barely-tinted wash; the light blur reads as "edit mode" the same
             // way the zone editor's backdrop does.
             className="absolute inset-x-0 bottom-0 z-50 flex cursor-grab items-center justify-center outline-1 -outline-offset-2 outline-dashed backdrop-blur-[2px]"
-            onPointerDown={e => startPaneDrag(activeId, e, undefined, undefined, active?.title ?? activeId)}
+            onPointerDown={e => startPaneDrag(activeId, e, undefined, undefined, paneTitle(activeId))}
             style={{
               top: headerVisible ? 28 : 0,
               background:
@@ -742,7 +751,7 @@ export function TreeGroup({
           >
             <span className="flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-md border border-(--ui-stroke-secondary) bg-popover px-2 py-1 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-(--ui-text-secondary)">
               <Codicon className="shrink-0" name="gripper" size="0.8125rem" />
-              <span className="min-w-0 truncate">{active?.title ?? activeId}</span>
+              <span className="min-w-0 truncate">{paneTitle(activeId)}</span>
             </span>
           </div>
         </ZoneMenu>

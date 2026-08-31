@@ -40,7 +40,6 @@ import { Slot } from '@/contrib/react/slot'
 import { useContributions } from '@/contrib/react/use-contributions'
 import { registry } from '@/contrib/registry'
 import { discoverRuntimePlugins } from '@/contrib/runtime-loader'
-import { translateNow } from '@/i18n'
 import { NEW_SESSION_TITLE, sessionTitle as storedSessionTitle } from '@/lib/chat-runtime'
 import { Download, FileText, LayoutDashboard, PanelBottom, PanelTop, Terminal, Upload, Zap } from '@/lib/icons'
 import { type KeybindContribution, KEYBINDS_AREA } from '@/lib/keybinds/actions'
@@ -739,7 +738,9 @@ registry.register(
         registry.register(
           paletteToggle({
             id: `strip-tab.${pane.id}`,
-            label: translateNow('zones.toggleStripTab', title),
+            // The visible label is resolved by the command-palette consumer so
+            // it follows runtime locale changes; registration stays stable.
+            label: `Toggle ${title} tab`,
             icon: LayoutDashboard,
             keywords: [title.toLowerCase(), 'tab', 'pane', 'sidebar', 'show', 'hide'],
             // On-screen truth, same contract as the logs toggle above.

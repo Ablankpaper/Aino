@@ -17,6 +17,8 @@ import { Codicon } from '@/components/ui/codicon'
 import { ContribBoundary, ContribRender } from '@/contrib/react/boundary'
 import { useContributions } from '@/contrib/react/use-contributions'
 import type { Contribution } from '@/contrib/types'
+import { useI18n } from '@/i18n'
+import { localizedPaneTitle } from '@/i18n/contributions'
 import { readJson, writeJson } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 
@@ -52,6 +54,7 @@ const viewportNow = (): FloatingViewport => ({
 })
 
 function FloatingPane({ pane }: { pane: Contribution }) {
+  const { t } = useI18n()
   const chrome = paneChrome(pane)
   const anchor = chrome.anchor ?? 'top-right'
 
@@ -165,7 +168,9 @@ function FloatingPane({ pane }: { pane: Contribution }) {
         onPointerUp={onPointerUp}
         style={{ touchAction: 'none' }}
       >
-        <span className="truncate font-medium">{pane.title ?? pane.id}</span>
+        <span className="truncate font-medium">
+          {localizedPaneTitle(t, pane.id, String(pane.title ?? pane.id), pane.source)}
+        </span>
         <button
           className="rounded p-0.5 text-(--ui-text-quaternary) transition-colors hover:text-(--ui-text-primary)"
           data-floating-no-drag=""

@@ -2031,6 +2031,19 @@ export const zh: Translations = {
     commandCenter: '命令中心',
     appearance: '外观',
     settings: '设置',
+    contributedActions: {
+      layoutEditMode: '切换布局编辑模式',
+      reloadPlugins: '重新加载桌面插件',
+      resetLayout: '重置布局',
+      toggleStatusbar: '切换状态栏',
+      toggleTabs: '切换标签栏',
+      keyboardShortcuts: '键盘快捷键',
+      exportProfile: '导出配置…',
+      importProfile: '导入配置…',
+      toggleTerminal: '切换终端',
+      toggleLogs: '切换日志',
+      toggleYolo: '切换 YOLO'
+    },
     changeTheme: '更改主题',
     changeColorMode: '更改颜色模式…',
     pets: {
@@ -3751,6 +3764,19 @@ export const zh: Translations = {
   },
 
   zones: {
+    paneTitles: {
+      sessions: '会话',
+      terminal: '终端',
+      files: '文件',
+      review: '审查',
+      logs: '日志'
+    },
+    layoutTitles: {
+      default: '默认',
+      focus: '专注',
+      terminalDeck: '终端布局',
+      quad: '四宫格'
+    },
     showTabStrip: '显示标签',
     hideTabStrip: '隐藏标签',
     showStripTab: title => `显示 ${title}`,
