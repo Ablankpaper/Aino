@@ -174,6 +174,37 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('install.fetchingManifest')).toBe('正在获取安装器清单…')
   })
 
+  it('uses consistent Chinese agent, profile, and slash-command terminology', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('agents.close')).toBe('关闭智能体')
+    expect(translateNow('agents.subtitle')).toBe('当前回合的子智能体实时活动。')
+    expect(translateNow('agents.emptyTitle')).toBe('暂无活跃子智能体')
+    expect(translateNow('agents.emptyDesc')).toBe('当某个回合派发任务时，子智能体会在此实时显示进度。')
+    expect(translateNow('agents.agentsCount', 2)).toBe('2 个智能体')
+    expect(translateNow('statusStack.agents')).toBe('智能体')
+    expect(translateNow('statusStack.subagents', 2)).toBe('2 个子智能体')
+    expect(translateNow('shell.statusbar.agents')).toBe('智能体')
+    expect(translateNow('shell.statusbar.closeAgents')).toBe('关闭智能体')
+    expect(translateNow('shell.statusbar.openAgents')).toBe('打开智能体')
+    expect(translateNow('shell.statusbar.subagents', 2)).toBe('2 个子智能体')
+    expect(translateNow('shell.statusbar.contextUsagePanel.categories.subagent_definitions')).toBe('子智能体定义')
+    expect(translateNow('desktop.activity.agentTaskRunning')).toBe('智能体任务运行中')
+    expect(translateNow('settings.toolsets.browserRealProfile.description')).toContain('智能体使用该快照')
+    expect(translateNow('preview.web.remoteLoopback')).toContain('运行智能体的那台机器')
+    expect(translateNow('composer.commandDescs./whoami')).toBe('显示当前斜杠命令权限（管理员/用户）')
+    expect(translateNow('desktop.slashUnavailable.advanced', '/debug')).toBe(
+      '/debug 未在桌面斜杠命令面板中显示。请使用相应的桌面控件或终端界面。'
+    )
+    expect(translateNow('desktop.slashUnavailable.modelPicker', '/model')).toBe(
+      '/model 使用桌面模型选择器，而不是斜杠命令。'
+    )
+    expect(translateNow('desktop.slashUnavailable.sessionPicker', '/resume')).toBe(
+      '/resume 使用桌面会话选择器，而不是斜杠命令。'
+    )
+    expect(translateNow('tips.items.profiles.title')).toBe('配置档案彼此独立')
+  })
+
   it('describes the embedded skills-hub action in Simplified Chinese', () => {
     setRuntimeI18nLocale('zh')
 

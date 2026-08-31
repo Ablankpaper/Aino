@@ -1928,7 +1928,7 @@ export const zh: Translations = {
       browserRealProfile: {
         label: '使用我的真实浏览器配置文件',
         description:
-          '将默认浏览器的登录信息和 Cookie 复制到托管快照中，代理使用该快照进行浏览。绝不会直接打开你的真实配置文件。将应用于新会话。',
+          '将默认浏览器的登录信息和 Cookie 复制到托管快照中，智能体使用该快照进行浏览。绝不会直接打开你的真实配置文件。将应用于新会话。',
         enabledTitle: '真实配置文件浏览：已开启',
         enabledMessage: '新会话将使用默认浏览器配置文件的快照进行浏览。',
         disabledTitle: '真实配置文件浏览：已关闭',
@@ -2088,11 +2088,11 @@ export const zh: Translations = {
     couldNotReadCode: '无法读取该图谱代码。'
   },
   agents: {
-    close: '关闭代理',
+    close: '关闭智能体',
     title: '派生树',
-    subtitle: '当前回合的子代理实时活动。',
-    emptyTitle: '暂无活跃子代理',
-    emptyDesc: '当某个回合派发任务时，子代理会在此实时显示进度。',
+    subtitle: '当前回合的子智能体实时活动。',
+    emptyTitle: '暂无活跃子智能体',
+    emptyDesc: '当某个回合派发任务时，子智能体会在此实时显示进度。',
     running: '运行中',
     failed: '失败',
     done: '完成',
@@ -2102,7 +2102,7 @@ export const zh: Translations = {
     delegation: index => `派发 ${index}`,
     workers: count => `${count} 个工作单元`,
     workersActive: count => `${count} 个活跃`,
-    agentsCount: count => `${count} 个代理`,
+    agentsCount: count => `${count} 个智能体`,
     activeCount: count => `${count} 个活跃`,
     failedCount: count => `${count} 个失败`,
     toolsCount: count => `${count} 个工具`,
@@ -3424,7 +3424,7 @@ export const zh: Translations = {
       '/status': '显示会话、模型、Token 和上下文信息',
       '/egress': '显示 Docker 出口代理状态',
       '/context': '显示详细上下文窗口、用量、压缩统计和吞吐量',
-      '/whoami': '显示当前 slash 命令权限（管理员/用户）',
+      '/whoami': '显示当前斜杠命令权限（管理员/用户）',
       '/sethome': '将此聊天设为主页频道',
       '/sessions': '浏览并恢复之前的会话',
       '/config': '显示当前配置',
@@ -3599,13 +3599,13 @@ export const zh: Translations = {
   },
 
   statusStack: {
-    agents: '代理',
+    agents: '智能体',
     background: count => `${count} 个后台任务`,
     goalActive: '目标进行中',
     goalDone: '目标已完成',
     goalPaused: '目标已暂停',
     goalWaiting: '目标等待中',
-    subagents: count => `${count} 个子代理`,
+    subagents: count => `${count} 个子智能体`,
     todos: (done, total) => `任务 ${done}/${total}`,
     running: '运行中',
     stop: '停止',
@@ -4069,10 +4069,10 @@ export const zh: Translations = {
       toggleTerminal: '终端',
       toggleVersion: '版本与更新',
       toggleWorkspace: '工作区',
-      agents: '代理',
-      closeAgents: '关闭代理',
-      openAgents: '打开代理',
-      subagents: count => `${count} 个子代理`,
+      agents: '智能体',
+      closeAgents: '关闭智能体',
+      openAgents: '打开智能体',
+      subagents: count => `${count} 个子智能体`,
       failed: count => `${count} 个失败`,
       running: count => `${count} 个运行中`,
       cron: '排程',
@@ -4090,7 +4090,7 @@ export const zh: Translations = {
           memory: '记忆',
           rules: '规则',
           skills: '技能',
-          subagent_definitions: '子代理定义',
+          subagent_definitions: '子智能体定义',
           system_prompt: '系统提示词',
           tool_definitions: '工具定义'
         },
@@ -4256,7 +4256,7 @@ export const zh: Translations = {
       appFailedToBoot: '预览应用启动失败',
       serverNotFound: '未找到服务器',
       remoteLoopback:
-        '该地址指向运行代理的那台机器，而不是本机。浏览器面板在本地加载页面，因此远程开发服务器需要端口转发或可访问的主机名。',
+        '该地址指向运行智能体的那台机器，而不是本机。浏览器面板在本地加载页面，因此远程开发服务器需要端口转发或可访问的主机名。',
       failedToLoad: '预览加载失败',
       tryAgain: '重试',
       restarting: 'Hermes 正在重启...',
@@ -4704,7 +4704,7 @@ export const zh: Translations = {
   desktop: {
     activity: {
       sessionTask: '会话任务',
-      agentTaskRunning: '代理任务运行中',
+      agentTaskRunning: '智能体任务运行中',
       previewRestart: '重启预览',
       running: '运行中',
       completed: '已完成',
@@ -4769,13 +4769,13 @@ export const zh: Translations = {
     slashInvalidResponse: 'command.dispatch 返回无效响应',
     slashCommandFailed: (name, error) => `/${name} 执行失败：${error}`,
     slashUnavailable: {
-      advanced: command => `${command} 未在桌面 slash 面板中显示。请使用相应的桌面控件或终端界面。`,
+      advanced: command => `${command} 未在桌面斜杠命令面板中显示。请使用相应的桌面控件或终端界面。`,
       composerVoice: '语音对话位于这里的输入框：点击麦克风按钮并选择“开始语音对话”（或按 Ctrl+B）。',
       messaging: command => `${command} 只能从消息平台使用。`,
       settings: command => `${command} 由桌面侧边栏管理。`,
       terminal: command => `${command} 只能在终端界面使用。`,
-      modelPicker: command => `${command} 使用桌面模型选择器，而不是 slash 命令。`,
-      sessionPicker: command => `${command} 使用桌面会话选择器，而不是 slash 命令。`,
+      modelPicker: command => `${command} 使用桌面模型选择器，而不是斜杠命令。`,
+      sessionPicker: command => `${command} 使用桌面会话选择器，而不是斜杠命令。`,
       fallback: command => `${command} 在桌面端不可用。`
     },
     yoloArmed: '此对话已启用 YOLO',
@@ -4922,7 +4922,7 @@ export const zh: Translations = {
         text: '会话、设置、技能和命令都能从命令面板找到。'
       },
       profiles: {
-        title: '配置文件彼此独立',
+        title: '配置档案彼此独立',
         text: '每个都是独立的 Hermes — 自己的密钥、记忆和会话。'
       },
       'composer-mentions': {
