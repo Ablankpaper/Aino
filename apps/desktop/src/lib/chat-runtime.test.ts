@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n/runtime'
 import type { ChatMessage, ChatMessagePart } from '@/lib/chat-messages'
 import type { ComposerAttachment } from '@/store/composer'
+import type { SessionInfo } from '@/types/hermes'
 
 import {
   attachmentDisplayText,
@@ -10,9 +12,11 @@ import {
   coerceThinkingText,
   createToolMergeCache,
   messageCreatedAt,
+  newSessionTitle,
   optimisticAttachmentRef,
   parseCommandDispatch,
   parseSlashCommand,
+  sessionTitle,
   toRuntimeMessage
 } from './chat-runtime'
 
@@ -22,6 +26,26 @@ const THUMB_URL = 'data:image/png;base64,dGh1bWI='
 function attachment(overrides: Partial<ComposerAttachment> & Pick<ComposerAttachment, 'kind'>): ComposerAttachment {
   return { id: 'a', label: 'file.png', ...overrides }
 }
+
+describe('session title localization', () => {
+  const untitledSession = { preview: null, title: null } as SessionInfo
+
+  it('uses the active locale for an untitled stored session', () => {
+    setRuntimeI18nLocale('zh')
+    expect(sessionTitle(untitledSession)).toBe('无标题会话')
+
+    setRuntimeI18nLocale('en')
+    expect(sessionTitle(untitledSession)).toBe('Untitled session')
+  })
+
+  it('resolves the new-session placeholder from the active locale at call time', () => {
+    setRuntimeI18nLocale('zh')
+    expect(newSessionTitle()).toBe('新建会话')
+
+    setRuntimeI18nLocale('en')
+    expect(newSessionTitle()).toBe('New session')
+  })
+})
 
 describe('optimisticAttachmentRef', () => {
   it('renders an image from its in-hand base64 preview (no @image: path ref)', () => {
