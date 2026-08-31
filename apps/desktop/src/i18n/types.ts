@@ -3452,6 +3452,24 @@ export interface Translations {
     desktopCommands: string
     skillCommandsAvailable: (count: number) => string
     warningLine: (message: string) => string
+    errorLine: (message: string) => string
+    wakeUsage: string
+    wakeStartFailed: (reason: string) => string
+    wakeStatus: {
+      title: string
+      state: (listening: boolean) => string
+      phrase: (phrase: string) => string
+      provider: (provider: string) => string
+      surface: (surface: string) => string
+      input: (input: string) => string
+      audioSilent: string
+      inputError: (error: string) => string
+      hint: (hint: string) => string
+      defaultPhrase: string
+      unknown: string
+      auto: string
+      systemDefault: string
+    }
     yoloArmed: string
     yoloOff: string
     yoloSystem: (active: boolean) => string

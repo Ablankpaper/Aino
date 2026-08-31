@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getSession } from '@/hermes'
+import { I18nProvider, setRuntimeI18nLocale } from '@/i18n'
 import { textPart } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $composerAttachments, $composerDraft, type ComposerAttachment, setComposerDraft } from '@/store/composer'
@@ -510,12 +511,14 @@ describe('usePromptActions slash session targeting', () => {
 
 describe('usePromptActions /wake', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     setSessions(() => [sessionInfo()])
     resetWakeWordState()
   })
 
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     resetWakeWordState()
     vi.restoreAllMocks()
   })
@@ -575,6 +578,53 @@ describe('usePromptActions /wake', () => {
     expect(requestGateway).not.toHaveBeenCalledWith('command.dispatch', expect.anything())
     expect($wakeWord.get()).toMatchObject({ available: true, enabled: true, listening: true })
     expect(renderedSeedTexts(seeds).join('\n')).toContain('Input: Microphone Array (Windows WASAPI)')
+  })
+
+  it('renders wake status and fallback labels in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'wake.status') {
+        return {
+          available: true,
+          configured_surface: 'gui',
+          input_device: {
+            hostapi: 'Windows WASAPI',
+            name: 'Microphone Array',
+            selector: 'Microphone Array'
+          },
+          listening: true,
+          owner_surface: 'gui',
+          phrase: '',
+          provider: ''
+        } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/wake status')
+
+    const rendered = renderedSeedTexts(seeds).join('\n')
+    expect(rendered).toContain('唤醒词状态')
+    expect(rendered).toContain('状态：正在监听')
+    expect(rendered).toContain('唤醒词：“hey hermes”')
+    expect(rendered).toContain('提供方：未知')
+    expect(rendered).toContain('界面：gui')
+    expect(rendered).toContain('输入：Microphone Array (Windows WASAPI)')
+    expect(rendered).not.toContain('Wake Word Status')
   })
 
   it('uses gateway truth for a bare toggle and stops through wake.stop', async () => {

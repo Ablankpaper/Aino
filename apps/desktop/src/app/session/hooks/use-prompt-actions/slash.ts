@@ -79,37 +79,40 @@ import {
 const SESSION_COMPRESS_TIMEOUT_MS = 120_000
 const WAKE_START_TIMEOUT_MS = 180_000
 
-const wakeDeviceLabel = (device?: WakeInputDeviceStatus): string => {
+const wakeDeviceLabel = (
+  device: WakeInputDeviceStatus | undefined,
+  copy: Translations['desktop']['wakeStatus']
+): string => {
   if (!device) {
-    return 'system default'
+    return copy.systemDefault
   }
 
   const selector = device.selector
-  const name = device.name?.trim() || (selector == null ? 'system default' : String(selector))
+  const name = device.name?.trim() || (selector == null ? copy.systemDefault : String(selector))
 
   return device.hostapi?.trim() ? `${name} (${device.hostapi.trim()})` : name
 }
 
-const renderWakeStatus = (status: WakeStatusResponse): string => {
+const renderWakeStatus = (status: WakeStatusResponse, copy: Translations['desktop']['wakeStatus']): string => {
   const lines = [
-    'Wake Word Status',
-    `State: ${status.listening ? 'LISTENING' : 'OFF'}`,
-    `Phrase: "${status.phrase?.trim() || 'hey hermes'}"`,
-    `Provider: ${status.provider?.trim() || 'unknown'}`,
-    `Surface: ${status.owner_surface?.trim() || status.configured_surface?.trim() || 'auto'}`,
-    `Input: ${wakeDeviceLabel(status.input_device)}`
+    copy.title,
+    copy.state(Boolean(status.listening)),
+    copy.phrase(status.phrase?.trim() || copy.defaultPhrase),
+    copy.provider(status.provider?.trim() || copy.unknown),
+    copy.surface(status.owner_surface?.trim() || status.configured_surface?.trim() || copy.auto),
+    copy.input(wakeDeviceLabel(status.input_device, copy))
   ]
 
   if (status.audio_silent) {
-    lines.push('Audio: silent')
+    lines.push(copy.audioSilent)
   }
 
   if (status.input_device?.error?.trim()) {
-    lines.push(`Input error: ${status.input_device.error.trim()}`)
+    lines.push(copy.inputError(status.input_device.error.trim()))
   }
 
   if (status.hint?.trim()) {
-    lines.push(`Hint: ${status.hint.trim()}`)
+    lines.push(copy.hint(status.hint.trim()))
   }
 
   return lines.join('\n')
@@ -699,7 +702,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const requested = ctx.arg.trim().toLowerCase()
 
           if (requested && !['on', 'off', 'status'].includes(requested)) {
-            renderSlashOutput('usage: /wake [on|off|status]')
+            renderSlashOutput(copy.wakeUsage)
 
             return
           }
@@ -735,7 +738,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
               if (!started?.started) {
                 renderSlashOutput(
-                  `Failed to start wake word: ${started?.hint?.trim() || started?.reason?.trim() || 'unknown error'}`
+                  copy.wakeStartFailed(started?.hint?.trim() || started?.reason?.trim() || copy.wakeStatus.unknown)
                 )
 
                 return
@@ -744,9 +747,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
               applyWakeStopResult(await requestGateway<WakeStopResponse>('wake.stop', { persist: true }))
             }
 
-            renderSlashOutput(renderWakeStatus(await status()))
+            renderSlashOutput(renderWakeStatus(await status(), copy.wakeStatus))
           } catch (err) {
-            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
+            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
           }
         },
         // /handoff hands this session to a messaging platform. The platform is
