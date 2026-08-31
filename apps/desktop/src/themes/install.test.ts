@@ -1,9 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import type { DesktopMarketplaceThemeResult } from '@/global'
+import { setRuntimeI18nLocale } from '@/i18n'
 
 import { luminance } from './color'
 import { buildThemeFromMarketplace } from './install'
+
+afterEach(() => {
+  setRuntimeI18nLocale('en')
+})
 
 const themeJson = (type: 'light' | 'dark', background: string, foreground: string) =>
   JSON.stringify({ type, colors: { 'editor.background': background, 'editor.foreground': foreground } })
@@ -127,6 +132,14 @@ describe('buildThemeFromMarketplace', () => {
   it('throws when the extension contributes no themes', () => {
     expect(() => buildThemeFromMarketplace({ extensionId: 'x.y', displayName: 'X', themes: [] })).toThrow(
       /does not contribute/i
+    )
+  })
+
+  it('uses the active locale for an empty Marketplace theme result', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(() => buildThemeFromMarketplace({ extensionId: 'x.y', displayName: 'X', themes: [] })).toThrow(
+      '扩展 x.y 没有提供任何配色主题。'
     )
   })
 })

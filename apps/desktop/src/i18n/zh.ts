@@ -824,6 +824,16 @@ export const zh: Translations = {
       installing: '安装中…',
       installError: '无法安装该主题。',
       installed: name => `已安装「${name}」。`,
+      themeImportErrors: {
+        invalidJson: '主题文件不是有效的 JSON。',
+        notObject: '主题文件不是 JSON 对象。',
+        noColors: '主题缺少 colors 映射，无法识别为 VS Code 配色主题。',
+        noMarketplaceThemes: extensionId => `扩展 ${extensionId} 没有提供任何配色主题。`,
+        invalidMarketplaceId: '请输入格式为“publisher.extension”的 Marketplace ID。',
+        desktopOnly: 'Marketplace 安装仅在桌面端可用。',
+        builtInCollision: name => `主题名称“${name}”与内置主题冲突。`,
+        missingColors: '主题缺少必要的颜色。'
+      },
       removeTheme: '移除主题',
       importedBadge: '已导入',
       themeSearchPlaceholder: '搜索你的主题或 VS Code Marketplace…',

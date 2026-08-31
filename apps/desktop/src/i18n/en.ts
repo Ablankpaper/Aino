@@ -842,6 +842,16 @@ export const en: Translations = {
       installing: 'Installing…',
       installError: 'Could not install that theme.',
       installed: name => `Installed “${name}”.`,
+      themeImportErrors: {
+        invalidJson: 'Theme file is not valid JSON.',
+        notObject: 'Theme file is not a JSON object.',
+        noColors: 'Theme has no "colors" map — not a VS Code color theme.',
+        noMarketplaceThemes: extensionId => `"${extensionId}" does not contribute any color themes.`,
+        invalidMarketplaceId: 'Expected a Marketplace id like "publisher.extension".',
+        desktopOnly: 'Marketplace install is only available in the desktop app.',
+        builtInCollision: name => `"${name}" collides with a built-in theme.`,
+        missingColors: 'Theme is missing required colors.'
+      },
       removeTheme: 'Remove theme',
       importedBadge: 'Imported',
       themeSearchPlaceholder: 'Search your themes or the VS Code Marketplace…',

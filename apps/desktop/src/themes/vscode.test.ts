@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { setRuntimeI18nLocale } from '@/i18n'
 
 import { contrastRatio } from './color'
 import { convertVscodeColorTheme, parseVscodeTheme, vscodeThemeSlug } from './vscode'
+
+afterEach(() => {
+  setRuntimeI18nLocale('en')
+})
 
 describe('vscodeThemeSlug', () => {
   it('namespaces, lowercases, and dashes', () => {
@@ -33,6 +39,13 @@ describe('parseVscodeTheme (JSONC tolerance)', () => {
 
   it('throws on a non-object', () => {
     expect(() => parseVscodeTheme('42')).toThrow()
+  })
+
+  it('uses the active locale for invalid theme-file errors', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(() => parseVscodeTheme('not json')).toThrow('主题文件不是有效的 JSON。')
+    expect(() => parseVscodeTheme('42')).toThrow('主题文件不是 JSON 对象。')
   })
 })
 
@@ -109,6 +122,12 @@ describe('convertVscodeColorTheme', () => {
 
   it('throws when there is no colors map', () => {
     expect(() => convertVscodeColorTheme({ name: 'Empty' })).toThrow(/colors/)
+  })
+
+  it('uses the active locale when a theme has no colors map', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(() => convertVscodeColorTheme({ name: 'Empty' })).toThrow('主题缺少 colors 映射，无法识别为 VS Code 配色主题。')
   })
 
   const fullAnsi = {

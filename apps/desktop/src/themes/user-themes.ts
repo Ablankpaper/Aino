@@ -13,6 +13,7 @@
 import { atom, computed } from 'nanostores'
 
 import { registry } from '@/contrib/registry'
+import { translateNow } from '@/i18n'
 
 import { $backendThemes } from './backend-sync'
 import { BUILTIN_THEMES } from './presets'
@@ -89,11 +90,11 @@ export const $userThemes = atom<Record<string, DesktopTheme>>(typeof window === 
 /** Install (or replace) a user theme. Returns the stored theme. */
 export function installUserTheme(theme: DesktopTheme): DesktopTheme {
   if (BUILTIN_THEMES[theme.name]) {
-    throw new Error(`"${theme.name}" collides with a built-in theme.`)
+    throw new Error(translateNow('settings.appearance.themeImportErrors.builtInCollision', theme.name))
   }
 
   if (!isValidTheme(theme)) {
-    throw new Error('Theme is missing required colors.')
+    throw new Error(translateNow('settings.appearance.themeImportErrors.missingColors'))
   }
 
   const next = { ...$userThemes.get(), [theme.name]: theme }

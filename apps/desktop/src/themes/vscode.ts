@@ -15,6 +15,8 @@
  * background luminance, so surface-bound UI matches what's on screen.
  */
 
+import { translateNow } from '@/i18n'
+
 import { ensureContrast, luminance, mix, normalizeHex, readableOn } from './color'
 import type { DesktopTerminalPalette, DesktopTheme, DesktopThemeColors } from './types'
 
@@ -77,10 +79,18 @@ export function parseVscodeTheme(text: string): VscodeColorTheme {
     // Trailing commas before } or ].
     .replace(/,(\s*[}\]])/g, '$1')
 
-  const parsed: unknown = JSON.parse(stripped)
+  let parsed: unknown
+
+  try {
+    parsed = JSON.parse(stripped)
+  } catch (error) {
+    const localized = new Error(translateNow('settings.appearance.themeImportErrors.invalidJson'))
+    ;(localized as Error & { cause?: unknown }).cause = error
+    throw localized
+  }
 
   if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Theme file is not a JSON object.')
+    throw new Error(translateNow('settings.appearance.themeImportErrors.notObject'))
   }
 
   return parsed as VscodeColorTheme
@@ -206,7 +216,7 @@ export function convertVscodeColorTheme(raw: VscodeColorTheme, opts: ConvertOpti
   const colors = raw.colors && typeof raw.colors === 'object' ? (raw.colors as Record<string, unknown>) : null
 
   if (!colors) {
-    throw new Error('Theme has no "colors" map — not a VS Code color theme.')
+    throw new Error(translateNow('settings.appearance.themeImportErrors.noColors'))
   }
 
   const derived: string[] = []

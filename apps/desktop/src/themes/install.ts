@@ -8,6 +8,7 @@
  */
 
 import type { DesktopMarketplaceThemeResult } from '@/global'
+import { translateNow } from '@/i18n'
 
 import type { DesktopTheme } from './types'
 import { installUserTheme } from './user-themes'
@@ -37,7 +38,7 @@ export function installVscodeThemeFromText(text: string, opts?: { label?: string
  */
 export function buildThemeFromMarketplace(result: DesktopMarketplaceThemeResult): DesktopTheme {
   if (!result.themes.length) {
-    throw new Error(`"${result.extensionId}" does not contribute any color themes.`)
+    throw new Error(translateNow('settings.appearance.themeImportErrors.noMarketplaceThemes', result.extensionId))
   }
 
   const variants = result.themes.map(file => {
@@ -77,13 +78,13 @@ export async function installVscodeThemeFromMarketplace(id: string): Promise<Des
   const trimmed = id.trim()
 
   if (!MARKETPLACE_ID_RE.test(trimmed)) {
-    throw new Error('Expected a Marketplace id like "publisher.extension".')
+    throw new Error(translateNow('settings.appearance.themeImportErrors.invalidMarketplaceId'))
   }
 
   const api = window.hermesDesktop?.themes
 
   if (!api?.fetchMarketplace) {
-    throw new Error('Marketplace install is only available in the desktop app.')
+    throw new Error(translateNow('settings.appearance.themeImportErrors.desktopOnly'))
   }
 
   const result = await api.fetchMarketplace(trimmed)

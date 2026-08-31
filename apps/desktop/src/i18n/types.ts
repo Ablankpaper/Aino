@@ -706,6 +706,16 @@ export interface Translations {
       installing: string
       installError: string
       installed: (name: string) => string
+      themeImportErrors: {
+        invalidJson: string
+        notObject: string
+        noColors: string
+        noMarketplaceThemes: (extensionId: string) => string
+        invalidMarketplaceId: string
+        desktopOnly: string
+        builtInCollision: (name: string) => string
+        missingColors: string
+      }
       removeTheme: string
       importedBadge: string
       themeSearchPlaceholder: string
