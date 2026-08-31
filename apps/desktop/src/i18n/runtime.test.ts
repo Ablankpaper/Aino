@@ -19,6 +19,9 @@ describe('desktop i18n runtime translator', () => {
     setRuntimeI18nLocale('zh')
 
     expect(translateNow('boot.ready')).toBe('Aino 桌面版已就绪')
+    expect(translateNow('boot.errors.gatewayConnectionLostDetail')).toBe(
+      '仍在后台重试。你可以继续阅读和撰写草稿；如果问题持续，请打开网关设置。'
+    )
     expect(translateNow('notifications.voice.noSpeechDetected')).toBe('没有检测到语音')
     expect(translateNow('composer.lookupNoMatches')).toBe('没有匹配项。')
     expect(translateNow('assistant.tool.statusRecovered')).toBe('已恢复')
