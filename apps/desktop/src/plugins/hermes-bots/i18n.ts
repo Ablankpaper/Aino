@@ -352,12 +352,15 @@ type BotsMessages = {
 
   /** Provider/model picker copy that is not present in core model settings. */
   model: {
+    providerLabel: string
+    modelLabel: string
     providerCustom: string
     modelCustom: string
     providerPlaceholder: string
     modelPlaceholder: string
     providerCustomPlaceholder: string
     modelCustomPlaceholder: string
+    gatewayDefault: string
     backToDropdowns: string
     inheritLaunch: string
     enterManually: string
@@ -736,12 +739,15 @@ const en: BotsMessages = {
     authenticated: name => `${name} authenticated`
   },
   model: {
+    providerLabel: 'Provider',
+    modelLabel: 'Model',
     providerCustom: 'Provider (Custom)',
     modelCustom: 'Model (Custom)',
     providerPlaceholder: 'omnirouter / 9router / nous …',
     modelPlaceholder: 'antigravity/gemini-3.6-flash-high',
     providerCustomPlaceholder: 'e.g. omnirouter, inferx, 9router',
     modelCustomPlaceholder: 'e.g. antigravity/gemini-3.6-flash-high',
+    gatewayDefault: 'gateway default',
     backToDropdowns: '← Back to dropdowns',
     inheritLaunch: 'Inherit (launch profile)',
     enterManually: '✏️ Enter manually…',
@@ -1117,12 +1123,15 @@ const ja: BotsMessages = {
     authenticated: name => `${name}を認証しました`
   },
   model: {
+    providerLabel: 'プロバイダー',
+    modelLabel: 'モデル',
     providerCustom: 'プロバイダー（カスタム）',
     modelCustom: 'モデル（カスタム）',
     providerPlaceholder: 'omnirouter / 9router / nous …',
     modelPlaceholder: 'antigravity/gemini-3.6-flash-high',
     providerCustomPlaceholder: '例: omnirouter、inferx、9router',
     modelCustomPlaceholder: '例: antigravity/gemini-3.6-flash-high',
+    gatewayDefault: 'ゲートウェイの既定値',
     backToDropdowns: '← ドロップダウンに戻る',
     inheritLaunch: '継承（起動プロファイル）',
     enterManually: '✏️ 手動入力…',
@@ -1489,12 +1498,15 @@ const zh: BotsMessages = {
     authenticated: name => `${name} 已完成身份验证`
   },
   model: {
+    providerLabel: '提供方',
+    modelLabel: '模型',
     providerCustom: '提供方（自定义）',
     modelCustom: '模型（自定义）',
     providerPlaceholder: 'omnirouter / 9router / nous …',
     modelPlaceholder: 'antigravity/gemini-3.6-flash-high',
     providerCustomPlaceholder: '例如：omnirouter、inferx、9router',
     modelCustomPlaceholder: '例如：antigravity/gemini-3.6-flash-high',
+    gatewayDefault: '网关默认值',
     backToDropdowns: '← 返回下拉选项',
     inheritLaunch: '继承（启动配置档案）',
     enterManually: '✏️ 手动输入…',
@@ -1861,12 +1873,15 @@ const zhHant: BotsMessages = {
     authenticated: name => `${name} 已完成驗證`
   },
   model: {
+    providerLabel: '提供者',
+    modelLabel: '模型',
     providerCustom: '提供者（自訂）',
     modelCustom: '模型（自訂）',
     providerPlaceholder: 'omnirouter / 9router / nous …',
     modelPlaceholder: 'antigravity/gemini-3.6-flash-high',
     providerCustomPlaceholder: '例如：omnirouter、inferx、9router',
     modelCustomPlaceholder: '例如：antigravity/gemini-3.6-flash-high',
+    gatewayDefault: '閘道預設值',
     backToDropdowns: '← 返回下拉選單',
     inheritLaunch: '繼承（啟動設定檔）',
     enterManually: '✏️ 手動輸入…',

@@ -52,6 +52,25 @@ vi.mock('@hermes/plugin-sdk', async () => {
 })
 
 vi.mock('./shared', () => ({ ID: 'hermes-bots' }))
+vi.mock('./i18n', () => ({
+  useBots: () => ({
+    model: {
+      backToDropdowns: '← Back to dropdowns',
+      enterManually: '✏️ Enter manually…',
+      gatewayDefault: 'gateway default',
+      inheritLaunch: 'Inherit (launch profile)',
+      modelCustom: 'Model (Custom)',
+      modelCustomPlaceholder: 'e.g. antigravity/gemini-3.6-flash-high',
+      modelLabel: 'Model',
+      modelNamePlaceholder: 'e.g. model name',
+      modelPlaceholder: 'antigravity/gemini-3.6-flash-high',
+      providerCustom: 'Provider (Custom)',
+      providerCustomPlaceholder: 'e.g. omnirouter, inferx, 9router',
+      providerLabel: 'Provider',
+      providerPlaceholder: 'omnirouter / 9router / nous …'
+    }
+  })
+}))
 
 const remoteBot = {
   connectionId: 'remote-a',
