@@ -93,6 +93,35 @@ def test_simplified_chinese_localizes_gateway_context_and_status_copy():
     assert i18n.t("gateway.status.tokens", lang="zh", tokens=500) == "**累计计费词元：** 500 _（不是当前上下文大小；使用 `/context` 查看）_"
 
 
+def test_simplified_chinese_localizes_resume_and_matrix_recovery_copy():
+    """Resume recovery guidance should be readable in Simplified Chinese."""
+    assert i18n.t("gateway.resume.db_unavailable", lang="zh") == "会话数据库不可用。"
+    assert i18n.t("gateway.resume.parse_error", lang="zh", error="bad args") == (
+        "⚠️ 无法解析 `/resume` 参数：bad args。\n标题包含空格时请使用引号，例如：`/resume \"项目 A 计划\"`。"
+    )
+    assert i18n.t("gateway.resume.matrix_no_named_sessions", lang="zh") == (
+        "此 Matrix 房间中没有已命名的会话。\n使用 `/title <会话名称>` 为当前房间会话命名，使用 `/resume --all` 列出所有 Matrix 会话，"
+        "或使用 `/resume --cross-room <会话名称>` 明确跨越房间边界。"
+    )
+    assert i18n.t("gateway.resume.matrix_blocked_no_origin", lang="zh", name="session-a") == (
+        "⚠️ Matrix /resume 已阻止：此已命名会话没有记录房间来源，因此 Hermes 默认不会在当前房间内恢复它。"
+        "如果你确实要跨房间恢复，请使用 `/resume --cross-room session-a`。"
+    )
+    assert i18n.t("gateway.resume.matrix_blocked_other_room", lang="zh", room="room-b", name="session-a") == (
+        "⚠️ Matrix /resume 已阻止：该会话属于其他 Matrix 房间（room-b）。"
+        "如果你确实要在此处恢复，请使用 `/resume --cross-room session-a`。"
+    )
+    assert i18n.t(
+        "gateway.resume.matrix_cross_room_success", lang="zh", title="工作", room="room-b", msg_part=""
+    ) == (
+        "⚠️ 跨房间恢复：已在 Matrix 房间 **room-b** 内恢复 **工作**。"
+        "\n在使用 `/reset` 或其他 `/resume` 之前，此房间的后续消息都会使用该记录。"
+    )
+    assert i18n.t("gateway.resume.blocked_not_owner", lang="zh", name="工作") == (
+        "⚠️ /resume 已阻止：'**工作**' 属于其他用户或聊天。你只能恢复此聊天中的会话。"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Language resolution
 # ---------------------------------------------------------------------------
@@ -161,4 +190,3 @@ def test_locales_dir_env_override_ignored_when_missing(tmp_path, monkeypatch):
     assert result != tmp_path / "does-not-exist"
     # In a source checkout this is the repo-root locales dir.
     assert result.name == "locales"
-
