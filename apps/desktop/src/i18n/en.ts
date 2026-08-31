@@ -3264,7 +3264,9 @@ export const en: Translations = {
       noModels: 'No models found',
       editModels: 'Edit models…',
       refreshModels: 'Refresh models',
-      fast: 'Fast'
+      fast: 'Fast',
+      moaPresets: 'MoA presets',
+      moaPrefix: 'MoA:'
     },
     modelOptions: {
       noOptions: 'No options for this model',

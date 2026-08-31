@@ -2769,6 +2769,8 @@ export interface Translations {
       editModels: string
       refreshModels: string
       fast: string
+      moaPresets: string
+      moaPrefix: string
     }
     modelOptions: {
       noOptions: string
