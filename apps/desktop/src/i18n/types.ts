@@ -2470,6 +2470,14 @@ export interface Translations {
       tool: string
       url: string
     }
+    referenceLabels: {
+      file: string
+      folder: string
+      git: string
+      image: string
+      tool: string
+      url: string
+    }
     browseAllSessions: string
     lookupLoading: string
     lookupNoMatches: string

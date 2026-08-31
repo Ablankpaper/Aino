@@ -3062,6 +3062,14 @@ export const zh: Translations = {
       tool: '引用工具',
       url: '引用网址'
     },
+    referenceLabels: {
+      file: '文件',
+      folder: '文件夹',
+      git: 'Git',
+      image: '图片',
+      tool: '工具',
+      url: '链接'
+    },
     browseAllSessions: '浏览全部会话…',
     lookupLoading: '查找中…',
     lookupNoMatches: '没有匹配项。',

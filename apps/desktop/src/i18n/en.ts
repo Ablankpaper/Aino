@@ -2896,6 +2896,14 @@ export const en: Translations = {
       tool: 'Attach a tool reference',
       url: 'Attach a URL reference'
     },
+    referenceLabels: {
+      file: 'Files',
+      folder: 'Folders',
+      git: 'Git',
+      image: 'Images',
+      tool: 'Tools',
+      url: 'Links'
+    },
     browseAllSessions: 'Browse all sessions…',
     lookupLoading: 'Looking up…',
     lookupNoMatches: 'No matches.',
