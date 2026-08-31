@@ -60,12 +60,16 @@ describe('BOTS_LOCALES', () => {
       'roster.globalGroupChats',
       'roster.currentGateway',
       'roster.staleRefresh',
+      'roster.gatewayUnreachable',
       'roster.deleteDescription',
       'roster.deletedProfile',
       'bot.pinToTop',
       'bot.unpin',
       'bot.manageGroups',
       'bot.duplicating',
+      'bot.chatOpenFailed',
+      'bot.updateGatewayTitle',
+      'bot.updateGatewayMessage',
       'bot.attentionProviderAuth',
       'group.you',
       'group.botCount',
@@ -88,6 +92,7 @@ describe('BOTS_LOCALES', () => {
       'cron.pausedSecurity',
       'cron.onceMinutes'
     ] as const
+
     const enByPath = Object.fromEntries(leafEntries(en))
     const zhByPath = Object.fromEntries(leafEntries(zh))
 

@@ -17,6 +17,7 @@ import { $groupChats, $groupChatWorkspace } from './group-chat'
 import { openGroupChat } from './group-chat-view'
 import { liveGroupChatNames } from './group-membership'
 import { closeGroupChatMainTab } from './group-panes'
+import { botsText } from './i18n'
 import { displayName } from './labels'
 import { botRosterMeta, botWorkspaceOwnerKey, setBotsWorkspaceOwner } from './routing'
 import { botCanonicalSessionId } from './row-helpers'
@@ -212,7 +213,7 @@ export async function openRosterBot(bot: RosterRow, { canonical = false } = {}):
     if (generation === getBotOpenGeneration()) {
       $openBotChat.set(null)
       restorePreviousGroup()
-      notifyBotOpenFailure(error, bot, `Could not reach ${bot.connectionLabel || 'the gateway'}`)
+      notifyBotOpenFailure(error, bot, botsText().roster.gatewayUnreachable(bot.connectionLabel || 'the gateway'))
     }
 
     return false
@@ -249,7 +250,7 @@ export async function openRosterBot(bot: RosterRow, { canonical = false } = {}):
     if (generation === getBotOpenGeneration()) {
       $openBotChat.set(null)
       restorePreviousGroup()
-      notifyBotOpenFailure(error, bot, `Could not open ${displayName(bot, meta)}'s chat — try again`)
+      notifyBotOpenFailure(error, bot, botsText().bot.chatOpenFailed(displayName(bot, meta)))
     }
 
     return false

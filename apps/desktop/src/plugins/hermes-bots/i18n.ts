@@ -57,6 +57,7 @@ type BotsMessages = {
     globalGroupChats: (count: number) => string
     currentGateway: string
     staleRefresh: string
+    gatewayUnreachable: (gateway: string) => string
     staleWaiting: string
     gatewayError: string
     deleteDescription: (name: string, path: string) => string
@@ -136,6 +137,7 @@ type BotsMessages = {
     groupsLabel: (groups: string) => string
     duplicating: (name: string) => string
     duplicated: (name: string, source: string) => string
+    chatOpenFailed: (name: string) => string
     attentionProviderAuth: string
     attentionQuota: string
     attentionMissingConfig: string
@@ -483,6 +485,7 @@ const en: BotsMessages = {
     globalGroupChats: count => `${count} global group chat${count === 1 ? '' : 's'}`,
     currentGateway: 'Current gateway',
     staleRefresh: 'Roster refresh failed — showing the last good list.',
+    gatewayUnreachable: gateway => `Could not reach ${gateway}`,
     staleWaiting: 'Waiting for the gateway to reconnect…',
     gatewayError: 'gateway error',
     deleteDescription: (name, path) =>
@@ -557,6 +560,7 @@ const en: BotsMessages = {
     groupsLabel: groups => `Groups: ${groups}…`,
     duplicating: name => `Duplicating ${name}…`,
     duplicated: (name, source) => `Created ${name} — full copy of ${source}`,
+    chatOpenFailed: name => `Could not open ${name}'s chat — try again`,
     attentionProviderAuth: 'Sign in again for this profile',
     attentionQuota: 'Quota or balance exhausted',
     attentionMissingConfig: 'Provider not configured — run hermes model',
@@ -899,6 +903,7 @@ const ja: BotsMessages = {
     globalGroupChats: count => `全体グループチャット${count === 1 ? '' : '（' + count + '）'}`,
     currentGateway: '現在のゲートウェイ',
     staleRefresh: '名簿の更新に失敗しました。最後に取得した一覧を表示しています。',
+    gatewayUnreachable: gateway => `${gateway} に接続できませんでした`,
     staleWaiting: 'ゲートウェイの再接続を待っています…',
     gatewayError: 'ゲートウェイエラー',
     deleteDescription: (name, path) =>
@@ -972,6 +977,7 @@ const ja: BotsMessages = {
     groupsLabel: groups => `グループ: ${groups}…`,
     duplicating: name => `${name}を複製中…`,
     duplicated: (name, source) => `${name}を作成しました — ${source}の完全なコピー`,
+    chatOpenFailed: name => `${name}のチャットを開けませんでした — もう一度お試しください`,
     attentionProviderAuth: 'このプロファイルにもう一度サインインしてください',
     attentionQuota: 'クォータまたは残高が不足しています',
     attentionMissingConfig: 'プロバイダー未設定 — hermes model を実行してください',
@@ -1316,6 +1322,7 @@ const zh: BotsMessages = {
     globalGroupChats: count => `${count} 个全局群聊`,
     currentGateway: '当前网关',
     staleRefresh: '名单刷新失败 — 显示上次成功获取的列表。',
+    gatewayUnreachable: gateway => `无法连接 ${gateway}`,
     staleWaiting: '等待网关重新连接…',
     gatewayError: '网关错误',
     deleteDescription: (name, path) => `将永久删除机器人 ${name} 及其 Hermes 配置档案（${path}）。此操作无法撤销。`,
@@ -1387,6 +1394,7 @@ const zh: BotsMessages = {
     groupsLabel: groups => `群组：${groups}…`,
     duplicating: name => `正在复制 ${name}…`,
     duplicated: (name, source) => `已创建 ${name} — ${source} 的完整副本`,
+    chatOpenFailed: name => `无法打开 ${name} 的聊天，请重试`,
     attentionProviderAuth: '请重新登录此配置档案',
     attentionQuota: '配额或余额已用尽',
     attentionMissingConfig: '提供方未配置 — 请运行 hermes model',
@@ -1724,6 +1732,7 @@ const zhHant: BotsMessages = {
     globalGroupChats: count => `${count} 個全域群組聊天`,
     currentGateway: '目前閘道',
     staleRefresh: '名單重新整理失敗 — 顯示上次成功取得的清單。',
+    gatewayUnreachable: gateway => `無法連線 ${gateway}`,
     staleWaiting: '正在等待閘道重新連線…',
     gatewayError: '閘道錯誤',
     deleteDescription: (name, path) => `將永久刪除機器人 ${name} 及其 Hermes 設定檔（${path}）。此操作無法復原。`,
@@ -1795,6 +1804,7 @@ const zhHant: BotsMessages = {
     groupsLabel: groups => `群組：${groups}…`,
     duplicating: name => `正在複製 ${name}…`,
     duplicated: (name, source) => `已建立 ${name} — ${source} 的完整副本`,
+    chatOpenFailed: name => `無法開啟 ${name} 的聊天，請再試一次`,
     attentionProviderAuth: '請重新登入此設定檔',
     attentionQuota: '配額或餘額已用盡',
     attentionMissingConfig: '提供者尚未設定 — 請執行 hermes model',
