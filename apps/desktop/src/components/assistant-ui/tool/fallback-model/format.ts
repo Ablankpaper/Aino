@@ -1,3 +1,5 @@
+import { translateNow } from '@/i18n'
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
@@ -76,7 +78,7 @@ export function clampForDisplay(value: string, max = MAX_TOOL_RENDER_CHARS): str
 
   const omitted = value.length - max
 
-  return `${value.slice(0, max)}\n\n… ${omitted.toLocaleString()} more characters truncated — use Copy for the full output.`
+  return `${value.slice(0, max)}\n\n${translateNow('assistant.tool.truncatedOutput', omitted)}`
 }
 
 export function prettyJson(value: unknown): string {

@@ -432,6 +432,12 @@ describe('clampForDisplay', () => {
     expect(clamped).toContain('5,000 more characters truncated')
     expect(clamped).toContain('Copy')
   })
+
+  it('uses the active Simplified Chinese copy for truncated output', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(clampForDisplay('1234567890', 5)).toBe('12345\n\n… 已省略 5 个字符 — 使用“复制”获取完整输出。')
+  })
 })
 
 // A large tool result (e.g. a 100KB read_file during a `/learn` run) must not

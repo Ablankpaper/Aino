@@ -2850,6 +2850,7 @@ export const zhHant = defineLocale({
       copyPath: '複製路徑',
       outputAlt: '工具輸出',
       rawResponse: '原始回應',
+      truncatedOutput: count => `… 已省略 ${count.toLocaleString()} 個字元 — 使用「複製」取得完整輸出。`,
       copyActivity: '複製活動',
       arguments: '引數',
       result: '結果',

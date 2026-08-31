@@ -4082,6 +4082,7 @@ export const zh: Translations = {
       copyPath: '复制路径',
       outputAlt: '工具输出',
       rawResponse: '原始响应',
+      truncatedOutput: count => `… 已省略 ${count.toLocaleString()} 个字符 — 使用“复制”获取完整输出。`,
       copyActivity: '复制活动',
       arguments: '参数',
       result: '结果',

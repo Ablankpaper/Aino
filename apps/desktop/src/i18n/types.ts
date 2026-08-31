@@ -3390,6 +3390,7 @@ export interface Translations {
       copyPath: string
       outputAlt: string
       rawResponse: string
+      truncatedOutput: (count: number) => string
       copyActivity: string
       arguments: string
       result: string

@@ -3943,6 +3943,7 @@ export const en: Translations = {
       copyPath: 'Copy path',
       outputAlt: 'Tool output',
       rawResponse: 'Raw response',
+      truncatedOutput: count => `… ${count.toLocaleString()} more characters truncated — use Copy for the full output.`,
       copyActivity: 'Copy activity',
       arguments: 'Arguments',
       result: 'Result',

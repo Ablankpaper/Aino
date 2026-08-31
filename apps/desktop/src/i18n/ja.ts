@@ -2947,6 +2947,7 @@ export const ja = defineLocale({
       copyPath: 'パスをコピー',
       outputAlt: 'ツール出力',
       rawResponse: '生の応答',
+      truncatedOutput: count => `… ${count.toLocaleString()}文字を省略しました — 「コピー」で完全な出力を取得できます。`,
       copyActivity: 'アクティビティをコピー',
       arguments: '引数',
       result: '結果',
