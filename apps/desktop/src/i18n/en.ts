@@ -3737,6 +3737,23 @@ export const en: Translations = {
       yoloOff: 'YOLO off. Shift+click toggles globally.',
       modelNone: 'none',
       noModel: 'no model',
+      modelFast: 'Fast',
+      modelEffort: effort =>
+        ({
+          none: 'Off',
+          minimal: 'Min',
+          low: 'Low',
+          medium: 'Med',
+          high: 'High',
+          xhigh: 'XHigh',
+          max: 'Max',
+          ultra: 'Ultra'
+        })[effort.trim().toLowerCase()] ?? effort,
+      modelVariant: variant =>
+        ({ fast: 'Fast', thinking: 'Thinking', preview: 'Preview', latest: 'Latest' })[
+          variant.trim().toLowerCase()
+        ] ?? variant,
+      modelStatusNoModel: 'No model',
       switchModel: 'Switch model',
       openModelPicker: 'Open model picker',
       modelPinned: 'pinned by you; new chats use this instead of the Settings default',

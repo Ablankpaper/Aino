@@ -1,3 +1,4 @@
+import { translateNow } from '@/i18n'
 import { DEFAULT_REASONING_EFFORT, reasoningEffortLabel } from '@/lib/reasoning-effort'
 
 /** Which model/provider pair a picker should mark "current". SessionView state
@@ -45,13 +46,17 @@ export function modelBaseId(model: string): string {
 // name (e.g. "Opus 4.8" + "Fast") rather than collapsing two distinct ids to
 // the same display name.
 const VARIANT_TAGS: ReadonlyArray<readonly [RegExp, string]> = [
-  [/-fast$/i, 'Fast'],
-  [/-thinking$/i, 'Thinking'],
-  [/-preview$/i, 'Preview'],
-  [/-latest$/i, 'Latest']
+  [/-fast$/i, 'fast'],
+  [/-thinking$/i, 'thinking'],
+  [/-preview$/i, 'preview'],
+  [/-latest$/i, 'latest']
 ]
 
 const titleCase = (text: string): string => text.replace(/\b\w/g, char => char.toUpperCase()).trim()
+
+export function localizedReasoningEffortLabel(effort: string): string {
+  return reasoningEffortLabel(effort, value => translateNow('shell.statusbar.modelEffort', value))
+}
 
 function prettifyBase(base: string): string {
   if (/^claude-/i.test(base)) {
@@ -77,7 +82,7 @@ export function modelDisplayParts(model: string): { name: string; tag: string } 
 
   for (const [pattern, label] of VARIANT_TAGS) {
     if (pattern.test(base)) {
-      tag = label
+      tag = translateNow('shell.statusbar.modelVariant', label)
       base = base.replace(pattern, '')
 
       break
@@ -87,7 +92,7 @@ export function modelDisplayParts(model: string): { name: string; tag: string } 
   // Drop a trailing date-pin (`…-20251101`) — snapshot noise, not a name.
   base = base.replace(/-\d{8}$/, '')
 
-  return { name: prettifyBase(base) || model.trim() || 'No model', tag }
+  return { name: prettifyBase(base) || model.trim() || translateNow('shell.statusbar.modelStatusNoModel'), tag }
 }
 
 /** Friendly one-line model name for menus and the status bar. */
@@ -113,12 +118,12 @@ export function formatModelStatusLabel(
   // Fast is shown when the speed=fast param is on (options.fastMode) OR the
   // active model is a `…-fast` variant (fast via a separate model id).
   if (options?.fastMode || /-fast$/i.test(modelBaseId(model))) {
-    parts.push('Fast')
+    parts.push(translateNow('shell.statusbar.modelFast'))
   }
 
   // Always surface the effort so the current reasoning level is visible at a
   // glance, not just when non-default.
-  parts.push(reasoningEffortLabel(options?.reasoningEffort || options?.defaultEffort || DEFAULT_REASONING_EFFORT))
+  parts.push(localizedReasoningEffortLabel(options?.reasoningEffort || options?.defaultEffort || DEFAULT_REASONING_EFFORT))
 
   return `${name} · ${parts.join(' ')}`
 }

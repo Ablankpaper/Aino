@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DropdownMenu, DropdownMenuContent } from '@/components/ui/dropdown-menu'
+import { I18nProvider } from '@/i18n'
 import {
   $modelVisibilityOpen,
   $visibleModels,
@@ -42,12 +43,17 @@ afterEach(() => {
 
 // A minimal controller — these tests are about the CATALOG's own behaviour
 // (what it lists, what it offers), not about what any host does with a pick.
-function renderMenu() {
+function renderMenu(options: { effort?: string; locale?: 'en' | 'zh'; model?: string; provider?: string } = {}) {
   const select = vi.fn()
 
   const controller: ModelMenuController = {
     applyPreset: vi.fn(),
-    current: { effort: '', fast: false, model: '', provider: '' },
+    current: {
+      effort: options.effort ?? '',
+      fast: false,
+      model: options.model ?? '',
+      provider: options.provider ?? ''
+    },
     presetFor: () => ({}),
     select,
     setOptions: vi.fn()
@@ -56,13 +62,15 @@ function renderMenu() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
   render(
-    <QueryClientProvider client={client}>
-      <DropdownMenu open>
-        <DropdownMenuContent>
-          <ModelCatalogMenu controller={controller} />
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </QueryClientProvider>
+    <I18nProvider configClient={null} initialLocale={options.locale ?? 'en'}>
+      <QueryClientProvider client={client}>
+        <DropdownMenu open>
+          <DropdownMenuContent>
+            <ModelCatalogMenu controller={controller} />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </QueryClientProvider>
+    </I18nProvider>
   )
 
   return select
@@ -104,5 +112,12 @@ describe('the catalog owns model curation', () => {
     fireEvent.click(screen.getByText('Edit models…'))
 
     expect($modelVisibilityOpen.get()).toBe(true)
+  })
+
+  it('renders compact reasoning labels in the active locale', async () => {
+    renderMenu({ effort: 'high', locale: 'zh', model: 'gemini-3.1-pro', provider: 'google' })
+
+    expect((await screen.findByText(/Gemini 3\.1 pro/)).textContent).toContain('高')
+    expect(screen.queryByText(/High/)).toBeNull()
   })
 })

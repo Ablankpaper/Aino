@@ -4083,6 +4083,21 @@ export const zh: Translations = {
       yoloOff: 'YOLO 已关闭。Shift+点击可全局切换。',
       modelNone: '无',
       noModel: '无模型',
+      modelFast: '快速',
+      modelEffort: effort =>
+        ({
+          none: '关闭',
+          minimal: '最小',
+          low: '低',
+          medium: '中',
+          high: '高',
+          xhigh: '极高',
+          max: '最高',
+          ultra: '超高'
+        })[effort.trim().toLowerCase()] ?? effort,
+      modelVariant: variant =>
+        ({ fast: '快速', thinking: '思考', preview: '预览', latest: '最新' })[variant.trim().toLowerCase()] ?? variant,
+      modelStatusNoModel: '无模型',
       switchModel: '切换模型',
       openModelPicker: '打开模型选择器',
       modelPinned: '已由你固定；新对话将使用此模型而非“设置”中的默认模型',

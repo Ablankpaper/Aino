@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { currentPickerSelection, displayModelName, formatModelStatusLabel } from './model-status-label'
+import { setRuntimeI18nLocale } from '@/i18n'
+
+import {
+  currentPickerSelection,
+  displayModelName,
+  formatModelStatusLabel,
+  localizedReasoningEffortLabel,
+  modelDisplayParts
+} from './model-status-label'
 import { reasoningEffortLabel } from './reasoning-effort'
 
 describe('model-status-label', () => {
@@ -44,6 +52,25 @@ describe('model-status-label', () => {
 
   it('returns just the placeholder name when there is no model', () => {
     expect(formatModelStatusLabel('')).toBe('No model')
+  })
+
+  describe('Simplified Chinese labels', () => {
+    beforeEach(() => {
+      setRuntimeI18nLocale('zh')
+    })
+
+    afterEach(() => {
+      setRuntimeI18nLocale('en')
+    })
+
+    it('translates generated status copy without translating model identifiers', () => {
+      expect(formatModelStatusLabel('openai/gpt-5.5', { fastMode: true, reasoningEffort: 'high' })).toBe(
+        'GPT-5.5 · 快速 高'
+      )
+      expect(localizedReasoningEffortLabel('medium')).toBe('中')
+      expect(modelDisplayParts('anthropic/claude-opus-4.8-preview')).toEqual({ name: 'Opus 4.8', tag: '预览' })
+      expect(formatModelStatusLabel('')).toBe('无模型')
+    })
   })
 
   describe('currentPickerSelection', () => {

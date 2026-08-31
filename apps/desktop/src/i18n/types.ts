@@ -3040,6 +3040,10 @@ export interface Translations {
       yoloOff: string
       modelNone: string
       noModel: string
+      modelFast: string
+      modelEffort: (effort: string) => string
+      modelVariant: (variant: string) => string
+      modelStatusNoModel: string
       switchModel: string
       openModelPicker: string
       modelPinned: string
