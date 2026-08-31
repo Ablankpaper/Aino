@@ -116,6 +116,20 @@ describe('desktop i18n runtime translator', () => {
     )
   })
 
+  it('localizes gateway setup terminology while preserving technical values', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('settings.managedUpdates.scopesRestored', '工作、个人')).toBe('已恢复的配置档案：工作、个人')
+    expect(translateNow('settings.managedUpdates.progress')).toBe('正在排空会话、更新远端安装并恢复配置档案…')
+    expect(translateNow('settings.gateway.remoteUrlDesc')).toBe(
+      '远程仪表盘后端的基础 URL。支持路径前缀，例如 /hermes。'
+    )
+    expect(translateNow('settings.gateway.tokenTitle')).toBe('会话令牌')
+    expect(translateNow('settings.gateway.tokenDesc')).toBe(
+      '用于 REST 和 WebSocket 访问的仪表盘会话令牌。留空则保留已保存的令牌。'
+    )
+  })
+
   it('falls back to English when the active locale cannot resolve a key', () => {
     const boot = TRANSLATIONS.ja.boot as { ready?: string }
     const originalReady = boot.ready
