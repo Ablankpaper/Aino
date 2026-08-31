@@ -102,6 +102,20 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('updates.backendNoReturn')).toBe('后端未恢复在线。')
   })
 
+  it('keeps gateway and provider status copy fully localized', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('settings.managedUpdates.scopeNotRestored', '工作', '连接失败')).toBe(
+      '配置档案“工作”未恢复：连接失败'
+    )
+    expect(translateNow('settings.providers.removeKeyManaged', 'OpenAI')).toBe(
+      'OpenAI 由 API 密钥配置。请从 API 密钥中移除。'
+    )
+    expect(translateNow('shell.statusbar.connectionRemoteTooltip', 'server.example')).toBe(
+      '远程 · server.example'
+    )
+  })
+
   it('falls back to English when the active locale cannot resolve a key', () => {
     const boot = TRANSLATIONS.ja.boot as { ready?: string }
     const originalReady = boot.ready

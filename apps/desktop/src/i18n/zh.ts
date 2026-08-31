@@ -1344,7 +1344,7 @@ export const zh: Translations = {
       receipt: (id: string, outcome: string) => `回执 ${id} · ${outcome}`,
       receiptVersions: (pre: string, post: string) => `${pre} → ${post}`,
       scopesRestored: (profiles: string) => `已恢复的 profile：${profiles}`,
-      scopeNotRestored: (profile: string, error: string) => `Profile“${profile}”未恢复：${error}`
+      scopeNotRestored: (profile: string, error: string) => `配置档案“${profile}”未恢复：${error}`
     },
     gateway: {
       loading: '正在加载网关设置...',
@@ -1654,7 +1654,7 @@ export const zh: Translations = {
       disconnectInTerminal: '断开连接（在终端中运行移除命令）',
       removeConfirm: provider => `移除 ${provider}？`,
       removeExternalGeneric: provider => `${provider} 由其自身的 CLI 管理 — 请在那里移除。`,
-      removeKeyManaged: provider => `${provider} 由 API 密钥配置。请从 API Keys 中移除。`,
+      removeKeyManaged: provider => `${provider} 由 API 密钥配置。请从 API 密钥中移除。`,
       removeTerminalConfirm: (provider, command) => `断开 ${provider}？这将在终端中运行 "${command}" 以清除凭据。`,
       removeTerminalRunning: provider => `正在终端中断开 ${provider}…`,
       removedTitle: '账号已移除',
@@ -4039,7 +4039,7 @@ export const zh: Translations = {
       connectionCloud: host => `云端: ${host}`,
       connectionCloudTooltip: host => `Hermes Cloud · ${host}`,
       connectionSshTooltip: host => `SSH · ${host}`,
-      connectionRemoteTooltip: host => `Remote · ${host}`,
+      connectionRemoteTooltip: host => `远程 · ${host}`,
       backendLabel: version => `后端 v${version}`,
       commit: sha => `提交 ${sha}`,
       branch: branch => `分支 ${branch}`,
