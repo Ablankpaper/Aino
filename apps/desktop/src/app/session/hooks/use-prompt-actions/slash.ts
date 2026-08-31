@@ -537,7 +537,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             durationMs: 0,
             id: noticeId,
             kind: 'info',
-            message: focusTopic ? `compressing context for: ${focusTopic}` : 'compressing context...'
+            message: copy.compressing(focusTopic)
           })
 
           try {
@@ -639,7 +639,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             }
 
             const removed = result?.removed ?? 0
-            const message = removed > 0 ? `compressed ${removed} messages` : 'nothing to compress'
+            const message = removed > 0 ? copy.compressedMessages(removed) : copy.nothingToCompress
             renderSlashOutput(message)
             notify({
               durationMs: 5_000,
@@ -661,7 +661,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
               return
             }
 
-            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
+            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
           } finally {
             compressInFlightRef.current.delete(sessionId)
           }

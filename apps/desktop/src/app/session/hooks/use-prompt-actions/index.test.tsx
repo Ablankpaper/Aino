@@ -739,11 +739,13 @@ describe('usePromptActions /browser', () => {
 
 describe('usePromptActions /compress', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     setSessions(() => [sessionInfo()])
   })
 
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     clearNotifications()
     setCurrentUsage({ calls: 0, input: 0, output: 0, total: 0 })
     setMessages([])
@@ -790,6 +792,34 @@ describe('usePromptActions /compress', () => {
     )
     expect(requestGateway).not.toHaveBeenCalledWith('slash.exec', expect.anything())
     expect(requestGateway).not.toHaveBeenCalledWith('command.dispatch', expect.anything())
+  })
+
+  it('renders the compressed-message fallback in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.compress') {
+        return { removed: 3 } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/compress')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain('已压缩 3 条消息')
   })
 
   it('replaces the transcript from the response messages', async () => {

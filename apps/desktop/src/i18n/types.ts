@@ -3483,6 +3483,9 @@ export interface Translations {
     browserConnected: string
     browserEndpoint: (url: string) => string
     browserNextCall: string
+    compressing: (focusTopic: string) => string
+    compressedMessages: (count: number) => string
+    nothingToCompress: string
     yoloArmed: string
     yoloOff: string
     yoloSystem: (active: boolean) => string
