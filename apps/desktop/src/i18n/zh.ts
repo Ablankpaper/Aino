@@ -4193,6 +4193,13 @@ export const zh: Translations = {
     stopProcessFailed: '无法停止进程',
     gatewayReconnectUnavailable: '网关重连不可用',
     remoteAttachTooLarge: (label, maxMb) => `${label} 太大，无法上传到远程网关${maxMb ? `（上限 ${maxMb} MB）` : ''}。`,
+    skinCommand: {
+      noThemes: '当前没有可用的桌面主题。',
+      switched: label => `桌面主题已切换为 ${label}。`,
+      listHeading: '桌面主题：',
+      listHint: '使用 /skin <name>，或使用 /skin 循环切换。',
+      unknownTheme: (name, available) => `未知桌面主题：${name}\n可用：${available}`
+    },
     commandResults: {
       noCommands: '当前没有可用的桌面命令。',
       steerQueued: text => `已引导：“${text}” 已排队，将在下一次工具调用时发送`,

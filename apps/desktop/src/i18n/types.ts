@@ -3486,6 +3486,13 @@ export interface Translations {
     stopProcessFailed: string
     gatewayReconnectUnavailable: string
     remoteAttachTooLarge: (label: string, maxMb?: number) => string
+    skinCommand: {
+      noThemes: string
+      switched: (label: string) => string
+      listHeading: string
+      listHint: string
+      unknownTheme: (name: string, available: string) => string
+    }
     commandResults: {
       noCommands: string
       steerQueued: (text: string) => string

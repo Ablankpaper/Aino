@@ -4069,6 +4069,13 @@ export const en: Translations = {
     gatewayReconnectUnavailable: 'Gateway reconnect is unavailable',
     remoteAttachTooLarge: (label, maxMb) =>
       `${label} is too large to upload to the remote gateway${maxMb ? ` (max ${maxMb} MB)` : ''}.`,
+    skinCommand: {
+      noThemes: 'No desktop themes are available.',
+      switched: label => `Desktop theme switched to ${label}.`,
+      listHeading: 'Desktop themes:',
+      listHint: 'Use /skin <name>, or /skin to cycle.',
+      unknownTheme: (name, available) => `Unknown desktop theme: ${name}\nAvailable: ${available}`
+    },
     commandResults: {
       noCommands: 'No desktop commands available.',
       steerQueued: text => `Steered · "${text}" queued for next tool call`,
