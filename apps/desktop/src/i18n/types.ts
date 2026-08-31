@@ -2080,6 +2080,8 @@ export interface Translations {
     cloneFromDefaultDesc: string
     invalidName: (hint: string) => string
     nameRequired: string
+    profileNameRequired: string
+    defaultProfileDeleteBlocked: string
     creating: string
     createAction: string
     renameTitle: string
@@ -3598,6 +3600,7 @@ export interface Translations {
     fsDeleteUnavailable: string
     audioReadFailed: string
     sessionUnavailable: string
+    transcriptSafeLoadLimit: string
     createSessionFailed: string
     promptFailed: string
     providerCredentialRequired: string

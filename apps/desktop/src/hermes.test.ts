@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n/runtime'
+
 import {
   AUDIO_SPEAK_MAX_REQUEST_TIMEOUT_MS,
   AUDIO_SPEAK_MIN_REQUEST_TIMEOUT_MS,
@@ -56,6 +58,7 @@ describe('Hermes REST helpers', () => {
   })
 
   afterEach(() => {
+    setRuntimeI18nLocale('en')
     setApiRequestConnection(null)
     setApiRequestProfile(null)
     vi.restoreAllMocks()
@@ -508,6 +511,18 @@ describe('Hermes REST helpers', () => {
     })
   })
 
+  it('localizes profile validation failures for the active locale', async () => {
+    setRuntimeI18nLocale('zh')
+
+    await expect(deleteProfile('')).rejects.toThrow('需要配置档案名称')
+    await expect(deleteProfile('default')).rejects.toThrow('无法删除默认配置档案。')
+
+    setRuntimeI18nLocale('en')
+
+    await expect(deleteProfile('')).rejects.toThrow('Profile name required')
+    await expect(deleteProfile('default')).rejects.toThrow('The default profile cannot be deleted.')
+  })
+
   it('hydrates the latest transcript with a small tail page (120, latest, compacted rows included)', async () => {
     api.mockResolvedValue({
       messages: [],
@@ -599,6 +614,19 @@ describe('Hermes REST helpers', () => {
 
     await expect(getAllSessionMessages('session-1', null, { maxJsonChars: 1 })).rejects.toThrow(
       'Desktop safe-load limit'
+    )
+  })
+
+  it('localizes the safe transcript-load limit error', async () => {
+    setRuntimeI18nLocale('zh')
+    api.mockResolvedValueOnce({
+      messages: [{ id: 1, content: 'large transcript page' }],
+      session_id: 'session-1',
+      pagination: { limit: 1, offset: 0, order: 'oldest', returned: 1 }
+    })
+
+    await expect(getAllSessionMessages('session-1', null, { maxJsonChars: 1 })).rejects.toThrow(
+      '会话记录超过桌面端安全加载限制'
     )
   })
 

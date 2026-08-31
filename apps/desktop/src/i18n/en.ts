@@ -2466,6 +2466,8 @@ export const en: Translations = {
     cloneFromDefaultDesc: 'Copy config, skills, and SOUL.md from your default profile.',
     invalidName: hint => `Invalid name. ${hint}`,
     nameRequired: 'Name is required.',
+    profileNameRequired: 'Profile name required',
+    defaultProfileDeleteBlocked: 'The default profile cannot be deleted.',
     creating: 'Creating...',
     createAction: 'Create profile',
     renameTitle: 'Rename profile',
@@ -4354,6 +4356,8 @@ export const en: Translations = {
     fsDeleteUnavailable: 'Delete is not available',
     audioReadFailed: 'Could not read recorded audio',
     sessionUnavailable: 'Session unavailable',
+    transcriptSafeLoadLimit:
+      'Session transcript exceeds the Desktop safe-load limit; use the Web Dashboard export for this session.',
     createSessionFailed: 'Could not create a new session',
     promptFailed: 'Prompt failed',
     providerCredentialRequired: 'Add a provider credential before sending your first message.',

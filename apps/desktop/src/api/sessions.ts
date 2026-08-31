@@ -1,3 +1,4 @@
+import { translateNow } from '@/i18n/runtime'
 import { isMissingRestEndpoint } from '@/lib/gateway-rpc'
 import { maybeBackfillLegacySessionOwners } from '@/lib/legacy-session-owner-backfill'
 import { stampRowsWithOwningConnection } from '@/lib/session-owner-stamp'
@@ -507,9 +508,7 @@ export async function getAllSessionMessages(
     jsonChars += (JSON.stringify(page.messages) ?? '').length
 
     if (jsonChars > maxJsonChars) {
-      throw new Error(
-        'Session transcript exceeds the Desktop safe-load limit; use the Web Dashboard export for this session.'
-      )
+      throw new Error(translateNow('desktop.transcriptSafeLoadLimit'))
     }
 
     messages.push(...page.messages)
