@@ -1166,7 +1166,9 @@ export const zhHant = defineLocale({
     edit: '編輯',
     archive: '封存',
     skillArchivedTitle: '技能已封存',
-    skillArchivedMessage: '可透過 hermes curator restore 還原。'
+    skillArchivedMessage: '可透過 hermes curator restore 還原。',
+    archiveConfirmTitle: name => `封存技能「${name}」？`,
+    archiveConfirmDescription: '技能會被封存，可透過 hermes curator restore 還原。'
   },
 
   starmap: {
@@ -1175,6 +1177,7 @@ export const zhHant = defineLocale({
     close: '關閉記憶圖譜',
     refresh: '重新整理',
     memory: '記憶',
+    skill: '技能',
     filterAll: '全部',
     filterUsed: '已使用',
     filterLearned: '已學習',
@@ -1182,7 +1185,29 @@ export const zhHant = defineLocale({
     loadFailed: '無法載入記憶圖譜',
     loading: '載入中…',
     emptyTitle: '尚無學習內容',
-    emptyDesc: '當 Hermes 為你的工作建立技能與記憶時，會顯示在這裡。'
+    emptyDesc: '當 Hermes 為你的工作建立技能與記憶時，會顯示在這裡。',
+    share: '分享圖譜',
+    shareHint: '複製程式碼以分享此圖譜，或貼上程式碼以載入。僅包含版面，不含你的記憶或技能文字。',
+    shareTitle: '匯入 / 匯出圖譜',
+    sharePlaceholder: '貼上圖譜程式碼…',
+    copy: '複製圖譜程式碼',
+    copied: '已複製！',
+    importMap: '匯入圖譜',
+    importBtn: '載入',
+    importEmpty: '貼上圖譜程式碼以載入。',
+    importSuccess: nodes => `已載入包含 ${nodes} 個節點的圖譜。`,
+    importedBadge: '匯入的圖譜',
+    resetToMine: '返回我的圖譜',
+    legendAge: '核心 = 最早・外圈 = 較新',
+    playTimeline: '播放時間軸',
+    pauseTimeline: '暫停時間軸',
+    timelineScrubber: '時間軸拖曳條',
+    editNode: (kind, label) => `編輯${kind}「${label}」…`,
+    archiveSkill: '封存技能',
+    deleteMemory: '刪除記憶',
+    deleteMemoryDescription: '此記憶將永久刪除。',
+    deleteMemoryTitle: label => `刪除「${label}」？`,
+    couldNotReadCode: '無法讀取該圖譜程式碼。'
   },
   agents: {
     close: '關閉代理',

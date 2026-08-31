@@ -54,8 +54,8 @@ export function ArchiveSkillConfirmDialog({
 
   return (
     <ConfirmDialog
-      confirmLabel="Archive"
-      description={ARCHIVE_SKILL_DESCRIPTION}
+      confirmLabel={t.skills.archive}
+      description={t.skills.archiveConfirmDescription}
       destructive
       dismissOnConfirm
       onClose={onClose}
@@ -72,7 +72,7 @@ export function ArchiveSkillConfirmDialog({
         )
       }}
       open={open}
-      title={`Archive ${skillName}?`}
+      title={t.skills.archiveConfirmTitle(skillName)}
     />
   )
 }

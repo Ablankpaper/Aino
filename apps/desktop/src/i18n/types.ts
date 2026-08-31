@@ -1473,6 +1473,8 @@ export interface Translations {
     archive: string
     skillArchivedTitle: string
     skillArchivedMessage: string
+    archiveConfirmTitle: (name: string) => string
+    archiveConfirmDescription: string
     hub: {
       searchPlaceholder: string
       search: string
@@ -1529,6 +1531,7 @@ export interface Translations {
     close: string
     refresh: string
     memory: string
+    skill: string
     filterAll: string
     filterUsed: string
     filterLearned: string
@@ -1549,6 +1552,16 @@ export interface Translations {
     importSuccess: (nodes: number) => string
     importedBadge: string
     resetToMine: string
+    legendAge: string
+    playTimeline: string
+    pauseTimeline: string
+    timelineScrubber: string
+    editNode: (kind: string, label: string) => string
+    archiveSkill: string
+    deleteMemory: string
+    deleteMemoryDescription: string
+    deleteMemoryTitle: (label: string) => string
+    couldNotReadCode: string
   }
   agents: {
     close: string

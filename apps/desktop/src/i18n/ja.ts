@@ -1208,7 +1208,9 @@ export const ja = defineLocale({
     edit: '編集',
     archive: 'アーカイブ',
     skillArchivedTitle: 'スキルをアーカイブしました',
-    skillArchivedMessage: 'hermes curator restore で復元できます。'
+    skillArchivedMessage: 'hermes curator restore で復元できます。',
+    archiveConfirmTitle: name => `スキル「${name}」をアーカイブしますか？`,
+    archiveConfirmDescription: 'スキルはアーカイブされ、hermes curator restore で復元できます。'
   },
 
   starmap: {
@@ -1217,6 +1219,7 @@ export const ja = defineLocale({
     close: 'メモリグラフを閉じる',
     refresh: '更新',
     memory: 'メモリ',
+    skill: 'スキル',
     filterAll: 'すべて',
     filterUsed: '使用済み',
     filterLearned: '学習済み',
@@ -1224,7 +1227,30 @@ export const ja = defineLocale({
     loadFailed: 'メモリグラフを読み込めませんでした',
     loading: '読み込み中…',
     emptyTitle: 'まだ学習はありません',
-    emptyDesc: 'Hermes がスキルやメモリを蓄積すると、ここに表示されます。'
+    emptyDesc: 'Hermes がスキルやメモリを蓄積すると、ここに表示されます。',
+    share: 'マップを共有',
+    shareHint:
+      'コードをコピーしてマップを共有するか、貼り付けて読み込みます。レイアウトのみを含み、メモリやスキル本文は含みません。',
+    shareTitle: 'マップをインポート / エクスポート',
+    sharePlaceholder: 'マップコードを貼り付け…',
+    copy: 'マップコードをコピー',
+    copied: 'コピーしました！',
+    importMap: 'マップをインポート',
+    importBtn: '読み込む',
+    importEmpty: 'マップコードを貼り付けて読み込んでください。',
+    importSuccess: nodes => `${nodes} ノードのマップを読み込みました。`,
+    importedBadge: 'インポートしたマップ',
+    resetToMine: '自分のマップに戻る',
+    legendAge: '中心 = 最古・外側 = 新しい',
+    playTimeline: 'タイムラインを再生',
+    pauseTimeline: 'タイムラインを一時停止',
+    timelineScrubber: 'タイムラインスクラバー',
+    editNode: (kind, label) => `${kind} ${label} を編集…`,
+    archiveSkill: 'スキルをアーカイブ',
+    deleteMemory: 'メモリを削除',
+    deleteMemoryDescription: 'このメモリは完全に削除されます。',
+    deleteMemoryTitle: label => `${label} を削除しますか？`,
+    couldNotReadCode: 'マップコードを読み取れませんでした。'
   },
   agents: {
     close: 'エージェントを閉じる',

@@ -1678,6 +1678,8 @@ export const en: Translations = {
     archive: 'Archive',
     skillArchivedTitle: 'Skill archived',
     skillArchivedMessage: 'Restorable via hermes curator restore.',
+    archiveConfirmTitle: name => `Archive skill "${name}"?`,
+    archiveConfirmDescription: 'The skill is archived and can be restored with `hermes curator restore`.',
     hub: {
       searchPlaceholder: 'Search the skill hub',
       search: 'Search',
@@ -1739,6 +1741,7 @@ export const en: Translations = {
     close: 'Close memory graph',
     refresh: 'Refresh',
     memory: 'Memory',
+    skill: 'Skill',
     filterAll: 'All',
     filterUsed: 'Used',
     filterLearned: 'Learned',
@@ -1759,7 +1762,17 @@ export const en: Translations = {
     importEmpty: 'Paste a map code to load it.',
     importSuccess: nodes => `Loaded a map with ${nodes} ${nodes === 1 ? 'node' : 'nodes'}.`,
     importedBadge: 'imported map',
-    resetToMine: 'Back to my map'
+    resetToMine: 'Back to my map',
+    legendAge: 'core = oldest · outer = newer',
+    playTimeline: 'Play timeline',
+    pauseTimeline: 'Pause timeline',
+    timelineScrubber: 'Timeline scrubber',
+    editNode: (kind, label) => `Edit ${kind} ${label}…`,
+    archiveSkill: 'Archive skill',
+    deleteMemory: 'Delete memory',
+    deleteMemoryDescription: 'This memory is removed permanently.',
+    deleteMemoryTitle: label => `Delete ${label}?`,
+    couldNotReadCode: 'Could not read that map code.'
   },
   agents: {
     close: 'Close agents',

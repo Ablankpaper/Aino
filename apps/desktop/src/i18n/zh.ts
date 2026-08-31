@@ -1856,6 +1856,8 @@ export const zh: Translations = {
     archive: '归档',
     skillArchivedTitle: '技能已归档',
     skillArchivedMessage: '可通过 hermes curator restore 恢复。',
+    archiveConfirmTitle: name => `归档技能“${name}”？`,
+    archiveConfirmDescription: '技能会被归档，可通过 hermes curator restore 恢复。',
     hub: {
       searchPlaceholder: '搜索技能中心',
       search: '搜索',
@@ -1916,6 +1918,7 @@ export const zh: Translations = {
     close: '关闭记忆图谱',
     refresh: '刷新',
     memory: '记忆',
+    skill: '技能',
     filterAll: '全部',
     filterUsed: '已使用',
     filterLearned: '已学习',
@@ -1935,7 +1938,17 @@ export const zh: Translations = {
     importEmpty: '粘贴图谱代码以加载。',
     importSuccess: nodes => `已加载包含 ${nodes} 个节点的图谱。`,
     importedBadge: '导入的图谱',
-    resetToMine: '返回我的图谱'
+    resetToMine: '返回我的图谱',
+    legendAge: '核心 = 最早 · 外圈 = 更新',
+    playTimeline: '播放时间线',
+    pauseTimeline: '暂停时间线',
+    timelineScrubber: '时间线拖动条',
+    editNode: (kind, label) => `编辑${kind}“${label}”…`,
+    archiveSkill: '归档技能',
+    deleteMemory: '删除记忆',
+    deleteMemoryDescription: '此记忆将被永久删除。',
+    deleteMemoryTitle: label => `删除“${label}”？`,
+    couldNotReadCode: '无法读取该图谱代码。'
   },
   agents: {
     close: '关闭代理',
