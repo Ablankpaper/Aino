@@ -99,6 +99,20 @@ def test_simplified_chinese_localizes_model_token_labels():
     assert i18n.t("gateway.model.max_output_label", lang="zh", tokens=1024) == "最大输出：1024 个词元"
 
 
+def test_simplified_chinese_uses_consistent_agent_terminology():
+    """User-facing backend status copy should call the model an 智能体."""
+    assert i18n.t("gateway.agents.header", lang="zh") == "🤖 **活跃智能体与任务**"
+    assert i18n.t("gateway.agents.active_agents", lang="zh", count=2) == "**活跃智能体：** 2"
+    assert i18n.t("gateway.agents.none", lang="zh") == "没有活跃的智能体或运行中的任务。"
+    assert i18n.t("gateway.approve.once_singular", lang="zh") == "✅ 命令已批准。智能体正在恢复…"
+    assert i18n.t("gateway.deny.denied_reason_singular", lang="zh", reason="请重试") == (
+        '❌ 命令已拒绝。 已将原因转达给智能体: "请重试"'
+    )
+    assert i18n.t("gateway.stop.stopped_pending", lang="zh") == "⚡ 已停止。智能体尚未启动 — 你可以继续此会话。"
+    assert i18n.t("gateway.personality.cleared", lang="zh") == "🎭 已清除人格 — 使用基础智能体行为。\n_（在下一条消息时生效）_"
+    assert i18n.t("gateway.usage.detailed_after_first", lang="zh") == "_（首次智能体响应后可查看详细使用情况）_"
+
+
 def test_simplified_chinese_localizes_resume_and_matrix_recovery_copy():
     """Resume recovery guidance should be readable in Simplified Chinese."""
     assert i18n.t("gateway.resume.db_unavailable", lang="zh") == "会话数据库不可用。"

@@ -20,8 +20,8 @@ approval:
   blocklist_message: "此命令位于无条件拦截列表中，无法被批准。"
 
 gateway:
-  approval_expired: "⚠️ 批准已过期（代理不再等待）。请让代理重试。"
-  draining:         "⏳ 正在等待 {count} 个活跃代理结束后重启..."
+  approval_expired: "⚠️ 批准已过期（智能体不再等待）。请让智能体重试。"
+  draining:         "⏳ 正在等待 {count} 个活跃智能体结束后重启..."
   goal_cleared:     "✓ 目标已清除。"
   no_active_goal:   "当前没有活跃的目标。"
   config_read_failed: "⚠️ 无法读取 config.yaml：{error}"
@@ -47,25 +47,25 @@ gateway:
     usage_persist:          "`/model <name> --global` — 永久保存"
 
   agents:
-    header:                "🤖 **活跃代理与任务**"
-    active_agents:         "**活跃代理：** {count}"
+    header:                "🤖 **活跃智能体与任务**"
+    active_agents:         "**活跃智能体：** {count}"
     this_chat:             " · 当前聊天"
     more:                  "... 还有 {count} 个"
     running_processes:     "**运行中的后台进程：** {count}"
     async_jobs:            "**网关异步任务：** {count}"
     background_delegations: "**后台委派：** {count}"
-    none:                  "没有活跃的代理或运行中的任务。"
+    none:                  "没有活跃的智能体或运行中的任务。"
     state_starting:        "启动中"
     state_running:         "运行中"
 
   approve:
     no_pending:            "没有待批准的命令。"
-    once_singular:         "✅ 命令已批准。代理正在恢复…"
-    once_plural:           "✅ 命令已批准（{count} 条命令）。代理正在恢复…"
-    session_singular:      "✅ 命令已批准（本次会话内允许该模式）。代理正在恢复…"
-    session_plural:        "✅ 命令已批准（本次会话内允许该模式）（{count} 条命令）。代理正在恢复…"
-    always_singular:       "✅ 命令已批准（永久允许该模式）。代理正在恢复…"
-    always_plural:         "✅ 命令已批准（永久允许该模式）（{count} 条命令）。代理正在恢复…"
+    once_singular:         "✅ 命令已批准。智能体正在恢复…"
+    once_plural:           "✅ 命令已批准（{count} 条命令）。智能体正在恢复…"
+    session_singular:      "✅ 命令已批准（本次会话内允许该模式）。智能体正在恢复…"
+    session_plural:        "✅ 命令已批准（本次会话内允许该模式）（{count} 条命令）。智能体正在恢复…"
+    always_singular:       "✅ 命令已批准（永久允许该模式）。智能体正在恢复…"
+    always_plural:         "✅ 命令已批准（永久允许该模式）（{count} 条命令）。智能体正在恢复…"
 
   background:
     usage:                 "用法：/bg <提示>\n示例：/bg 总结今天 HN 上热门的故事\n\n在独立会话中运行该提示。你可以继续聊天 — 结果完成后将在此显示。"
@@ -121,8 +121,8 @@ gateway:
     no_pending:            "没有待拒绝的命令。"
     denied_singular:       "❌ 命令已拒绝。"
     denied_plural:         "❌ 命令已拒绝（{count} 条命令）。"
-    denied_reason_singular: "❌ 命令已拒绝。 已将原因转达给代理: \"{reason}\""
-    denied_reason_plural:  "❌ 命令已拒绝（{count} 条命令）。 已将原因转达给代理: \"{reason}\""
+    denied_reason_singular: "❌ 命令已拒绝。 已将原因转达给智能体: \"{reason}\""
+    denied_reason_plural:  "❌ 命令已拒绝（{count} 条命令）。 已将原因转达给智能体: \"{reason}\""
 
   fast:
     not_supported:         "⚡ /fast 仅适用于支持优先处理（Priority Processing）的 OpenAI 模型。"
@@ -192,7 +192,7 @@ gateway:
     item:                  "• `{name}` — {preview}"
     usage:                 "\n用法：`/personality <name>`"
     save_failed:           "⚠️ 保存人格变更失败：{error}"
-    cleared:               "🎭 已清除人格 — 使用基础代理行为。\n_（在下一条消息时生效）_"
+    cleared:               "🎭 已清除人格 — 使用基础智能体行为。\n_（在下一条消息时生效）_"
     set_to:                "🎭 人格已设置为 **{name}**\n_（在下一条消息时生效）_"
     unknown:               "未知人格：`{name}`\n\n可用：{available}"
 
@@ -345,7 +345,7 @@ gateway:
     platforms:             "**已连接平台：** {platforms}"
 
   stop:
-    stopped_pending:       "⚡ 已停止。代理尚未启动 — 你可以继续此会话。"
+    stopped_pending:       "⚡ 已停止。智能体尚未启动 — 你可以继续此会话。"
     stopped:               "⚡ 已停止。你可以继续此会话。"
     no_active:             "没有可停止的活跃任务。"
 
@@ -403,13 +403,13 @@ gateway:
     breakdown_cat_rules: "规则"
     breakdown_cat_skills: "技能"
     breakdown_cat_mcp: "MCP"
-    breakdown_cat_subagent_definitions: "子代理定义"
+    breakdown_cat_subagent_definitions: "子智能体定义"
     breakdown_cat_memory: "记忆"
     breakdown_cat_conversation: "对话"
     header_session_info:      "📊 **会话信息**"
     label_messages:           "消息数：{count}"
     label_estimated_context:  "估计上下文：~{count} 个令牌"
-    detailed_after_first:     "_（首次代理响应后可查看详细使用情况）_"
+    detailed_after_first:     "_（首次智能体响应后可查看详细使用情况）_"
     no_data:                  "此会话暂无使用数据。"
     unknown_subcommand:       "未知的 /usage 子命令：`{args}`。请尝试 `/usage` 或 `/usage reset [--force]`。"
     reset_wrong_provider:     "存储的用量重置仅在 openai-codex 提供商上可用。请先使用 `/model` 切换。"
