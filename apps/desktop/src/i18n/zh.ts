@@ -3940,6 +3940,7 @@ export const zh: Translations = {
       restoreTitle: '恢复到此检查点？',
       restoreBody: '此提示之后的所有消息将从对话中移除，并从此处重新运行该提示。',
       restoreConfirm: '恢复并重新运行',
+      restoreFailed: '恢复失败',
       restoreNext: '恢复下一个检查点',
       goForward: '前进',
       sendEdited: '发送编辑后的消息',

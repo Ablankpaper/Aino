@@ -3799,6 +3799,7 @@ export const en: Translations = {
       restoreBody:
         'Everything after this prompt is removed from the conversation, and the prompt runs again from here.',
       restoreConfirm: 'Restore & rerun',
+      restoreFailed: 'Restore failed',
       restoreNext: 'Restore next checkpoint',
       goForward: 'Go forward',
       sendEdited: 'Send edited message',

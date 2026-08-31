@@ -3258,6 +3258,7 @@ export interface Translations {
       restoreTitle: string
       restoreBody: string
       restoreConfirm: string
+      restoreFailed: string
       restoreNext: string
       goForward: string
       sendEdited: string

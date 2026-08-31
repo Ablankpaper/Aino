@@ -85,9 +85,9 @@ export const Thread = memo(function Thread({
 
     closeRestoreConfirm()
     void Promise.resolve(onRestoreToMessage(messageId, { text, userOrdinal })).catch((error: unknown) => {
-      notifyError(error, 'Restore failed')
+      notifyError(error, copy.restoreFailed)
     })
-  }, [closeRestoreConfirm, onRestoreToMessage, restoreConfirmTarget])
+  }, [closeRestoreConfirm, copy.restoreFailed, onRestoreToMessage, restoreConfirmTarget])
 
   const requestRestoreConfirm = useCallback((messageId: string, target: RestoreMessageTarget) => {
     setRestoreConfirmTarget({ messageId, ...target })
