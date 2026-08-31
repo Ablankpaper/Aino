@@ -3119,6 +3119,23 @@ export interface Translations {
       noLivePage: string
       noAnswer: string
     }
+    drive: {
+      noLivePage: string
+      pageNavigated: string
+      pageRejected: (message: string) => string
+      noAnswer: string
+      cannotLocate: string
+      notTextField: (target: string) => string
+      pointerMissed: (kind: string) => string
+      overlayIntercepted: string
+      nothingToScroll: string
+      pageLoading: string
+      clicked: (target: string) => string
+      typed: (target: string, submitted: boolean) => string
+      hovered: (target: string) => string
+      pressed: (key: string, target: string) => string
+      scrolledPage: string
+    }
     console: {
       deselect: string
       select: string

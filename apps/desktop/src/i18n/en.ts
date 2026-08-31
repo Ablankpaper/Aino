@@ -3802,6 +3802,24 @@ export const en: Translations = {
       noLivePage: 'No live page is open in the preview pane — open one first.',
       noAnswer: 'The page did not answer the tour action.'
     },
+    drive: {
+      noLivePage: 'No live page is open in the in-app browser — open one with open_preview first.',
+      pageNavigated: 'The page stopped answering right after — it is probably navigating. Call elements to see where you landed.',
+      pageRejected: message => `The page rejected the action: ${message}`,
+      noAnswer: 'The page did not answer the action.',
+      cannotLocate: 'Could not work out where that element is on screen.',
+      notTextField: target =>
+        `${target} is not a text field, so typing into it would only select the text under the pointer. Click it if it opens one, then type into that.`,
+      pointerMissed: kind => `The pointer input never reached the page, so nothing was ${kind === 'type' ? 'typed' : 'clicked'}.`,
+      overlayIntercepted: 'The action overlay intercepted the click instead of the page.',
+      nothingToScroll: 'The page has nothing to scroll — it all fits already.',
+      pageLoading: 'Page is loading — call elements to see what is on it.',
+      clicked: target => `clicked ${target}`,
+      typed: (target, submitted) => `typed into ${target}${submitted ? ' and submitted' : ''}`,
+      hovered: target => `hovered over ${target}`,
+      pressed: (key, target) => `pressed ${key} on ${target}`,
+      scrolledPage: 'scrolled the page'
+    },
     console: {
       deselect: 'Deselect entry',
       select: 'Select entry',

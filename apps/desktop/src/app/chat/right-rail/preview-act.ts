@@ -27,6 +27,7 @@
  * out of the boot path.
  */
 
+import { translateNow } from '@/i18n'
 import { actEngineSource, type PreviewActAction, type PreviewActResult } from '@/lib/preview-act/act-in-page'
 import { watchInPage } from '@/lib/preview-act/watch-in-page'
 
@@ -61,10 +62,9 @@ const DRIVEN: readonly string[] = ['click', 'hover', 'press', 'type']
  *  from them would report every one of them as a failure. */
 const CLICKS: readonly string[] = ['click', 'type']
 
-const NOTHING_OPEN = 'No live page is open in the in-app browser — open one with open_preview first.'
+const nothingOpen = () => translateNow('preview.drive.noLivePage')
 
-const NAVIGATED =
-  'The page stopped answering right after — it is probably navigating. Call elements to see where you landed.'
+const navigated = () => translateNow('preview.drive.pageNavigated')
 
 /** A fingerprint of the overlay's source, so the guest page can tell that the
  *  code it is running has changed underneath it.
@@ -303,11 +303,11 @@ async function runJson(run: PreviewScriptRunner, code: string): Promise<Trip> {
   }
 
   if (raw instanceof Error) {
-    return { error: 'The page rejected the action: ' + raw.message, kind: 'failed' }
+    return { error: translateNow('preview.drive.pageRejected', raw.message), kind: 'failed' }
   }
 
   if (typeof raw !== 'string' || !raw) {
-    return { error: 'The page did not answer the action.', kind: 'failed' }
+    return { error: translateNow('preview.drive.noAnswer'), kind: 'failed' }
   }
 
   return { kind: 'answered', result: JSON.parse(raw) as PreviewActResult }
@@ -316,18 +316,18 @@ async function runJson(run: PreviewScriptRunner, code: string): Promise<Trip> {
 /** Past tense of the verb the agent asked for, against what it actually hit. */
 function describeDone(action: PreviewActAction, target: string): string {
   if (action.kind === 'type') {
-    return 'typed into ' + target + (action.submit ? ' and submitted' : '')
+    return translateNow('preview.drive.typed', target, Boolean(action.submit))
   }
 
   if (action.kind === 'press') {
-    return 'pressed ' + (action.key || '') + ' on ' + target
+    return translateNow('preview.drive.pressed', action.key || '', target)
   }
 
   if (action.kind === 'hover') {
-    return 'hovered over ' + target
+    return translateNow('preview.drive.hovered', target)
   }
 
-  return 'clicked ' + target
+  return translateNow('preview.drive.clicked', target)
 }
 
 /** Look at the target, walk the pointer over, and act on it for real. */
@@ -345,7 +345,7 @@ async function driveAction(
   }
 
   if (trip.kind === 'silent') {
-    return { acted: action.kind, note: NAVIGATED, success: true }
+    return { acted: action.kind, note: navigated(), success: true }
   }
 
   const found = trip.result
@@ -355,7 +355,7 @@ async function driveAction(
   }
 
   if (!found.point) {
-    return { error: 'Could not work out where that element is on screen.', success: false }
+    return { error: translateNow('preview.drive.cannotLocate'), success: false }
   }
 
   await glideTo(input, found.point)
@@ -365,7 +365,10 @@ async function driveAction(
   } else if (action.kind === 'type') {
     if (found.typable === false) {
       return {
-        error: `${String(found.acted || 'That').replace(/^looking at /, '')} is not a text field, so typing into it would only select the text under the pointer. Click it if it opens one, then type into that.`,
+        error: translateNow(
+          'preview.drive.notTextField',
+          String(found.acted || 'That').replace(/^looking at /, '')
+        ),
         success: false
       }
     }
@@ -396,7 +399,7 @@ async function driveAction(
   // The action itself already happened as real input, so a page that will not
   // answer the read-back is a page that navigated — never a failed click.
   if (after.kind !== 'answered') {
-    return { acted, note: NAVIGATED, success: true }
+    return { acted, note: navigated(), success: true }
   }
 
   const { hit, ...result } = after.result as PreviewActResult & { hit?: { tag: string; trusted: boolean } | null }
@@ -407,7 +410,7 @@ async function driveAction(
   if (!hit && CLICKS.indexOf(action.kind) !== -1) {
     return {
       ...result,
-      error: 'The pointer input never reached the page, so nothing was ' + acted.split(' ')[0] + '.',
+      error: translateNow('preview.drive.pointerMissed', action.kind),
       success: false
     }
   }
@@ -418,7 +421,7 @@ async function driveAction(
 /** Flag a click the overlay intercepted, which would otherwise look like a page
  *  that simply ignored it. */
 function hitNote(hit?: { tag: string; trusted: boolean } | null): string | undefined {
-  return hit && hit.tag === 'HERMES-WATCH' ? 'The action overlay intercepted the click instead of the page.' : undefined
+  return hit && hit.tag === 'HERMES-WATCH' ? translateNow('preview.drive.overlayIntercepted') : undefined
 }
 
 /** How far a screenful is, whether there is anywhere to go, and a spot to wheel
@@ -455,13 +458,13 @@ async function driveScroll(
   }
 
   if (trip.kind === 'silent') {
-    return { acted: 'scrolled', note: NAVIGATED, success: true }
+    return { acted: 'scrolled', note: navigated(), success: true }
   }
 
   const anchor = trip.result as PreviewActResult & { page?: number; span?: number }
 
   if (!anchor.span) {
-    return { ...anchor, acted: 'scrolled the page', note: 'The page has nothing to scroll — it all fits already.' }
+    return { ...anchor, acted: translateNow('preview.drive.scrolledPage'), note: translateNow('preview.drive.nothingToScroll') }
   }
 
   // A person does not move the mouse to scroll; the wheel turns wherever their
@@ -475,10 +478,10 @@ async function driveScroll(
   const after = await runJson(run, buildFinishScript(SETTLE_MS))
 
   if (after.kind !== 'answered') {
-    return { acted: 'scrolled the page', note: NAVIGATED, success: true }
+    return { acted: translateNow('preview.drive.scrolledPage'), note: navigated(), success: true }
   }
 
-  return { ...after.result, acted: 'scrolled the page', success: true }
+  return { ...after.result, acted: translateNow('preview.drive.scrolledPage'), success: true }
 }
 
 /** Run one action against the ACTIVE preview tab's page. `kind` is a bare
@@ -493,20 +496,20 @@ export async function actOnActivePreview(
     const handle = activePreviewNav()
 
     if (!handle) {
-      return { error: NOTHING_OPEN, success: false }
+      return { error: nothingOpen(), success: false }
     }
 
     handle[nav]()
 
     // Navigation is fire-and-forget through the webview; the new document has
     // its own refs, so the agent has to re-inventory either way.
-    return { acted: nav, note: 'Page is loading — call elements to see what is on it.', success: true }
+    return { acted: nav, note: translateNow('preview.drive.pageLoading'), success: true }
   }
 
   const run = activePreviewScriptRunner()
 
   if (!run) {
-    return { error: NOTHING_OPEN, success: false }
+    return { error: nothingOpen(), success: false }
   }
 
   const typed = action as PreviewActAction
@@ -529,7 +532,7 @@ export async function actOnActivePreview(
       return { error: trip.error, success: false }
     }
 
-    return trip.kind === 'answered' ? trip.result : { acted: typed.kind, note: NAVIGATED, success: true }
+    return trip.kind === 'answered' ? trip.result : { acted: typed.kind, note: navigated(), success: true }
   }
 
   const input = activePreviewInput()
@@ -555,7 +558,7 @@ export async function actOnActivePreview(
 
   // The action almost certainly landed — a page that stops answering right
   // after a click is one that navigated. Say so instead of failing it.
-  return scripted.kind === 'silent' ? { acted: typed.kind, note: NAVIGATED, success: true } : scripted.result
+  return scripted.kind === 'silent' ? { acted: typed.kind, note: navigated(), success: true } : scripted.result
 }
 
 // Self-accept so an edit here, or to the in-page sources this module

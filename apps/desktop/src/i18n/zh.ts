@@ -4147,6 +4147,24 @@ export const zh: Translations = {
       noLivePage: '预览面板中没有打开可交互的页面——请先打开一个页面。',
       noAnswer: '页面没有回应导览操作。'
     },
+    drive: {
+      noLivePage: '应用内浏览器中没有打开可交互的页面——请先使用 open_preview 打开一个页面。',
+      pageNavigated: '页面刚刚停止响应——可能正在跳转。请调用 elements 查看你所在的页面。',
+      pageRejected: message => `页面拒绝了此操作：${message}`,
+      noAnswer: '页面没有回应此操作。',
+      cannotLocate: '无法确定该元素在屏幕上的位置。',
+      notTextField: target =>
+        `${target} 不是文本输入框，向其中输入只会选中指针下的文本。如果它会打开输入框，请先点击它，再输入。`,
+      pointerMissed: kind => `指针输入没有到达页面，因此没有${kind === 'type' ? '输入' : '点击'}。`,
+      overlayIntercepted: '操作覆盖层拦截了点击，没有到达页面。',
+      nothingToScroll: '页面无需滚动——所有内容已经适合当前视口。',
+      pageLoading: '页面正在加载——请调用 elements 查看页面内容。',
+      clicked: target => `已点击 ${target}`,
+      typed: (target, submitted) => `已在 ${target} 中输入${submitted ? '并提交' : ''}`,
+      hovered: target => `已悬停在 ${target}`,
+      pressed: (key, target) => `已在 ${target} 上按下 ${key}`,
+      scrolledPage: '已滚动页面'
+    },
     console: {
       deselect: '取消选择条目',
       select: '选择条目',
