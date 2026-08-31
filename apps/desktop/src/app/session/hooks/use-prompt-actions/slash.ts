@@ -359,9 +359,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             const queueKey = resolveComposerSessionKey(storedSessionId, $sessions.get()) || storedSessionId || sessionId
 
             if (enqueueQueuedPrompt(queueKey, { attachments: [], text: message, displayText })) {
-              renderSlashOutput('session busy — message queued to send when the current turn finishes')
+              renderSlashOutput(copy.sessionBusyQueued)
             } else {
-              renderSlashOutput('session busy — /interrupt the current turn before sending this command')
+              renderSlashOutput(copy.sessionBusyInterrupt)
             }
 
             return

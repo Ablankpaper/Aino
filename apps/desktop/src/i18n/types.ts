@@ -3472,6 +3472,8 @@ export interface Translations {
     }
     sessionTitleSet: (title: string, queued: boolean) => string
     sessionTitleCleared: string
+    sessionBusyQueued: string
+    sessionBusyInterrupt: string
     yoloArmed: string
     yoloOff: string
     yoloSystem: (active: boolean) => string

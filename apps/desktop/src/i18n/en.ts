@@ -4052,6 +4052,8 @@ export const en: Translations = {
     sessionTitleSet: (title, queued) =>
       `Session title set: ${title}${queued ? ' (queued while session initializes)' : ''}`,
     sessionTitleCleared: 'Session title cleared.',
+    sessionBusyQueued: 'session busy — message queued to send when the current turn finishes',
+    sessionBusyInterrupt: 'session busy — /interrupt the current turn before sending this command',
     yoloArmed: 'YOLO armed for this chat',
     yoloOff: 'YOLO off',
     yoloSystem: active => `YOLO ${active ? 'on' : 'off'} for this session`,

@@ -1193,6 +1193,7 @@ describe('usePromptActions exec fallback error reporting', () => {
 describe('usePromptActions slash.exec dispatch payloads', () => {
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     $busy.set(false)
     vi.restoreAllMocks()
   })
@@ -1421,6 +1422,46 @@ describe('usePromptActions slash.exec dispatch payloads', () => {
     // to /interrupt.
     expect(renderedText).toContain('⊙ Goal set (20-turn budget): ship the release notes')
     expect(renderedText).toContain('queued')
+
+    dropSessionState(RUNTIME_SESSION_ID)
+    $queuedPromptsBySession.set({})
+  })
+
+  it('localizes the busy-session queue notice in Simplified Chinese', async () => {
+    $queuedPromptsBySession.set({})
+    publishSessionState(RUNTIME_SESSION_ID, {
+      ...createClientSessionState(RUNTIME_SESSION_ID),
+      busy: true
+    })
+
+    const states: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'slash.exec') {
+        return { type: 'send', message: '继续执行这项工作' } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          busyRef={{ current: true }}
+          onReady={h => (handle = h)}
+          onSeedState={state => states.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/goal 继续执行这项工作')
+
+    expect(renderedSeedTexts(states).join('\n')).toContain(
+      '会话忙碌中——消息已排队，将在当前回合结束后发送'
+    )
 
     dropSessionState(RUNTIME_SESSION_ID)
     $queuedPromptsBySession.set({})
