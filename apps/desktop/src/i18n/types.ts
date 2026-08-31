@@ -3420,6 +3420,10 @@ export interface Translations {
     branchTitle: (n: number) => string
     branchFailed: string
     stopProcessFailed: string
+    openSessionWindowFailed: string
+    openNewWindowFailed: string
+    popOutBrowserFailed: string
+    openSessionTerminalFailed: string
     deleteFailed: string
     archived: string
     archiveFailed: string

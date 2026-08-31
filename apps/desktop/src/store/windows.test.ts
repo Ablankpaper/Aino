@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import {
   canOpenBrowserWindow,
   canOpenNewWindow,
@@ -36,6 +38,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  setRuntimeI18nLocale('en')
   if (initialHermesDesktop) {
     desktopWindow.hermesDesktop = initialHermesDesktop
   } else {
@@ -70,6 +73,15 @@ describe('isPeerInstanceWindow', () => {
 })
 
 describe('openSessionInNewWindow', () => {
+  it('uses localized failure copy for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    installBridge(vi.fn().mockRejectedValue(new Error('boom')))
+
+    await openSessionInNewWindow('s1')
+
+    expect(notifyError).toHaveBeenCalledWith(expect.any(Error), '无法在新窗口打开会话')
+  })
+
   it('no-ops without a session id', async () => {
     const open = vi.fn().mockResolvedValue({ ok: true })
     installBridge(open)
