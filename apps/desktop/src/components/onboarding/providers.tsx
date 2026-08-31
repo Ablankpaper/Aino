@@ -1,5 +1,5 @@
 import { RowButton } from '@/components/ui/row-button'
-import { useI18n } from '@/i18n'
+import { translateNow, useI18n } from '@/i18n'
 import { Check, ChevronRight, Terminal } from '@/lib/icons'
 import type { OAuthProvider } from '@/types/hermes'
 
@@ -17,7 +17,8 @@ const PROVIDER_DISPLAY: Record<string, { order: number; title: string }> = {
 
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
 
-export const providerTitle = (p: OAuthProvider) => PROVIDER_DISPLAY[p.id]?.title ?? p.name
+export const providerTitle = (p: OAuthProvider) =>
+  translateNow('onboarding.providerTitle', p.id, PROVIDER_DISPLAY[p.id]?.title ?? p.name)
 const orderOf = (p: OAuthProvider) => PROVIDER_DISPLAY[p.id]?.order ?? 99
 
 export const sortProviders = (providers: OAuthProvider[]) =>

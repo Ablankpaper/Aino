@@ -2770,6 +2770,7 @@ export interface Translations {
   onboarding: {
     headerTitle: string
     headerDesc: string
+    providerTitle: (id: string, fallback: string) => string
     preparingInstall: string
     starting: string
     lookingUpProviders: string

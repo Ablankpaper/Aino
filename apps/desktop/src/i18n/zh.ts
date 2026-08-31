@@ -3429,6 +3429,16 @@ export const zh: Translations = {
   onboarding: {
     headerTitle: '开始设置 Hermes Agent',
     headerDesc: '连接模型提供方即可开始对话。大多数选项只需一次点击。',
+    providerTitle: (id, fallback) =>
+      ({
+        nous: 'Nous Portal',
+        'openai-codex': 'ChatGPT 或 Codex 订阅',
+        'minimax-oauth': 'MiniMax',
+        'qwen-oauth': 'Qwen Code',
+        'xai-oauth': 'xAI Grok',
+        anthropic: 'Anthropic API 密钥',
+        'claude-code': 'Anthropic OAuth：使用订阅需要额外使用额度'
+      })[id] ?? fallback,
     preparingInstall: 'Hermes 正在完成安装。首次运行通常不到一分钟。',
     starting: '正在启动 Hermes…',
     lookingUpProviders: '正在查找提供方...',
