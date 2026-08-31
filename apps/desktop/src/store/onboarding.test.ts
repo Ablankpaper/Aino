@@ -4,15 +4,23 @@ import * as notifications from '@/store/notifications'
 import { makeOAuthProvider } from '@/test/oauth-provider'
 import type { OAuthProvider } from '@/types/hermes'
 
+import { quitPromptFor } from '../../electron/quit-guard'
+
 import {
   $desktopOnboarding,
   type DesktopOnboardingState,
   type OnboardingContext,
+  providerResolutionFailure,
   refreshOnboarding,
   requestDesktopOnboarding,
   saveOnboardingLocalEndpoint,
   submitOnboardingCode
 } from './onboarding'
+
+it('uses the Aino product label in hard-coded desktop status messages', () => {
+  expect(providerResolutionFailure('timeout')).toContain('Aino')
+  expect(quitPromptFor({ count: 1, titles: [] }, false)?.message).toBe('Aino is still working on 1 chat.')
+})
 
 function baseState(overrides: Partial<DesktopOnboardingState> = {}): DesktopOnboardingState {
   return {

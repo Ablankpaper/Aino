@@ -14,6 +14,7 @@
  * by main.ts.
  */
 
+import { PRODUCT_NAME } from './product-identity'
 import { expandRemotePath, shq } from './remote-lifecycle'
 import { encodedPowerShell, powerShellCommand, psLiteral } from './windows-remote-lifecycle'
 
@@ -888,7 +889,7 @@ async function runManagedSshUpdate<TScope extends ManagedSshScope>(
     ...(error ? { error } : {}),
     message:
       outcome === 'updated'
-        ? 'Remote Hermes updated and every managed SSH profile is ready.'
+        ? `Remote ${PRODUCT_NAME} updated and every managed SSH profile is ready.`
         : restoreOk
           ? 'The remote update failed, but every managed SSH profile was restored.'
           : 'The remote update transaction could not restore every managed SSH profile.'

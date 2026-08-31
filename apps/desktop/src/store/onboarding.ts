@@ -11,6 +11,7 @@ import {
   submitOAuthCode,
   validateProviderCredential
 } from '@/hermes'
+import { PRODUCT_NAME } from '@/lib/brand'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { evaluateRuntimeReadiness, type RuntimeReadinessResult } from '@/lib/runtime-readiness'
 import { setMainModelAssignment } from '@/store/cron-model-impact'
@@ -192,7 +193,7 @@ function shouldPreserveConfiguredOnFallback(runtime: RuntimeReadinessResult, sta
 }
 
 function notifyReady(provider: string) {
-  notify({ kind: 'success', title: 'Hermes is ready', message: `${provider} connected.` })
+  notify({ kind: 'success', title: `${PRODUCT_NAME} is ready`, message: `${provider} connected.` })
 }
 
 // Human-friendly labels for tools auto-routed through the Nous Tool Gateway,
@@ -331,7 +332,7 @@ async function completeWithModelConfirm(
 
       notifyGatewayTools(res.gateway_tools)
     } catch (error) {
-      onFail(error instanceof Error ? error.message : 'Hermes could not save the selected model.')
+      onFail(error instanceof Error ? error.message : `${PRODUCT_NAME} could not save the selected model.`)
 
       return
     }
@@ -363,12 +364,12 @@ async function completeWithModelConfirm(
   })
 }
 
-function providerResolutionFailure(reason: null | string) {
+export function providerResolutionFailure(reason: null | string) {
   const detail = reason?.trim()
 
   return detail
-    ? `Connected, but Hermes still cannot resolve a usable provider. ${detail}`
-    : 'Connected, but Hermes still cannot resolve a usable provider.'
+    ? `Connected, but ${PRODUCT_NAME} still cannot resolve a usable provider. ${detail}`
+    : `Connected, but ${PRODUCT_NAME} still cannot resolve a usable provider.`
 }
 
 async function refreshProviders() {
@@ -566,8 +567,7 @@ export async function refreshOnboarding(ctx: OnboardingContext) {
       id: 'runtime-not-ready',
       kind: 'error',
       title: 'Runtime not ready',
-      message:
-        'Hermes Desktop could not verify the running backend on startup. Some features may be unavailable until the gateway is reachable.'
+      message: `${PRODUCT_NAME} Desktop could not verify the running backend on startup. Some features may be unavailable until the gateway is reachable.`
     })
 
     return false
@@ -769,7 +769,7 @@ export async function recheckExternalSignin(ctx: OnboardingContext) {
       provider,
       message:
         reason?.trim() ||
-        `Hermes still cannot reach ${provider.name}. Run \`${provider.cli_command}\` in a terminal first.`
+        `${PRODUCT_NAME} still cannot reach ${provider.name}. Run \`${provider.cli_command}\` in a terminal first.`
     })
   )
 }
@@ -884,7 +884,7 @@ export async function saveOnboardingLocalEndpoint(baseUrl: string, apiKey: strin
     if (!runtime.ready) {
       const detail = (runtime.reason ?? '').trim()
 
-      return { ok: false, message: detail || `Saved, but Hermes still cannot reach ${url}.` }
+      return { ok: false, message: detail || `Saved, but ${PRODUCT_NAME} still cannot reach ${url}.` }
     }
 
     notifyReady('Local / custom endpoint')
