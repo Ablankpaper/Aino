@@ -40,11 +40,23 @@ import { existsSync } from 'node:fs'
 
 import { rcedit } from 'rcedit'
 
+import BRAND from '../brand.json' with { type: 'json' }
 import { isMain } from './utils.mjs'
 
-// Stamp the Hermes icon + identity onto `exe`. Resolves on success, throws on
+// Stamp the Aino icon + identity onto `exe`. Resolves on success, throws on
 // failure. `desktopRoot` defaults to this script's package root so the icon and
 // the rcedit dependency resolve regardless of cwd.
+function buildExeVersionStrings() {
+  return {
+    ProductName: BRAND.productName,
+    FileDescription: BRAND.productName,
+    // Keep the upstream attribution in Windows metadata until the legal and
+    // distribution policy explicitly changes it.
+    CompanyName: 'Nous Research',
+    LegalCopyright: 'Copyright (c) 2026 Nous Research'
+  }
+}
+
 async function stampExeIdentity(exe, desktopRoot = resolve(import.meta.dirname, '..')) {
   if (!exe || !existsSync(exe)) {
     throw new Error(`target exe not found: ${exe}`)
@@ -61,18 +73,13 @@ async function stampExeIdentity(exe, desktopRoot = resolve(import.meta.dirname, 
 
   await rcedit(exe, {
     icon,
-    'version-string': {
-      ProductName: 'Hermes',
-      FileDescription: 'Hermes',
-      CompanyName: 'Nous Research',
-      LegalCopyright: 'Copyright (c) 2026 Nous Research'
-    }
+    'version-string': buildExeVersionStrings()
   })
 
-  console.log('[set-exe-identity] done — Hermes icon + identity stamped')
+  console.log(`[set-exe-identity] done — ${BRAND.productName} icon + identity stamped`)
 }
 
-export { stampExeIdentity }
+export { buildExeVersionStrings, stampExeIdentity }
 
 // CLI entry point: `node scripts/set-exe-identity.mjs <exe>`.
 if (isMain(import.meta.url)) {
