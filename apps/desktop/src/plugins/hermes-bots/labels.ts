@@ -27,9 +27,16 @@ export function rosterConnectionLabel(bot: Partial<RosterRow>): string {
       ? bot.connectionKind
       : 'remote'
 
-  return connectionId === 'local' && kind === 'local' && label === 'This device'
-    ? translateNow('settings.connections.localLabel')
-    : label
+  if (connectionId === 'local' && kind === 'local' && label === 'This device') {
+    const translationKey = 'settings.connections.localLabel'
+    const translated = translateNow(translationKey)
+
+    // Older runtimes may not have the shared key yet. Never expose that raw
+    // key in the roster; preserve the persisted English label instead.
+    return translated === translationKey ? label : translated
+  }
+
+  return label
 }
 
 export function displayName(bot: Partial<RosterRow>, meta?: BotMeta | null): string {

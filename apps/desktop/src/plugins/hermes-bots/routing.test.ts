@@ -106,6 +106,23 @@ describe('alias identity survives the hosted handoff (#89131)', () => {
     ).toBe('我的电脑')
   })
 
+  it('falls back to the canonical local label when an older SDK returns the key', () => {
+    localLabel.value = 'settings.connections.localLabel'
+
+    expect(
+      displayName(
+        {
+          connectionId: 'local',
+          connectionKind: 'local',
+          connectionLabel: 'This device',
+          name: 'default',
+          remoteSource: true
+        },
+        null
+      )
+    ).toBe('This device')
+  })
+
   it('names the backend row after the alias, through every meta generation', () => {
     indexAliasRoutes([
       { connectionId: 'local', mode: 'local', profile: 'default', targetProfile: 'default' },
