@@ -1270,6 +1270,7 @@ export const zh: Translations = {
     // v2 多连接注册表：设置 → 网关。
     connections: {
       title: '已注册网关',
+      localLabel: '此设备',
       intro: '管理本机以及通过远程、SSH 或 Hermes Cloud 连接可访问的每个 Hermes 网关。',
       stagedNote:
         '可在“会话”侧边栏切换网关。配置档案、聊天、消息和定时任务归属于各自网关；其他网关上的工作会继续运行。',
@@ -4575,8 +4576,7 @@ export const zh: Translations = {
         clickedPageElement: target =>
           target.startsWith('@') ? `已点击页面元素（内部引用 ${target}）` : `已点击 ${target}`,
         filledPageInput: '已填写页面输入',
-        fieldValue: (field, value) =>
-          [field && `字段：${field}`, value && `值：${value}`].filter(Boolean).join(' · '),
+        fieldValue: (field, value) => [field && `字段：${field}`, value && `值：${value}`].filter(Boolean).join(' · '),
         queriedWebSources: '已查询网页来源',
         query: query => `查询：${query}`,
         executedCommand: '已执行命令',

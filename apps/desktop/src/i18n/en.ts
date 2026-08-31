@@ -1041,6 +1041,7 @@ export const en: Translations = {
     // v2 multi-connection registry: Settings → Gateways.
     connections: {
       title: 'Registered gateways',
+      localLabel: 'This device',
       intro: 'Manage this device and every Hermes gateway it can reach through remote, SSH, or Cloud connections.',
       stagedNote:
         'Switch gateways from Sessions. Profiles, chats, messaging, and cron jobs stay with their gateway; work on other gateways keeps running.',
@@ -1123,7 +1124,8 @@ export const en: Translations = {
       loading: 'Loading gateway settings...',
       unavailableTitle: 'Gateway settings unavailable',
       unavailableDesc: 'The desktop IPC bridge does not expose gateway settings.',
-      registryConnectionsUnsupported: 'This Desktop build cannot connect to registered gateways. Update Hermes Desktop.',
+      registryConnectionsUnsupported:
+        'This Desktop build cannot connect to registered gateways. Update Hermes Desktop.',
       title: 'Gateway Connection',
       envOverride: 'env override',
       intro:
@@ -2663,19 +2665,23 @@ export const en: Translations = {
         },
         'news-digest': {
           title: 'Topic news digest',
-          description: 'A recurring digest on a topic you care about — deduped against what was already sent, so only genuinely new items land.'
+          description:
+            'A recurring digest on a topic you care about — deduped against what was already sent, so only genuinely new items land.'
         },
         'bill-renewal-watch': {
           title: 'Bills & renewals reminder',
-          description: 'A heads-up before a recurring payment, subscription renewal, or due date — so nothing auto-charges by surprise.'
+          description:
+            'A heads-up before a recurring payment, subscription renewal, or due date — so nothing auto-charges by surprise.'
         },
         'price-watch': {
           title: 'Price & availability watch',
-          description: 'Watch an exact product, flight, hotel, or listing and alert when your price or availability condition is met.'
+          description:
+            'Watch an exact product, flight, hotel, or listing and alert when your price or availability condition is met.'
         },
         'competitor-watch': {
           title: 'Competitor news watch',
-          description: 'Track named companies for material news — launches, pricing, funding, filings — with a cited digest.'
+          description:
+            'Track named companies for material news — launches, pricing, funding, filings — with a cited digest.'
         },
         'habit-checkin': {
           title: 'Habit check-in',
@@ -2687,7 +2693,8 @@ export const en: Translations = {
         },
         'meal-plan': {
           title: 'Weekly meal plan',
-          description: 'A weekly meal plan plus a consolidated grocery list, tuned to your diet and how much time you have to cook.'
+          description:
+            'A weekly meal plan plus a consolidated grocery list, tuned to your diet and how much time you have to cook.'
         },
         'learn-daily': {
           title: 'Daily learning drip',
@@ -3753,9 +3760,8 @@ export const en: Translations = {
           ultra: 'Ultra'
         })[effort.trim().toLowerCase()] ?? effort,
       modelVariant: variant =>
-        ({ fast: 'Fast', thinking: 'Thinking', preview: 'Preview', latest: 'Latest' })[
-          variant.trim().toLowerCase()
-        ] ?? variant,
+        ({ fast: 'Fast', thinking: 'Thinking', preview: 'Preview', latest: 'Latest' })[variant.trim().toLowerCase()] ??
+        variant,
       modelStatusNoModel: 'No model',
       switchModel: 'Switch model',
       openModelPicker: 'Open model picker',
@@ -3854,13 +3860,15 @@ export const en: Translations = {
     drive: {
       noLivePage: 'No live page is open in the in-app browser — open one with open_preview first.',
       inactiveSession: 'The in-app browser only takes actions in the session the user is looking at.',
-      pageNavigated: 'The page stopped answering right after — it is probably navigating. Call elements to see where you landed.',
+      pageNavigated:
+        'The page stopped answering right after — it is probably navigating. Call elements to see where you landed.',
       pageRejected: message => `The page rejected the action: ${message}`,
       noAnswer: 'The page did not answer the action.',
       cannotLocate: 'Could not work out where that element is on screen.',
       notTextField: target =>
         `${target} is not a text field, so typing into it would only select the text under the pointer. Click it if it opens one, then type into that.`,
-      pointerMissed: kind => `The pointer input never reached the page, so nothing was ${kind === 'type' ? 'typed' : 'clicked'}.`,
+      pointerMissed: kind =>
+        `The pointer input never reached the page, so nothing was ${kind === 'type' ? 'typed' : 'clicked'}.`,
       overlayIntercepted: 'The action overlay intercepted the click instead of the page.',
       nothingToScroll: 'The page has nothing to scroll — it all fits already.',
       pageLoading: 'Page is loading — call elements to see what is on it.',

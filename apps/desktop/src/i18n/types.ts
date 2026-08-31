@@ -861,6 +861,7 @@ export interface Translations {
     // v2 multi-connection registry: Settings → Connections.
     connections: {
       title: string
+      localLabel: string
       intro: string
       stagedNote: string
       launchModeTitle: string

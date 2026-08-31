@@ -105,15 +105,14 @@ describe('desktop i18n runtime translator', () => {
   it('keeps gateway and provider status copy fully localized', () => {
     setRuntimeI18nLocale('zh')
 
+    expect(translateNow('settings.connections.localLabel')).toBe('此设备')
     expect(translateNow('settings.managedUpdates.scopeNotRestored', '工作', '连接失败')).toBe(
       '配置档案“工作”未恢复：连接失败'
     )
     expect(translateNow('settings.providers.removeKeyManaged', 'OpenAI')).toBe(
       'OpenAI 由 API 密钥配置。请从 API 密钥中移除。'
     )
-    expect(translateNow('shell.statusbar.connectionRemoteTooltip', 'server.example')).toBe(
-      '远程 · server.example'
-    )
+    expect(translateNow('shell.statusbar.connectionRemoteTooltip', 'server.example')).toBe('远程 · server.example')
   })
 
   it('localizes gateway setup terminology while preserving technical values', () => {
@@ -150,7 +149,9 @@ describe('desktop i18n runtime translator', () => {
   it('describes the embedded skills-hub action in Simplified Chinese', () => {
     setRuntimeI18nLocale('zh')
 
-    expect(translateNow('skills.hub.pickerHint')).toBe('点击任意技能卡片上的“添加到此智能体”按钮即可安装，安装后会出现在上方列表中。')
+    expect(translateNow('skills.hub.pickerHint')).toBe(
+      '点击任意技能卡片上的“添加到此智能体”按钮即可安装，安装后会出现在上方列表中。'
+    )
   })
 
   it('falls back to English when the active locale cannot resolve a key', () => {

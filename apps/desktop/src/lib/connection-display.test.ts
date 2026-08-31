@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { DesktopRegistryConnection } from '@/global'
 
 import {
+  connectionDisplayLabel,
   connectionEndpoint,
   connectionMatchesQuery,
   connectionTooltip,
@@ -16,6 +17,12 @@ const connection = (
 ): DesktopRegistryConnection => ({ id, kind, label, tokenPreview: null, tokenSet: false })
 
 describe('connection display helpers', () => {
+  it('localizes only the built-in local connection label at the display boundary', () => {
+    expect(connectionDisplayLabel(connection('local', 'This device', 'local'), '此设备')).toBe('此设备')
+    expect(connectionDisplayLabel(connection('local', '我的电脑', 'local'), '此设备')).toBe('我的电脑')
+    expect(connectionDisplayLabel(connection('remote', 'This device', 'remote'), '此设备')).toBe('This device')
+  })
+
   it('anchors local first and sorts labels case-insensitively with numeric order', () => {
     const sorted = sortConnectionsForDisplay([
       connection('remote-10', 'Studio 10'),

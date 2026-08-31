@@ -1,6 +1,7 @@
 import type { DesktopRegistryConnection } from '@/global'
 
 export const CONNECTION_SEARCH_THRESHOLD = 8
+export const LOCAL_CONNECTION_DEFAULT_LABEL = 'This device'
 
 const connectionLabelCollator = new Intl.Collator(undefined, {
   numeric: true,
@@ -24,6 +25,21 @@ export function sortConnectionsForDisplay<T extends Pick<DesktopRegistryConnecti
 
 function normalizeSearchText(value: string): string {
   return value.normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase()
+}
+
+/**
+ * Resolve a registry label for presentation without changing the persisted
+ * connection identity. The local entry's English label is a compatibility
+ * sentinel written by Electron; user-renamed entries and remote labels must
+ * remain exactly as supplied.
+ */
+export function connectionDisplayLabel(
+  connection: Pick<DesktopRegistryConnection, 'id' | 'kind' | 'label'>,
+  localizedLocalLabel: string
+): string {
+  return connection.id === 'local' && connection.kind === 'local' && connection.label === LOCAL_CONNECTION_DEFAULT_LABEL
+    ? localizedLocalLabel
+    : connection.label
 }
 
 /** Search non-secret details users can see or reasonably remember about a gateway. */
@@ -75,8 +91,9 @@ export function connectionEndpoint(connection: DesktopRegistryConnection): null 
 }
 
 /** Full gateway identity for a hover tip without keeping technical routing in chrome. */
-export function connectionTooltip(connection: DesktopRegistryConnection): string {
+export function connectionTooltip(connection: DesktopRegistryConnection, localizedLocalLabel?: string): string {
   const endpoint = connectionEndpoint(connection)
+  const label = localizedLocalLabel ? connectionDisplayLabel(connection, localizedLocalLabel) : connection.label
 
-  return endpoint ? `${connection.label}\n${endpoint}` : connection.label
+  return endpoint ? `${label}\n${endpoint}` : label
 }

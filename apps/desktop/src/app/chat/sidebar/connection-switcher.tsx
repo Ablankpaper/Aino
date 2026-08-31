@@ -18,6 +18,7 @@ import type { DesktopRegistryConnection } from '@/global'
 import { useI18n } from '@/i18n'
 import {
   CONNECTION_SEARCH_THRESHOLD,
+  connectionDisplayLabel,
   connectionMatchesQuery,
   connectionTooltip,
   sortConnectionsForDisplay
@@ -88,7 +89,12 @@ export function ConnectionSwitcher({ compact = false, onConnect }: { compact?: b
   }
 
   const displayedConnections = searchable
-    ? connections.filter(connection => connectionMatchesQuery(connection, searchQuery, [kindLabels[connection.kind]]))
+    ? connections.filter(connection =>
+        connectionMatchesQuery(connection, searchQuery, [
+          kindLabels[connection.kind],
+          connectionDisplayLabel(connection, t.settings.connections.localLabel)
+        ])
+      )
     : connections
 
   useEffect(() => {
@@ -154,6 +160,9 @@ export function ConnectionSwitcher({ compact = false, onConnect }: { compact?: b
         <DropdownMenuTrigger asChild>
           <ConnectionSwitcherTrigger
             activeConnection={activeConnection}
+            activeConnectionLabel={
+              activeConnection ? connectionDisplayLabel(activeConnection, t.settings.connections.localLabel) : undefined
+            }
             compact={compact}
             pending={pendingConnectionId !== null}
             title={t.settings.connections.title}
@@ -231,7 +240,7 @@ export function ConnectionSwitcher({ compact = false, onConnect }: { compact?: b
                   key={connection.id}
                   value={connection.id}
                 >
-                  <ConnectionLabel connection={connection} />
+                  <ConnectionLabel connection={connection} localizedLocalLabel={t.settings.connections.localLabel} />
                 </DropdownMenuRadioItem>
               ))
             )}
@@ -248,6 +257,7 @@ export function ConnectionSwitcher({ compact = false, onConnect }: { compact?: b
 
 interface ConnectionMenuProps {
   activeConnection?: DesktopRegistryConnection
+  activeConnectionLabel?: string
   compact: boolean
   pending: boolean
   title: string
@@ -255,6 +265,7 @@ interface ConnectionMenuProps {
 
 function ConnectionSwitcherTrigger({
   activeConnection,
+  activeConnectionLabel,
   compact,
   pending,
   title,
@@ -263,7 +274,7 @@ function ConnectionSwitcherTrigger({
   return (
     <Button
       {...triggerProps}
-      aria-label={activeConnection ? `${title}: ${activeConnection.label}` : title}
+      aria-label={activeConnection ? `${title}: ${activeConnectionLabel ?? activeConnection.label}` : title}
       className={cn(
         'w-full min-w-0 justify-between overflow-hidden px-1 text-(--ui-text-secondary) data-[state=open]:bg-(--ui-control-active-background) data-[state=open]:text-foreground',
         compact && 'h-full min-h-0 rounded-none px-1.5 text-[0.6875rem] font-normal',
@@ -276,7 +287,7 @@ function ConnectionSwitcherTrigger({
       <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
         {pending && <Loader2 aria-hidden="true" className="size-3 shrink-0 animate-spin" />}
         {activeConnection ? (
-          <ConnectionLabel connection={activeConnection} />
+          <ConnectionLabel connection={activeConnection} localizedLocalLabel={activeConnectionLabel} />
         ) : (
           <span className="truncate">{title}</span>
         )}
@@ -295,11 +306,22 @@ function ManageGatewaysLabel({ label }: { label: string }) {
   )
 }
 
-function ConnectionLabel({ connection }: { connection: DesktopRegistryConnection }) {
+function ConnectionLabel({
+  connection,
+  localizedLocalLabel
+}: {
+  connection: DesktopRegistryConnection
+  localizedLocalLabel: string | undefined
+}) {
+  const label = localizedLocalLabel ? connectionDisplayLabel(connection, localizedLocalLabel) : connection.label
+
   return (
-    <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden" title={connectionTooltip(connection)}>
+    <span
+      className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden"
+      title={connectionTooltip(connection, localizedLocalLabel)}
+    >
       <ConnectionGlyph connection={connection} />
-      <span className="truncate">{connection.label}</span>
+      <span className="truncate">{label}</span>
     </span>
   )
 }
