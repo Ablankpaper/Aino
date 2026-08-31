@@ -197,7 +197,7 @@ gateway:
     unknown:               "未知人格：`{name}`\n\n可用：{available}"
 
   profile:
-    header:                "👤 **配置文件：** `{profile}`"
+    header:                "👤 **配置档案：** `{profile}`"
     home:                  "📂 **主目录：** `{home}`"
 
   reasoning:
