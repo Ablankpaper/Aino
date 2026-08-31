@@ -2861,6 +2861,13 @@ export const en: Translations = {
     wakeWordListening: phrase => `Wake word: "${phrase}" — listening`,
     wakeWordOff: phrase => `Wake word: "${phrase}" — off`,
     wakeWordPausedVoice: phrase => `Wake word: "${phrase}" — paused during voice chat`,
+    wakeWordArming: 'arming — first use may take a minute while the engine installs',
+    wakeWordClientMicrophoneFailed: 'Failed to open the client microphone for wake word',
+    wakeWordGatewayUnavailable: 'Hermes gateway unavailable',
+    wakeWordDisabled: 'click to enable',
+    wakeWordDisabledForSurface: 'scoped to another surface (config wake_word.surface)',
+    wakeWordOwnedByOtherSurface: 'another surface owns the listener',
+    wakeWordUnavailable: 'unavailable',
     completionGroups: {
       commands: 'Commands',
       configuration: 'Configuration',

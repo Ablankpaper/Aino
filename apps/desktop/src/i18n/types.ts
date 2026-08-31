@@ -2435,6 +2435,13 @@ export interface Translations {
     wakeWordListening: (phrase: string) => string
     wakeWordOff: (phrase: string) => string
     wakeWordPausedVoice: (phrase: string) => string
+    wakeWordArming: string
+    wakeWordClientMicrophoneFailed: string
+    wakeWordGatewayUnavailable: string
+    wakeWordDisabled: string
+    wakeWordDisabledForSurface: string
+    wakeWordOwnedByOtherSurface: string
+    wakeWordUnavailable: string
     completionGroups: {
       commands: string
       configuration: string

@@ -1,5 +1,6 @@
 import { atom } from 'nanostores'
 
+import { translateNow } from '@/i18n'
 import { type ClientWakeCaptureHandle, startClientWakeCapture } from '@/lib/wake-client-capture'
 import { $gateway } from '@/store/gateway'
 
@@ -66,7 +67,7 @@ async function maybeStartClientCapture(result: WakeStartResponse | null | undefi
     $wakeWord.set({
       ...current,
       listening: false,
-      notice: error instanceof Error ? error.message : 'Failed to open the client microphone for wake word',
+      notice: error instanceof Error ? error.message : translateNow('composer.wakeWordClientMicrophoneFailed'),
       pending: false
     })
 
@@ -142,7 +143,7 @@ const gatewayRequester: WakeRequester = async <T>(method: string, params: Record
   const gateway = $gateway.get()
 
   if (!gateway) {
-    throw new Error('Hermes gateway unavailable')
+    throw new Error(translateNow('composer.wakeWordGatewayUnavailable'))
   }
 
   return method === 'wake.start'
@@ -153,12 +154,12 @@ const gatewayRequester: WakeRequester = async <T>(method: string, params: Record
 // Friendly text for the gateway's wake refusal codes (mirrors the TUI's
 // START_REASON_TEXT). Unknown codes fall through raw so new server-side
 // codes stay visible instead of silently disappearing.
-const REASON_TEXT: Record<string, string> = {
-  disabled: 'click to enable',
-  disabled_for_surface: 'scoped to another surface (config wake_word.surface)',
-  not_owner: 'another surface owns the listener',
-  owned: 'another surface owns the listener',
-  unavailable: 'unavailable'
+const REASON_TEXT: Record<string, () => string> = {
+  disabled: () => translateNow('composer.wakeWordDisabled'),
+  disabled_for_surface: () => translateNow('composer.wakeWordDisabledForSurface'),
+  not_owner: () => translateNow('composer.wakeWordOwnedByOtherSurface'),
+  owned: () => translateNow('composer.wakeWordOwnedByOtherSurface'),
+  unavailable: () => translateNow('composer.wakeWordUnavailable')
 }
 
 const noticeFrom = (result: { hint?: string; reason?: string | null } | null | undefined): string => {
@@ -170,7 +171,7 @@ const noticeFrom = (result: { hint?: string; reason?: string | null } | null | u
 
   const reason = result?.reason?.trim()
 
-  return reason ? (REASON_TEXT[reason] ?? reason) : ''
+  return reason ? (REASON_TEXT[reason]?.() ?? reason) : ''
 }
 
 /** Sync the atom from a `wake.status` payload (mount / gateway-ready). */
@@ -297,7 +298,7 @@ export async function toggleWakeWord(request: WakeRequester = gatewayRequester):
     ...state,
     // First arm may lazy-install the detection engine — say so instead of
     // freezing a silent disabled button for the duration.
-    notice: state.listening ? '' : 'arming — first use may take a minute while the engine installs',
+    notice: state.listening ? '' : translateNow('composer.wakeWordArming'),
     pending: true
   })
 

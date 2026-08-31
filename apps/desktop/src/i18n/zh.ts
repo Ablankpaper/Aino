@@ -3027,6 +3027,13 @@ export const zh: Translations = {
     wakeWordListening: phrase => `唤醒词:"${phrase}" — 正在监听`,
     wakeWordOff: phrase => `唤醒词:"${phrase}" — 已关闭`,
     wakeWordPausedVoice: phrase => `唤醒词:"${phrase}" — 语音对话期间暂停`,
+    wakeWordArming: '正在启动——首次使用时引擎安装可能需要一分钟',
+    wakeWordClientMicrophoneFailed: '无法打开用于唤醒词的客户端麦克风',
+    wakeWordGatewayUnavailable: 'Aino 网关不可用',
+    wakeWordDisabled: '点击以启用',
+    wakeWordDisabledForSurface: '已限定到其他界面（配置 wake_word.surface）',
+    wakeWordOwnedByOtherSurface: '另一个界面正在占用监听器',
+    wakeWordUnavailable: '不可用',
     completionGroups: {
       commands: '命令',
       configuration: '配置',
