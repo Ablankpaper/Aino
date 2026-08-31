@@ -27,6 +27,22 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('assistant.tool.statusRecovered')).toBe('已恢复')
   })
 
+  it('resolves Chinese copy for shared chat, accessibility, and quick entry affordances', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('ui.actions.addContext')).toBe('添加上下文')
+    expect(translateNow('ui.actions.filters')).toBe('筛选')
+    expect(translateNow('ui.accessibility.showOptions')).toBe('显示选项')
+    expect(translateNow('ui.accessibility.openFullView')).toBe('打开完整视图')
+    expect(translateNow('ui.accessibility.zoomOut')).toBe('缩小')
+    expect(translateNow('ui.accessibility.resetZoom')).toBe('重置缩放')
+    expect(translateNow('ui.accessibility.zoomIn')).toBe('放大')
+    expect(translateNow('ui.accessibility.generatedImage')).toBe('生成的图片')
+    expect(translateNow('assistant.thread.showMessage')).toBe('显示消息')
+    expect(translateNow('desktop.quickEntry.currentChat')).toBe('当前对话')
+    expect(translateNow('desktop.quickEntry.newSession')).toBe('新建会话')
+  })
+
   it('passes arguments to function translations', () => {
     expect(translateNow('notifications.updateReadyMessage', 2)).toBe('2 new changes available.')
   })

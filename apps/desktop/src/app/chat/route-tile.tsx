@@ -11,6 +11,7 @@ import { lazy, type ReactNode, Suspense } from 'react'
 
 import { ContribBoundary, ContribRender } from '@/contrib/react/boundary'
 import { useContributions } from '@/contrib/react/use-contributions'
+import { translateNow } from '@/i18n'
 import { $routeTiles, closeRouteTile, type RouteTile } from '@/store/route-tiles'
 
 import { ARTIFACTS_ROUTE, contributedRoutes, MESSAGING_ROUTE, ROUTES_AREA, SKILLS_ROUTE } from '../routes'
@@ -22,11 +23,12 @@ const MessagingView = lazy(async () => ({ default: (await import('../messaging')
 const ArtifactsView = lazy(async () => ({ default: (await import('../artifacts')).ArtifactsView }))
 
 // Built-in page views + their pane titles, keyed by route.
-const BUILTIN_PAGES: Record<string, { render: () => ReactNode; title: string }> = {
-  [ARTIFACTS_ROUTE]: { render: () => <ArtifactsView />, title: 'Artifacts' },
-  [MESSAGING_ROUTE]: { render: () => <MessagingView />, title: 'Messaging' },
-  [SKILLS_ROUTE]: { render: () => <SkillsView />, title: 'Capabilities' }
-}
+const BUILTIN_PAGES: Record<string, { render: () => ReactNode; titleKey: 'artifacts' | 'capabilities' | 'messaging' }> =
+  {
+    [ARTIFACTS_ROUTE]: { render: () => <ArtifactsView />, titleKey: 'artifacts' },
+    [MESSAGING_ROUTE]: { render: () => <MessagingView />, titleKey: 'messaging' },
+    [SKILLS_ROUTE]: { render: () => <SkillsView />, titleKey: 'capabilities' }
+  }
 
 /** Humanize a route path into a tab title: `/my-atlas` → `My Atlas`. */
 const humanizePath = (path: string): string =>
@@ -39,9 +41,9 @@ const humanizePath = (path: string): string =>
 
 /** Title for a route tile: the built-in name, the contribution's own `title`,
  *  else a humanized path — never the internal `${source}:${id}` key. */
-function routeTitle(path: string): string {
+export function routeTitle(path: string): string {
   if (BUILTIN_PAGES[path]) {
-    return BUILTIN_PAGES[path].title
+    return translateNow(`ui.routes.${BUILTIN_PAGES[path].titleKey}`)
   }
 
   return contributedRoutes().find(r => r.path === path)?.title ?? humanizePath(path)
@@ -74,7 +76,7 @@ function RouteTilePane({ path }: { path: string }) {
 
   return (
     <div className="grid h-full place-items-center font-mono text-[11px] text-(--ui-text-quaternary)">
-      no page at {path}
+      {translateNow('ui.messages.noPageAt', path)}
     </div>
   )
 }

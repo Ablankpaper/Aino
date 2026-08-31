@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
+
 import { Zoomable } from './zoomable'
 
 afterEach(cleanup)
@@ -40,5 +42,22 @@ describe('Zoomable', () => {
 
     expect(stage).toBeTruthy()
     expect(stage?.contains(screen.getByTestId('overlay'))).toBe(true)
+  })
+
+  it('localizes the default viewer controls for Simplified Chinese', () => {
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Zoomable overlay={<div>Expanded diagram</div>}>
+          <div>Inline diagram</div>
+        </Zoomable>
+      </I18nProvider>
+    )
+
+    fireEvent.click(screen.getByTitle('打开完整视图'))
+
+    expect(screen.getByRole('button', { name: '缩小' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '重置缩放' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '放大' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '关闭' })).toBeTruthy()
   })
 })

@@ -2865,7 +2865,14 @@ export const ja = defineLocale({
       restoreNext: '次のチェックポイントに戻す',
       goForward: '進む',
       sendEdited: '編集済みメッセージを送信',
-      attachingFile: '添付中…'
+      attachingFile: '添付中…',
+      messaging: target => `${target} にメッセージを送信中`,
+      messaged: target => `${target} にメッセージを送信しました`,
+      messageFrom: sender => `${sender} からのメッセージ`,
+      repliedTo: sender => `${sender} に返信しました`,
+      showMessage: 'メッセージを表示',
+      showReply: '返信を表示',
+      output: '出力'
     },
     approval: {
       gatewayDisconnected: 'Hermes ゲートウェイが接続されていません',
@@ -2913,6 +2920,16 @@ export const ja = defineLocale({
       outputAlt: 'ツール出力',
       rawResponse: '生の応答',
       copyActivity: 'アクティビティをコピー',
+      arguments: '引数',
+      result: '結果',
+      payload: 'ツールペイロード',
+      search: '検索',
+      searchResults: '検索結果',
+      details: '詳細',
+      stdout: '標準出力',
+      stderr: '標準エラー',
+      errorDetails: 'エラーの詳細',
+      snapshotSummary: 'スナップショットの概要',
       recoveredOne: '1 つの失敗したステップの後に回復しました',
       recoveredMany: count => `${count} つの失敗したステップの後に回復しました`,
       failedOne: '1 つのステップが失敗しました',
@@ -3055,6 +3072,8 @@ export const ja = defineLocale({
     resumeStrandedBody:
       'このセッションへの接続に失敗し、自動再試行も停止しました。ゲートウェイが実行中か確認してから、もう一度お試しください。',
     resumeRetry: '再試行',
+    sessionStillAvailableRetry: 'セッションはまだ利用できます。再開を再試行してください。',
+    sessionUnavailableRetry: 'セッションを利用できません。再開を再試行できます。',
     nothingToBranch: 'ブランチするものがありません',
     branchNeedsChat: 'ブランチする前にチャットを開始または再開してください。',
     sessionBusy: 'セッションが使用中',
@@ -3090,6 +3109,15 @@ export const ja = defineLocale({
     noClipboardImage: 'クリップボードに画像が見つかりません',
     clipboardPasteFailed: 'クリップボードからの貼り付けに失敗しました',
     dropFiles: 'ファイルをドロップ',
+    quickEntry: {
+      label: 'クイック入力',
+      askPlaceholder: 'Hermes に質問…',
+      disconnectedPlaceholder: '接続されていません — Hermes を開いて再接続してください',
+      targetSession: '対象セッション',
+      sendTo: '送信先',
+      currentChat: '現在のチャット',
+      newSession: '新しいセッション'
+    },
     handoff: {
       pickPlatform: '送信先を選択',
       success: platform => `${platform} に引き継ぎました。いつでもここで再開できます。`,
@@ -3154,6 +3182,74 @@ export const ja = defineLocale({
   },
 
   ui: {
+    actions: {
+      addContext: 'コンテキストを追加',
+      filters: 'フィルター',
+      grouping: 'グループ化',
+      ordering: '並べ替え',
+      show: '表示',
+      inboxStyle: '受信トレイ形式',
+      status: 'ステータス',
+      pullRequest: 'プルリクエスト',
+      profile: 'プロファイル',
+      project: 'プロジェクト',
+      archived: 'アーカイブ済み',
+      resetDefaults: 'デフォルトに戻す',
+      expandAll: 'すべて展開',
+      collapseAll: 'すべて折りたたむ',
+      markAllRead: 'すべて既読にする',
+      labels: {
+        updated: '更新日時',
+        project: 'プロジェクト',
+        status: 'ステータス',
+        profile: 'プロファイル',
+        created: '作成日時',
+        tokens: 'トークン',
+        cost: 'コスト',
+        manual: '手動',
+        preview: 'プレビュー',
+        pr: 'PR',
+        open: 'オープン',
+        draft: '下書き',
+        merged: 'マージ済み',
+        closed: 'クローズ済み',
+        noPr: 'PR なし',
+        needsInput: '入力が必要',
+        working: '作業中',
+        unread: '未読',
+        idle: 'アイドル',
+        cardRows: '受信トレイ形式',
+        archived: 'アーカイブ済み'
+      }
+    },
+    accessibility: {
+      showOptions: 'オプションを表示',
+      removeReference: '参照画像を削除',
+      referenceImage: '参照画像',
+      generatedImage: '生成画像',
+      youtubeEmbed: 'YouTube 埋め込み',
+      spotifyEmbed: 'Spotify 埋め込み',
+      conversationTimeline: '会話タイムライン',
+      holdToZoom: '⌘ を押しながらズーム',
+      moreActions: 'その他の操作',
+      openFullView: '全画面表示を開く',
+      openDiagram: '図を開く',
+      zoomOut: '縮小',
+      resetZoom: 'ズームをリセット',
+      zoomIn: '拡大',
+      copy: 'コピー',
+      copied: 'コピーしました',
+      close: '閉じる'
+    },
+    messages: {
+      embedLoadFailed: label => `${label} の埋め込みを読み込めませんでした`,
+      noPageAt: path => `${path} にページがありません`
+    },
+    routes: {
+      artifacts: 'アーティファクト',
+      messaging: 'メッセージング',
+      capabilities: '機能'
+    },
     search: {
       clear: '検索をクリア'
     },

@@ -3242,7 +3242,14 @@ export const en: Translations = {
       restoreNext: 'Restore next checkpoint',
       goForward: 'Go forward',
       sendEdited: 'Send edited message',
-      attachingFile: 'Attaching…'
+      attachingFile: 'Attaching…',
+      messaging: target => `Messaging ${target}`,
+      messaged: target => `Messaged ${target}`,
+      messageFrom: sender => `Message from ${sender}`,
+      repliedTo: sender => `Replied to ${sender}`,
+      showMessage: 'Show message',
+      showReply: 'Show reply',
+      output: 'Output'
     },
     approval: {
       gatewayDisconnected: 'Hermes gateway is not connected',
@@ -3312,6 +3319,16 @@ export const en: Translations = {
       outputAlt: 'Tool output',
       rawResponse: 'Raw response',
       copyActivity: 'Copy activity',
+      arguments: 'Arguments',
+      result: 'Result',
+      payload: 'Tool payload',
+      search: 'Search',
+      searchResults: 'Search results',
+      details: 'Details',
+      stdout: 'stdout',
+      stderr: 'stderr',
+      errorDetails: 'Error details',
+      snapshotSummary: 'Snapshot summary',
       recoveredOne: 'Recovered after 1 failed step',
       recoveredMany: count => `Recovered after ${count} failed steps`,
       failedOne: '1 step failed',
@@ -3433,6 +3450,8 @@ export const en: Translations = {
     resumeStrandedBody:
       'The connection to this session failed and automatic retries gave up. Check that the gateway is running, then try again.',
     resumeRetry: 'Retry',
+    sessionStillAvailableRetry: 'Session is still available — retry resuming it.',
+    sessionUnavailableRetry: 'Session unavailable — you can retry resuming it.',
     nothingToBranch: 'Nothing to branch',
     branchNeedsChat: 'Start or resume a chat before branching.',
     sessionBusy: 'Session busy',
@@ -3467,6 +3486,15 @@ export const en: Translations = {
     noClipboardImage: 'No image found in clipboard',
     clipboardPasteFailed: 'Clipboard paste failed',
     dropFiles: 'Drop files',
+    quickEntry: {
+      label: 'Quick Entry',
+      askPlaceholder: 'Ask Hermes…',
+      disconnectedPlaceholder: 'Not connected — open Hermes to reconnect',
+      targetSession: 'Target session',
+      sendTo: 'Send to',
+      currentChat: 'Current chat',
+      newSession: 'New session'
+    },
     handoff: {
       pickPlatform: 'Choose a destination',
       success: platform => `Handed off to ${platform}. Resume here anytime.`,
@@ -3531,6 +3559,74 @@ export const en: Translations = {
   },
 
   ui: {
+    actions: {
+      addContext: 'Add context',
+      filters: 'Filters',
+      grouping: 'Grouping',
+      ordering: 'Ordering',
+      show: 'Show',
+      inboxStyle: 'Inbox style',
+      status: 'Status',
+      pullRequest: 'Pull request',
+      profile: 'Profile',
+      project: 'Project',
+      archived: 'Archived',
+      resetDefaults: 'Reset to defaults',
+      expandAll: 'Expand all',
+      collapseAll: 'Collapse all',
+      markAllRead: 'Mark all as read',
+      labels: {
+        updated: 'Updated',
+        project: 'Project',
+        status: 'Status',
+        profile: 'Profile',
+        created: 'Created',
+        tokens: 'Tokens',
+        cost: 'Cost',
+        manual: 'Manual',
+        preview: 'Preview',
+        pr: 'PR',
+        open: 'Open',
+        draft: 'Draft',
+        merged: 'Merged',
+        closed: 'Closed',
+        noPr: 'No PR',
+        needsInput: 'Needs input',
+        working: 'Working',
+        unread: 'Unread',
+        idle: 'Idle',
+        cardRows: 'Inbox style',
+        archived: 'Archived'
+      }
+    },
+    accessibility: {
+      showOptions: 'Show options',
+      removeReference: 'Remove reference',
+      referenceImage: 'Reference image',
+      generatedImage: 'Generated image',
+      youtubeEmbed: 'YouTube embed',
+      spotifyEmbed: 'Spotify embed',
+      conversationTimeline: 'Conversation timeline',
+      holdToZoom: 'Hold ⌘ to zoom',
+      moreActions: 'More actions',
+      openFullView: 'Open full view',
+      openDiagram: 'Open diagram',
+      zoomOut: 'Zoom out',
+      resetZoom: 'Reset',
+      zoomIn: 'Zoom in',
+      copy: 'Copy',
+      copied: 'Copied',
+      close: 'Close'
+    },
+    messages: {
+      embedLoadFailed: label => `Failed to load ${label} embed`,
+      noPageAt: path => `No page at ${path}`
+    },
+    routes: {
+      artifacts: 'Artifacts',
+      messaging: 'Messaging',
+      capabilities: 'Capabilities'
+    },
     search: {
       clear: 'Clear search'
     },

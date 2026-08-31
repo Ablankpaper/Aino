@@ -1054,11 +1054,11 @@ function toolSubtitle(
 
 function toolDetailLabel(toolName: string): string {
   if (toolName === 'web_search') {
-    return 'Details'
+    return translateNow('assistant.tool.details')
   }
 
   if (toolName === 'browser_snapshot') {
-    return 'Snapshot summary'
+    return translateNow('assistant.tool.snapshotSummary')
   }
 
   return ''
@@ -1479,7 +1479,7 @@ export function buildToolView(part: ToolPart, inlineDiff: string): ToolView {
   return {
     countLabel: resultCount ? formatCountLabel(resultCount) : undefined,
     detail,
-    detailLabel: error ? 'Error details' : toolDetailLabel(part.toolName),
+    detailLabel: error ? translateNow('assistant.tool.errorDetails') : toolDetailLabel(part.toolName),
     durationLabel: durationLabel(resultRecord),
     icon: meta.icon,
     imageUrl: toolImageUrl(argsRecord, resultRecord),

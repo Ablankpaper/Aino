@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { I18nProvider } from '@/i18n'
+
+import { AgentDeliveryNotice } from './agent-delivery'
 
 import { deliveryTargetFromCommand, replyTextFromResult } from './agent-delivery'
 
@@ -41,5 +46,33 @@ describe('reply extraction', () => {
   it('returns empty for empty results', () => {
     expect(replyTextFromResult(undefined)).toBe('')
     expect(replyTextFromResult({ output: '' })).toBe('')
+  })
+})
+
+afterEach(cleanup)
+
+describe('AgentDeliveryNotice localization', () => {
+  it('renders Simplified Chinese delivery affordances', () => {
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <AgentDeliveryNotice
+          args={{ command: 'hermes -p helper chat -q "Message from 🤖 Hermes: hi"' }}
+          argsText='{"command":"hermes -p helper chat -q \\"Message from 🤖 Hermes: hi\\""}'
+          addResult={() => {}}
+          isError={false}
+          result={{ output: 'session_id: abc\nack' }}
+          respondToApproval={() => {}}
+          resume={() => {}}
+          status={{ type: 'complete' }}
+          toolCallId="delivery-1"
+          toolName="terminal"
+          type="tool-call"
+        />
+      </I18nProvider>
+    )
+
+    expect(screen.getByText('已向 helper 发送消息')).toBeTruthy()
+    expect(screen.getByText('来自 helper 的消息')).toBeTruthy()
+    expect(screen.getByText('显示消息')).toBeTruthy()
   })
 })

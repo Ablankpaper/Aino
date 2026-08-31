@@ -2802,6 +2802,13 @@ export interface Translations {
       goForward: string
       sendEdited: string
       attachingFile: string
+      messaging: (target: string) => string
+      messaged: (target: string) => string
+      messageFrom: (sender: string) => string
+      repliedTo: (sender: string) => string
+      showMessage: string
+      showReply: string
+      output: string
     }
     approval: {
       gatewayDisconnected: string
@@ -2870,6 +2877,16 @@ export interface Translations {
       outputAlt: string
       rawResponse: string
       copyActivity: string
+      arguments: string
+      result: string
+      payload: string
+      search: string
+      searchResults: string
+      details: string
+      stdout: string
+      stderr: string
+      errorDetails: string
+      snapshotSummary: string
       recoveredOne: string
       recoveredMany: (count: number) => string
       failedOne: string
@@ -2953,6 +2970,8 @@ export interface Translations {
     resumeStrandedTitle: string
     resumeStrandedBody: string
     resumeRetry: string
+    sessionStillAvailableRetry: string
+    sessionUnavailableRetry: string
     nothingToBranch: string
     branchNeedsChat: string
     sessionBusy: string
@@ -2987,6 +3006,15 @@ export interface Translations {
     noClipboardImage: string
     clipboardPasteFailed: string
     dropFiles: string
+    quickEntry: {
+      label: string
+      askPlaceholder: string
+      disconnectedPlaceholder: string
+      targetSession: string
+      sendTo: string
+      currentChat: string
+      newSession: string
+    }
     handoff: {
       pickPlatform: string
       success: (platform: string) => string
@@ -3011,6 +3039,52 @@ export interface Translations {
   }
 
   ui: {
+    actions: {
+      addContext: string
+      filters: string
+      grouping: string
+      ordering: string
+      show: string
+      inboxStyle: string
+      status: string
+      pullRequest: string
+      profile: string
+      project: string
+      archived: string
+      resetDefaults: string
+      expandAll: string
+      collapseAll: string
+      markAllRead: string
+      labels: Record<string, string>
+    }
+    accessibility: {
+      showOptions: string
+      removeReference: string
+      referenceImage: string
+      generatedImage: string
+      youtubeEmbed: string
+      spotifyEmbed: string
+      conversationTimeline: string
+      holdToZoom: string
+      moreActions: string
+      openFullView: string
+      openDiagram: string
+      zoomOut: string
+      resetZoom: string
+      zoomIn: string
+      copy: string
+      copied: string
+      close: string
+    }
+    messages: {
+      embedLoadFailed: (label: string) => string
+      noPageAt: (path: string) => string
+    }
+    routes: {
+      artifacts: string
+      messaging: string
+      capabilities: string
+    }
     search: {
       clear: string
     }

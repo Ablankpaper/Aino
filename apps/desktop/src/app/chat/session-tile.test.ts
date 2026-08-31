@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import { sessionTileResumeFailure } from './session-tile'
 
 describe('sessionTileResumeFailure', () => {
@@ -15,5 +17,14 @@ describe('sessionTileResumeFailure', () => {
 
   it('does not overwrite a tile that rebound while the lookup was pending', () => {
     expect(sessionTileResumeFailure('session not found', true, false)).toBeUndefined()
+  })
+
+  it('uses the active locale for retry guidance', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(sessionTileResumeFailure('session not found', true, true)).toBe('会话仍然可用，请重试恢复。')
+    expect(sessionTileResumeFailure('404', false, true)).toBe('会话不可用，你可以重试恢复。')
+
+    setRuntimeI18nLocale('en')
   })
 })
