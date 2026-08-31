@@ -4364,6 +4364,8 @@ export const zh: Translations = {
       loadingSession: '正在加载会话',
       showEarlier: '显示更早的消息',
       loadingResponse: 'Hermes 正在加载回复',
+      summarizing: '正在总结会话',
+      working: 'Hermes 正在工作',
       resumeWhenBackgroundDone: count =>
         count === 1 ? '后台任务完成后将自动继续' : `${count} 个后台任务完成后将自动继续`,
       thinking: '思考中',
@@ -4582,6 +4584,33 @@ export const zh: Translations = {
         running: '正在运行',
         ranCode: '已运行代码',
         runningCode: '正在编写脚本'
+      },
+      runSummary: {
+        delegate: {
+          count: count => `${count} 个任务`,
+          past: '已委派',
+          present: '正在委派'
+        },
+        edit: {
+          count: count => `${count} 个文件`,
+          past: '已编辑',
+          present: '正在编辑'
+        },
+        explore: {
+          count: count => `${count} 个文件`,
+          past: '已探索',
+          present: '正在探索'
+        },
+        other: {
+          count: count => `${count} 个工具`,
+          past: '已使用',
+          present: '正在使用'
+        },
+        run: {
+          count: count => `${count} 个命令`,
+          past: '已运行',
+          present: '正在运行'
+        }
       },
       prefixes: {
         browser: '浏览器',

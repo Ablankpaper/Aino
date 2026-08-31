@@ -72,7 +72,7 @@ import {
   type ToolStatus,
   type ToolTitleAction
 } from './fallback-model'
-import { isToolCallPart, summarizeToolRun } from './run-summary'
+import { isToolCallPart, summarizeToolRun, type ToolRunCopy } from './run-summary'
 import { ToolRunTicker } from './run-ticker'
 
 // `true` when a ToolEntry is rendered inside an embedding wrapper that owns
@@ -849,8 +849,8 @@ interface ToolRunState {
 // selector on every store update, so returning a fresh object here would
 // re-render the group on every text delta in the turn. The run only changes
 // when a call arrives or one finishes; cache on exactly that.
-function useToolRun(startIndex: number, endIndex: number): ToolRunState {
-  const cache = useRef<null | { signature: string; value: ToolRunState }>(null)
+function useToolRun(startIndex: number, endIndex: number, copy: ToolRunCopy): ToolRunState {
+  const cache = useRef<null | { copy: ToolRunCopy; signature: string; value: ToolRunState }>(null)
 
   return useAuiState(state => {
     const parts = state.message.parts
@@ -875,8 +875,9 @@ function useToolRun(startIndex: number, endIndex: number): ToolRunState {
       .concat(String(live))
       .join('|')
 
-    if (cache.current?.signature !== signature) {
+    if (cache.current?.signature !== signature || cache.current.copy !== copy) {
       cache.current = {
+        copy,
         signature,
         value: {
           completedAt: timelineTools.reduce<number | undefined>(
@@ -902,7 +903,7 @@ function useToolRun(startIndex: number, endIndex: number): ToolRunState {
             undefined
           ),
           pendingApprovalTool: tools.some(tool => tool.result === undefined && APPROVAL_TOOLS.has(tool.toolName)),
-          summary: summarizeToolRun(tools, live)
+          summary: summarizeToolRun(tools, live, copy)
         }
       }
     }
@@ -930,11 +931,13 @@ const ToolRun: FC<PropsWithChildren<{ endIndex: number; startIndex: number }>> =
   endIndex,
   startIndex
 }) => {
+  const { t } = useI18n()
   const messageRunning = useAuiState(selectMessageRunning)
 
   const { completedAt, count, entryIds, key, live, pendingApprovalTool, startedAt, summary } = useToolRun(
     startIndex,
-    endIndex
+    endIndex,
+    t.assistant.tool.runSummary
   )
 
   const sessionId = useStore(useSessionView().$runtimeId)

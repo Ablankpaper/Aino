@@ -4021,6 +4021,8 @@ export const en: Translations = {
       loadingSession: 'Loading session',
       showEarlier: 'Show earlier messages',
       loadingResponse: 'Hermes is loading a response',
+      summarizing: 'Summarizing thread',
+      working: 'Hermes is working',
       resumeWhenBackgroundDone: count =>
         count === 1
           ? 'Will resume when the background task finishes'
@@ -4226,6 +4228,33 @@ export const en: Translations = {
         running: 'Running',
         ranCode: 'Ran code',
         runningCode: 'Scripting'
+      },
+      runSummary: {
+        delegate: {
+          count: count => `${count} task${count === 1 ? '' : 's'}`,
+          past: 'Delegated',
+          present: 'Delegating'
+        },
+        edit: {
+          count: count => `${count} file${count === 1 ? '' : 's'}`,
+          past: 'Edited',
+          present: 'Editing'
+        },
+        explore: {
+          count: count => `${count} file${count === 1 ? '' : 's'}`,
+          past: 'Explored',
+          present: 'Exploring'
+        },
+        other: {
+          count: count => `${count} tool${count === 1 ? '' : 's'}`,
+          past: 'Used',
+          present: 'Using'
+        },
+        run: {
+          count: count => `${count} command${count === 1 ? '' : 's'}`,
+          past: 'Ran',
+          present: 'Running'
+        }
       },
       prefixes: {
         browser: 'Browser',

@@ -4,7 +4,7 @@ import { type FC, type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { useSessionView } from '@/app/chat/session-view'
 import { activitySignature, toolNarratesWait, TURN_QUIET_S } from '@/components/assistant-ui/thread/turn-activity'
-import { toolPresentVerb } from '@/components/assistant-ui/tool/run-summary'
+import { toolPresentVerb, type ToolRunCopy } from '@/components/assistant-ui/tool/run-summary'
 import { useElapsedSeconds } from '@/components/chat/activity-timer'
 import { ActivityTimerText } from '@/components/chat/activity-timer-text'
 import { SCAFFOLD_LABEL_CLASS } from '@/components/chat/scaffold-row'
@@ -43,9 +43,6 @@ const StatusRow: FC<{ children: ReactNode; label: string } & React.ComponentProp
     {children}
   </div>
 )
-
-// Fixed label while auto-compaction runs — decoupled from backend status text.
-const COMPACTION_LABEL = 'Summarizing thread'
 
 const HintText: FC<{ children: ReactNode }> = ({ children }) => (
   <span className={cn(SCAFFOLD_LABEL_CLASS, 'shimmer min-w-0 flex-1 truncate')}>{children}</span>
@@ -94,7 +91,13 @@ const DRAFTING_REVEAL_MS = 200
  * What to call the wait, if it deserves a name. Compaction outranks a draft —
  * it's rarer, slower, and explains a transcript that looks like it reset.
  */
-function useStatusHint(compacting: boolean, drafting: DraftingTool | null, providerWait: string): string {
+function useStatusHint(
+  compacting: boolean,
+  drafting: DraftingTool | null,
+  providerWait: string,
+  copy: ToolRunCopy,
+  summarizingLabel: string
+): string {
   const [revealed, setRevealed] = useState(false)
   const name = drafting?.name ?? ''
 
@@ -111,14 +114,14 @@ function useStatusHint(compacting: boolean, drafting: DraftingTool | null, provi
   }, [name])
 
   if (compacting) {
-    return COMPACTION_LABEL
+    return summarizingLabel
   }
 
   if (providerWait) {
     return providerWait
   }
 
-  return revealed && name ? toolPresentVerb(name) : ''
+  return revealed && name ? toolPresentVerb(name, copy) : ''
 }
 
 export const CenteredThreadSpinner: FC = () => {
@@ -146,7 +149,14 @@ export const ResponseLoadingIndicator: FC = () => {
   const { t } = useI18n()
   const { compacting, drafting, providerWait, turnStartedAt } = useThreadSessionStatus()
   const elapsed = useElapsedSeconds(true, undefined, turnStartedAt)
-  const hint = useStatusHint(compacting, drafting, providerWait)
+
+  const hint = useStatusHint(
+    compacting,
+    drafting,
+    providerWait,
+    t.assistant.tool.runSummary,
+    t.assistant.thread.summarizing
+  )
 
   return (
     <StatusRow data-slot="aui_response-loading" label={hint || t.assistant.thread.loadingResponse}>
@@ -207,6 +217,7 @@ export const BackgroundResumeNotice: FC = () => {
 // so that per-token updates re-render only this leaf, not the whole
 // AssistantMessage subtree.
 export const TurnActivityIndicator: FC = () => {
+  const { t } = useI18n()
   const activity = useAuiState(s => activitySignature(s.message.content))
 
   // Timestamp of the last visible progress, held from the moment the quiet
@@ -215,7 +226,14 @@ export const TurnActivityIndicator: FC = () => {
   // the whole turn so far.
   const [quietSince, setQuietSince] = useState<number | undefined>(undefined)
   const { awaitingInput, busy, compacting, drafting, providerWait, turnStartedAt } = useThreadSessionStatus()
-  const hint = useStatusHint(compacting, drafting, providerWait)
+
+  const hint = useStatusHint(
+    compacting,
+    drafting,
+    providerWait,
+    t.assistant.tool.runSummary,
+    t.assistant.thread.summarizing
+  )
 
   // A tool run at the tail already narrates the wait — its summary counts the
   // calls, its ticker names the current one, and it carries its own timer. A
@@ -257,7 +275,7 @@ export const TurnActivityIndicator: FC = () => {
   }
 
   return (
-    <StatusRow data-slot="aui_turn-activity" label={hint || 'Hermes is working'}>
+    <StatusRow data-slot="aui_turn-activity" label={hint || t.assistant.thread.working}>
       <StatusPulse
         aria-hidden="true"
         className="dither inline-block size-3 rounded-[2px] text-midground/80"

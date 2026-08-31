@@ -3,14 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { __resetElapsedTimerRegistryForTests } from '@/components/chat/activity-timer'
 import { I18nProvider } from '@/i18n'
+import { setSessionCompacting } from '@/store/compaction'
 import { $providerWaitSessions, setSessionProviderWait } from '@/store/provider-wait'
 import { $activeSessionId, $turnStartedAt } from '@/store/session'
 
 import { ResponseLoadingIndicator } from './status'
 
-function renderIndicator() {
+function renderIndicator(locale: 'en' | 'zh' = 'en') {
   return render(
-    <I18nProvider configClient={null} initialLocale="en">
+    <I18nProvider configClient={null} initialLocale={locale}>
       <ResponseLoadingIndicator />
     </I18nProvider>
   )
@@ -32,6 +33,7 @@ describe('ResponseLoadingIndicator timer', () => {
     $activeSessionId.set(null)
     $turnStartedAt.set(null)
     $providerWaitSessions.set({})
+    setSessionCompacting('session-a', false)
     __resetElapsedTimerRegistryForTests()
     vi.restoreAllMocks()
     vi.useRealTimers()
@@ -69,6 +71,16 @@ describe('ResponseLoadingIndicator timer', () => {
     renderIndicator()
 
     expect(screen.getByText('⏳ waiting on local-model — 30s with no output yet')).toBeTruthy()
+  })
+
+  it('uses Simplified Chinese copy for the compaction status label', () => {
+    $activeSessionId.set('session-a')
+    $turnStartedAt.set(Date.now())
+    setSessionCompacting('session-a', true)
+
+    renderIndicator('zh')
+
+    expect(screen.getByRole('status', { name: '正在总结会话' })).toBeTruthy()
   })
 })
 

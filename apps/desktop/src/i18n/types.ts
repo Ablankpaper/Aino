@@ -3318,6 +3318,8 @@ export interface Translations {
       loadingSession: string
       showEarlier: string
       loadingResponse: string
+      summarizing: string
+      working: string
       resumeWhenBackgroundDone: (count: number) => string
       thinking: string
       thought: string
@@ -3519,6 +3521,33 @@ export interface Translations {
         running: string
         ranCode: string
         runningCode: string
+      }
+      runSummary: {
+        delegate: {
+          count: (count: number) => string
+          past: string
+          present: string
+        }
+        edit: {
+          count: (count: number) => string
+          past: string
+          present: string
+        }
+        explore: {
+          count: (count: number) => string
+          past: string
+          present: string
+        }
+        other: {
+          count: (count: number) => string
+          past: string
+          present: string
+        }
+        run: {
+          count: (count: number) => string
+          past: string
+          present: string
+        }
       }
       prefixes: {
         browser: string
