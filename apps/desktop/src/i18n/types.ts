@@ -3416,6 +3416,8 @@ export interface Translations {
     noClipboardImage: string
     clipboardPasteFailed: string
     dropFiles: string
+    pickFilesTitle: string
+    pickFoldersTitle: string
     quickEntry: {
       label: string
       askPlaceholder: string

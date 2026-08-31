@@ -3996,6 +3996,8 @@ export const en: Translations = {
     noClipboardImage: 'No image found in clipboard',
     clipboardPasteFailed: 'Clipboard paste failed',
     dropFiles: 'Drop files',
+    pickFilesTitle: 'Add files as context',
+    pickFoldersTitle: 'Add folders as context',
     quickEntry: {
       label: 'Quick Entry',
       askPlaceholder: 'Ask Hermes…',

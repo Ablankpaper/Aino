@@ -4123,6 +4123,8 @@ export const zh: Translations = {
     noClipboardImage: '剪贴板中没有图片',
     clipboardPasteFailed: '粘贴剪贴板失败',
     dropFiles: '拖放文件',
+    pickFilesTitle: '添加文件作为上下文',
+    pickFoldersTitle: '添加文件夹作为上下文',
     quickEntry: {
       label: '快速输入',
       askPlaceholder: '询问 Hermes…',
