@@ -1,12 +1,25 @@
 import { describe, expect, it } from 'vitest'
 
-import { AGENT_NAME, APP_ID, applyProductBrand, brandTranslationTree, PRODUCT_NAME } from './brand'
+import {
+  AGENT_NAME,
+  APP_ID,
+  applyProductBrand,
+  brandTranslationTree,
+  HOME_DIR_NAME,
+  LEGACY_PROTOCOL,
+  PRODUCT_NAME
+} from './brand'
 
 describe('Aino product brand overlay', () => {
   it('exposes the independent product identity', () => {
     expect(PRODUCT_NAME).toBe('Aino')
     expect(AGENT_NAME).toBe('Aino Agent')
     expect(APP_ID).toBe('com.ablankpaper.aino')
+  })
+
+  it('keeps the Aino data root and legacy protocol boundary explicit', () => {
+    expect(HOME_DIR_NAME).toBe('aino')
+    expect(LEGACY_PROTOCOL).toBe('hermes')
   })
 
   it('rebrands visible product labels while preserving compatibility snippets', () => {

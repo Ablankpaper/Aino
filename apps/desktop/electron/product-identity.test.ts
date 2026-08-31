@@ -7,6 +7,7 @@ import {
   defaultAgentHomePath,
   defaultUserDataPath,
   HOME_DIR_NAME,
+  LEGACY_PROTOCOL,
   PRIMARY_PROTOCOL,
   PRODUCT_NAME,
   REPOSITORY_SSH_URL
@@ -23,6 +24,11 @@ test('Aino product identity is stable across desktop entry points', () => {
 test('default agent home is isolated from the Hermes home on POSIX', () => {
   assert.equal(defaultAgentHomePath({ platform: 'darwin', homeDir: '/Users/demo' }), '/Users/demo/.aino')
   assert.equal(defaultAgentHomePath({ platform: 'linux', homeDir: '/home/demo' }), '/home/demo/.aino')
+})
+
+test('Aino defaults stay isolated while the Hermes compatibility protocol remains explicit', () => {
+  assert.equal(LEGACY_PROTOCOL, 'hermes')
+  assert.notEqual(PRIMARY_PROTOCOL, LEGACY_PROTOCOL)
 })
 
 test('default agent home is isolated under LOCALAPPDATA on Windows', () => {
