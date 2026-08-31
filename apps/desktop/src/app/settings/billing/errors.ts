@@ -1,5 +1,7 @@
+import { TRANSLATIONS } from '@/i18n/catalog'
+import { getRuntimeI18nLocale } from '@/i18n/runtime'
+
 import type { BillingRefusal } from './api'
-import { en } from '@/i18n/en'
 import type { BillingCopy } from './use-billing-state'
 
 export interface BillingRefusalPresentation {
@@ -22,7 +24,10 @@ const stripeRetryMessage = (refusal: BillingRefusal, copy: BillingCopy): string 
   return copy.refusal.stripeMessage(mins)
 }
 
-export const resolveRefusal = (refusal: BillingRefusal, copy: BillingCopy = en.billing): BillingRefusalPresentation => {
+export const resolveRefusal = (
+  refusal: BillingRefusal,
+  copy: BillingCopy = TRANSLATIONS[getRuntimeI18nLocale()].billing
+): BillingRefusalPresentation => {
   switch (refusal.kind) {
     case 'consent_required':
       return {

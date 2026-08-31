@@ -282,6 +282,22 @@ export const zh: Translations = {
       openPortal: '打开门户',
       retry: '重试'
     },
+    charge: {
+      added: amount => (amount ? `已添加 ${amount}。` : '额度已添加。'),
+      failedTitle: '扣款失败',
+      authenticationRequired: '你的银行要求进行验证（3DS）。请在门户完成验证以完成此次购买。',
+      paymentMethodExpired: '你的银行卡已过期。请在门户更新银行卡。',
+      cardDeclined: '你的银行卡被拒绝。请在门户中尝试其他银行卡。',
+      failedReason: reason => `扣款未完成（${reason || 'processing_error'}）。`,
+      outcomeUnconfirmedTitle: '扣款结果未确认',
+      outcomeUnconfirmedMessage: message => `${message} 上一笔扣款的结果尚未确认，请在重试前检查余额或历史记录。`,
+      checkFailedTitle: '无法检查扣款',
+      checkFailedMessage: '无法检查扣款。',
+      trackingFailedTitle: '无法追踪扣款',
+      trackingFailedMessage: '账单服务已接受请求，但没有返回扣款编号。',
+      stillProcessingTitle: '处理超过 5 分钟',
+      stillProcessingMessage: '扣款可能仍在结算。请在重试前检查门户。'
+    },
     refill: {
       title: '余额不足时充值',
       genericDescription: '余额低于阈值时自动补充。',

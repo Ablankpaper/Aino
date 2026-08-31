@@ -290,6 +290,24 @@ export const en: Translations = {
       openPortal: 'Open portal',
       retry: 'Retry'
     },
+    charge: {
+      added: amount => (amount ? `${amount} added.` : 'Credits added.'),
+      failedTitle: 'Charge failed',
+      authenticationRequired:
+        'Your bank requires verification (3DS). Complete it on the portal to finish this purchase.',
+      paymentMethodExpired: 'Your card has expired. Update it on the portal.',
+      cardDeclined: 'Your card was declined. Try another card on the portal.',
+      failedReason: reason => `The charge did not go through (${reason || 'processing_error'}).`,
+      outcomeUnconfirmedTitle: 'Charge outcome unconfirmed',
+      outcomeUnconfirmedMessage: message =>
+        `${message} Your last charge's outcome is unconfirmed — check your balance/history before retrying.`,
+      checkFailedTitle: 'Could not check charge',
+      checkFailedMessage: 'Could not check the charge.',
+      trackingFailedTitle: 'Charge could not be tracked',
+      trackingFailedMessage: 'The billing service accepted the request but did not return a charge id.',
+      stillProcessingTitle: 'Still processing after 5 minutes',
+      stillProcessingMessage: 'Charge may still settle. Check the portal before retrying.'
+    },
     refill: {
       title: 'Refill when low',
       genericDescription: 'Keep your balance topped up when it drops below your threshold.',

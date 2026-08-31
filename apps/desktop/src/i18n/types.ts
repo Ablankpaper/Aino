@@ -327,6 +327,22 @@ export interface Translations {
       openPortal: string
       retry: string
     }
+    charge: {
+      added: (amount: string) => string
+      failedTitle: string
+      authenticationRequired: string
+      paymentMethodExpired: string
+      cardDeclined: string
+      failedReason: (reason: string) => string
+      outcomeUnconfirmedTitle: string
+      outcomeUnconfirmedMessage: (message: string) => string
+      checkFailedTitle: string
+      checkFailedMessage: string
+      trackingFailedTitle: string
+      trackingFailedMessage: string
+      stillProcessingTitle: string
+      stillProcessingMessage: string
+    }
     refill: {
       title: string
       genericDescription: string

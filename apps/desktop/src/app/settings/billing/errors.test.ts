@@ -1,5 +1,7 @@
 import type { KnownBillingRefusalCode } from '@hermes/shared/billing'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { setRuntimeI18nLocale } from '@/i18n'
 
 import type { BillingRefusal } from './api'
 import { resolveRefusal } from './errors'
@@ -37,6 +39,10 @@ const expectedActions: Record<
 }
 
 describe('resolveRefusal', () => {
+  afterEach(() => {
+    setRuntimeI18nLocale('en')
+  })
+
   it('maps every known refusal kind to copy and the expected action', () => {
     for (const [kind, actionType] of Object.entries(expectedActions)) {
       const resolved = resolveRefusal({
@@ -79,6 +85,16 @@ describe('resolveRefusal', () => {
       action: { type: 'none' },
       message: 'Something changed upstream.',
       title: 'Billing request failed'
+    })
+  })
+
+  it('uses the active locale when no explicit copy is supplied', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(resolveRefusal({ kind: 'no_payment_method', message: '' })).toEqual({
+      action: { type: 'portal', url: undefined },
+      message: '💳 还没有用于终端扣款的已保存银行卡。请在门户设置（一次性购买额度不会保存可复用的银行卡）。',
+      title: '没有已保存的银行卡'
     })
   })
 })
