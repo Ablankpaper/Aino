@@ -697,6 +697,7 @@ export interface Translations {
         chooseTitle: string
         chooseDesc: string
         searchPlaceholder: string
+        hatchingProgress: string
         unreachable: string
         noMatch: (query: string) => string
         installedTag: string
@@ -3127,6 +3128,13 @@ export interface Translations {
       moreActions: string
       branchNewChat: string
       react: string
+      emojiSearch: string
+      emojiLoading: string
+      emojiEmpty: string
+      moreEmoji: string
+      removeReaction: (emoji: string) => string
+      reactedBy: (product: string) => string
+      steered: string
       dismissError: string
       /** Layer titles for the structured error card (agent/error_surface.py).
        *  `generic` is the fallback when the backend sent no descriptor. */
