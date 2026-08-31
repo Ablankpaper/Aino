@@ -70,6 +70,19 @@ describe('KANBAN_LOCALES', () => {
     expect(zh.runStatusLabel('future_state')).toBe('future_state')
   })
 
+  it('uses the core Chinese agent and profile terminology in user-facing copy', () => {
+    const zh = KANBAN_LOCALES.zh
+
+    expect(zh.col.triage.help).toBe('原始想法 — 由细化智能体整理出规格。')
+    expect(zh.col.running.help).toBe('已被工作单元领取 — 有智能体在处理。由调度器设置。')
+    expect(zh.col.review.help).toBe('审查智能体正在检查工作。由调度器设置。')
+    expect(zh.modelInherit).toBe('配置档案默认')
+    expect(zh.modelHint).toContain('所指派配置档案自身的设置')
+    expect(zh.goalMode).toBe('目标模式（工作单元循环直到评审智能体认可完成）')
+    expect(zh.reviewChecking).toBe('审查智能体正在检查已完成的工作。')
+    expect(zh.evtSpecified).toBe('分诊智能体已撰写规格')
+  })
+
   it('uses the translated label for the synthetic unassigned lane', () => {
     const k = { unassigned: '未分配' } as unknown as KanbanText
 
