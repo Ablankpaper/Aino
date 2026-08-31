@@ -3586,6 +3586,7 @@ export const en: Translations = {
 
   preview: {
     tab: 'Preview',
+    browserTab: 'Browser',
     closePane: 'Close preview pane',
     loading: 'Loading preview',
     unavailable: 'Preview unavailable',

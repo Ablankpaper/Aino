@@ -98,21 +98,21 @@ function previewTitle(tabId: string): string {
   const target = targetFor(tabId)
 
   if (!target) {
-    return 'Preview'
+    return translateNow('preview.tab')
   }
 
   if (target.kind === 'url') {
-    return 'Browser'
+    return translateNow('preview.browserTab')
   }
 
   if (target.kind === 'artifact') {
-    return target.label || 'Preview'
+    return target.label || translateNow('preview.tab')
   }
 
   const value = target.label || target.path || target.source || target.url
   const tail = value.split(/[\\/]/).filter(Boolean).at(-1)
 
-  return tail || value || 'Preview'
+  return tail || value || translateNow('preview.tab')
 }
 
 /**
@@ -133,10 +133,10 @@ export function browserTabLabel(target: PreviewTarget, page?: BrowserPage): stri
   }
 
   try {
-    return new URL(url).hostname.replace(/^www\./, '') || 'Browser'
+    return new URL(url).hostname.replace(/^www\./, '') || translateNow('preview.browserTab')
   } catch {
     // `about:blank` and half-typed addresses have no host to fall back to.
-    return 'Browser'
+    return translateNow('preview.browserTab')
   }
 }
 

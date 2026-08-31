@@ -3731,6 +3731,7 @@ export const zh: Translations = {
 
   preview: {
     tab: '预览',
+    browserTab: '浏览器',
     closePane: '关闭预览面板',
     loading: '正在加载预览',
     unavailable: '预览不可用',

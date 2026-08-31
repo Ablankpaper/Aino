@@ -3050,6 +3050,7 @@ export interface Translations {
 
   preview: {
     tab: string
+    browserTab: string
     closePane: string
     loading: string
     unavailable: string

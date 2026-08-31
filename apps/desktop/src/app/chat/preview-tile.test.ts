@@ -9,6 +9,7 @@ vi.mock('./right-rail/preview-console-store', () => ({
 }))
 
 import { registry } from '@/contrib/registry'
+import { setRuntimeI18nLocale } from '@/i18n'
 import { $previewTabs, closeRightRail, noteBrowserPage, openPreview } from '@/store/preview'
 
 import { browserTabExternalUrl, browserTabLabel, watchPreviewTiles } from './preview-tile'
@@ -18,6 +19,7 @@ beforeAll(() => {
 })
 
 afterEach(() => {
+  setRuntimeI18nLocale('en')
   closeRightRail()
 })
 
@@ -40,6 +42,13 @@ describe('browserTabLabel', () => {
   it('falls back to the surface when there is no page and no host', () => {
     expect(browserTabLabel(target)).toBe('Browser')
     expect(browserTabLabel(target, { title: '', url: 'about:blank' })).toBe('Browser')
+  })
+
+  it('uses Simplified Chinese for a blank browser surface', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(browserTabLabel(target)).toBe('浏览器')
+    expect(browserTabLabel(target, { title: '', url: 'about:blank' })).toBe('浏览器')
   })
 
   // A tab restored from storage has reported nothing yet, so its target is all
