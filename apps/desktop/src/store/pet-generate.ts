@@ -448,7 +448,7 @@ export async function generateDrafts(request: GatewayRequest, options: GenerateO
       $petGenStatus.set('stale')
     } else {
       $petGenStatus.set('error')
-      $petGenError.set(e instanceof Error ? e.message : 'Could not generate pet drafts.')
+      $petGenError.set(e instanceof Error ? e.message : translateNow('commandCenter.generatePet.genericError'))
       notifyPetGenDone(
         translateNow('commandCenter.generatePet.background.generationFailedTitle'),
         translateNow('commandCenter.generatePet.background.retryMessage'),

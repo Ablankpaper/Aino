@@ -13,6 +13,7 @@ import { setRuntimeI18nLocale } from '@/i18n'
 import {
   $petGenDrafts,
   $petGenerateOpen,
+  $petGenError,
   $petGenPreview,
   $petGenSelected,
   $petGenStage,
@@ -31,6 +32,7 @@ beforeEach(() => {
   $petGenerateOpen.set(false)
   $petGenStatus.set('idle')
   $petGenStage.set(null)
+  $petGenError.set(null)
   $petGenDrafts.set([])
   $petGenPreview.set(null)
   $petGenSelected.set(null)
@@ -68,5 +70,15 @@ describe('pet generation background notifications', () => {
       message: '重新打开以重试。',
       title: '宠物生成失败'
     })
+  })
+
+  it('uses Simplified Chinese fallback copy when generation throws a non-Error', async () => {
+    const request = vi.fn(async () => {
+      throw 'provider unavailable'
+    })
+
+    await expect(generateDrafts(request as never, { prompt: 'a pixel dragon' })).resolves.toBe(false)
+
+    expect($petGenError.get()).toBe('生成失败——请重试或选择一个建议。')
   })
 })
