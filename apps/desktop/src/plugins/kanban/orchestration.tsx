@@ -88,7 +88,7 @@ function ProfileDescriptionRow({ profile }: { profile: KanbanProfile }) {
         setDraft(result.description ?? '')
         invalidate()
       } else {
-        host.notify({ kind: 'warning', message: result.reason || 'Auto-describe failed' })
+        host.notify({ kind: 'warning', message: result.reason || k.autoDescribeFailed })
       }
     }
   })

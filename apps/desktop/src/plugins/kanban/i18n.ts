@@ -197,6 +197,7 @@ type KanbanMessages = {
   profileDescriptions: string
   profileDescriptionsHint: string
   profileGoodAt: string
+  autoDescribeFailed: string
   auto: string
   // native/toast notifications for terminal worker events (completion-notify)
   notify: {
@@ -410,6 +411,7 @@ export const en: KanbanMessages = {
   profileDescriptionsHint:
     'Descriptions guide the decomposer’s routing. Auto-generate with the auxiliary model, or write your own.',
   profileGoodAt: 'What is this profile good at?',
+  autoDescribeFailed: 'Auto-description failed',
   auto: 'Auto',
   notify: {
     completedTitle: 'Task completed',
@@ -621,6 +623,7 @@ const ja: KanbanMessages = {
   profileDescriptionsHint:
     '説明はデコンポーザーのルーティングを導きます。補助モデルで自動生成するか、自分で書いてください。',
   profileGoodAt: 'このプロフィールの得意分野は？',
+  autoDescribeFailed: '説明の自動生成に失敗しました',
   auto: '自動',
   notify: {
     completedTitle: 'タスク完了',
@@ -829,6 +832,7 @@ const zh: KanbanMessages = {
   profileDescriptions: '配置档说明',
   profileDescriptionsHint: '说明用于引导分解器的路由。可用辅助模型自动生成，或自行填写。',
   profileGoodAt: '这个配置档擅长什么？',
+  autoDescribeFailed: '自动生成说明失败',
   auto: '自动',
   notify: {
     completedTitle: '任务已完成',
@@ -1037,6 +1041,7 @@ const zhHant: KanbanMessages = {
   profileDescriptions: '設定檔說明',
   profileDescriptionsHint: '說明用於引導分解器的路由。可用輔助模型自動產生，或自行填寫。',
   profileGoodAt: '這個設定檔擅長什麼？',
+  autoDescribeFailed: '自動產生說明失敗',
   auto: '自動',
   notify: {
     completedTitle: '任務已完成',
@@ -1071,10 +1076,22 @@ function bind<T extends object>(t: PluginTranslate, template: T, prefix = ''): B
     const path = prefix ? `${prefix}.${key}` : key
     out[key] =
       typeof value === 'function'
-        ? (...args: unknown[]) => t(path, ...args)
+        ? (...args: unknown[]) => {
+            const translated = t(path, ...args)
+
+            // A component can render before the plugin's locale bundle has
+            // landed (or a host/test may expose only the raw-key resolver).
+            // Keep the English bundle as the last rung so a dotted key never
+            // leaks into the visible UI.
+            return translated === path ? (value as (...a: unknown[]) => string)(...args) : translated
+          }
         : value && typeof value === 'object'
           ? bind(t, value as object, path)
-          : t(path)
+          : (() => {
+              const translated = t(path)
+
+              return translated === path ? value : translated
+            })()
   }
 
   return out as Bound<T>
