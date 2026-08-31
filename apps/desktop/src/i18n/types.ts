@@ -3110,6 +3110,15 @@ export interface Translations {
     diskChangedBody: string
     overwrite: string
     discardReload: string
+    reader: {
+      fileNote: string
+      artifactNote: string
+      loadingNote: string
+    }
+    tour: {
+      noLivePage: string
+      noAnswer: string
+    }
     console: {
       deselect: string
       select: string

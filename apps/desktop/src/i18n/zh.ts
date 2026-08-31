@@ -4138,6 +4138,15 @@ export const zh: Translations = {
     diskChangedBody: '此文件自打开以来已更改。用你的版本覆盖，还是放弃你的编辑并重新加载？',
     overwrite: '覆盖',
     discardReload: '放弃并重新加载',
+    reader: {
+      fileNote: '文件预览——请使用 read_file 读取文件本身。',
+      artifactNote: '生成的产物——内容位于生成它的对话中。',
+      loadingNote: '页面尚未加载完成——请稍后重试。'
+    },
+    tour: {
+      noLivePage: '预览面板中没有打开可交互的页面——请先打开一个页面。',
+      noAnswer: '页面没有回应导览操作。'
+    },
     console: {
       deselect: '取消选择条目',
       select: '选择条目',

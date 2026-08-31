@@ -3793,6 +3793,15 @@ export const en: Translations = {
       'This file changed since you opened it. Overwrite it with your version, or discard your edits and reload?',
     overwrite: 'Overwrite',
     discardReload: 'Discard & reload',
+    reader: {
+      fileNote: 'File preview — read the file itself with read_file.',
+      artifactNote: 'Generated artifact — its content is in the conversation that produced it.',
+      loadingNote: 'The page has not finished loading — retry in a moment.'
+    },
+    tour: {
+      noLivePage: 'No live page is open in the preview pane — open one first.',
+      noAnswer: 'The page did not answer the tour action.'
+    },
     console: {
       deselect: 'Deselect entry',
       select: 'Select entry',
