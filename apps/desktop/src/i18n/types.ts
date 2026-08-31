@@ -3486,6 +3486,12 @@ export interface Translations {
     compressing: (focusTopic: string) => string
     compressedMessages: (count: number) => string
     nothingToCompress: string
+    slashNoOutput: (name: string) => string
+    slashEmptyOutput: string
+    slashMissingMessage: (name: string) => string
+    slashEmptyMessage: (name: string) => string
+    slashInvalidResponse: string
+    slashCommandFailed: (name: string, error: string) => string
     yoloArmed: string
     yoloOff: string
     yoloSystem: (active: boolean) => string

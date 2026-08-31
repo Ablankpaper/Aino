@@ -1155,11 +1155,13 @@ describe('usePromptActions /compress', () => {
 
 describe('usePromptActions exec fallback error reporting', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     setSessions(() => [sessionInfo()])
   })
 
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     vi.restoreAllMocks()
   })
 
@@ -1197,6 +1199,38 @@ describe('usePromptActions exec fallback error reporting', () => {
     const texts = renderedSeedTexts(seeds)
     expect(texts.some(text => text.includes('slash worker timed out'))).toBe(true)
     expect(texts.some(text => text.includes('not a quick/plugin/skill command'))).toBe(false)
+  })
+
+  it('localizes the slash worker failure wrapper in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'slash.exec') {
+        throw new Error('slash worker timed out')
+      }
+
+      if (method === 'command.dispatch') {
+        throw new Error('not a quick/plugin/skill command: debug')
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/debug')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain('错误：/debug 执行失败：slash worker timed out')
   })
 
   it('falls back to slash.exec when an older gateway lacks a dedicated RPC', async () => {

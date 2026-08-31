@@ -285,7 +285,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
               applyGoalStatusText(sessionId, dispatch.output)
             }
 
-            renderSlashOutput(dispatch.output ?? '(no output)')
+            renderSlashOutput(dispatch.output ?? copy.slashEmptyOutput)
 
             return
           }
@@ -327,7 +327,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
           if (!message) {
             renderSlashOutput(
-              `/${name}: ${dispatch.type === 'skill' ? 'skill payload missing message' : 'empty message'}`
+              dispatch.type === 'skill' ? copy.slashMissingMessage(name) : copy.slashEmptyMessage(name)
             )
 
             return
@@ -393,7 +393,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           }
 
           const output = result && typeof result === 'object' ? (result as SlashExecResponse) : null
-          const body = output?.output || `/${name}: no output`
+          const body = output?.output || copy.slashNoOutput(name)
 
           // `/goal status|pause|resume|clear` come back as plain exec output
           // ("⊙ Goal (active, 3/20 turns): …", "⏸ Goal paused: …", "✓ Goal
@@ -403,7 +403,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             applyGoalStatusText(sessionId, output.output)
           }
 
-          renderSlashOutput(output?.warning ? `warning: ${output.warning}\n${body}` : body)
+          renderSlashOutput(output?.warning ? `${copy.warningLine(output.warning)}\n${body}` : body)
 
           return
         } catch (error) {
@@ -419,7 +419,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           )
 
           if (!dispatch) {
-            renderSlashOutput('error: invalid response: command.dispatch')
+            renderSlashOutput(copy.errorLine(copy.slashInvalidResponse))
 
             return
           }
@@ -433,12 +433,12 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
           if (slashExecError && /not a quick\/plugin\/skill command/i.test(dispatchMessage)) {
             const original = slashExecError instanceof Error ? slashExecError.message : String(slashExecError)
-            renderSlashOutput(`error: /${name} failed: ${original}`)
+            renderSlashOutput(copy.errorLine(copy.slashCommandFailed(name, original)))
 
             return
           }
 
-          renderSlashOutput(`error: ${dispatchMessage}`)
+          renderSlashOutput(copy.errorLine(dispatchMessage))
         }
       }
 
@@ -474,7 +474,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const result = await requestGateway<unknown>(surface.rpc, params, surface.timeoutMs)
           const body = renderRpcResult(result, ctx.name)
 
-          renderSlashOutput(body || `/${ctx.name}: no output`)
+          renderSlashOutput(body || copy.slashNoOutput(ctx.name))
         } catch (err) {
           // TODO: remove this compatibility fallback once every supported
           // managed runtime exposes the dedicated RPC surface. Desktop and its
@@ -486,7 +486,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             return
           }
 
-          renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
+          renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
         }
       }
 
@@ -870,7 +870,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
                 : copy.sessionTitleCleared
             )
           } catch (err) {
-            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
+            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
           }
         },
         help: async ctx => {
@@ -887,7 +887,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
             renderSlashOutput(renderCommandsCatalog(catalog, copy))
           } catch (err) {
-            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
+            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
           }
         },
         // /journey (aliases /learning, /memory-graph) opens the memory graph
