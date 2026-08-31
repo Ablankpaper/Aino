@@ -400,7 +400,7 @@ export const zh: Translations = {
   sendDiagnostics: {
     title: '向 Nous 发送诊断信息',
     privacyNotice:
-      '这会将调试包上传到 Nous 内部存储（并非公开粘贴板）。内容包括系统信息（操作系统、版本、服务商、已配置的 API 密钥种类 — 绝不包含密钥本身）以及完整的 agent、gateway 和桌面端日志（每个最多 512 KB，很可能包含对话内容、工具输出与文件路径）。上传前会先脱敏。仅 Nous 员工与获准的 Discord 版主可查看，14 天后自动删除。',
+      '这会将调试包上传到 Nous 内部存储（并非公开粘贴板）。内容包括系统信息（操作系统、版本、服务商、已配置的 API 密钥种类 — 绝不包含密钥本身）以及完整的智能体、网关和桌面端日志（每个最多 512 KB，很可能包含对话内容、工具输出与文件路径）。上传前会先脱敏。仅 Nous 员工与获准的 Discord 版主可查看，14 天后自动删除。',
     upload: '上传',
     uploading: '上传中…',
     cancel: '取消',
@@ -637,7 +637,7 @@ export const zh: Translations = {
         agentTargetRemote: profile => `安装到已连接的 ${profile} 后端`,
         desktopTarget: '安装到此应用的本地 desktop-plugins 文件夹',
         desktopOnlyNote: '仅桌面包不会安装后端智能体插件。',
-        insecureWarning: '此 URL 使用了不安全的本地 scheme。生产环境请优先使用 https:// 或 git@。',
+        insecureWarning: '此 URL 使用了不安全的本地协议。生产环境请优先使用 https:// 或 git@。',
         securityHeading: '安装前须知',
         securityIntro: '请仅安装你信任的来源 — 如需了解将添加的内容，可先查看下方仓库。',
         sourceHeading: '源代码',
@@ -832,7 +832,7 @@ export const zh: Translations = {
         slate: { label: '石板', description: '冷调石板蓝——专注开发者主题' },
         cyberpunk: { label: '赛博朋克', description: '黑底霓虹绿——矩阵终端风格' }
       },
-      themeProfileNote: profile => `已为「${profile}」配置文件保存——每个配置文件保留各自的主题。`,
+      themeProfileNote: profile => `已为「${profile}」配置档案保存——每个配置档案保留各自的主题。`,
       installTitle: '从 VS Code 安装',
       installDesc: '粘贴 Marketplace 扩展 ID（例如 dracula-theme.theme-dracula），将其配色主题转换为桌面调色板。',
       installPlaceholder: 'publisher.extension',
@@ -1183,7 +1183,7 @@ export const zh: Translations = {
       versionUnavailable: '版本不可用',
       bundleOutOfSync: '应用构建版本过旧',
       bundleOutOfSyncDesc:
-        'Hermes 运行时已更新,但桌面应用本身仍是旧构建——在应用更新之前,新的界面功能(如 Bot Mode)不会显示。请运行下方的更新以重新构建应用。如果此警告仍未消除,请从最新的桌面安装程序重新安装。',
+        'Hermes 运行时已更新，但桌面应用本身仍是旧构建——在应用更新之前，新的界面功能（如机器人模式）不会显示。请运行下方的更新以重新构建应用。如果此警告仍未消除，请从最新的桌面安装程序重新安装。',
       bundleOutOfSyncAction: '获取安装程序',
       updates: '更新',
       checkNow: '立即检查',
@@ -1332,7 +1332,7 @@ export const zh: Translations = {
     managedUpdates: {
       title: '托管更新',
       intro:
-        '以事务方式更新由桌面端托管的 SSH 安装：先排空会话，再更新远端检出，最后恢复每个 profile，并生成关联回执。',
+        '以事务方式更新由桌面端托管的 SSH 安装：先排空会话，再更新远端检出，最后恢复每个配置档案，并生成关联回执。',
       sshConnection: '桌面端托管的 SSH 安装',
       update: '更新',
       updating: '更新中…',
@@ -1511,7 +1511,7 @@ export const zh: Translations = {
       gatewayUnavailableTitle: '网关不可用',
       gatewayUnavailableMessage: '重新加载 MCP 前请先重连网关。',
       reloadedTitle: 'MCP 工具已重新加载',
-      reloadedMessage: '新的工具 schema 将应用到后续回合。',
+      reloadedMessage: '新的工具结构定义将在后续回合生效。',
       reloadFailed: 'MCP 重新加载失败',
       savedTitle: 'MCP 服务器已保存',
       savedMessage: name => `${name} 会在 MCP 重新加载后生效。`,
@@ -1836,7 +1836,7 @@ export const zh: Translations = {
       autoArchiveDaysUnit: '天无活动',
       autoArchiveFailed: '无法更新自动归档设置',
       defaultDirTitle: '默认项目目录',
-      defaultDirDesc: '新会话默认从此文件夹开始，除非你选择其他目录。留空则使用你的 home 目录。',
+      defaultDirDesc: '新会话默认从此文件夹开始，除非你选择其他目录。留空则使用你的主目录。',
       defaultDirUpdated: '默认项目目录已更新',
       defaultsTo: label => `默认使用 ${label}。`,
       change: '更改',
@@ -2815,7 +2815,7 @@ export const zh: Translations = {
     modelLabel: '模型',
     modelDefault: '默认（全局模型）',
     customScheduleLabel: '自定义排程',
-    customPlaceholder: '0 9 * * * 或 weekdays at 9am',
+    customPlaceholder: '0 9 * * * 或工作日 9:00',
     customHint: 'Cron 表达式，或类似"每小时""工作日上午 9 点"的短语。',
     optional: '可选',
     promptRequired: '提示词为必填项。',
@@ -3561,7 +3561,7 @@ export const zh: Translations = {
       label: '设置 GitHub',
       tip: '这里通过 gh CLI 技能使用 GitHub — 点击连接你的账号',
       done: '已添加 /github-auth',
-      doneTip: '发送消息后，agent 将引导你完成 GitHub 登录'
+      doneTip: '发送消息后，智能体将引导你完成 GitHub 登录'
     },
     repairSuggestions: {
       label: server => `重新连接 ${server}`,
@@ -3806,7 +3806,7 @@ export const zh: Translations = {
     activeDesc: '这是一次性设置。Hermes 安装器正在下载依赖并配置你的机器。之后启动会跳过此步骤。',
     progress: (completed, total) => `${completed}/${total} 个步骤已完成`,
     currentStage: stage => ` -- 当前：${stage}`,
-    fetchingManifest: '正在获取安装器 manifest...',
+    fetchingManifest: '正在获取安装器清单…',
     error: '错误',
     hideOutput: '隐藏安装器输出',
     showOutput: '显示安装器输出',
@@ -4694,7 +4694,7 @@ export const zh: Translations = {
     sudoSendFailed: '无法发送 sudo 密码',
     secretSendFailed: '无法发送密钥',
     sudoTitle: '管理员密码',
-    sudoDesc: 'Hermes 需要你的 sudo 密码来运行特权命令。它只会发送给你的本地 agent。',
+    sudoDesc: 'Hermes 需要你的 sudo 密码来运行特权命令。它只会发送给你的本地智能体。',
     sudoPlaceholder: 'sudo 密码',
     secretTitle: '需要密钥',
     secretDesc: 'Hermes 需要一个凭据才能继续。',
@@ -4724,7 +4724,7 @@ export const zh: Translations = {
     createSessionFailed: '无法创建新会话',
     promptFailed: '提示词发送失败',
     providerCredentialRequired: '发送第一条消息前请先添加提供方凭据。',
-    emptySlashCommand: '空 slash 命令',
+    emptySlashCommand: '空斜杠命令',
     desktopCommands: '桌面端命令',
     skillCommandsAvailable: count => `${count} 个技能命令可用。`,
     warningLine: message => `警告：${message}`,

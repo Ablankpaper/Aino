@@ -146,6 +146,34 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('settings.profileScope.editsProfile', '工作')).toBe('此页面的更改将应用于“工作”配置档案。')
   })
 
+  it('localizes high-frequency English terminology in Simplified Chinese copy', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('sendDiagnostics.privacyNotice')).toContain('智能体、网关和桌面端日志')
+    expect(translateNow('settings.plugins.installModal.insecureWarning')).toBe(
+      '此 URL 使用了不安全的本地协议。生产环境请优先使用 https:// 或 git@。'
+    )
+    expect(translateNow('settings.appearance.themeProfileNote', '工作')).toBe(
+      '已为「工作」配置档案保存——每个配置档案保留各自的主题。'
+    )
+    expect(translateNow('settings.about.bundleOutOfSyncDesc')).toContain('机器人模式')
+    expect(translateNow('settings.managedUpdates.intro')).toContain('每个配置档案')
+    expect(translateNow('settings.mcp.reloadedMessage')).toBe('新的工具结构定义将在后续回合生效。')
+    expect(translateNow('settings.sessions.defaultDirDesc')).toBe(
+      '新会话默认从此文件夹开始，除非你选择其他目录。留空则使用你的主目录。'
+    )
+    expect(translateNow('cron.customPlaceholder')).toBe('0 9 * * * 或工作日 9:00')
+    expect(translateNow('composer.githubSuggestions.doneTip')).toBe(
+      '发送消息后，智能体将引导你完成 GitHub 登录'
+    )
+    expect(translateNow('desktop.emptySlashCommand')).toBe('空斜杠命令')
+    expect(translateNow('desktop.slashInvalidResponse')).toBe('command.dispatch 返回无效响应')
+    expect(translateNow('prompts.sudoDesc')).toBe(
+      'Aino 需要你的 sudo 密码来运行特权命令。它只会发送给你的本地智能体。'
+    )
+    expect(translateNow('install.fetchingManifest')).toBe('正在获取安装器清单…')
+  })
+
   it('describes the embedded skills-hub action in Simplified Chinese', () => {
     setRuntimeI18nLocale('zh')
 
