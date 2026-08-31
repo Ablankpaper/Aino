@@ -2812,6 +2812,66 @@ export const zh: Translations = {
       failedLoad: '加载蓝图失败',
       emptyTitle: '没有可用的蓝图',
       emptyDesc: '此后端上没有可用的自动化蓝图。',
+      fieldLabels: {
+        time: '时间',
+        deliver: '投递到',
+        interval_min: '多久检查一次？',
+        interval_h: '多久检查一次？',
+        interval_hours: '多久提醒一次？',
+        criteria: '仅在邮件…时提醒我',
+        day: '哪一天？',
+        what: '提醒我…',
+        recurrence: '重复日期',
+        topic: '主题是什么？',
+        count: '要多少条？',
+        item: '要具体监控什么？',
+        condition: '在…时提醒我',
+        companies: '哪些公司？',
+        categories: '哪些事件重要？',
+        habit: '哪个习惯？',
+        start_hour: '开始时间',
+        end_hour: '结束时间',
+        diet: '饮食偏好？',
+        meals: '每天几餐？',
+        effort: '烹饪投入？',
+        flavor: '哪种类型？'
+      },
+      fieldDescriptions: {
+        time: '24 小时制本地时间，例如 08:00',
+        interval_min: '每次检查之间的分钟数',
+        interval_h: '检查间隔（小时）——请注意速率限制',
+        interval_hours: '提醒间隔（小时）',
+        topic: '一个主题、产品、人物或搜索短语',
+        item: 'URL 或精确描述——型号、日期、卖家',
+        condition: '阈值价格（注明货币）、库存或条款变化',
+        companies: '公司规范名称和域名；别名有助于去重',
+        start_hour: '活动时间窗口的起始小时（24 小时制）',
+        end_hour: '活动时间窗口的结束小时（24 小时制）'
+      },
+      optionLabels: {
+        everyday: '每天',
+        weekdays: '工作日',
+        weekends: '周末',
+        sunday: '周日',
+        monday: '周一',
+        friday: '周五',
+        saturday: '周六',
+        'no restrictions': '不限',
+        vegetarian: '素食',
+        vegan: '纯素',
+        'high-protein': '高蛋白',
+        'low-carb': '低碳',
+        'dinner only': '仅晚餐',
+        'lunch and dinner': '午餐和晚餐',
+        'all three': '三餐',
+        quick: '快速',
+        medium: '适中',
+        ambitious: '充裕',
+        'on this day in history': '历史上的今天',
+        'word of the day': '每日词汇',
+        'science fact': '科学事实',
+        'quote of the day': '每日名言'
+      },
       catalog: {
         'morning-brief': {
           title: '晨间简报',
@@ -2819,7 +2879,10 @@ export const zh: Translations = {
         },
         'important-mail': {
           title: '重要邮件监控',
-          description: '定期检查收件箱，只在确实需要你关注的邮件出现时提醒你。'
+          description: '定期检查收件箱，只在确实需要你关注的邮件出现时提醒你。',
+          fields: {
+            criteria: { displayDefault: '今天需要回复、来自我的经理或家人，或提到截止日期' }
+          }
         },
         'weekly-review': {
           title: '每周回顾',
@@ -2831,7 +2894,10 @@ export const zh: Translations = {
         },
         'custom-reminder': {
           title: '自定义提醒',
-          description: '用你自己的话，按你设定的时间重复提醒。'
+          description: '用你自己的话，按你设定的时间重复提醒。',
+          fields: {
+            what: { displayDefault: '休息一下并做拉伸' }
+          }
         },
         'evening-winddown': {
           title: '晚间收尾',
@@ -2839,23 +2905,40 @@ export const zh: Translations = {
         },
         'news-digest': {
           title: '主题新闻摘要',
-          description: '定期汇总你关心的主题，并与已发送内容去重，只推送真正的新消息。'
+          description: '定期汇总你关心的主题，并与已发送内容去重，只推送真正的新消息。',
+          fields: {
+            topic: { displayDefault: '人工智能与科技' }
+          }
         },
         'bill-renewal-watch': {
           title: '账单与续订提醒',
-          description: '在定期付款、订阅续订或截止日期前提醒你，避免意外自动扣款。'
+          description: '在定期付款、订阅续订或截止日期前提醒你，避免意外自动扣款。',
+          fields: {
+            what: { displayDefault: '我的流媒体订阅即将续订' }
+          }
         },
         'price-watch': {
           title: '价格与库存监控',
-          description: '监控指定的商品、航班、酒店或商品页面，在价格或库存条件满足时提醒你。'
+          description: '监控指定的商品、航班、酒店或商品页面，在价格或库存条件满足时提醒你。',
+          fields: {
+            item: { displayDefault: '商品 URL，或航班／酒店／商品页面的精确描述' },
+            condition: { displayDefault: '总价低于我的目标价' }
+          }
         },
         'competitor-watch': {
           title: '竞品新闻监控',
-          description: '跟踪指定公司的重要动态（发布、定价、融资、申报等），并生成带来源的摘要。'
+          description: '跟踪指定公司的重要动态（发布、定价、融资、申报等），并生成带来源的摘要。',
+          fields: {
+            companies: { displayDefault: '两到三家竞争对手的规范名称' },
+            categories: { displayDefault: '产品发布、价格变化、融资、合作、管理层变动、事故' }
+          }
         },
         'habit-checkin': {
           title: '习惯打卡提醒',
-          description: '定期提醒你保持习惯，并回顾当天是否完成。'
+          description: '定期提醒你保持习惯，并回顾当天是否完成。',
+          fields: {
+            habit: { displayDefault: '阅读 20 分钟' }
+          }
         },
         'hydration-move': {
           title: '补水与活动提醒',
@@ -2867,7 +2950,10 @@ export const zh: Translations = {
         },
         'learn-daily': {
           title: '每日学习',
-          description: '每天学习一个关于指定主题的小知识，并随着时间逐步深入。'
+          description: '每天学习一个关于指定主题的小知识，并随着时间逐步深入。',
+          fields: {
+            topic: { displayDefault: '西班牙语词汇' }
+          }
         },
         'gratitude-journal': {
           title: '感恩与反思提示',

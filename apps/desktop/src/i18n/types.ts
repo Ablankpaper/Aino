@@ -2196,7 +2196,20 @@ export interface Translations {
       failedLoad: string
       emptyTitle: string
       emptyDesc: string
-      catalog: Record<string, { title: string; description: string }>
+      fieldLabels?: Record<string, string>
+      fieldDescriptions?: Record<string, string>
+      optionLabels?: Record<string, string>
+      catalog: Record<
+        string,
+        {
+          title: string
+          description: string
+          fields?: Record<
+            string,
+            { label?: string; help?: string; optionLabels?: Record<string, string>; displayDefault?: string }
+          >
+        }
+      >
     }
   }
 

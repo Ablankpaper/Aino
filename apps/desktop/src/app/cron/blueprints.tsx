@@ -19,11 +19,14 @@ function isDeliverField(field: AutomationBlueprintField): boolean {
 // suite can assert the form seeds correctly without mounting React. The deliver
 // slot is special-cased: an "origin" default (or empty) becomes "local" so a
 // desktop-created job delivers to This desktop instead of nowhere.
-export function initialBlueprintValues(blueprint: AutomationBlueprint): Record<string, string> {
+export function initialBlueprintValues(
+  blueprint: AutomationBlueprint,
+  displayDefaults: Readonly<Record<string, string>> = {}
+): Record<string, string> {
   const out: Record<string, string> = {}
 
   for (const field of blueprint.fields) {
-    const seeded = field.default ?? ''
+    const seeded = displayDefaults[field.name] ?? field.default ?? ''
     out[field.name] = isDeliverField(field) && (seeded === '' || seeded === 'origin') ? DESKTOP_DELIVER_DEFAULT : seeded
   }
 
@@ -51,11 +54,13 @@ export function BlueprintSlotControl({
   field,
   id,
   onChange,
-  value
+  value,
+  optionLabels
 }: {
   field: AutomationBlueprintField
   id: string
   onChange: (next: string) => void
+  optionLabels?: Readonly<Record<string, string>>
   value: string
 }) {
   if (field.type === 'enum' || field.type === 'weekdays') {
@@ -67,7 +72,7 @@ export function BlueprintSlotControl({
         <SelectContent>
           {field.options.map(option => (
             <SelectItem key={option} value={option}>
-              {option}
+              {optionLabels?.[option] ?? option}
             </SelectItem>
           ))}
         </SelectContent>
