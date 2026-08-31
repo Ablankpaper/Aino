@@ -1553,7 +1553,7 @@ export const zh: Translations = {
       apiKeyTag: 'API 密钥',
       capabilitySummary: (tools, prompts, resources) =>
         `已启用 ${[`${tools} 个工具`, ...(prompts ? [`${prompts} 个提示`] : []), ...(resources ? [`${resources} 个资源`] : [])].join('、')}`,
-      costTokens: tokens => `每次调用约 ${tokens} token`,
+      costTokens: tokens => `每次调用约 ${tokens} 个词元`,
       usage30d: uses => `30 天内 ${uses} 次调用`,
       unusedPill: '未使用',
       statusConnecting: '连接中…',
@@ -3421,7 +3421,7 @@ export const zh: Translations = {
       '/plan': '将 Markdown 实施计划写入 .hermes/plans/，不执行任何操作',
       '/moa': '使用默认智能体混合预设运行提示词，然后恢复原模型',
       '/subgoal': '为当前目标添加或管理额外条件',
-      '/status': '显示会话、模型、Token 和上下文信息',
+      '/status': '显示会话、模型、词元和上下文信息',
       '/egress': '显示 Docker 出口代理状态',
       '/context': '显示详细上下文窗口、用量、压缩统计和吞吐量',
       '/whoami': '显示当前斜杠命令权限（管理员/用户）',
@@ -3473,7 +3473,7 @@ export const zh: Translations = {
       '/copy': '复制所选内容或最后一条助手消息',
       '/palette': '打开模糊命令面板（也可按 Ctrl+P）',
       '/restart': '排空正在运行的任务后平滑重启网关',
-      '/usage': '显示 Token 用量和速率限制；使用 reset 兑换已存储的 Codex 限额重置',
+      '/usage': '显示词元用量和速率限制；使用 reset 兑换已存储的 Codex 限额重置',
       '/subscription': '在浏览器中查看 Nous 套餐并进行更改',
       '/topup': '查看 Nous 余额并在门户管理账单',
       '/insights': '显示用量洞察和分析',
@@ -3941,7 +3941,7 @@ export const zh: Translations = {
     proNeedsSubscription: 'Pro 模型需要付费 Nous 订阅。',
     free: '免费',
     freeTier: '免费层',
-    priceTitle: '每百万 token 的输入/输出价格',
+    priceTitle: '每百万词元的输入/输出价格',
     wasPrice: '原价'
   },
 
@@ -4098,7 +4098,7 @@ export const zh: Translations = {
         loading: '正在加载明细…',
         percentFull: percent => `已用 ${percent}%`,
         title: '上下文用量',
-        tokenSummary: (used, max) => `${used} / ${max} Tokens`
+        tokenSummary: (used, max) => `${used} / ${max} 个词元`
       },
       session: '会话',
       yoloOn: 'YOLO 已开启 — 自动批准危险命令。Shift+点击可全局切换。',
@@ -4973,7 +4973,7 @@ export const zh: Translations = {
         status: '状态',
         profile: '配置档案',
         created: '创建时间',
-        tokens: 'Token 数',
+        tokens: '词元数',
         cost: '费用',
         manual: '手动',
         preview: '预览',

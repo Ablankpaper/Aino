@@ -232,6 +232,19 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('messaging.platformIntro.matrix')).toContain('主服务器（homeserver）')
   })
 
+  it('uses the Chinese token term consistently in usage surfaces', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('settings.mcp.costTokens', 123)).toBe('每次调用约 123 个词元')
+    expect(translateNow('composer.commandDescs./status')).toBe('显示会话、模型、词元和上下文信息')
+    expect(translateNow('composer.commandDescs./usage')).toBe(
+      '显示词元用量和速率限制；使用 reset 兑换已存储的 Codex 限额重置'
+    )
+    expect(translateNow('modelPicker.priceTitle')).toBe('每百万词元的输入/输出价格')
+    expect(translateNow('shell.statusbar.contextUsagePanel.tokenSummary', 12, 100)).toBe('12 / 100 个词元')
+    expect(translateNow('ui.actions.labels.tokens')).toBe('词元数')
+  })
+
   it('describes the embedded skills-hub action in Simplified Chinese', () => {
     setRuntimeI18nLocale('zh')
 
