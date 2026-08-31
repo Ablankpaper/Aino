@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react'
 import spinners, { type BrailleSpinnerName as SpinnerName } from 'unicode-animations'
 
 import { usePaneVisible } from '@/components/pane-shell/pane-visibility'
+import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 export type { SpinnerName }
@@ -70,11 +71,13 @@ interface GlyphSpinnerProps {
  * to centre the single glyph.
  */
 export function GlyphSpinner({
-  ariaLabel = 'Loading',
+  ariaLabel,
   className,
   paused = false,
   spinner = 'braille'
 }: GlyphSpinnerProps) {
+  const { t } = useI18n()
+  const resolvedAriaLabel = ariaLabel ?? t.common.loading
   const spin = FRAMES_BY_NAME[spinner] ?? FRAMES_BY_NAME.braille!
   // Pause when this surface is a hidden (kept-alive) tab: N mounted tabs each
   // animating burns CPU for pixels nobody can see. Window blur / minimize /
@@ -94,7 +97,7 @@ export function GlyphSpinner({
 
   return (
     <span
-      aria-label={ariaLabel}
+      aria-label={resolvedAriaLabel}
       className={cn('inline-flex items-center justify-center font-mono leading-none tabular-nums', className)}
       role="status"
     >
