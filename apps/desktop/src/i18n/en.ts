@@ -4017,6 +4017,10 @@ export const en: Translations = {
   },
 
   desktop: {
+    fsBridgeUnavailable: product => `${product} Desktop bridge is unavailable`,
+    fsSavingUnavailable: 'Saving is not available',
+    fsRenameUnavailable: 'Rename is not available',
+    fsDeleteUnavailable: 'Delete is not available',
     audioReadFailed: 'Could not read recorded audio',
     sessionUnavailable: 'Session unavailable',
     createSessionFailed: 'Could not create a new session',

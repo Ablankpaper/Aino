@@ -5,6 +5,7 @@ import type {
   HermesReadFileTextResult,
   HermesSelectPathsOptions
 } from '@/global'
+import { translateNow } from '@/i18n'
 import { PRODUCT_NAME } from '@/lib/brand'
 import { $connection } from '@/store/session'
 
@@ -60,7 +61,7 @@ function bridge() {
   const desktop = window.hermesDesktop
 
   if (!desktop) {
-    throw new Error(`${PRODUCT_NAME} Desktop bridge is unavailable`)
+    throw new Error(translateNow('desktop.fsBridgeUnavailable', PRODUCT_NAME))
   }
 
   return desktop
@@ -97,7 +98,7 @@ export async function writeDesktopFileText(path: string, content: string): Promi
 
   if (!isDesktopFsRemoteMode()) {
     if (!desktop.writeTextFile) {
-      throw new Error('Saving is not available')
+      throw new Error(translateNow('desktop.fsSavingUnavailable'))
     }
 
     return desktop.writeTextFile(path, content)
@@ -169,7 +170,7 @@ export async function renameDesktopPath(path: string, newName: string): Promise<
   const desktop = bridge()
 
   if (!desktop.renamePath) {
-    throw new Error('Rename is not available')
+    throw new Error(translateNow('desktop.fsRenameUnavailable'))
   }
 
   const result = await desktop.renamePath(path, newName)
@@ -182,7 +183,7 @@ export async function trashDesktopPath(path: string): Promise<void> {
   const desktop = bridge()
 
   if (!desktop.trashPath) {
-    throw new Error('Delete is not available')
+    throw new Error(translateNow('desktop.fsDeleteUnavailable'))
   }
 
   await desktop.trashPath(path)

@@ -3438,6 +3438,10 @@ export interface Translations {
   }
 
   desktop: {
+    fsBridgeUnavailable: (product: string) => string
+    fsSavingUnavailable: string
+    fsRenameUnavailable: string
+    fsDeleteUnavailable: string
     audioReadFailed: string
     sessionUnavailable: string
     createSessionFailed: string

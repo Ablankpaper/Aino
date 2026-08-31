@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { setApiRequestConnection } from '@/api/client'
+import { setRuntimeI18nLocale } from '@/i18n'
 import { $connection } from '@/store/session'
 
 import {
@@ -12,8 +13,11 @@ import {
   readDesktopFileDataUrl,
   readDesktopFileDataUrlLocalFirst,
   readDesktopFileText,
+  renameDesktopPath,
   selectDesktopPaths,
-  setDesktopFsRemotePicker
+  setDesktopFsRemotePicker,
+  trashDesktopPath,
+  writeDesktopFileText
 } from './desktop-fs'
 
 const readDir = vi.fn(async () => ({ entries: [{ name: 'local', path: '/local', isDirectory: true }] }))
@@ -65,12 +69,14 @@ function stubBridge() {
 
 describe('desktop filesystem facade', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     stubBridge()
     $connection.set(null)
     setApiRequestConnection(null)
   })
 
   afterEach(() => {
+    setRuntimeI18nLocale('en')
     vi.unstubAllGlobals()
     vi.clearAllMocks()
     $connection.set(null)
@@ -95,6 +101,14 @@ describe('desktop filesystem facade', () => {
     expect(gitRoot).toHaveBeenCalledWith('/work')
     expect(selectPaths).toHaveBeenCalledWith({ directories: true, profile: 'team-local' })
     expect(api).not.toHaveBeenCalled()
+  })
+
+  it('uses Simplified Chinese copy when local edit methods are unavailable', async () => {
+    setRuntimeI18nLocale('zh')
+
+    await expect(writeDesktopFileText('/local/file.txt', 'updated')).rejects.toThrow('保存功能不可用')
+    await expect(renameDesktopPath('/local/file.txt', 'renamed.txt')).rejects.toThrow('重命名功能不可用')
+    await expect(trashDesktopPath('/local/file.txt')).rejects.toThrow('删除功能不可用')
   })
 
   it('routes filesystem reads through authenticated backend REST in remote mode', async () => {

@@ -4144,6 +4144,10 @@ export const zh: Translations = {
   },
 
   desktop: {
+    fsBridgeUnavailable: product => `${product} 桌面桥不可用`,
+    fsSavingUnavailable: '保存功能不可用',
+    fsRenameUnavailable: '重命名功能不可用',
+    fsDeleteUnavailable: '删除功能不可用',
     audioReadFailed: '无法读取录制的音频',
     sessionUnavailable: '会话不可用',
     createSessionFailed: '无法创建新会话',
