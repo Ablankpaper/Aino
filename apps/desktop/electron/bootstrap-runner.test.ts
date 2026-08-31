@@ -10,6 +10,7 @@ import {
   buildPinArgs,
   buildPosixPinArgs,
   cachedScriptPath,
+  downloadInstallScript,
   hasExistingGitCheckout,
   installedAgentInstallScript,
   installRefForStamp,
@@ -198,6 +199,33 @@ test('resolveInstallScript downloads fallback stamps by branch instead of zero c
       logs.some(ev => /fallback, unpinned/.test(ev.line || '')),
       'emits an unpinned fallback log line'
     )
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('downloadInstallScript falls back to the GitHub API when raw download fails', async () => {
+  const home = mkTmpHome()
+  const destination = path.join(home, 'install.sh')
+  let rawAttempts = 0
+  let apiAttempts = 0
+
+  try {
+    await downloadInstallScript('a'.repeat(40), destination, {
+      _downloadRaw: async () => {
+        rawAttempts += 1
+        throw new Error('raw.githubusercontent.com timed out')
+      },
+      _downloadApi: async (_ref, destPath) => {
+        apiAttempts += 1
+        fs.writeFileSync(destPath, '#!/bin/sh\necho api fallback\n')
+        return destPath
+      }
+    })
+
+    assert.equal(rawAttempts, 1)
+    assert.equal(apiAttempts, 1)
+    assert.equal(fs.readFileSync(destination, 'utf8'), '#!/bin/sh\necho api fallback\n')
   } finally {
     fs.rmSync(home, { recursive: true, force: true })
   }

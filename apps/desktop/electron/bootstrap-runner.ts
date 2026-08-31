@@ -228,91 +228,125 @@ function cachedScriptPath(hermesHome, commit) {
   return path.join(bootstrapCacheDir(hermesHome), `install-${commit}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
 }
 
-function downloadInstallScript(ref, destPath) {
-  // Fetch from GitHub raw at the install ref. Normal production builds pass a
-  // pinned SHA (immutable). Non-git fallback builds pass an unpinned branch
-  // ref so local builds can still bootstrap without pretending the all-zero
-  // placeholder is a real GitHub commit.
+const INSTALL_SCRIPT_TIMEOUT_MS = 15_000
+
+function downloadText(url, { headers = {}, redirectCount = 0 } = {}) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers }, res => {
+      const statusCode = res.statusCode || 0
+      const location = res.headers.location
+
+      if ([301, 302, 303, 307, 308].includes(statusCode) && location && redirectCount < 2) {
+        res.resume()
+        downloadText(location, { headers, redirectCount: redirectCount + 1 }).then(resolve, reject)
+
+        return
+      }
+
+      if (statusCode !== 200) {
+        res.resume()
+        reject(new Error(`HTTP ${statusCode} from ${url}`))
+
+        return
+      }
+
+      const chunks = []
+      res.setEncoding('utf8')
+      res.on('data', chunk => chunks.push(chunk))
+      res.on('end', () => resolve(chunks.join('')))
+      res.on('error', reject)
+    })
+
+    req.setTimeout(INSTALL_SCRIPT_TIMEOUT_MS, () => {
+      req.destroy(new Error(`request timed out after ${INSTALL_SCRIPT_TIMEOUT_MS}ms: ${url}`))
+    })
+    req.on('error', reject)
+  })
+}
+
+function writeDownloadedScript(destPath, content) {
+  if (!content) {
+    throw new Error('downloaded installer is empty')
+  }
+
+  fs.mkdirSync(path.dirname(destPath), { recursive: true })
+  const tmpPath = destPath + '.tmp'
+
+  try {
+    fs.writeFileSync(tmpPath, content, 'utf8')
+    fs.renameSync(tmpPath, destPath)
+  } catch (err) {
+    try {
+      fs.unlinkSync(tmpPath)
+    } catch {
+      void 0
+    }
+
+    throw err
+  }
+
+  return destPath
+}
+
+// Fetch from GitHub raw at the install ref. Normal production builds pass a
+// pinned SHA (immutable). Non-git fallback builds pass an unpinned branch ref
+// so local builds can still bootstrap without pretending the all-zero
+// placeholder is a real GitHub commit.
+async function downloadInstallScriptRaw(ref, destPath) {
   const scriptName = installScriptName()
   const url = `https://raw.githubusercontent.com/${REPOSITORY_PATH}/${ref}/scripts/${scriptName}`
+  const content = await downloadText(url)
 
-  return new Promise((resolve, reject) => {
-    fs.mkdirSync(path.dirname(destPath), { recursive: true })
-    const tmpPath = destPath + '.tmp'
-    const out = fs.createWriteStream(tmpPath)
-    https
-      .get(url, res => {
-        if (res.statusCode === 301 || res.statusCode === 302) {
-          // GitHub raw shouldn't redirect for a SHA URL, but follow once
-          // defensively.
-          out.close()
-          fs.unlinkSync(tmpPath)
-          https
-            .get(res.headers.location, res2 => {
-              if (res2.statusCode !== 200) {
-                reject(
-                  new Error(
-                    `Failed to download ${scriptName}: HTTP ${res2.statusCode} from redirect ${res.headers.location}`
-                  )
-                )
+  return writeDownloadedScript(destPath, content)
+}
 
-                return
-              }
+// raw.githubusercontent.com is not reachable on some managed networks even
+// when api.github.com is available. GitHub's Contents API returns the same
+// file at the same immutable ref, base64-encoded; use it only as a fallback so
+// ordinary installs keep the lightweight raw path.
+async function downloadInstallScriptFromApi(ref, destPath) {
+  const scriptName = installScriptName()
+  const url =
+    `https://api.github.com/repos/${REPOSITORY_PATH}/contents/scripts/${scriptName}` +
+    `?ref=${encodeURIComponent(ref)}`
+  const payload = JSON.parse(
+    await downloadText(url, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'Aino-Desktop'
+      }
+    })
+  )
 
-              const out2 = fs.createWriteStream(tmpPath)
-              res2.pipe(out2)
-              out2.on('finish', () => {
-                out2.close()
-                fs.renameSync(tmpPath, destPath)
-                resolve(destPath)
-              })
-              out2.on('error', reject)
-            })
-            .on('error', reject)
+  if (!payload || payload.encoding !== 'base64' || typeof payload.content !== 'string') {
+    throw new Error('GitHub Contents API returned no base64 installer content')
+  }
 
-          return
-        }
+  const content = Buffer.from(payload.content.replace(/\s+/g, ''), 'base64').toString('utf8')
 
-        if (res.statusCode !== 200) {
-          out.close()
+  return writeDownloadedScript(destPath, content)
+}
 
-          try {
-            fs.unlinkSync(tmpPath)
-          } catch {
-            void 0
-          }
-
-          reject(new Error(`Failed to download ${scriptName}: HTTP ${res.statusCode} from ${url}`))
-
-          return
-        }
-
-        res.pipe(out)
-        out.on('finish', () => {
-          out.close()
-          fs.renameSync(tmpPath, destPath)
-          resolve(destPath)
-        })
-        out.on('error', err => {
-          try {
-            fs.unlinkSync(tmpPath)
-          } catch {
-            void 0
-          }
-
-          reject(err)
-        })
-      })
-      .on('error', err => {
-        try {
-          fs.unlinkSync(tmpPath)
-        } catch {
-          void 0
-        }
-
-        reject(err)
-      })
-  })
+async function downloadInstallScript(
+  ref,
+  destPath,
+  {
+    _downloadRaw = downloadInstallScriptRaw,
+    _downloadApi = downloadInstallScriptFromApi
+  } = {}
+) {
+  try {
+    return await _downloadRaw(ref, destPath)
+  } catch (rawError) {
+    try {
+      return await _downloadApi(ref, destPath)
+    } catch (apiError) {
+      throw new Error(
+        `GitHub installer download failed (raw: ${rawError?.message || rawError}; ` +
+          `API fallback: ${apiError?.message || apiError})`
+      )
+    }
+  }
 }
 
 async function resolveInstallScript({
@@ -1033,6 +1067,7 @@ export {
   buildPinArgs,
   buildPosixPinArgs,
   cachedScriptPath,
+  downloadInstallScript,
   hasExistingGitCheckout,
   installedAgentInstallScript,
   installRefForStamp,
