@@ -3521,6 +3521,11 @@ export interface Translations {
     yoloSystem: (active: boolean) => string
     yoloTitle: string
     yoloToggleFailed: string
+    botMode: {
+      selectBotBeforeNewChat: string
+      updateForAnotherChat: (product: string) => string
+      selectBotOrGroup: string
+    }
     profileStatus: (current: string) => string
     unknownProfile: string
     noProfileNamed: (target: string, available: string) => string

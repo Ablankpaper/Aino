@@ -4236,6 +4236,11 @@ export const zh: Translations = {
     yoloSystem: active => `此会话 YOLO ${active ? '已开启' : '已关闭'}`,
     yoloTitle: 'YOLO',
     yoloToggleFailed: '无法切换 YOLO',
+    botMode: {
+      selectBotBeforeNewChat: '开始新的机器人聊天前，请先选择一个机器人。',
+      updateForAnotherChat: product => `请更新 ${product} 以打开另一个机器人聊天。`,
+      selectBotOrGroup: '请先选择一个机器人或群组。'
+    },
     profileStatus: current => `配置档案：${current}。使用 /profile <name> 或“新建会话”选择器在其他配置档案中开始对话。`,
     unknownProfile: '未知配置档案',
     noProfileNamed: (target, available) => `没有名为“${target}”的配置档案。可用：${available}`,

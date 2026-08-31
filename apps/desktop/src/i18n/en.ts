@@ -4113,6 +4113,11 @@ export const en: Translations = {
     yoloSystem: active => `YOLO ${active ? 'on' : 'off'} for this session`,
     yoloTitle: 'YOLO',
     yoloToggleFailed: 'Could not toggle YOLO',
+    botMode: {
+      selectBotBeforeNewChat: 'Select a Bot before starting another chat.',
+      updateForAnotherChat: product => `Update ${product} to open another Bot chat.`,
+      selectBotOrGroup: 'Select a Bot or group first.'
+    },
     profileStatus: current =>
       `Profile: ${current}. Use /profile <name> or the "New session" picker to start a chat in another profile.`,
     unknownProfile: 'Unknown profile',

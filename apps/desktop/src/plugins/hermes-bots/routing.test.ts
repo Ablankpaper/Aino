@@ -23,7 +23,8 @@ import {
   botRosterMeta,
   indexAliasRoutes,
   requestForBot,
-  resolveBotConnectionRoute
+  resolveBotConnectionRoute,
+  setBotsWorkspaceOwner
 } from './routing'
 import type { ProfileRoute, RosterRow } from './types'
 
@@ -31,11 +32,15 @@ const { hostMock } = vi.hoisted(() => ({
   hostMock: {
     request: vi.fn(),
     requestProfile: vi.fn(),
+    setWorkspaceScope: vi.fn(),
     state: { connectionId: { get: vi.fn(() => 'local') } }
   }
 }))
 
-vi.mock('@hermes/plugin-sdk', () => ({ host: hostMock }))
+vi.mock('@hermes/plugin-sdk', () => ({
+  host: hostMock,
+  translateNow: (key: string) => (key === 'desktop.botMode.selectBotOrGroup' ? '请先选择一个机器人或群组。' : key)
+}))
 
 const MOXIE_ROUTE: ProfileRoute = {
   connectionId: 'cloud-abc',
@@ -224,6 +229,14 @@ describe('a row without a reachable owner', () => {
     const orphan = { name: 'ops', remoteSource: true } as RosterRow
 
     expect(botRosterMeta(orphan, { ops: { title: 'Ops' } })).toBeFalsy()
+  })
+
+  it('localizes the default blocked workspace message', () => {
+    expect(() => setBotsWorkspaceOwner('bot:missing')).not.toThrow()
+    expect(hostMock.setWorkspaceScope).toHaveBeenCalledWith('bots', 'bot:missing', {
+      kind: 'blocked',
+      message: '请先选择一个机器人或群组。'
+    })
   })
 })
 
