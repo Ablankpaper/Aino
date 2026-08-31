@@ -1,5 +1,6 @@
 import { atom } from 'nanostores'
 
+import { translateNow } from '@/i18n'
 import { notifyError } from '@/store/notifications'
 
 /**
@@ -196,7 +197,7 @@ export async function installAgentPlugin(
     })
 
     if (!result?.ok) {
-      return { ok: false, error: result?.error || 'Install failed' }
+      return { ok: false, error: result?.error || translateNow('settings.plugins.installModal.agentFailed') }
     }
 
     return {
