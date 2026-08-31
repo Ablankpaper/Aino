@@ -230,7 +230,7 @@ function cachedScriptPath(hermesHome, commit) {
 
 const INSTALL_SCRIPT_TIMEOUT_MS = 15_000
 
-function downloadText(url, { headers = {}, redirectCount = 0 } = {}) {
+function downloadText(url, { headers = {}, redirectCount = 0 } = {}): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { headers }, res => {
       const statusCode = res.statusCode || 0
