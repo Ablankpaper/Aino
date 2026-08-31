@@ -1709,6 +1709,7 @@ export interface Translations {
       remixConfirmTitle: string
       remixConfirmBody: string
       genericError: string
+      hatchingError: string
       referenceImageTooLarge: string
       referenceImageInvalid: string
       adopt: string

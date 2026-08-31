@@ -572,7 +572,7 @@ export async function hatchSelected(request: GatewayRequest, options: HatchOptio
     }
 
     $petGenStatus.set('error')
-    $petGenError.set(e instanceof Error ? e.message : 'Could not hatch the pet.')
+    $petGenError.set(e instanceof Error ? e.message : translateNow('commandCenter.generatePet.hatchingError'))
     notifyPetGenDone(
       translateNow('commandCenter.generatePet.background.hatchingFailedTitle'),
       translateNow('commandCenter.generatePet.background.hatchingFailedMessage'),
@@ -646,7 +646,7 @@ export async function adoptHatched(request: GatewayRequest, name?: string): Prom
     return { ok: true, slug: result.slug, displayName: result.displayName }
   } catch (e) {
     $petGenStatus.set('preview')
-    $petGenError.set(e instanceof Error ? e.message : 'Could not adopt the pet.')
+    $petGenError.set(e instanceof Error ? e.message : translateNow('commandCenter.pets.adoptFailed'))
 
     return { ok: false }
   }

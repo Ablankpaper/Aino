@@ -1945,6 +1945,7 @@ export const en: Translations = {
       remixConfirmBody:
         'This generates a fresh set of drafts using this one as the starting point. It can take several minutes.',
       genericError: 'Generation failed — try again or pick a suggestion.',
+      hatchingError: 'Hatching failed — try again.',
       referenceImageTooLarge: 'Reference image is too large. Use one under 16 MB.',
       referenceImageInvalid: 'Could not read that reference image. Try a PNG, JPG, WebP, or GIF.',
       adopt: 'Adopt',

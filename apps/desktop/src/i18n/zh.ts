@@ -2118,6 +2118,7 @@ export const zh: Translations = {
       remixConfirmTitle: '以此造型混合生成？',
       remixConfirmBody: '将以此造型为起点生成一组新草图，可能需要几分钟。',
       genericError: '生成失败——请重试或选择一个建议。',
+      hatchingError: '孵化失败——请重试。',
       referenceImageTooLarge: '参考图过大。请使用小于 16 MB 的图片。',
       referenceImageInvalid: '无法读取该参考图。请尝试 PNG、JPG、WebP 或 GIF。',
       adopt: '领养',
