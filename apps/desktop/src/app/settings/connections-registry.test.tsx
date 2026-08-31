@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DesktopConnectionsRegistry } from '@/global'
+import { I18nProvider } from '@/i18n'
 import { $connection } from '@/store/session'
 
 import {
@@ -68,6 +69,18 @@ afterEach(() => {
 })
 
 describe('ConnectionsRegistrySection', () => {
+  it('renders the built-in local connection label in the active locale', async () => {
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <ConnectionsRegistrySection />
+      </I18nProvider>
+    )
+
+    await waitFor(() => expect(screen.getByText('Homelab')).toBeTruthy())
+    expect(screen.getByText('此设备')).toBeTruthy()
+    expect(screen.queryByText('This device')).toBeNull()
+  })
+
   it('distinguishes the current connection from the registry primary', async () => {
     render(<ConnectionsRegistrySection />)
 

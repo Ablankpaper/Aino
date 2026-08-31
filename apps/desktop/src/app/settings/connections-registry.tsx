@@ -14,6 +14,7 @@ import type {
 import { useI18n } from '@/i18n'
 import {
   CONNECTION_SEARCH_THRESHOLD,
+  connectionDisplayLabel,
   connectionMatchesQuery,
   sortConnectionsForDisplay
 } from '@/lib/connection-display'
@@ -551,9 +552,9 @@ export function ConnectionsRegistrySection() {
         const reachable = result.ok === true || result.reachable === true
 
         if (reachable) {
-          notify({ title: conn.label, message: s.testOk })
+          notify({ title: connectionDisplayLabel(conn, s.localLabel), message: s.testOk })
         } else {
-          notifyError(new Error(result.error || conn.label), s.testFailed)
+          notifyError(new Error(result.error || connectionDisplayLabel(conn, s.localLabel)), s.testFailed)
         }
       } catch (err) {
         notifyError(err, s.testFailed)
@@ -561,7 +562,7 @@ export function ConnectionsRegistrySection() {
         setTestingId(null)
       }
     },
-    [bridge, s.testFailed, s.testOk]
+    [bridge, s.localLabel, s.testFailed, s.testOk]
   )
 
   // Fan out `hermes update` to every eligible source; per-connection results
@@ -681,6 +682,9 @@ export function ConnectionsRegistrySection() {
           const isCurrent = activeConnectionId === conn.id
           const isPrimary = registry.primary === conn.id
           const busy = busyId === conn.id
+
+          const displayLabel = connectionDisplayLabel(conn, s.localLabel)
+
           // Display-only: this connection is a second address for a backend
           // already registered under another entry (same install_id).
           const sameBackendPeer = sameBackendPeerLabel(conn, sortedConnections)
@@ -742,7 +746,7 @@ export function ConnectionsRegistrySection() {
               title={
                 <span className="flex items-center gap-2">
                   <Icon className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{conn.label}</span>
+                  <span className="truncate">{displayLabel}</span>
                   {isCurrent && <Pill tone="primary">{s.currentPill}</Pill>}
                   {isPrimary && <Pill>{s.primaryPill}</Pill>}
                   {conn.kind === 'local' && <Pill>{s.managedPill}</Pill>}
@@ -1007,7 +1011,7 @@ export function ConnectionsRegistrySection() {
 
       <ConfirmDialog
         confirmLabel={s.removeConnection}
-        description={removeTarget ? s.removeConfirmDesc(removeTarget.label) : ''}
+        description={removeTarget ? s.removeConfirmDesc(connectionDisplayLabel(removeTarget, s.localLabel)) : ''}
         destructive
         onClose={() => setRemoveTarget(null)}
         onConfirm={() => remove()}
