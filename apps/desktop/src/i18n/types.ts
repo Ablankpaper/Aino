@@ -3600,6 +3600,9 @@ export interface Translations {
     fsDeleteUnavailable: string
     audioReadFailed: string
     sessionUnavailable: string
+    gatewayConnectionClosed: string
+    gatewayConnectionFailed: string
+    gatewayNotConnected: string
     transcriptSafeLoadLimit: string
     createSessionFailed: string
     promptFailed: string

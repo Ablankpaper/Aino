@@ -1,6 +1,7 @@
 import { JsonRpcGatewayClient } from '@hermes/shared'
 
 import type { HermesApiRequest } from '@/global'
+import { translateNow } from '@/i18n/runtime'
 
 // Desktop startup fires a burst of read-only data calls (config, profiles,
 // model info/options, cron) the moment the backend passes readiness. On a
@@ -28,10 +29,10 @@ export const PROMPT_SUBMIT_REQUEST_TIMEOUT_MS = 1_800_000
 export class HermesGateway extends JsonRpcGatewayClient {
   constructor() {
     super({
-      closedErrorMessage: 'Hermes gateway connection closed',
-      connectErrorMessage: 'Could not connect to Hermes gateway',
+      closedErrorMessage: () => translateNow('desktop.gatewayConnectionClosed'),
+      connectErrorMessage: () => translateNow('desktop.gatewayConnectionFailed'),
       createRequestId: nextId => nextId,
-      notConnectedErrorMessage: 'Hermes gateway is not connected',
+      notConnectedErrorMessage: () => translateNow('desktop.gatewayNotConnected'),
       requestTimeoutMs: DEFAULT_GATEWAY_REQUEST_TIMEOUT_MS
     })
   }

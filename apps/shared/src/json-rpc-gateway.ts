@@ -52,6 +52,11 @@ export interface JsonRpcFrame {
   result?: unknown
 }
 
+/** A transport error label can be fixed text or resolved when the error is
+ * created. The latter keeps long-lived clients compatible with runtime locale
+ * changes without making the shared client depend on an i18n implementation. */
+export type GatewayErrorMessage = (() => string) | string
+
 /** JSON-RPC error with optional structured `data` from the gateway. */
 export class JsonRpcGatewayError extends Error {
   readonly code?: number
@@ -74,8 +79,8 @@ type PendingCall = {
 }
 
 export interface GatewayClientOptions {
-  closedErrorMessage?: string
-  connectErrorMessage?: string
+  closedErrorMessage?: GatewayErrorMessage
+  connectErrorMessage?: GatewayErrorMessage
   connectTimeoutMs?: number
   createRequestId?: (nextId: number) => GatewayRequestId
   heartbeatDeadlineMs?: number
@@ -85,7 +90,11 @@ export interface GatewayClientOptions {
   requestIdPrefix?: string
   requestTimeoutMs?: number
   socketFactory?: (url: string) => WebSocketLike
-  notConnectedErrorMessage?: string
+  notConnectedErrorMessage?: GatewayErrorMessage
+}
+
+function resolveGatewayErrorMessage(message: GatewayErrorMessage): string {
+  return typeof message === 'function' ? message() : message
 }
 
 const ANY = '*'
@@ -209,7 +218,7 @@ export class JsonRpcGatewayClient {
       this.socket = null
       this.stopHeartbeat()
       this.setState('closed')
-      this.rejectAllPending(new Error(this.options.closedErrorMessage))
+      this.rejectAllPending(new Error(resolveGatewayErrorMessage(this.options.closedErrorMessage)))
     })
 
     await new Promise<void>((resolve, reject) => {
@@ -248,7 +257,7 @@ export class JsonRpcGatewayClient {
         settled = true
         cleanup()
         this.setState('error')
-        reject(new Error(this.options.connectErrorMessage))
+        reject(new Error(resolveGatewayErrorMessage(this.options.connectErrorMessage)))
       }
 
       socket.addEventListener('open', onOpen, { once: true })
@@ -276,7 +285,7 @@ export class JsonRpcGatewayClient {
             this.setState('error')
           }
 
-          reject(new Error(this.options.connectErrorMessage))
+          reject(new Error(resolveGatewayErrorMessage(this.options.connectErrorMessage)))
         }, this.options.connectTimeoutMs)
       }
     })
@@ -295,7 +304,7 @@ export class JsonRpcGatewayClient {
       this.socket = null
       this.stopHeartbeat()
       this.setState('closed')
-      this.rejectAllPending(new Error(this.options.closedErrorMessage))
+      this.rejectAllPending(new Error(resolveGatewayErrorMessage(this.options.closedErrorMessage)))
     }
   }
 
@@ -310,7 +319,7 @@ export class JsonRpcGatewayClient {
       return
     }
 
-    this.invalidateSocket(socket, new Error(message))
+    this.invalidateSocket(socket, new Error(resolveGatewayErrorMessage(message)))
   }
 
   on<P = unknown>(type: GatewayEventName, handler: (event: GatewayEvent<P>) => void): () => void {
@@ -350,7 +359,7 @@ export class JsonRpcGatewayClient {
     const socket = this.socket
 
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      return Promise.reject(new Error(this.options.notConnectedErrorMessage))
+      return Promise.reject(new Error(resolveGatewayErrorMessage(this.options.notConnectedErrorMessage)))
     }
 
     if (signal?.aborted) {

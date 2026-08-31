@@ -4356,6 +4356,9 @@ export const en: Translations = {
     fsDeleteUnavailable: 'Delete is not available',
     audioReadFailed: 'Could not read recorded audio',
     sessionUnavailable: 'Session unavailable',
+    gatewayConnectionClosed: 'Hermes gateway connection closed',
+    gatewayConnectionFailed: 'Could not connect to Hermes gateway',
+    gatewayNotConnected: 'Hermes gateway is not connected',
     transcriptSafeLoadLimit:
       'Session transcript exceeds the Desktop safe-load limit; use the Web Dashboard export for this session.',
     createSessionFailed: 'Could not create a new session',
