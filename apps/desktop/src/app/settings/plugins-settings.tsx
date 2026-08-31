@@ -11,7 +11,7 @@ import { Tip } from '@/components/ui/tooltip'
 import { $pluginRecords, type PluginRecord, setPluginEnabled } from '@/contrib/plugins-store'
 import { discoverRuntimePlugins } from '@/contrib/runtime-loader'
 import { getProfiles } from '@/hermes'
-import { useI18n } from '@/i18n'
+import { translateNow, useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { FolderOpen, Monitor, Package, RefreshCw } from '@/lib/icons'
 import { normalize } from '@/lib/text'
@@ -55,7 +55,10 @@ async function revealPluginsDir() {
     const dir = await window.hermesDesktop?.desktopPluginsRoot?.()
 
     if (!dir) {
-      notifyError('Desktop plugins are unavailable', 'Could not resolve the plugins folder')
+      notifyError(
+        translateNow('settings.plugins.errors.desktopUnavailable'),
+        translateNow('settings.plugins.errors.resolveFolder')
+      )
 
       return
     }
@@ -65,10 +68,13 @@ async function revealPluginsDir() {
     const result = await window.hermesDesktop?.openDir?.(dir)
 
     if (result && !result.ok) {
-      notifyError(result.error ?? 'unknown error', 'Could not open the plugins folder')
+      notifyError(
+        result.error ?? translateNow('settings.plugins.errors.unknown'),
+        translateNow('settings.plugins.errors.openFolder')
+      )
     }
   } catch (err) {
-    notifyError(err, 'Could not resolve the plugins folder')
+    notifyError(err, translateNow('settings.plugins.errors.resolveFolder'))
   }
 }
 
@@ -82,7 +88,10 @@ async function revealAgentPluginsDir(request: GatewayRequest) {
     const home = (result?.home ?? '').trim()
 
     if (!home) {
-      notifyError('The backend did not report its home directory', 'Could not open the plugins folder')
+      notifyError(
+        translateNow('settings.plugins.errors.backendHomeMissing'),
+        translateNow('settings.plugins.errors.openFolder')
+      )
 
       return
     }
@@ -90,10 +99,13 @@ async function revealAgentPluginsDir(request: GatewayRequest) {
     const opened = await window.hermesDesktop?.openDir?.(`${home}/plugins`)
 
     if (opened && !opened.ok) {
-      notifyError(opened.error ?? 'unknown error', 'Could not open the plugins folder')
+      notifyError(
+        opened.error ?? translateNow('settings.plugins.errors.unknown'),
+        translateNow('settings.plugins.errors.openFolder')
+      )
     }
   } catch (err) {
-    notifyError(err, 'Could not open the plugins folder')
+    notifyError(err, translateNow('settings.plugins.errors.openFolder'))
   }
 }
 

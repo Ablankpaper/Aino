@@ -2,11 +2,12 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { requestGateway, getProfiles } = vi.hoisted(() => ({
+const { requestGateway, getProfiles, notifyError } = vi.hoisted(() => ({
   requestGateway: vi.fn(),
   getProfiles: vi.fn<() => Promise<{ profiles: { name: string; is_default: boolean }[] }>>(async () => ({
     profiles: []
-  }))
+  })),
+  notifyError: vi.fn()
 }))
 
 vi.mock('@/app/gateway/hooks/use-gateway-request', () => ({
@@ -18,7 +19,13 @@ vi.mock('@/hermes', async importOriginal => ({
   getProfiles
 }))
 
+vi.mock('@/store/notifications', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  notifyError
+}))
+
 import { $pluginRecords } from '@/contrib/plugins-store'
+import { I18nProvider } from '@/i18n'
 import { queryClient } from '@/lib/query-client'
 import {
   $agentPluginBusy,
@@ -40,16 +47,19 @@ const legacyRow = {
   status: 'disabled'
 } satisfies AgentPluginRow
 
-const renderSettings = () =>
+const renderSettings = (locale: 'en' | 'zh' = 'en') =>
   render(
-    <QueryClientProvider client={queryClient}>
-      <PluginsSettings />
-    </QueryClientProvider>
+    <I18nProvider configClient={null} initialLocale={locale}>
+      <QueryClientProvider client={queryClient}>
+        <PluginsSettings />
+      </QueryClientProvider>
+    </I18nProvider>
   )
 
 beforeEach(() => {
   requestGateway.mockReset()
   getProfiles.mockReset()
+  notifyError.mockReset()
   getProfiles.mockResolvedValue({ profiles: [] })
   queryClient.clear()
   $pluginRecords.set({})
@@ -60,10 +70,12 @@ beforeEach(() => {
   $gatewayState.set('idle')
   $connection.set(null)
   $activeGatewayProfile.set('default')
+  Reflect.deleteProperty(window, 'hermesDesktop')
 })
 
 afterEach(() => {
   cleanup()
+  Reflect.deleteProperty(window, 'hermesDesktop')
   vi.restoreAllMocks()
 })
 
@@ -229,5 +241,63 @@ describe('PluginsSettings', () => {
         profile: 'work'
       })
     )
+  })
+
+  it('uses Chinese copy when the desktop plugin root is unavailable', async () => {
+    const desktopPluginsRoot = vi.fn<NonNullable<Window['hermesDesktop']['desktopPluginsRoot']>>().mockResolvedValue('')
+
+    const openDir = vi.fn<NonNullable<Window['hermesDesktop']['openDir']>>()
+
+    ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = { desktopPluginsRoot, openDir }
+
+    renderSettings('zh')
+    fireEvent.click(screen.getAllByRole('button', { name: '打开插件文件夹' })[0])
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('桌面插件不可用', '无法解析插件文件夹'))
+    expect(openDir).not.toHaveBeenCalled()
+  })
+
+  it('uses Chinese copy when opening the desktop plugin folder fails without a detail', async () => {
+    const desktopPluginsRoot = vi
+      .fn<NonNullable<Window['hermesDesktop']['desktopPluginsRoot']>>()
+      .mockResolvedValue('/tmp/desktop-plugins')
+
+    const openDir = vi.fn<NonNullable<Window['hermesDesktop']['openDir']>>().mockResolvedValue({ ok: false })
+
+    ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = { desktopPluginsRoot, openDir }
+
+    renderSettings('zh')
+    fireEvent.click(screen.getAllByRole('button', { name: '打开插件文件夹' })[0])
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('未知错误', '无法打开插件文件夹'))
+    expect(openDir).toHaveBeenCalledWith('/tmp/desktop-plugins')
+  })
+
+  it('uses Chinese copy when the backend does not report its plugin home', async () => {
+    requestGateway.mockResolvedValue({})
+
+    const openDir = vi.fn<NonNullable<Window['hermesDesktop']['openDir']>>()
+
+    ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = { openDir }
+
+    renderSettings('zh')
+    fireEvent.click(screen.getAllByRole('button', { name: '打开插件文件夹' })[1])
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('后端未提供其主目录', '无法打开插件文件夹'))
+    expect(openDir).not.toHaveBeenCalled()
+  })
+
+  it('uses Chinese copy when opening the agent plugin folder fails without a detail', async () => {
+    requestGateway.mockResolvedValue({ home: '/tmp/hermes' })
+
+    const openDir = vi.fn<NonNullable<Window['hermesDesktop']['openDir']>>().mockResolvedValue({ ok: false })
+
+    ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = { openDir }
+
+    renderSettings('zh')
+    fireEvent.click(screen.getAllByRole('button', { name: '打开插件文件夹' })[1])
+
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('未知错误', '无法打开插件文件夹'))
+    expect(openDir).toHaveBeenCalledWith('/tmp/hermes/plugins')
   })
 })

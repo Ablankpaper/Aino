@@ -530,6 +530,13 @@ export interface Translations {
       disable: string
       failed: string
       empty: string
+      errors: {
+        desktopUnavailable: string
+        resolveFolder: string
+        openFolder: string
+        backendHomeMissing: string
+        unknown: string
+      }
       kinds: { bundled: string; disk: string; runtime: string }
       agent: {
         title: string

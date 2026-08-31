@@ -579,6 +579,13 @@ export const zh: Translations = {
       disable: '禁用',
       failed: '失败',
       empty: '尚未安装桌面插件。',
+      errors: {
+        desktopUnavailable: '桌面插件不可用',
+        resolveFolder: '无法解析插件文件夹',
+        openFolder: '无法打开插件文件夹',
+        backendHomeMissing: '后端未提供其主目录',
+        unknown: '未知错误'
+      },
       kinds: { bundled: '内置', disk: '磁盘', runtime: '运行时' },
       agent: {
         title: '智能体插件',

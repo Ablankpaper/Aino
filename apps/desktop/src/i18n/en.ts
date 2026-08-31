@@ -597,6 +597,13 @@ export const en: Translations = {
       disable: 'Disable',
       failed: 'failed',
       empty: 'No desktop plugins installed yet.',
+      errors: {
+        desktopUnavailable: 'Desktop plugins are unavailable',
+        resolveFolder: 'Could not resolve the plugins folder',
+        openFolder: 'Could not open the plugins folder',
+        backendHomeMissing: 'The backend did not report its home directory',
+        unknown: 'unknown error'
+      },
       kinds: { bundled: 'bundled', disk: 'on disk', runtime: 'runtime' },
       agent: {
         title: 'Agent plugins',
