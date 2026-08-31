@@ -2,6 +2,7 @@ import { readActivePreview } from '@/app/chat/right-rail/preview-reader'
 import { writeAgentTerminalChunk } from '@/app/right-sidebar/terminal/agent-terminal-stream'
 import { readActiveTerminal } from '@/app/right-sidebar/terminal/buffer'
 import { closeAgentTerminalByProc } from '@/app/right-sidebar/terminal/terminals'
+import { translateNow } from '@/i18n'
 import type { PreviewActAction } from '@/lib/preview-act/act-in-page'
 import type { TourAction, TourStep } from '@/lib/tour'
 import { $gateway } from '@/store/gateway'
@@ -121,7 +122,7 @@ export function handleDesktopBridgeEvent(ctx: GatewayEventContext): boolean {
           )
       } else {
         void answer({
-          error: 'The in-app browser only takes actions in the session the user is looking at.',
+          error: translateNow('preview.drive.inactiveSession'),
           success: false
         })
       }
@@ -189,7 +190,7 @@ export function handleDesktopBridgeEvent(ctx: GatewayEventContext): boolean {
         // Refused in words, not silently dropped: the agent asked for a
         // walkthrough it isn't getting, and a no-op would leave it narrating
         // a spotlight the user can't see.
-        void answer({ error: 'The user has turned guided tours off.', success: false })
+        void answer({ error: translateNow('preview.tour.disabled'), success: false })
       } else if (isActiveEvent) {
         void import('@/lib/tour')
           .then(({ runTour }) =>
@@ -211,7 +212,7 @@ export function handleDesktopBridgeEvent(ctx: GatewayEventContext): boolean {
           )
       } else {
         void answer({
-          error: 'Tours only run in the session the user is looking at.',
+          error: translateNow('preview.tour.inactiveSession'),
           success: false
         })
       }

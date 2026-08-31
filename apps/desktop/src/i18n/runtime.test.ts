@@ -43,6 +43,14 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('desktop.quickEntry.newSession')).toBe('新建会话')
   })
 
+  it('localizes desktop bridge refusal messages', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('preview.drive.inactiveSession')).toBe('应用内浏览器操作只能在你当前查看的会话中执行。')
+    expect(translateNow('preview.tour.disabled')).toBe('你已关闭引导导览。')
+    expect(translateNow('preview.tour.inactiveSession')).toBe('引导导览只能在你当前查看的会话中运行。')
+  })
+
   it('passes arguments to function translations', () => {
     expect(translateNow('notifications.updateReadyMessage', 2)).toBe('2 new changes available.')
   })

@@ -3130,9 +3130,12 @@ export interface Translations {
     tour: {
       noLivePage: string
       noAnswer: string
+      disabled: string
+      inactiveSession: string
     }
     drive: {
       noLivePage: string
+      inactiveSession: string
       pageNavigated: string
       pageRejected: (message: string) => string
       noAnswer: string

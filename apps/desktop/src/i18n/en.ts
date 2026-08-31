@@ -3827,10 +3827,13 @@ export const en: Translations = {
     },
     tour: {
       noLivePage: 'No live page is open in the preview pane — open one first.',
-      noAnswer: 'The page did not answer the tour action.'
+      noAnswer: 'The page did not answer the tour action.',
+      disabled: 'The user has turned guided tours off.',
+      inactiveSession: 'Tours only run in the session the user is looking at.'
     },
     drive: {
       noLivePage: 'No live page is open in the in-app browser — open one with open_preview first.',
+      inactiveSession: 'The in-app browser only takes actions in the session the user is looking at.',
       pageNavigated: 'The page stopped answering right after — it is probably navigating. Call elements to see where you landed.',
       pageRejected: message => `The page rejected the action: ${message}`,
       noAnswer: 'The page did not answer the action.',

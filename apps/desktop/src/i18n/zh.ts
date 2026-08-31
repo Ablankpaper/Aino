@@ -4172,10 +4172,13 @@ export const zh: Translations = {
     },
     tour: {
       noLivePage: '预览面板中没有打开可交互的页面——请先打开一个页面。',
-      noAnswer: '页面没有回应导览操作。'
+      noAnswer: '页面没有回应导览操作。',
+      disabled: '你已关闭引导导览。',
+      inactiveSession: '引导导览只能在你当前查看的会话中运行。'
     },
     drive: {
       noLivePage: '应用内浏览器中没有打开可交互的页面——请先使用 open_preview 打开一个页面。',
+      inactiveSession: '应用内浏览器操作只能在你当前查看的会话中执行。',
       pageNavigated: '页面刚刚停止响应——可能正在跳转。请调用 elements 查看你所在的页面。',
       pageRejected: message => `页面拒绝了此操作：${message}`,
       noAnswer: '页面没有回应此操作。',
