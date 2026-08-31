@@ -244,6 +244,7 @@ type BotsMessages = {
     searchToAdd: string
     searchToAddPlaceholder: string
     removeFromSelection: string
+    attachmentTooLarge: (name: string) => string
     disbandTitle: string
     deleteTitle: string
     deleteAction: string
@@ -674,6 +675,7 @@ const en: BotsMessages = {
     searchToAdd: 'Search bots to add',
     searchToAddPlaceholder: 'Search bots to add…',
     removeFromSelection: 'Remove from selection',
+    attachmentTooLarge: name => `${name}: too large (max 15MB).`,
     disbandTitle: 'Disband group chat?',
     deleteTitle: 'Delete group chat?',
     deleteAction: 'Delete',
@@ -1096,6 +1098,7 @@ const ja: BotsMessages = {
     searchToAdd: '追加するボットを検索',
     searchToAddPlaceholder: '追加するボットを検索…',
     removeFromSelection: '選択から外す',
+    attachmentTooLarge: name => `${name}: 大きすぎます（最大 15MB）。`,
     disbandTitle: 'グループチャットを解散しますか？',
     deleteTitle: 'グループチャットを削除しますか？',
     deleteAction: '削除',
@@ -1512,6 +1515,7 @@ const zh: BotsMessages = {
     searchToAdd: '搜索要添加的机器人',
     searchToAddPlaceholder: '搜索要添加的机器人…',
     removeFromSelection: '从选择中移除',
+    attachmentTooLarge: name => `${name}：文件过大（最大 15MB）。`,
     disbandTitle: '解散群聊？',
     deleteTitle: '删除群聊？',
     deleteAction: '删除',
@@ -1926,6 +1930,7 @@ const zhHant: BotsMessages = {
     searchToAdd: '搜尋要加入的機器人',
     searchToAddPlaceholder: '搜尋要加入的機器人…',
     removeFromSelection: '從選取中移除',
+    attachmentTooLarge: name => `${name}：檔案過大（最大 15MB）。`,
     disbandTitle: '解散群組聊天？',
     deleteTitle: '刪除群組聊天？',
     deleteAction: '刪除',

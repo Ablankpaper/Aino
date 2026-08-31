@@ -8,6 +8,7 @@
 
 import { host } from '@hermes/plugin-sdk'
 
+import { botsText } from './i18n'
 import type { Attachment, AttachmentKind } from './types'
 
 // ── group-chat attachments: pick/paste/drop files the room's members see ────
@@ -40,7 +41,7 @@ export async function filesToGroupAttachments(files: File[] | FileList | null | 
     if (file.size > 15_000_000) {
       host.notify({
         kind: 'error',
-        message: `${file.name || 'attachment'}: too large (max 15MB).`
+        message: botsText().group.attachmentTooLarge(file.name || 'attachment')
       })
 
       continue
