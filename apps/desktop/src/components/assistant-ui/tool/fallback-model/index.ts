@@ -408,7 +408,12 @@ function pluralizeNoun(noun: string, count: number): string {
 }
 
 function formatCountLabel(metric: CountMetric): string {
-  return `${metric.count} ${pluralizeNoun(metric.noun, metric.count)}`
+  return translateNow(
+    'assistant.tool.countLabel',
+    metric.count,
+    metric.noun,
+    pluralizeNoun(metric.noun, metric.count)
+  )
 }
 
 function countMetric(count: number, noun: string): CountMetric {

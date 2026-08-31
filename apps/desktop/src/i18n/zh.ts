@@ -4123,6 +4123,23 @@ export const zh: Translations = {
         changedFile: '已更改文件',
         fetchedWebpage: '已获取网页'
       },
+      countLabel: (count, noun, plural) => {
+        const labels: Record<string, string> = {
+          document: '个文档',
+          entry: '条记录',
+          file: '个文件',
+          item: '个项目',
+          match: '个匹配项',
+          result: '个结果',
+          row: '行',
+          search: '次搜索',
+          source: '个来源',
+          step: '个步骤',
+          todo: '项待办'
+        }
+
+        return labels[noun] ? `${count} ${labels[noun]}` : `${count} ${count === 1 ? noun : plural}`
+      },
       recoveredOne: '在 1 个失败步骤后已恢复',
       recoveredMany: count => `在 ${count} 个失败步骤后已恢复`,
       failedOne: '1 个步骤失败',

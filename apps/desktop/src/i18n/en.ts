@@ -3984,6 +3984,7 @@ export const en: Translations = {
         changedFile: 'Changed file',
         fetchedWebpage: 'Fetched webpage'
       },
+      countLabel: (count, noun, plural) => `${count} ${count === 1 ? noun : plural}`,
       recoveredOne: 'Recovered after 1 failed step',
       recoveredMany: count => `Recovered after ${count} failed steps`,
       failedOne: '1 step failed',

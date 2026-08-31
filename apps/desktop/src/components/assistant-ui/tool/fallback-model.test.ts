@@ -171,6 +171,25 @@ describe('buildToolView browser and command summaries', () => {
   })
 })
 
+describe('buildToolView result counts', () => {
+  it('localizes known count nouns in Simplified Chinese', () => {
+    setRuntimeI18nLocale('zh')
+
+    const results = buildToolView(
+      part({ result: { results: [{ title: 'A' }, { title: 'B' }] }, toolName: 'web_search' }),
+      ''
+    )
+
+    const files = buildToolView(
+      part({ result: { files: ['a.txt', 'b.txt', 'c.txt'] }, toolName: 'list_files' }),
+      ''
+    )
+
+    expect(results.countLabel).toBe('2 个结果')
+    expect(files.countLabel).toBe('3 个文件')
+  })
+})
+
 describe('buildToolView browser_exec step label', () => {
   const bexec = (code: string) =>
     buildToolView(part({ args: { code }, result: undefined, toolName: 'browser_exec' }), '')

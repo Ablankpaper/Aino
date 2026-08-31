@@ -2988,6 +2988,23 @@ export const ja = defineLocale({
         changedFile: 'ファイルを変更しました',
         fetchedWebpage: 'Web ページを取得しました'
       },
+      countLabel: (count, noun, plural) => {
+        const labels: Record<string, string> = {
+          document: '件の文書',
+          entry: '件のエントリ',
+          file: '個のファイル',
+          item: '件の項目',
+          match: '件の一致',
+          result: '件の結果',
+          row: '行',
+          search: '回の検索',
+          source: '件のソース',
+          step: '件のステップ',
+          todo: '件のTODO'
+        }
+
+        return labels[noun] ? `${count}${labels[noun]}` : `${count} ${count === 1 ? noun : plural}`
+      },
       recoveredOne: '1 つの失敗したステップの後に回復しました',
       recoveredMany: count => `${count} つの失敗したステップの後に回復しました`,
       failedOne: '1 つのステップが失敗しました',

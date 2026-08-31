@@ -2891,6 +2891,23 @@ export const zhHant = defineLocale({
         changedFile: '已變更檔案',
         fetchedWebpage: '已取得網頁'
       },
+      countLabel: (count, noun, plural) => {
+        const labels: Record<string, string> = {
+          document: '個文件',
+          entry: '筆記錄',
+          file: '個檔案',
+          item: '個項目',
+          match: '個符合項目',
+          result: '個結果',
+          row: '列',
+          search: '次搜尋',
+          source: '個來源',
+          step: '個步驟',
+          todo: '項待辦'
+        }
+
+        return labels[noun] ? `${count} ${labels[noun]}` : `${count} ${count === 1 ? noun : plural}`
+      },
       recoveredOne: '在 1 個失敗步驟後已復原',
       recoveredMany: count => `在 ${count} 個失敗步驟後已復原`,
       failedOne: '1 個步驟失敗',

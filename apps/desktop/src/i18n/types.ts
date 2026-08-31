@@ -3429,6 +3429,7 @@ export interface Translations {
         changedFile: string
         fetchedWebpage: string
       }
+      countLabel: (count: number, noun: string, plural: string) => string
       recoveredOne: string
       recoveredMany: (count: number) => string
       failedOne: string
