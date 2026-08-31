@@ -441,6 +441,28 @@ const PICKER_UNAVAILABLE_MESSAGE: Record<DesktopPickerId, (command: string) => s
   session: command => `${command} uses the desktop session picker instead of a slash command.`
 }
 
+function runtimeUnavailableMessage(reason: DesktopUnavailableReason, command: string): string | null {
+  const keyByReason: Record<DesktopUnavailableReason, string> = {
+    advanced: 'desktop.slashUnavailable.advanced',
+    'composer-voice': 'desktop.slashUnavailable.composerVoice',
+    messaging: 'desktop.slashUnavailable.messaging',
+    settings: 'desktop.slashUnavailable.settings',
+    terminal: 'desktop.slashUnavailable.terminal'
+  }
+
+  const key = keyByReason[reason]
+  const translated = translateNow(key, command)
+
+  return translated === key ? null : translated
+}
+
+function runtimePickerUnavailableMessage(picker: DesktopPickerId, command: string): string | null {
+  const key = picker === 'model' ? 'desktop.slashUnavailable.modelPicker' : 'desktop.slashUnavailable.sessionPicker'
+  const translated = translateNow(key, command)
+
+  return translated === key ? null : translated
+}
+
 function normalizeCommand(command: string): string {
   const trimmed = command.trim()
   const base = (trimmed.startsWith('/') ? trimmed : `/${trimmed}`).split(/\s+/, 1)[0]?.toLowerCase() || ''
@@ -583,7 +605,7 @@ export function desktopSlashUnavailableMessage(
       }
     }
 
-    return UNAVAILABLE_MESSAGE[surface.reason](canonical)
+    return runtimeUnavailableMessage(surface.reason, canonical) || UNAVAILABLE_MESSAGE[surface.reason](canonical)
   }
 
   if (surface.kind === 'picker') {
@@ -591,7 +613,7 @@ export function desktopSlashUnavailableMessage(
       return surface.picker === 'model' ? localized.modelPicker(canonical) : localized.sessionPicker(canonical)
     }
 
-    return PICKER_UNAVAILABLE_MESSAGE[surface.picker](canonical)
+    return runtimePickerUnavailableMessage(surface.picker, canonical) || PICKER_UNAVAILABLE_MESSAGE[surface.picker](canonical)
   }
 
   return null
@@ -600,7 +622,20 @@ export function desktopSlashUnavailableMessage(
 export function desktopSlashDescription(command: string, fallback = '', localized?: Record<string, string>): string {
   const canonical = canonicalDesktopSlashCommand(command)
 
-  return localized?.[canonical] || SPEC_BY_NAME.get(canonical)?.description || fallback
+  const explicit = localized?.[canonical]?.trim()
+
+  if (explicit) {
+    return explicit
+  }
+
+  const key = `composer.commandDescs.${canonical}`
+  const translated = translateNow(key)
+
+  if (translated !== key && translated.trim()) {
+    return translated
+  }
+
+  return SPEC_BY_NAME.get(canonical)?.description || fallback
 }
 
 export function desktopSlashCommandArgumentMode(command: string): DesktopSlashArgumentMode | null {

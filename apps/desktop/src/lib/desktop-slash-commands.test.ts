@@ -361,6 +361,12 @@ describe('desktop slash command curation', () => {
     )
   })
 
+  it('uses the active locale when a built-in description has no explicit map', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(desktopSlashDescription('/branch', 'Branch the current session')).toBe('将最新消息分支到新对话')
+  })
+
   it('prefers a locale-specific description for the canonical command', () => {
     expect(
       desktopSlashDescription('/fork', 'Branch the current session', {
@@ -418,6 +424,13 @@ describe('desktop slash command curation', () => {
     expect(desktopSlashUnavailableMessage('/model sonnet')).toContain('model picker')
     expect(desktopSlashUnavailableMessage('/skills')).toContain('desktop sidebar')
     expect(desktopSlashUnavailableMessage('/clear')).toContain('terminal interface')
+  })
+
+  it('localizes unavailable-command guidance when no copy object is passed', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(desktopSlashUnavailableMessage('/clear')).toContain('终端界面')
+    expect(desktopSlashUnavailableMessage('/model')).toContain('模型选择器')
   })
 
   it('flags /model as a picker-owned command so the desktop opens the overlay', () => {
