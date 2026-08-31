@@ -93,6 +93,12 @@ def test_simplified_chinese_localizes_gateway_context_and_status_copy():
     assert i18n.t("gateway.status.tokens", lang="zh", tokens=500) == "**累计计费词元：** 500 _（不是当前上下文大小；使用 `/context` 查看）_"
 
 
+def test_simplified_chinese_localizes_model_token_labels():
+    """Model detail labels should use the established Chinese token term."""
+    assert i18n.t("gateway.model.context_label", lang="zh", tokens=4096) == "上下文：4096 个词元"
+    assert i18n.t("gateway.model.max_output_label", lang="zh", tokens=1024) == "最大输出：1024 个词元"
+
+
 def test_simplified_chinese_localizes_resume_and_matrix_recovery_copy():
     """Resume recovery guidance should be readable in Simplified Chinese."""
     assert i18n.t("gateway.resume.db_unavailable", lang="zh") == "会话数据库不可用。"
