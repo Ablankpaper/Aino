@@ -541,7 +541,7 @@ export function GroupClarifyCard({ entry, members }: GroupClarifyCardProps) {
                   void submit()
                 }
               }}
-              placeholder={q.choices.length ? 'Or type your own answer…' : 'Type your answer…'}
+              placeholder={q.choices.length ? b.group.answerOwnPlaceholder : b.group.answerPlaceholder}
               value={drafts[q.qid] || ''}
             />
           )}
@@ -549,7 +549,7 @@ export function GroupClarifyCard({ entry, members }: GroupClarifyCardProps) {
       ))}
       <div className="flex justify-end">
         <Button disabled={sending || !allAnswered || !member} onClick={() => void submit()} size="sm">
-          {sending ? 'Sending…' : isApproval ? 'Respond' : 'Answer'}
+          {sending ? b.group.sending : isApproval ? b.group.respond : b.group.answer}
         </Button>
       </div>
     </div>

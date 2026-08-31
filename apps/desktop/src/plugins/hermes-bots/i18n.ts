@@ -248,6 +248,21 @@ type BotsMessages = {
     noActivityYet: string
     showActivity: string
     hideActivity: string
+    activityActor: (who: string, action: string) => string
+    activityBot: string
+    activityDidSomething: string
+    activityQueued: string
+    activityWorking: string
+    activityReplied: string
+    activityPassed: string
+    activityTimedOut: string
+    activityFailed: string
+    activityCancelled: string
+    activitySettled: string
+    activityCapped: string
+    activityDelivered: string
+    activityHeld: string
+    activityStopped: string
     stop: string
     stopHint: string
     allHeldStatus: (count: number) => string
@@ -651,6 +666,21 @@ const en: BotsMessages = {
     noActivityYet: 'No activity in this turn yet.',
     showActivity: 'Show room activity',
     hideActivity: 'Hide room activity',
+    activityActor: (who, action) => `${who} ${action}`,
+    activityBot: 'A bot',
+    activityDidSomething: 'did something',
+    activityQueued: 'sent a message',
+    activityWorking: 'is working…',
+    activityReplied: 'replied',
+    activityPassed: 'passed',
+    activityTimedOut: 'took too long',
+    activityFailed: 'hit an error',
+    activityCancelled: 'turn interrupted by a newer message',
+    activitySettled: 'turn settled',
+    activityCapped: 'turn stopped at the round/message cap',
+    activityDelivered: 'delivered a late reply',
+    activityHeld: 'is held (stopped by you) — @mention it or say resume to release',
+    activityStopped: 'stopped the room — remaining turns are held until resumed',
     stop: 'Stop',
     stopHint: 'Stop this run — interrupts the member on turn and holds the rest',
     allHeldStatus: count => `All ${count} bots are paused`,
@@ -1046,6 +1076,21 @@ const ja: BotsMessages = {
     noActivityYet: 'このターンのアクティビティはまだありません。',
     showActivity: '部屋のアクティビティを表示',
     hideActivity: '部屋のアクティビティを隠す',
+    activityActor: (who, action) => `${who}${action}`,
+    activityBot: 'ボット',
+    activityDidSomething: '操作しました',
+    activityQueued: 'メッセージを送信',
+    activityWorking: '作業中…',
+    activityReplied: '返信しました',
+    activityPassed: 'パスしました',
+    activityTimedOut: '時間切れ',
+    activityFailed: 'エラーが発生',
+    activityCancelled: '新しいメッセージで中断',
+    activitySettled: 'ターン完了',
+    activityCapped: 'ラウンド/メッセージ上限で停止',
+    activityDelivered: '遅れて返信を送信',
+    activityHeld: '保留中（あなたが停止）— @メンションまたは resume で解除',
+    activityStopped: 'ルームを停止 — 再開すると残りのターンを続行',
     stop: '停止',
     stopHint: 'この実行を停止 — ターン中のメンバーを中断し、残りを保留します',
     allHeldStatus: count => `すべてのボット（${count}体）が一時停止中`,
@@ -1435,6 +1480,21 @@ const zh: BotsMessages = {
     noActivityYet: '本回合还没有活动。',
     showActivity: '显示房间活动',
     hideActivity: '隐藏房间活动',
+    activityActor: (who, action) => `${who}${action}`,
+    activityBot: '机器人',
+    activityDidSomething: '执行了操作',
+    activityQueued: '发送了消息',
+    activityWorking: '正在工作…',
+    activityReplied: '已回复',
+    activityPassed: '已跳过',
+    activityTimedOut: '响应超时',
+    activityFailed: '发生错误',
+    activityCancelled: '被新消息中断',
+    activitySettled: '本轮已完成',
+    activityCapped: '因轮次/消息上限停止',
+    activityDelivered: '发送了延迟回复',
+    activityHeld: '已暂停（由你停止）— @提及它或发送 resume 以释放',
+    activityStopped: '已停止房间 — 恢复后继续剩余回合',
     stop: '停止',
     stopHint: '停止本次运行 — 中断当前回合的成员，并暂停其余成员',
     allHeldStatus: count => `全部 ${count} 个机器人已暂停`,
@@ -1822,6 +1882,21 @@ const zhHant: BotsMessages = {
     noActivityYet: '本回合還沒有活動。',
     showActivity: '顯示房間活動',
     hideActivity: '隱藏房間活動',
+    activityActor: (who, action) => `${who}${action}`,
+    activityBot: '機器人',
+    activityDidSomething: '執行了操作',
+    activityQueued: '傳送了訊息',
+    activityWorking: '正在工作…',
+    activityReplied: '已回覆',
+    activityPassed: '已略過',
+    activityTimedOut: '回應逾時',
+    activityFailed: '發生錯誤',
+    activityCancelled: '被新訊息中斷',
+    activitySettled: '此回合已完成',
+    activityCapped: '因回合/訊息上限停止',
+    activityDelivered: '傳送了延遲回覆',
+    activityHeld: '已暫停（由你停止）— @提及它或傳送 resume 以解除',
+    activityStopped: '已停止房間 — 恢復後繼續剩餘回合',
     stop: '停止',
     stopHint: '停止本次執行 — 中斷目前回合的成員，並暫停其餘成員',
     allHeldStatus: count => `全部 ${count} 個機器人已暫停`,

@@ -10,6 +10,7 @@
 import { atom } from '@hermes/plugin-sdk'
 
 import { $groupChats, groupSpeakerLabel } from './group-chat'
+import { botsText } from './i18n'
 import type { GroupActivityEvent, GroupActivityKind } from './types'
 
 // ── group activity feed ─────────────────────────────────────────────────────
@@ -73,30 +74,31 @@ export function currentGroupActivity(group: string) {
  *  the expanded rows. */
 export function groupActivityLabel(event: GroupActivityEntry) {
   const kind = event?.kind
-  const base = GROUP_ACTIVITY_LABELS[kind] || kind || 'did something'
+  const labels = botsText().group
+  const base = GROUP_ACTIVITY_LABELS[kind]?.(labels) || kind || labels.activityDidSomething
 
   if (kind === 'cancelled' || kind === 'settled' || kind === 'capped') {
     return base
   }
 
-  const who = event?.member === 'You' ? 'You' : groupSpeakerLabel(event?.member || 'A bot')
+  const who = event?.member === 'You' ? labels.you : groupSpeakerLabel(event?.member || labels.activityBot)
 
-  return `${who} ${base}`
+  return labels.activityActor(who, base)
 }
 
-const GROUP_ACTIVITY_LABELS: Record<GroupActivityKind, string> = {
-  queued: 'sent a message',
-  working: 'is working…',
-  replied: 'replied',
-  passed: 'passed',
-  'timed-out': 'took too long',
-  failed: 'hit an error',
-  cancelled: 'turn interrupted by a newer message',
-  settled: 'turn settled',
-  capped: 'turn stopped at the round/message cap',
-  delivered: 'delivered a late reply',
-  held: 'is held (stopped by you) — @mention it or say resume to release',
-  stopped: 'stopped the room — remaining turns are held until resumed'
+const GROUP_ACTIVITY_LABELS: Record<GroupActivityKind, (labels: ReturnType<typeof botsText>['group']) => string> = {
+  queued: labels => labels.activityQueued,
+  working: labels => labels.activityWorking,
+  replied: labels => labels.activityReplied,
+  passed: labels => labels.activityPassed,
+  'timed-out': labels => labels.activityTimedOut,
+  failed: labels => labels.activityFailed,
+  cancelled: labels => labels.activityCancelled,
+  settled: labels => labels.activitySettled,
+  capped: labels => labels.activityCapped,
+  delivered: labels => labels.activityDelivered,
+  held: labels => labels.activityHeld,
+  stopped: labels => labels.activityStopped
 }
 
 export const GROUP_ACTIVITY_GLYPHS: Record<GroupActivityKind, string> = {

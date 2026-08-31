@@ -651,15 +651,14 @@ export function GroupChatWorkspace({ group, members, onBack, visible = true }: G
     .sort((a, b) => (a.at || 0) - (b.at || 0))
 
   const availableMembers = members.filter(member => botSourceStatus(member).available).length
-  const availabilityLabel = `${availableMembers} of ${members.length} available`
+  const availabilityLabel = b.group.availability(availableMembers, members.length)
 
-  const memberNames =
-    members.map(b => displayName(b, botRosterMeta(b, allMeta))).join(', ') || 'No bots in this group chat'
+  const memberNames = members.map(b => displayName(b, botRosterMeta(b, allMeta))).join(', ') || b.group.noBotsInChat
 
   const header = (
     <div className="flex items-center gap-2 px-2.5 pt-2.5 pb-2">
       <Button onClick={() => (onBack ? onBack() : $groupChatWorkspace.set(null))} size="sm" variant="ghost">
-        Back
+        {b.group.back}
       </Button>
       {/* Room picture (set via Group settings) leads the title when present. */}
       {room.image ? (
@@ -905,7 +904,9 @@ export function GroupChatWorkspace({ group, members, onBack, visible = true }: G
             ) : (
               <img alt="" className="size-6 rounded object-cover" src={img.data} />
             )}
-            <span className="max-w-32 truncate text-[0.65rem] text-(--ui-text-tertiary)">{img.name || 'image'}</span>
+            <span className="max-w-32 truncate text-[0.65rem] text-(--ui-text-tertiary)">
+              {img.name || b.group.attachedImage}
+            </span>
             <Tip label={b.group.removeAttachment}>
               <Button
                 aria-label={b.group.removeAttachment}
@@ -953,7 +954,7 @@ export function GroupChatWorkspace({ group, members, onBack, visible = true }: G
         ) || null
 
     const display = isUser
-      ? 'You'
+      ? b.group.you
       : displayName(
           member || {
             name: entry.from.name
@@ -967,7 +968,7 @@ export function GroupChatWorkspace({ group, members, onBack, visible = true }: G
     // Clicked: append the gateway name so same-named agents on
     // two connections are tellable apart on demand.
     const label = isUser
-      ? 'You'
+      ? b.group.you
       : revealed
         ? `${display}${entry.from.source ? `-${entry.from.source}` : ''} (@${botHandle(entry.from.name, member || undefined)})`
         : display
@@ -1009,7 +1010,7 @@ export function GroupChatWorkspace({ group, members, onBack, visible = true }: G
                 className="text-left text-[0.7rem] font-semibold text-(--ui-accent)"
                 onClick={() => setRevealedSpeaker(revealed ? null : entryKey)}
                 size="inline"
-                title={revealed ? 'Hide full handle' : 'Show full handle'}
+                title={revealed ? b.group.hideFullHandle : b.group.showFullHandle}
                 variant="text"
               >
                 {label}
@@ -1039,18 +1040,18 @@ export function GroupChatWorkspace({ group, members, onBack, visible = true }: G
                   <div
                     className="flex items-center gap-1 rounded-md border border-(--ui-stroke-secondary) px-1.5 py-1 text-[0.65rem] text-(--ui-text-tertiary)"
                     key={`${entryKey}:img:${imgIndex}`}
-                    title={img.name || 'attached file'}
+                    title={img.name || b.group.attachedFile}
                   >
                     <Codicon className="text-[0.8rem]" name={img.kind === 'pdf' ? 'file-pdf' : 'file'} />
-                    <span className="max-w-48 truncate">{img.name || 'attached file'}</span>
+                    <span className="max-w-48 truncate">{img.name || b.group.attachedFile}</span>
                   </div>
                 ) : (
                   <img
-                    alt={img.name || 'attached image'}
+                    alt={img.name || b.group.attachedImage}
                     className="max-h-40 max-w-60 rounded-md border border-(--ui-stroke-secondary) object-contain"
                     key={`${entryKey}:img:${imgIndex}`}
                     src={img.data}
-                    title={img.name || 'attached image'}
+                    title={img.name || b.group.attachedImage}
                   />
                 )
               )}
