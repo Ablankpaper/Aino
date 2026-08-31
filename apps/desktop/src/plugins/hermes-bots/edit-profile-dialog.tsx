@@ -146,7 +146,10 @@ export function EditProfileDialog({ bot, open, onClose }: EditProfileDialogProps
 
     if (adv.loaded && (adv.dirtyModel || adv.dirtySoul || adv.dirtySkills || adv.dirtyToolsets || adv.dirtyMcp)) {
       try {
-        const res = await applyAdvancedConfig(bot, adv)
+        const res = await applyAdvancedConfig(bot, adv, {
+          confirmLabel: t.common.confirm,
+          modelSwitchFailed: t.desktop.modelSwitchFailed
+        })
         const failed = Object.entries(res?.applied || {}).filter(([, ok]) => !ok)
 
         if (failed.length) {

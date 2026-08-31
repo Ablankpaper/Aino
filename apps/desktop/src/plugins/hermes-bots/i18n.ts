@@ -145,6 +145,12 @@ type BotsMessages = {
     currentSuffix: string
     titlePlaceholder: string
     namePlaceholder: string
+    fullConfigUnsupported: string
+    remoteCapabilitiesHint: string
+    soulConfigLabel: string
+    skillsEnabled: (enabled: number, total: number) => string
+    toolsetsEnabled: (enabled: number, total: number) => string
+    mcpServers: string
     remoteCreateHint: (target: string) => string
     capabilitiesImmediate: string
     appearanceDescription: (name: string, slug: string) => string
@@ -524,6 +530,13 @@ const en: BotsMessages = {
     currentSuffix: 'current',
     titlePlaceholder: 'Inbox Triage',
     namePlaceholder: 'inbox-triage',
+    fullConfigUnsupported: 'Full configuration needs a newer gateway (restart it after updating Hermes).',
+    remoteCapabilitiesHint:
+      'Remote capabilities require a newer desktop. Model and SOUL changes remain staged until you save.',
+    soulConfigLabel: 'SOUL.md (persona + agent-messaging protocol)',
+    skillsEnabled: (enabled, total) => `Skills (${enabled}/${total} enabled)`,
+    toolsetsEnabled: (enabled, total) => `Toolsets (${enabled}/${total} enabled — unchecking all restores the default)`,
+    mcpServers: 'MCP servers',
     remoteCreateHint: target =>
       `The agent is created on ${target} and appears in the roster as a Connections bot. Chat routes to that machine.`,
     capabilitiesImmediate: 'Capabilities (applies immediately — skills, tools, MCP)',
@@ -897,6 +910,13 @@ const ja: BotsMessages = {
     currentSuffix: '現在',
     titlePlaceholder: '受信トレイの振り分け',
     namePlaceholder: 'inbox-triage',
+    fullConfigUnsupported: '完全な設定には新しいゲートウェイが必要です（Hermes更新後に再起動してください）。',
+    remoteCapabilitiesHint:
+      'リモート機能には新しいデスクトップが必要です。モデルとSOULの変更は保存するまで保留されます。',
+    soulConfigLabel: 'SOUL.md（ペルソナ + エージェント間メッセージングプロトコル）',
+    skillsEnabled: (enabled, total) => `スキル（${enabled}/${total}件を有効化）`,
+    toolsetsEnabled: (enabled, total) => `ツールセット（${enabled}/${total}件を有効化 — すべて外すと既定に戻ります）`,
+    mcpServers: 'MCPサーバー',
     remoteCreateHint: target =>
       `${target} 上にエージェントを作成します。名簿には接続ボットとして表示され、チャットはそのマシンに接続します。`,
     capabilitiesImmediate: '機能（スキル、ツール、MCPに即時適用）',
@@ -1268,6 +1288,12 @@ const zh: BotsMessages = {
     currentSuffix: '当前',
     titlePlaceholder: '收件箱分流',
     namePlaceholder: '收件箱分流',
+    fullConfigUnsupported: '完整配置需要更新版本的网关（更新 Hermes 后请重启网关）。',
+    remoteCapabilitiesHint: '远程能力需要更新版本的桌面端；模型和 SOUL 的修改会在保存前暂存。',
+    soulConfigLabel: 'SOUL.md（人格 + 智能体消息协议）',
+    skillsEnabled: (enabled, total) => `技能（已启用 ${enabled}/${total}）`,
+    toolsetsEnabled: (enabled, total) => `工具集（已启用 ${enabled}/${total} — 全部取消会恢复默认）`,
+    mcpServers: 'MCP 服务器',
     remoteCreateHint: target => `机器人将在 ${target} 上创建，并以连接机器人显示在名单中；聊天会路由到那台机器。`,
     capabilitiesImmediate: '能力（技能、工具和 MCP 会立即应用）',
     appearanceDescription: (name, slug) => `${name}（${slug}）的外观和角色。`,
@@ -1634,6 +1660,12 @@ const zhHant: BotsMessages = {
     currentSuffix: '目前',
     titlePlaceholder: '收件匣分流',
     namePlaceholder: '收件匣分流',
+    fullConfigUnsupported: '完整設定需要較新版本的閘道（更新 Hermes 後請重新啟動閘道）。',
+    remoteCapabilitiesHint: '遠端能力需要較新版本的桌面版；模型和 SOUL 的變更會在儲存前暫存。',
+    soulConfigLabel: 'SOUL.md（人格 + 智慧體訊息協定）',
+    skillsEnabled: (enabled, total) => `技能（已啟用 ${enabled}/${total}）`,
+    toolsetsEnabled: (enabled, total) => `工具集（已啟用 ${enabled}/${total} — 全部取消會恢復預設）`,
+    mcpServers: 'MCP 伺服器',
     remoteCreateHint: target => `機器人將在 ${target} 上建立，並以連線機器人顯示在名單中；聊天會路由到那台機器。`,
     capabilitiesImmediate: '能力（技能、工具和 MCP 會立即套用）',
     appearanceDescription: (name, slug) => `${name}（${slug}）的外觀和角色。`,
