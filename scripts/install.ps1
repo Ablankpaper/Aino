@@ -77,6 +77,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# New Desktop builds use the Aino artifact name. Keep the legacy Hermes name
+# as a discovery fallback so an existing upstream installation can be repaired
+# or upgraded without being stranded.
+$script:DesktopProductName = "Aino"
+$script:LegacyDesktopProductName = "Hermes"
+
 # Suppress Invoke-WebRequest's per-chunk progress bar.  Windows PowerShell
 # 5.1's progress UI repaints synchronously on every received byte, which
 # pegs CPU on a single core and throttles downloads by 10-100x (a 57MB
@@ -4248,8 +4254,10 @@ function Install-Desktop {
     # 3. Sanity-check the produced binary. Probe both arches so this works
     # on x64 and arm64 build machines.
     $exeCandidates = @(
-        "$desktopDir\release\win-unpacked\Hermes.exe",
-        "$desktopDir\release\win-arm64-unpacked\Hermes.exe"
+        "$desktopDir\release\win-unpacked\$($script:DesktopProductName).exe",
+        "$desktopDir\release\win-arm64-unpacked\$($script:DesktopProductName).exe",
+        "$desktopDir\release\win-unpacked\$($script:LegacyDesktopProductName).exe",
+        "$desktopDir\release\win-arm64-unpacked\$($script:LegacyDesktopProductName).exe"
     )
     $found = $false
     $desktopExe = $null
@@ -4262,7 +4270,7 @@ function Install-Desktop {
         }
     }
     if (-not $found) {
-        throw "Desktop build completed but no Hermes.exe was found under $desktopDir\release\*-unpacked\"
+        throw "Desktop build completed but no $($script:DesktopProductName).exe or legacy $($script:LegacyDesktopProductName).exe was found under $desktopDir\release\*-unpacked\"
     }
 
     # 3b. The Hermes icon + identity are stamped onto Hermes.exe by the
@@ -4322,8 +4330,8 @@ function New-DesktopShortcuts {
         }
 
         $targets = @(
-            (Join-Path ([Environment]::GetFolderPath('Programs')) 'Hermes.lnk'),
-            (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Hermes.lnk')
+            (Join-Path ([Environment]::GetFolderPath('Programs')) "$($script:DesktopProductName).lnk"),
+            (Join-Path ([Environment]::GetFolderPath('Desktop')) "$($script:DesktopProductName).lnk")
         )
 
         foreach ($lnkPath in $targets) {
@@ -4336,7 +4344,7 @@ function New-DesktopShortcuts {
                 $sc.TargetPath = $TargetExe
                 $sc.WorkingDirectory = $workDir
                 $sc.IconLocation = $iconLocation
-                $sc.Description = 'Hermes Agent'
+                $sc.Description = 'Aino Agent'
                 $sc.Save()
                 Write-Success "Shortcut created: $lnkPath"
             } catch {

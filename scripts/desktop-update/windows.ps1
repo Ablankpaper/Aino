@@ -349,7 +349,7 @@ function Show-ProgressWindow {
             $mute = [System.Drawing.ColorTranslator]::FromHtml("#A8A8A8")
         }
         $form = New-Object System.Windows.Forms.Form
-        $form.Text = "Hermes"
+        $form.Text = "Aino"
         $form.FormBorderStyle = "FixedSingle"
         $form.MaximizeBox = $false
         $form.MinimizeBox = $false
@@ -363,7 +363,7 @@ function Show-ProgressWindow {
         $bar.MarqueeAnimationSpeed = 30
         $bar.SetBounds(60, 128, 160, 8)
         $title = New-Object System.Windows.Forms.Label
-        $title.Text = "Updating Hermes"
+        $title.Text = "Updating Aino"
         $title.Font = New-Object System.Drawing.Font("Segoe UI Semibold", 12)
         $title.ForeColor = $fore
         $title.TextAlign = "MiddleCenter"
@@ -1386,7 +1386,7 @@ try {
     }
 
     # -- 1. Wait for the Desktop to exit (FAIL CLOSED) ----------------------
-    Publish-UiProgress "Waiting for Hermes to close"
+    Publish-UiProgress "Waiting for Aino to close"
     if ($DesktopPid -gt 0) {
         $deadline = (Get-Date).AddSeconds(30)
         while ((Get-Date) -lt $deadline) {
@@ -1399,7 +1399,7 @@ try {
             # A live Desktop means a live backend re-locking the venv at any
             # moment. Updating under it is how installs brick. Abort.
             $finalCode = 4
-            $finalMsg = "Update aborted: the Hermes window (pid $DesktopPid) did not exit within 30s. Nothing was changed. Close Hermes fully and try again."
+            $finalMsg = "Update aborted: the Aino window (pid $DesktopPid) did not exit within 30s. Nothing was changed. Close Aino fully and try again."
             Write-HandoffLog $finalMsg
             exit $finalCode
         }
@@ -1407,7 +1407,7 @@ try {
     }
 
     # -- 2. Wait for the venv shim to unlock (FAIL CLOSED) ------------------
-    Publish-UiProgress "Preparing Hermes files"
+    Publish-UiProgress "Preparing Aino files"
     $shim = Join-Path $InstallRoot "venv\Scripts\hermes.exe"
     if (Test-Path -LiteralPath $shim) {
         $unlocked = $false
@@ -1546,7 +1546,7 @@ try {
         # that unknown state. This is intentionally fail-closed; the marker's
         # dead-owner recovery remains the next-start escape hatch.
         $finalCode = 7
-        $finalMsg = "Update recovery could not stop every updater process. Hermes was not restarted to avoid overlapping the active install. Wait for it to finish or restart Windows, then reopen Hermes."
+        $finalMsg = "Update recovery could not stop every updater process. Aino was not restarted to avoid overlapping the active install. Wait for it to finish or restart Windows, then reopen Aino."
         Write-Result $false $finalCode $finalMsg
         Write-HandoffLog $finalMsg
         Show-ErrorFinale $finalMsg
@@ -1559,12 +1559,12 @@ try {
             Close-ProgressWindow
             [void](Start-DesktopRelaunch)
         } else {
-            Publish-UiProgress "Opening Hermes"
+            Publish-UiProgress "Opening Aino"
             $cameBack = Start-DesktopRelaunch
             if (-not $cameBack -and $RelaunchExe) {
                 # Launch was due and did not verifiably land: truthful result
                 # for the next boot, manual state held on screen now.
-                $finalMsg = "Update complete. Reopen Hermes to finish (it could not restart itself)."
+                $finalMsg = "Update complete. Reopen Aino to finish (it could not restart itself)."
                 Write-Result $true 0 $finalMsg $true
                 Show-ManualFinale $finalMsg
             }

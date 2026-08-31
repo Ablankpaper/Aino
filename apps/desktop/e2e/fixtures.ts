@@ -27,7 +27,13 @@ import * as path from 'node:path'
 
 import { _electron, type ElectronApplication, type Page } from '@playwright/test'
 
-import { startMockServer, type MockServerOptions } from './mock-server'
+import {
+  type PackagedBinaryPathOptions,
+  packagedBinaryCandidates as packagedBinaryCandidatesFor,
+  resolvePackagedBinaryPath as resolvePackagedBinaryPathFor
+} from './packaged-paths'
+
+import { type MockServerOptions, startMockServer } from './mock-server'
 import { installErrorBannerGuard } from './test'
 
 const DESKTOP_ROOT = path.resolve(import.meta.dirname, '..')
@@ -507,18 +513,24 @@ providers:
  * Resolve the packaged Electron binary path, per-platform, matching
  * electron-builder's output layout under release/.
  */
-function resolvePackagedBinaryPath(): string {
-  if (process.platform === 'win32') {
-    return path.join(RELEASE_ROOT, 'win-unpacked', 'Hermes.exe')
-  }
+export function packagedBinaryCandidates(
+  options: Omit<PackagedBinaryPathOptions, 'releaseRoot'> & { releaseRoot?: string } = {}
+): string[] {
+  return packagedBinaryCandidatesFor({
+    platform: options.platform,
+    arch: options.arch,
+    releaseRoot: options.releaseRoot ?? RELEASE_ROOT
+  })
+}
 
-  if (process.platform === 'darwin') {
-    const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
-
-    return path.join(RELEASE_ROOT, `mac-${arch}`, 'Hermes.app', 'Contents', 'MacOS', 'Hermes')
-  }
-
-  return path.join(RELEASE_ROOT, 'linux-unpacked', 'hermes')
+export function resolvePackagedBinaryPath(
+  options: Omit<PackagedBinaryPathOptions, 'releaseRoot'> & { releaseRoot?: string } = {}
+): string {
+  return resolvePackagedBinaryPathFor({
+    platform: options.platform,
+    arch: options.arch,
+    releaseRoot: options.releaseRoot ?? RELEASE_ROOT
+  })
 }
 
 export const PACKAGED_BINARY_PATH = resolvePackagedBinaryPath()

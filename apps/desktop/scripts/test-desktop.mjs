@@ -15,6 +15,11 @@ const RELEASE_ROOT = path.join(DESKTOP_ROOT, 'release')
 const PLATFORM = process.platform
 const PRODUCT_NAME = BRAND.productName
 const EXECUTABLE_NAME = PACKAGE_JSON.build?.executableName || PRODUCT_NAME
+const LEGACY_PRODUCT_NAME = 'Hermes'
+
+function firstExistingPath(candidates) {
+  return candidates.find(candidate => fs.existsSync(candidate)) || candidates[0]
+}
 
 // Platform-specific packaged-app layout. The thin installer ships an Electron
 // app shell plus extraResources (install-stamp.json + native-deps/) -- it
@@ -22,10 +27,13 @@ const EXECUTABLE_NAME = PACKAGE_JSON.build?.executableName || PRODUCT_NAME
 // launch via install.ps1 / install.sh, per the Phase 1 thin-installer flow).
 const APP = (() => {
   if (PLATFORM === 'darwin') {
-    const appPath = path.join(RELEASE_ROOT, `mac-${ARCH}`, `${PRODUCT_NAME}.app`)
+    const appPath = firstExistingPath(
+      [PRODUCT_NAME, LEGACY_PRODUCT_NAME].map(name => path.join(RELEASE_ROOT, `mac-${ARCH}`, `${name}.app`))
+    )
+    const appName = path.basename(appPath, '.app')
     return {
       appPath,
-      binary: path.join(appPath, 'Contents', 'MacOS', EXECUTABLE_NAME),
+      binary: path.join(appPath, 'Contents', 'MacOS', appName === PRODUCT_NAME ? EXECUTABLE_NAME : appName),
       resourcesPath: path.join(appPath, 'Contents', 'Resources'),
       asarPath: path.join(appPath, 'Contents', 'Resources', 'app.asar'),
       unpackedDistIndex: path.join(appPath, 'Contents', 'Resources', 'app.asar.unpacked', 'dist', 'index.html')
@@ -33,9 +41,12 @@ const APP = (() => {
   }
   if (PLATFORM === 'win32') {
     const unpacked = path.join(RELEASE_ROOT, 'win-unpacked')
+    const binary = firstExistingPath(
+      [EXECUTABLE_NAME, LEGACY_PRODUCT_NAME].map(name => path.join(unpacked, `${name}.exe`))
+    )
     return {
       appPath: unpacked,
-      binary: path.join(unpacked, `${EXECUTABLE_NAME}.exe`),
+      binary,
       resourcesPath: path.join(unpacked, 'resources'),
       asarPath: path.join(unpacked, 'resources', 'app.asar'),
       unpackedDistIndex: path.join(unpacked, 'resources', 'app.asar.unpacked', 'dist', 'index.html')
@@ -43,9 +54,12 @@ const APP = (() => {
   }
   // linux unpacked layout matches windows but with different binary name
   const unpacked = path.join(RELEASE_ROOT, 'linux-unpacked')
+  const binary = firstExistingPath(
+    [EXECUTABLE_NAME, LEGACY_PRODUCT_NAME, 'hermes'].map(name => path.join(unpacked, name))
+  )
   return {
     appPath: unpacked,
-    binary: path.join(unpacked, EXECUTABLE_NAME),
+    binary,
     resourcesPath: path.join(unpacked, 'resources'),
     asarPath: path.join(unpacked, 'resources', 'app.asar'),
     unpackedDistIndex: path.join(unpacked, 'resources', 'app.asar.unpacked', 'dist', 'index.html')

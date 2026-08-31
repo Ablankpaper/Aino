@@ -50,6 +50,11 @@ BOLD='\033[1m'
 REPO_URL_SSH="${HERMES_INSTALL_REPOSITORY_SSH_URL:-git@github.com:NousResearch/hermes-agent.git}"
 REPO_URL_HTTPS="${HERMES_INSTALL_REPOSITORY_URL:-https://github.com/NousResearch/hermes-agent.git}"
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+# Desktop artifact names are Aino-first, with Hermes fallbacks for an existing
+# upstream checkout or a pre-brand installation. The CLI executable remains
+# `hermes` everywhere else for runtime compatibility.
+DESKTOP_PRODUCT_NAME="Aino"
+LEGACY_DESKTOP_PRODUCT_NAME="Hermes"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
 # explicit directory — if so we never override it.
@@ -186,7 +191,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --stage NAME   Run one desktop bootstrap stage"
             echo "  --json         Print a JSON result frame for --stage"
             echo "  --non-interactive  Skip stages that require user input"
-            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Hermes.app)"
+            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Aino.app)"
             echo "  --dir PATH     Installation directory"
             echo "                   default (non-root):  ~/.hermes/hermes-agent"
             echo "                   default (root, Linux): /usr/local/lib/hermes-agent"
@@ -3381,16 +3386,23 @@ install_desktop() {
 
     local app=""
     if [ "$OS" = "linux" ]; then
-        if [ -x "$desktop_dir/release/linux-unpacked/Hermes" ]; then
-            app="$desktop_dir/release/linux-unpacked/Hermes"
-        elif [ -x "$desktop_dir/release/linux-unpacked/hermes" ]; then
-            app="$desktop_dir/release/linux-unpacked/hermes"
-        fi
+        local cand
+        for cand in \
+            "$desktop_dir/release/linux-unpacked/$DESKTOP_PRODUCT_NAME" \
+            "$desktop_dir/release/linux-unpacked/$LEGACY_DESKTOP_PRODUCT_NAME" \
+            "$desktop_dir/release/linux-unpacked/hermes"; do
+            if [ -x "$cand" ]; then
+                app="$cand"
+                break
+            fi
+        done
     else
         local cand
         for cand in \
-            "$desktop_dir/release/mac-arm64/Hermes.app" \
-            "$desktop_dir/release/mac/Hermes.app"; do
+            "$desktop_dir/release/mac-arm64/$DESKTOP_PRODUCT_NAME.app" \
+            "$desktop_dir/release/mac/$DESKTOP_PRODUCT_NAME.app" \
+            "$desktop_dir/release/mac-arm64/$LEGACY_DESKTOP_PRODUCT_NAME.app" \
+            "$desktop_dir/release/mac/$LEGACY_DESKTOP_PRODUCT_NAME.app"; do
             if [ -d "$cand" ]; then
                 app="$cand"
                 break
