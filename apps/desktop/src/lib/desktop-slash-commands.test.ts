@@ -317,6 +317,26 @@ describe('desktop slash command curation', () => {
     expect(filtered.skill_count).toBe(1)
   })
 
+  it('uses locale command descriptions for built-ins while preserving extension copy', () => {
+    const filtered = filterDesktopCommandsCatalog(
+      {
+        pairs: [
+          ['/review', 'Spawn an independent reviewer'],
+          ['/ship-it', 'Run the release checklist']
+        ]
+      },
+      {
+        '/review': '启动独立审阅智能体',
+        '/ship-it': '运行发布检查清单'
+      }
+    )
+
+    expect(filtered.pairs).toEqual([
+      ['/review', '启动独立审阅智能体'],
+      ['/ship-it', '运行发布检查清单']
+    ])
+  })
+
   it('recomputes skill_count to reflect only extensions surfaced on desktop', () => {
     const filtered = filterDesktopCommandsCatalog({
       pairs: [

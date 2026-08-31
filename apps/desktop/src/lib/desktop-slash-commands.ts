@@ -680,7 +680,10 @@ export function rankSkillCommands<T extends { text: string }>(
   return kept.sort((a, b) => usageOf(b) - usageOf(a) || a.text.localeCompare(b.text))
 }
 
-export function filterDesktopCommandsCatalog(catalog: CommandsCatalogLike): CommandsCatalogLike {
+export function filterDesktopCommandsCatalog(
+  catalog: CommandsCatalogLike,
+  localizedDescriptions?: Record<string, string>
+): CommandsCatalogLike {
   rememberDesktopCommandsCatalog(catalog)
 
   const categories = catalog.categories
@@ -688,13 +691,17 @@ export function filterDesktopCommandsCatalog(catalog: CommandsCatalogLike): Comm
       ...section,
       pairs: section.pairs
         .filter(([command]) => isDesktopSlashSuggestion(command))
-        .map(([command, description]) => [command, desktopSlashDescription(command, description)] as [string, string])
+        .map(([command, description]) =>
+          [command, desktopSlashDescription(command, description, localizedDescriptions)] as [string, string]
+        )
     }))
     .filter(section => section.pairs.length > 0)
 
   const pairs = catalog.pairs
     ?.filter(([command]) => isDesktopSlashSuggestion(command))
-    .map(([command, description]) => [command, desktopSlashDescription(command, description)] as [string, string])
+    .map(([command, description]) =>
+      [command, desktopSlashDescription(command, description, localizedDescriptions)] as [string, string]
+    )
 
   // Recount skill commands from the filtered output so /help's footer reflects
   // what the user actually sees. Backend's skill_count includes commands the

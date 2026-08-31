@@ -81,7 +81,7 @@ export function useSlashCompletions(options: {
 
     void cachedSlashCompletion('catalog', () => gateway.request<CommandsCatalogLike>('commands.catalog'))
       .then(catalog => {
-        filterDesktopCommandsCatalog(catalog)
+        filterDesktopCommandsCatalog(catalog, commandDescriptions)
       })
       .catch(() => {
         // Next keystroke retries; don't block the composer on a warm-up miss.
@@ -158,7 +158,8 @@ export function useSlashCompletions(options: {
       try {
         if (!query) {
           const catalog = filterDesktopCommandsCatalog(
-            await cachedSlashCompletion('catalog', () => gateway.request<CommandsCatalogLike>('commands.catalog'))
+            await cachedSlashCompletion('catalog', () => gateway.request<CommandsCatalogLike>('commands.catalog')),
+            commandDescriptions
           )
 
           // Prefer the categorized layout so the popover renders section headers

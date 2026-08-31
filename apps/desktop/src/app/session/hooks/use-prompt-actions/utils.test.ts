@@ -2,6 +2,7 @@ import type { AppendMessage } from '@assistant-ui/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { setRuntimeI18nLocale } from '@/i18n'
+import { zh } from '@/i18n/zh'
 import type { ChatMessage } from '@/lib/chat-messages'
 
 import {
@@ -24,6 +25,7 @@ import {
   readFileDataUrlForAttach,
   RECENT_INTERRUPT_COOLDOWN_MS,
   releaseSubmitInFlight,
+  renderCommandsCatalog,
   renderRpcResult,
   SessionRecoveryAborted,
   shouldInterruptBeforeRewind,
@@ -137,6 +139,28 @@ describe('inlineErrorMessage', () => {
 
   it('falls back for non-error, non-string input', () => {
     expect(inlineErrorMessage(undefined, 'fallback')).toBe('fallback')
+  })
+})
+
+describe('renderCommandsCatalog', () => {
+  it('renders built-in command descriptions in the active locale', () => {
+    const output = renderCommandsCatalog(
+      {
+        pairs: [
+          ['/review', 'Spawn an independent reviewer'],
+          ['/ship-it', 'Run the release checklist']
+        ]
+      },
+      zh.desktop,
+      {
+        '/review': '启动独立审阅智能体',
+        '/ship-it': '运行发布检查清单'
+      }
+    )
+
+    expect(output).toMatch(/\/review\s+启动独立审阅智能体/)
+    expect(output).toMatch(/\/ship-it\s+运行发布检查清单/)
+    expect(output).not.toContain('Spawn an independent reviewer')
   })
 })
 

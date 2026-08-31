@@ -138,6 +138,7 @@ interface SlashCommandDeps {
   branchCurrentSession: () => Promise<boolean>
   busyRef: MutableRefObject<boolean>
   copy: Translations['desktop']
+  commandDescriptions: Record<string, string>
   createBackendSessionForSend: (preview?: string | null) => Promise<string | null>
   getRoutedStoredSessionId: () => null | string
   getRuntimeIdForStoredSession: (storedSessionId: string) => null | string
@@ -167,6 +168,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
     appendSessionTextMessage,
     branchCurrentSession,
     busyRef,
+    commandDescriptions,
     copy,
     createBackendSessionForSend,
     getRoutedStoredSessionId,
@@ -887,7 +889,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           try {
             const catalog = await requestGateway<CommandsCatalogLike>('commands.catalog', { session_id: sessionId })
 
-            renderSlashOutput(renderCommandsCatalog(catalog, copy))
+            renderSlashOutput(renderCommandsCatalog(catalog, copy, commandDescriptions))
           } catch (err) {
             renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
           }

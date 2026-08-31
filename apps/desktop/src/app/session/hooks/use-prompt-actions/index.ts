@@ -613,6 +613,7 @@ export function usePromptActions({
     appendSessionTextMessage,
     branchCurrentSession,
     busyRef,
+    commandDescriptions: t.composer.commandDescs,
     copy,
     createBackendSessionForSend,
     getRoutedStoredSessionId,

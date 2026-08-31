@@ -469,8 +469,12 @@ export function friendlyRemoteAttachError(err: unknown, label: string): Error {
   return new Error(translateNow('desktop.remoteAttachTooLarge', label, maxMb))
 }
 
-export function renderCommandsCatalog(catalog: CommandsCatalogLike, copy: Translations['desktop']): string {
-  const desktopCatalog = filterDesktopCommandsCatalog(catalog)
+export function renderCommandsCatalog(
+  catalog: CommandsCatalogLike,
+  copy: Translations['desktop'],
+  localizedDescriptions?: Record<string, string>
+): string {
+  const desktopCatalog = filterDesktopCommandsCatalog(catalog, localizedDescriptions)
 
   const sections = desktopCatalog.categories?.length
     ? desktopCatalog.categories
