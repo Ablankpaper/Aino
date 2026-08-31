@@ -4655,6 +4655,8 @@ export const en: Translations = {
       close: 'Close'
     },
     messages: {
+      embedLoad: label => `Load ${label}`,
+      embedAlwaysAllow: label => `Always allow ${label}`,
       embedLoadFailed: label => `Failed to load ${label} embed`,
       noPageAt: path => `No page at ${path}`
     },

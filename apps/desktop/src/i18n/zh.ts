@@ -5007,6 +5007,8 @@ export const zh: Translations = {
       close: '关闭'
     },
     messages: {
+      embedLoad: label => `加载 ${label}`,
+      embedAlwaysAllow: label => `始终允许 ${label}`,
       embedLoadFailed: label => `加载 ${label} 嵌入失败`,
       noPageAt: path => `路径 ${path} 没有对应页面`
     },

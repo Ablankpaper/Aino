@@ -3828,6 +3828,8 @@ export interface Translations {
       close: string
     }
     messages: {
+      embedLoad: (label: string) => string
+      embedAlwaysAllow: (label: string) => string
       embedLoadFailed: (label: string) => string
       noPageAt: (path: string) => string
     }
