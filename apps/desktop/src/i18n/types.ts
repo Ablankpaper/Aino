@@ -3219,6 +3219,13 @@ export interface Translations {
 
   assistant: {
     markdown: {
+      alerts: {
+        caution: string
+        important: string
+        note: string
+        tip: string
+        warning: string
+      }
       mediaFetchFailed: (name: string) => string
       openFile: (kind: 'audio' | 'video') => string
       imageLoadFailed: (name: string) => string

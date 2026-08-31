@@ -3902,6 +3902,13 @@ export const zh: Translations = {
 
   assistant: {
     markdown: {
+      alerts: {
+        caution: '注意',
+        important: '重要',
+        note: '备注',
+        tip: '提示',
+        warning: '警告'
+      },
       mediaFetchFailed: name => `无法从网关获取 ${name}（文件缺失、不可读取或过大）。`,
       openFile: kind => `打开${kind === 'audio' ? '音频' : '视频'}文件`,
       imageLoadFailed: name => `图片加载失败：${name}。`,

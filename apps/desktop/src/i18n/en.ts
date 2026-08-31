@@ -3760,6 +3760,13 @@ export const en: Translations = {
 
   assistant: {
     markdown: {
+      alerts: {
+        caution: 'Caution',
+        important: 'Important',
+        note: 'Note',
+        tip: 'Tip',
+        warning: 'Warning'
+      },
       mediaFetchFailed: name => `Couldn't fetch ${name} from the gateway (missing, unreadable, or too large).`,
       openFile: kind => `Open ${kind} file`,
       imageLoadFailed: name => `Couldn't load ${name}.`,

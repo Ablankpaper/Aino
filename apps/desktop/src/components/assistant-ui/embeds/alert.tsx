@@ -1,5 +1,6 @@
 import { cloneElement, isValidElement, type ReactNode } from 'react'
 
+import { useI18n } from '@/i18n'
 import { AlertCircle, AlertTriangle, type IconComponent, Info, Zap } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
@@ -8,16 +9,22 @@ export type AlertType = 'caution' | 'important' | 'note' | 'tip' | 'warning'
 interface AlertStyle {
   accent: string
   icon: IconComponent
-  label: string
 }
 
 // GitHub's five alert kinds, mapped to our icon set + a tinted accent.
 const ALERT_STYLES: Record<AlertType, AlertStyle> = {
-  caution: { accent: 'text-rose-600 dark:text-rose-400', icon: AlertTriangle, label: 'Caution' },
-  important: { accent: 'text-violet-600 dark:text-violet-400', icon: AlertCircle, label: 'Important' },
-  note: { accent: 'text-blue-600 dark:text-blue-400', icon: Info, label: 'Note' },
-  tip: { accent: 'text-emerald-600 dark:text-emerald-400', icon: Zap, label: 'Tip' },
-  warning: { accent: 'text-amber-600 dark:text-amber-400', icon: AlertTriangle, label: 'Warning' }
+  caution: { accent: 'text-rose-600 dark:text-rose-400', icon: AlertTriangle },
+  important: { accent: 'text-violet-600 dark:text-violet-400', icon: AlertCircle },
+  note: { accent: 'text-blue-600 dark:text-blue-400', icon: Info },
+  tip: { accent: 'text-emerald-600 dark:text-emerald-400', icon: Zap },
+  warning: { accent: 'text-amber-600 dark:text-amber-400', icon: AlertTriangle }
+}
+
+export function getAlertLabel(
+  type: AlertType,
+  labels: { caution: string; important: string; note: string; tip: string; warning: string }
+): string {
+  return labels[type]
 }
 
 const MARKER_RE = /^\s*\[!(note|tip|important|warning|caution)\]\s*\n?/i
@@ -107,6 +114,7 @@ export function extractAlert(children: ReactNode): { body: ReactNode; type: Aler
 }
 
 export function MarkdownAlert({ children, type }: { children: ReactNode; type: AlertType }) {
+  const { t } = useI18n()
   const style = ALERT_STYLES[type]
   const Icon = style.icon
 
@@ -117,7 +125,7 @@ export function MarkdownAlert({ children, type }: { children: ReactNode; type: A
     >
       <div className={cn('mb-1 flex items-center gap-1.5 text-[0.8125rem] font-semibold', style.accent)}>
         <Icon className="size-4 shrink-0" />
-        {style.label}
+        {getAlertLabel(type, t.assistant.markdown.alerts)}
       </div>
       {children}
     </div>
