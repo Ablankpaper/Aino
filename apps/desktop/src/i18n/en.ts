@@ -3961,6 +3961,14 @@ export const en: Translations = {
         returnedStatus: status => `Tool returned status "${status}".`,
         commandFailedExitCode: code => `Command failed with exit code ${code}.`
       },
+      cron: {
+        noJobs: 'No cron jobs',
+        noJobsScheduled: 'No cron jobs scheduled',
+        schedule: 'Schedule',
+        repeat: 'Repeat',
+        delivery: 'Delivery',
+        nextRun: 'Next run'
+      },
       recoveredOne: 'Recovered after 1 failed step',
       recoveredMany: count => `Recovered after ${count} failed steps`,
       failedOne: '1 step failed',

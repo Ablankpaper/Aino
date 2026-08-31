@@ -4100,6 +4100,14 @@ export const zh: Translations = {
         returnedStatus: status => `工具返回状态“${status}”。`,
         commandFailedExitCode: code => `命令失败，退出码为 ${code}。`
       },
+      cron: {
+        noJobs: '没有 Cron 任务',
+        noJobsScheduled: '没有已安排的 Cron 任务',
+        schedule: '计划',
+        repeat: '重复',
+        delivery: '发送到',
+        nextRun: '下次运行'
+      },
       recoveredOne: '在 1 个失败步骤后已恢复',
       recoveredMany: count => `在 ${count} 个失败步骤后已恢复`,
       failedOne: '1 个步骤失败',

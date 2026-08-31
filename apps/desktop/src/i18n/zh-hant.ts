@@ -2868,6 +2868,14 @@ export const zhHant = defineLocale({
         returnedStatus: status => `工具回傳狀態「${status}」。`,
         commandFailedExitCode: code => `指令以結束代碼 ${code} 失敗。`
       },
+      cron: {
+        noJobs: '沒有 Cron 工作',
+        noJobsScheduled: '沒有已排程的 Cron 工作',
+        schedule: '排程',
+        repeat: '重複',
+        delivery: '傳送到',
+        nextRun: '下次執行'
+      },
       recoveredOne: '在 1 個失敗步驟後已復原',
       recoveredMany: count => `在 ${count} 個失敗步驟後已復原`,
       failedOne: '1 個步驟失敗',

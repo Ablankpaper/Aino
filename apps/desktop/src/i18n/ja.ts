@@ -2965,6 +2965,14 @@ export const ja = defineLocale({
         returnedStatus: status => `ツールがステータス「${status}」を返しました。`,
         commandFailedExitCode: code => `コマンドが終了コード ${code} で失敗しました。`
       },
+      cron: {
+        noJobs: 'Cron ジョブはありません',
+        noJobsScheduled: 'スケジュールされた Cron ジョブはありません',
+        schedule: 'スケジュール',
+        repeat: '繰り返し',
+        delivery: '配信',
+        nextRun: '次回実行'
+      },
       recoveredOne: '1 つの失敗したステップの後に回復しました',
       recoveredMany: count => `${count} つの失敗したステップの後に回復しました`,
       failedOne: '1 つのステップが失敗しました',

@@ -890,7 +890,9 @@ function cronjobSubtitle(argsRecord: Record<string, unknown>, resultRecord: Reco
   const jobs = Array.isArray(resultRecord.jobs) ? resultRecord.jobs : null
 
   if (jobs) {
-    return jobs.length ? `${jobs.length} cron job${jobs.length === 1 ? '' : 's'}` : 'No cron jobs'
+    return jobs.length
+      ? `${jobs.length} cron job${jobs.length === 1 ? '' : 's'}`
+      : translateNow('assistant.tool.cron.noJobs')
   }
 
   const message = firstStringField(resultRecord, ['message'])
@@ -911,7 +913,7 @@ function cronjobDetail(argsRecord: Record<string, unknown>, resultRecord: Record
 
   if (jobs) {
     if (!jobs.length) {
-      return 'No cron jobs scheduled'
+      return translateNow('assistant.tool.cron.noJobsScheduled')
     }
 
     return jobs
@@ -929,10 +931,10 @@ function cronjobDetail(argsRecord: Record<string, unknown>, resultRecord: Record
   const nextRun = cronScalar(resultRecord.next_run_at)
 
   const rows: [string, string][] = [
-    ['Schedule', cronScalar(resultRecord.schedule)],
-    ['Repeat', cronScalar(resultRecord.repeat)],
-    ['Delivery', cronScalar(resultRecord.deliver)],
-    ['Next run', nextRun ? formatCronTime(nextRun) : '']
+    [translateNow('assistant.tool.cron.schedule'), cronScalar(resultRecord.schedule)],
+    [translateNow('assistant.tool.cron.repeat'), cronScalar(resultRecord.repeat)],
+    [translateNow('assistant.tool.cron.delivery'), cronScalar(resultRecord.deliver)],
+    [translateNow('assistant.tool.cron.nextRun'), nextRun ? formatCronTime(nextRun) : '']
   ]
 
   const lines = rows.filter(([, value]) => value).map(([key, value]) => `${key}: ${value}`)

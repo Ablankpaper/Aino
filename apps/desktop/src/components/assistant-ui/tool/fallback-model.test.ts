@@ -108,6 +108,34 @@ describe('buildToolView generic fallback errors', () => {
   })
 })
 
+describe('buildToolView cron summaries', () => {
+  it('uses Simplified Chinese copy for generated cron labels and empty states', () => {
+    setRuntimeI18nLocale('zh')
+
+    const empty = buildToolView(part({ result: { jobs: [] }, toolName: 'cronjob' }), '')
+
+    const detail = buildToolView(
+      part({
+        result: {
+          deliver: 'chat',
+          next_run_at: '2026-09-01T09:00:00.000Z',
+          repeat: 'daily',
+          schedule: '0 9 * * *'
+        },
+        toolName: 'cronjob'
+      }),
+      ''
+    )
+
+    expect(empty.subtitle).toBe('没有 Cron 任务')
+    expect(empty.detail).toBe('没有已安排的 Cron 任务')
+    expect(detail.detail).toContain('计划: 0 9 * * *')
+    expect(detail.detail).toContain('重复: daily')
+    expect(detail.detail).toContain('发送到: chat')
+    expect(detail.detail).toContain('下次运行:')
+  })
+})
+
 describe('buildToolView browser_exec step label', () => {
   const bexec = (code: string) =>
     buildToolView(part({ args: { code }, result: undefined, toolName: 'browser_exec' }), '')

@@ -3408,6 +3408,14 @@ export interface Translations {
         returnedStatus: (status: string) => string
         commandFailedExitCode: (code: number) => string
       }
+      cron: {
+        noJobs: string
+        noJobsScheduled: string
+        schedule: string
+        repeat: string
+        delivery: string
+        nextRun: string
+      }
       recoveredOne: string
       recoveredMany: (count: number) => string
       failedOne: string
