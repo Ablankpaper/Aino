@@ -1622,7 +1622,7 @@ const zh: BotsMessages = {
     searchingShort: '搜索中…',
     browseHub: '浏览完整技能中心 ▾',
     hideHub: '隐藏技能中心浏览器',
-    hubHint: '点击任意技能上的“+ Add to this Agent”即可安装，安装后会出现在上方列表中。拖动角落可调整大小。',
+    hubHint: '点击任意技能上的“+ 添加到此智能体”即可安装，安装后会出现在上方列表中。拖动角落可调整大小。',
     searching: '正在搜索社区和常见来源 — 可能需要约 10 秒…',
     added: '✓ 已添加',
     installed: name => `已安装技能“${name}”`,

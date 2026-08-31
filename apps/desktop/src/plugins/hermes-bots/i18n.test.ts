@@ -107,6 +107,14 @@ describe('BOTS_LOCALES', () => {
     }
   })
 
+  it('localizes the skill hub install affordance for Chinese users', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    expect(zhByPath['tools.hubHint']).toBe(
+      '点击任意技能上的“+ 添加到此智能体”即可安装，安装后会出现在上方列表中。拖动角落可调整大小。'
+    )
+  })
+
   it('keeps interpolator arguments in the translated string', () => {
     const sentinel = 'QUERY_SENTINEL'
     const gateway = 'GATEWAY_SENTINEL'
