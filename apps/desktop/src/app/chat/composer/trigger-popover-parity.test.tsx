@@ -7,6 +7,26 @@ vi.mock('@/i18n', () => ({
   useI18n: () => ({
     t: {
       composer: {
+        completionGroups: {
+          commands: 'Commands',
+          configuration: 'Configuration',
+          exit: 'Exit',
+          info: 'Info',
+          options: 'Options',
+          session: 'Session',
+          sessions: 'Sessions',
+          skills: 'Skills',
+          themes: 'Themes',
+          toolsAndSkills: 'Tools & Skills'
+        },
+        referenceLabels: {
+          file: 'Files',
+          folder: 'Folders',
+          git: 'Git',
+          image: 'Images',
+          tool: 'Tools',
+          url: 'Links'
+        },
         lookupLoading: 'Loading…',
         lookupNoMatches: 'No matches',
         lookupTry: 'Try',

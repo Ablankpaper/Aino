@@ -87,14 +87,17 @@ describe('inter-agent collapse gate', () => {
     render(<Harness messages={[user('u1', DELIVERY), assistant('a1', 'build is green', false)]} />)
 
     expect(await screen.findByText(/Replied to/)).toBeTruthy()
-    expect(screen.getByText('show reply')).toBeTruthy()
+    // The label is localized (and its English capitalization is title case),
+    // so assert the collapsed assistant affordance by structure rather than
+    // freezing one locale's copy.
+    expect(document.querySelector('[data-role="assistant"] details summary')).toBeTruthy()
   })
 
   it('does NOT collapse while that reply is still streaming', async () => {
     const { container } = render(<Harness messages={[user('u1', DELIVERY), assistant('a1', 'working on it', true)]} />)
 
     await screen.findByText('working on it')
-    expect(screen.queryByText('show reply')).toBeNull()
+    expect(document.querySelector('[data-role="assistant"] details summary')).toBeNull()
     // Expanded => the full body root, which carries the streaming marker.
     expect(container.querySelector('[data-message-streaming="true"]')).toBeTruthy()
   })

@@ -427,6 +427,10 @@ export async function pluginSdkMock(host: Record<string, unknown>) {
     host,
     SkillsView: undefined,
     Streamdown: undefined,
+    // Routing's passive workspace fallback uses the SDK translator. Keep the
+    // shared fixture aligned with the current SDK surface so tests exercise
+    // the degraded path instead of failing while constructing its message.
+    translateNow: (key: string) => key,
     queryClient: { invalidateQueries: () => undefined },
     useQuery: () => ({ data: [], isLoading: false }),
     useValue: <T>(store: { get: () => T }) => store.get()
