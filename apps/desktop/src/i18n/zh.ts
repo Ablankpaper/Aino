@@ -149,13 +149,13 @@ export const zh: Translations = {
     },
     errors: {
       elevenLabsNeedsKey: 'ElevenLabs STT 需要 ELEVENLABS_API_KEY。',
-      elevenLabsRejectedKey: 'ElevenLabs 拒绝了该 API key (401)。',
+      elevenLabsRejectedKey: 'ElevenLabs 拒绝了该 API 密钥 (401)。',
       diskFull: '磁盘已满 — 请腾出一些空间后再试。',
       gatewayAuthFailed: '网关认证失败 — 请检查你的 API_SERVER_KEY。',
       methodNotAllowed: '桌面后端拒绝了该请求 (405 Method Not Allowed)。请尝试重启 Hermes Desktop。',
       microphonePermission: '麦克风权限已被拒绝。',
-      openaiRejectedApiKey: 'OpenAI 拒绝了该 API key。',
-      openaiRejectedApiKeyWithStatus: status => `OpenAI 拒绝了该 API key (${status} invalid_api_key)。`,
+      openaiRejectedApiKey: 'OpenAI 拒绝了该 API 密钥。',
+      openaiRejectedApiKeyWithStatus: status => `OpenAI 拒绝了该 API 密钥 (${status} invalid_api_key)。`,
       openaiTtsNeedsKey: 'OpenAI TTS 需要 VOICE_TOOLS_OPENAI_KEY 或 OPENAI_API_KEY。'
     },
     voice: {
@@ -2418,23 +2418,23 @@ export const zh: Translations = {
     waitingSince: minutes => (minutes < 1 ? '刚刚' : `${minutes} 分钟前`),
     fieldCopy: {
       TELEGRAM_BOT_TOKEN: {
-        label: 'Bot 令牌',
+        label: '机器人令牌',
         help: '用 @BotFather 创建一个机器人，然后粘贴它给你的令牌。',
-        placeholder: '粘贴 Telegram bot 令牌'
+        placeholder: '粘贴 Telegram 机器人令牌'
       },
       TELEGRAM_ALLOWED_USERS: {
         label: '允许的 Telegram 用户 ID',
         help: '推荐。来自 @userinfobot 的逗号分隔数字 ID。不设置则任何人都能私信你的机器人。'
       },
       TELEGRAM_PROXY: { label: '代理 URL', help: '仅在 Telegram 被屏蔽的网络中需要。' },
-      DISCORD_BOT_TOKEN: { label: 'Bot 令牌', help: '在 Discord 开发者门户创建应用，添加机器人，然后粘贴其令牌。' },
+      DISCORD_BOT_TOKEN: { label: '机器人令牌', help: '在 Discord 开发者门户创建应用，添加机器人，然后粘贴其令牌。' },
       DISCORD_ALLOWED_USERS: { label: '允许的 Discord 用户 ID', help: '推荐。逗号分隔的 Discord 用户 ID。' },
       DISCORD_REPLY_TO_MODE: { label: '回复方式', help: 'first、all 或 off。' },
       DISCORD_ALLOW_ALL_USERS: {
         label: '允许所有 Discord 用户',
-        help: '仅用于开发。为 true 时，任何人都可以私信 bot，不需要允许列表。'
+        help: '仅用于开发。为 true 时，任何人都可以私信机器人，不需要允许列表。'
       },
-      DISCORD_HOME_CHANNEL: { label: '主页频道 ID', help: 'bot 主动发送消息的频道（cron 输出、提醒等）。' },
+      DISCORD_HOME_CHANNEL: { label: '主页频道 ID', help: '机器人主动发送消息的频道（cron 输出、提醒等）。' },
       DISCORD_HOME_CHANNEL_NAME: { label: '主页频道名称', help: '日志和状态输出中显示的主页频道名称。' },
       BLUEBUBBLES_ALLOW_ALL_USERS: { label: '允许所有 iMessage 用户', help: '为 true 时跳过 BlueBubbles 允许列表。' },
       MATTERMOST_ALLOW_ALL_USERS: { label: '允许所有 Mattermost 用户' },
@@ -2443,22 +2443,22 @@ export const zh: Translations = {
       QQBOT_HOME_CHANNEL: { label: 'QQ 主页频道', help: 'cron 投递的默认频道或群组。' },
       QQBOT_HOME_CHANNEL_NAME: { label: 'QQ 主页频道名称' },
       SLACK_BOT_TOKEN: {
-        label: 'Slack bot 令牌',
-        help: '安装 Slack 应用后，在 OAuth & Permissions 中找到 bot 令牌。',
-        placeholder: '粘贴 Slack bot 令牌'
+        label: 'Slack 机器人令牌',
+        help: '安装 Slack 应用后，在 OAuth & Permissions 中找到机器人令牌。',
+        placeholder: '粘贴 Slack 机器人令牌'
       },
       SLACK_APP_TOKEN: {
-        label: 'Slack app 令牌',
-        help: 'Socket Mode 需要 app 级令牌。',
-        placeholder: '粘贴 Slack app 令牌'
+        label: 'Slack 应用令牌',
+        help: 'Socket Mode 需要应用级令牌。',
+        placeholder: '粘贴 Slack 应用令牌'
       },
       SLACK_ALLOWED_USERS: { label: '允许的 Slack 用户 ID', help: '推荐。逗号分隔的 Slack 用户 ID。' },
       MATTERMOST_URL: { label: '服务器 URL', placeholder: 'https://mattermost.example.com' },
-      MATTERMOST_TOKEN: { label: 'Bot 令牌' },
+      MATTERMOST_TOKEN: { label: '机器人令牌' },
       MATTERMOST_ALLOWED_USERS: { label: '允许的用户 ID', help: '推荐。逗号分隔的 Mattermost 用户 ID。' },
-      MATRIX_HOMESERVER: { label: 'Homeserver URL', placeholder: 'https://matrix.org' },
+      MATRIX_HOMESERVER: { label: '主服务器 URL（Homeserver）', placeholder: 'https://matrix.org' },
       MATRIX_ACCESS_TOKEN: { label: '访问令牌' },
-      MATRIX_USER_ID: { label: 'Bot 用户 ID', placeholder: '@hermes:example.org' },
+      MATRIX_USER_ID: { label: '机器人用户 ID', placeholder: '@hermes:example.org' },
       MATRIX_ALLOWED_USERS: { label: '允许的 Matrix 用户 ID', help: '推荐。@user:server 格式的逗号分隔用户 ID。' },
       SIGNAL_HTTP_URL: {
         label: 'Signal 桥接 URL',
@@ -2475,10 +2475,10 @@ export const zh: Translations = {
       telegram:
         '在 Telegram 中，与 @BotFather 对话，运行 /newbot，复制它给你的令牌。然后从 @userinfobot 获取你的数字用户 ID。',
       discord:
-        '打开 Discord 开发者门户，创建应用，添加 Bot，然后复制其令牌。用正确的权限范围把机器人邀请到你的服务器。',
-      slack: '创建 Slack 应用，启用 Socket Mode，安装到你的工作区，然后复制 bot 令牌和 app 级令牌。',
+        '打开 Discord 开发者门户，创建应用，添加机器人，然后复制其令牌。用正确的权限范围把机器人邀请到你的服务器。',
+      slack: '创建 Slack 应用，启用 Socket Mode，安装到你的工作区，然后复制机器人令牌和应用级令牌。',
       mattermost: '在你的 Mattermost 服务器上，创建机器人账户或个人访问令牌，然后在此粘贴服务器 URL 和令牌。',
-      matrix: '用机器人账户登录你的 homeserver，然后复制访问令牌、用户 ID 和 homeserver URL。',
+      matrix: '用机器人账户登录你的主服务器（homeserver），然后复制访问令牌、用户 ID 和主服务器 URL。',
       signal: '在可访问的位置运行 signal-cli REST 桥接，然后把 Hermes 指向该 URL 和已注册的电话号码。',
       whatsapp: '启动 Hermes 自带的 WhatsApp 桥接，首次运行时扫描二维码，然后启用该平台。',
       bluebubbles:
@@ -3802,7 +3802,7 @@ export const zh: Translations = {
     settingUpTitle: '正在设置 Hermes Agent',
     finishingTitle: '正在收尾',
     failedDesc:
-      '某个安装步骤失败。在 Windows 上，如果另一个 Hermes CLI 或桌面实例正在运行，可能会出现这种情况。请停止正在运行的 Hermes 实例后重试。可查看下面的详情或 desktop 日志中的完整记录。',
+      '某个安装步骤失败。在 Windows 上，如果另一个 Hermes CLI 或桌面实例正在运行，可能会出现这种情况。请停止正在运行的 Hermes 实例后重试。可查看下面的详情或桌面端日志中的完整记录。',
     activeDesc: '这是一次性设置。Hermes 安装器正在下载依赖并配置你的机器。之后启动会跳过此步骤。',
     progress: (completed, total) => `${completed}/${total} 个步骤已完成`,
     currentStage: stage => ` -- 当前：${stage}`,

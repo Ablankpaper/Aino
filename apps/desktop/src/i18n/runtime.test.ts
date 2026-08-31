@@ -205,6 +205,33 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('tips.items.profiles.title')).toBe('配置档案彼此独立')
   })
 
+  it('localizes messaging setup terminology while preserving technical values', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('notifications.errors.elevenLabsRejectedKey')).toBe('ElevenLabs 拒绝了该 API 密钥 (401)。')
+    expect(translateNow('notifications.errors.openaiRejectedApiKey')).toBe('OpenAI 拒绝了该 API 密钥。')
+    expect(translateNow('notifications.errors.openaiRejectedApiKeyWithStatus', '401')).toBe(
+      'OpenAI 拒绝了该 API 密钥 (401 invalid_api_key)。'
+    )
+    expect(translateNow('install.failedDesc')).toContain('桌面端日志')
+    expect(translateNow('messaging.fieldCopy.TELEGRAM_BOT_TOKEN.label')).toBe('机器人令牌')
+    expect(translateNow('messaging.fieldCopy.TELEGRAM_BOT_TOKEN.placeholder')).toBe('粘贴 Telegram 机器人令牌')
+    expect(translateNow('messaging.fieldCopy.DISCORD_ALLOW_ALL_USERS.help')).toBe(
+      '仅用于开发。为 true 时，任何人都可以私信机器人，不需要允许列表。'
+    )
+    expect(translateNow('messaging.fieldCopy.DISCORD_HOME_CHANNEL.help')).toBe(
+      '机器人主动发送消息的频道（cron 输出、提醒等）。'
+    )
+    expect(translateNow('messaging.fieldCopy.SLACK_BOT_TOKEN.help')).toBe(
+      '安装 Slack 应用后，在 OAuth & Permissions 中找到机器人令牌。'
+    )
+    expect(translateNow('messaging.fieldCopy.SLACK_APP_TOKEN.help')).toBe('Socket Mode 需要应用级令牌。')
+    expect(translateNow('messaging.fieldCopy.MATRIX_USER_ID.label')).toBe('机器人用户 ID')
+    expect(translateNow('messaging.platformIntro.discord')).toContain('添加机器人')
+    expect(translateNow('messaging.platformIntro.slack')).toContain('机器人令牌和应用级令牌')
+    expect(translateNow('messaging.platformIntro.matrix')).toContain('主服务器（homeserver）')
+  })
+
   it('describes the embedded skills-hub action in Simplified Chinese', () => {
     setRuntimeI18nLocale('zh')
 
