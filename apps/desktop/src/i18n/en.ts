@@ -3642,6 +3642,13 @@ export const en: Translations = {
   },
 
   assistant: {
+    markdown: {
+      mediaFetchFailed: name => `Couldn't fetch ${name} from the gateway (missing, unreadable, or too large).`,
+      openFile: kind => `Open ${kind} file`,
+      imageLoadFailed: name => `Couldn't load ${name}.`,
+      openImage: 'Open image',
+      loading: name => `Loading ${name}...`
+    },
     thread: {
       loadingSession: 'Loading session',
       showEarlier: 'Show earlier messages',
@@ -4020,6 +4027,7 @@ export const en: Translations = {
     genericFailure: 'Something went wrong',
     boundaryTitle: 'Something broke in the interface',
     boundaryDesc: 'The view hit an unexpected error. Your chats and settings are safe.',
+    contribFailedToRender: id => `“${id}” failed to render`,
     reloadWindow: 'Reload window',
     openLogs: 'Open logs'
   },

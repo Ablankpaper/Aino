@@ -3119,6 +3119,13 @@ export interface Translations {
   }
 
   assistant: {
+    markdown: {
+      mediaFetchFailed: (name: string) => string
+      openFile: (kind: 'audio' | 'video') => string
+      imageLoadFailed: (name: string) => string
+      openImage: string
+      loading: (name: string) => string
+    }
     thread: {
       loadingSession: string
       showEarlier: string
@@ -3416,6 +3423,7 @@ export interface Translations {
     genericFailure: string
     boundaryTitle: string
     boundaryDesc: string
+    contribFailedToRender: (id: string) => string
     reloadWindow: string
     openLogs: string
   }

@@ -3786,6 +3786,13 @@ export const zh: Translations = {
   },
 
   assistant: {
+    markdown: {
+      mediaFetchFailed: name => `无法从网关获取 ${name}（文件缺失、不可读取或过大）。`,
+      openFile: kind => `打开${kind === 'audio' ? '音频' : '视频'}文件`,
+      imageLoadFailed: name => `图片加载失败：${name}。`,
+      openImage: '打开图片',
+      loading: name => `正在加载 ${name}…`
+    },
     thread: {
       loadingSession: '正在加载会话',
       showEarlier: '显示更早的消息',
@@ -4147,6 +4154,7 @@ export const zh: Translations = {
     genericFailure: '发生错误',
     boundaryTitle: '界面出错了',
     boundaryDesc: '此视图遇到意外错误。你的对话和设置是安全的。',
+    contribFailedToRender: id => `面板“${id}”渲染失败`,
     reloadWindow: '重新加载窗口',
     openLogs: '打开日志'
   },
