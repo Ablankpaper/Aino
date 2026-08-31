@@ -190,6 +190,10 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('shell.statusbar.subagents', 2)).toBe('2 个子智能体')
     expect(translateNow('shell.statusbar.contextUsagePanel.categories.subagent_definitions')).toBe('子智能体定义')
     expect(translateNow('desktop.activity.agentTaskRunning')).toBe('智能体任务运行中')
+    expect(translateNow('boot.failure.cloudDownTitle')).toBe('Nous Cloud 智能体不可用')
+    expect(translateNow('boot.failure.cloudDownDescription')).toBe(
+      '此网关连接的 Nous 托管云端智能体返回了服务器错误。无法从此处重启——请检查其状态、切换到本地网关或获取支持。'
+    )
     expect(translateNow('settings.toolsets.browserRealProfile.description')).toContain('智能体使用该快照')
     expect(translateNow('preview.web.remoteLoopback')).toContain('运行智能体的那台机器')
     expect(translateNow('composer.commandDescs./whoami')).toBe('显示当前斜杠命令权限（管理员/用户）')
