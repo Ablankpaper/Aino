@@ -2811,7 +2811,73 @@ export const zh: Translations = {
       loading: '正在加载蓝图...',
       failedLoad: '加载蓝图失败',
       emptyTitle: '没有可用的蓝图',
-      emptyDesc: '此后端上没有可用的自动化蓝图。'
+      emptyDesc: '此后端上没有可用的自动化蓝图。',
+      catalog: {
+        'morning-brief': {
+          title: '晨间简报',
+          description: '每天早上的简短简报：今日的日历、天气，以及任何等待你处理的紧急事项。'
+        },
+        'important-mail': {
+          title: '重要邮件监控',
+          description: '定期检查收件箱，只在确实需要你关注的邮件出现时提醒你。'
+        },
+        'weekly-review': {
+          title: '每周回顾',
+          description: '每周总结：已完成的事项、仍未解决的事项，以及接下来要做的事。'
+        },
+        'workday-start': {
+          title: '工作日开始提醒',
+          description: '在工作日提醒你查看日程和最重要的优先事项。'
+        },
+        'custom-reminder': {
+          title: '自定义提醒',
+          description: '用你自己的话，按你设定的时间重复提醒。'
+        },
+        'evening-winddown': {
+          title: '晚间收尾',
+          description: '一天结束时查看明日行程，并提醒你今晚需要准备的事项。'
+        },
+        'news-digest': {
+          title: '主题新闻摘要',
+          description: '定期汇总你关心的主题，并与已发送内容去重，只推送真正的新消息。'
+        },
+        'bill-renewal-watch': {
+          title: '账单与续订提醒',
+          description: '在定期付款、订阅续订或截止日期前提醒你，避免意外自动扣款。'
+        },
+        'price-watch': {
+          title: '价格与库存监控',
+          description: '监控指定的商品、航班、酒店或商品页面，在价格或库存条件满足时提醒你。'
+        },
+        'competitor-watch': {
+          title: '竞品新闻监控',
+          description: '跟踪指定公司的重要动态（发布、定价、融资、申报等），并生成带来源的摘要。'
+        },
+        'habit-checkin': {
+          title: '习惯打卡提醒',
+          description: '定期提醒你保持习惯，并回顾当天是否完成。'
+        },
+        'hydration-move': {
+          title: '补水与活动提醒',
+          description: '在白天定期提醒你喝水、起身和伸展。'
+        },
+        'meal-plan': {
+          title: '每周膳食计划',
+          description: '根据你的饮食和可用于烹饪的时间，制定每周膳食计划并汇总购物清单。'
+        },
+        'learn-daily': {
+          title: '每日学习',
+          description: '每天学习一个关于指定主题的小知识，并随着时间逐步深入。'
+        },
+        'gratitude-journal': {
+          title: '感恩与反思提示',
+          description: '在夜晚用温和的提示回顾一天，记下进展顺利的事情。'
+        },
+        'on-this-day': {
+          title: '历史上的今天',
+          description: '每天了解一个值得好奇的内容：历史事件、事实或当日词汇。'
+        }
+      }
     }
   },
 

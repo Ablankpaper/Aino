@@ -2607,7 +2607,73 @@ export const en: Translations = {
       loading: 'Loading blueprints...',
       failedLoad: 'Failed to load blueprints',
       emptyTitle: 'No blueprints available',
-      emptyDesc: 'No automation blueprints are available on this backend.'
+      emptyDesc: 'No automation blueprints are available on this backend.',
+      catalog: {
+        'morning-brief': {
+          title: 'Morning briefing',
+          description: "A short daily briefing: today's calendar, weather, and anything urgent waiting on you."
+        },
+        'important-mail': {
+          title: 'Important-mail monitor',
+          description: 'Check your inbox periodically and ping you ONLY about mail that actually needs attention.'
+        },
+        'weekly-review': {
+          title: 'Weekly review',
+          description: "A weekly recap: what got done, what's still open, and what's coming up."
+        },
+        'workday-start': {
+          title: 'Workday start reminder',
+          description: 'A weekday nudge with your agenda and top priorities.'
+        },
+        'custom-reminder': {
+          title: 'Custom reminder',
+          description: 'A recurring reminder in your own words, on your schedule.'
+        },
+        'evening-winddown': {
+          title: 'Evening wind-down',
+          description: "An end-of-day check-in: tomorrow's calendar at a glance and anything you should prep tonight."
+        },
+        'news-digest': {
+          title: 'Topic news digest',
+          description: 'A recurring digest on a topic you care about — deduped against what was already sent, so only genuinely new items land.'
+        },
+        'bill-renewal-watch': {
+          title: 'Bills & renewals reminder',
+          description: 'A heads-up before a recurring payment, subscription renewal, or due date — so nothing auto-charges by surprise.'
+        },
+        'price-watch': {
+          title: 'Price & availability watch',
+          description: 'Watch an exact product, flight, hotel, or listing and alert when your price or availability condition is met.'
+        },
+        'competitor-watch': {
+          title: 'Competitor news watch',
+          description: 'Track named companies for material news — launches, pricing, funding, filings — with a cited digest.'
+        },
+        'habit-checkin': {
+          title: 'Habit check-in',
+          description: 'A recurring nudge to keep a habit on track and reflect on whether you did it.'
+        },
+        'hydration-move': {
+          title: 'Hydration & movement nudge',
+          description: 'A periodic nudge during the day to drink water, stand up, and stretch.'
+        },
+        'meal-plan': {
+          title: 'Weekly meal plan',
+          description: 'A weekly meal plan plus a consolidated grocery list, tuned to your diet and how much time you have to cook.'
+        },
+        'learn-daily': {
+          title: 'Daily learning drip',
+          description: 'One bite-sized lesson a day on a topic you want to learn, building progressively over time.'
+        },
+        'gratitude-journal': {
+          title: 'Gratitude & reflection prompt',
+          description: 'A gentle evening prompt to reflect on the day and note what went well.'
+        },
+        'on-this-day': {
+          title: 'On-this-day discovery',
+          description: 'A daily dose of curiosity: a notable historical event, fact, or word for the day.'
+        }
+      }
     }
   },
 

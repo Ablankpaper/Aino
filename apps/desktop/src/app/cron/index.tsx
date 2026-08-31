@@ -73,6 +73,7 @@ import {
 } from '../overlays/panel'
 import type { SetStatusbarItemGroup } from '../shell/statusbar-controls'
 
+import { localizedBlueprintCopy } from './blueprint-copy'
 import { BlueprintSlotControl, blueprintSlotHelp, cleanBlueprintFieldError, initialBlueprintValues } from './blueprints'
 import { mutateAndRefreshCronJobs, refreshCronJobs, triggerAndRefreshCronJobs } from './cron-actions'
 import {
@@ -411,8 +412,14 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
     const list = blueprintsQuery.data ?? []
     const needle = query.trim().toLowerCase()
 
-    return needle ? list.filter(item => `${item.title} ${item.description}`.toLowerCase().includes(needle)) : list
-  }, [blueprintsQuery.data, query])
+    return needle
+      ? list.filter(item => {
+          const copy = localizedBlueprintCopy(item, t)
+
+          return `${copy.title} ${copy.description} ${item.title} ${item.description}`.toLowerCase().includes(needle)
+        })
+      : list
+  }, [blueprintsQuery.data, query, t])
 
   // Detail always reflects a concrete job: the explicitly selected one, else the
   // first visible row, so the right pane is never empty while jobs exist.
@@ -626,7 +633,11 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
       notifyError(refreshError, c.failedLoad)
     }
 
-    notify({ kind: 'success', title: c.blueprints.scheduled, message: asText(job.schedule_display) || blueprint.title })
+    notify({
+      kind: 'success',
+      title: c.blueprints.scheduled,
+      message: asText(job.schedule_display) || localizedBlueprintCopy(blueprint, t).title
+    })
     setEditor({ mode: 'closed' })
   }
 
@@ -683,14 +694,14 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
               <>
                 <PanelSectionLabel className="mt-3 px-2">{c.blueprints.tab}</PanelSectionLabel>
                 {visibleBlueprints.map(item => (
-                  <PanelListRow
-                    active={false}
-                    icon="rocket"
-                    key={item.key}
-                    onSelect={() => setEditor({ blueprintKey: item.key, mode: 'create' })}
-                    rowKey={`blueprint-${item.key}`}
-                    title={item.title}
-                  />
+                <PanelListRow
+                  active={false}
+                  icon="rocket"
+                  key={item.key}
+                  onSelect={() => setEditor({ blueprintKey: item.key, mode: 'create' })}
+                  rowKey={`blueprint-${item.key}`}
+                  title={localizedBlueprintCopy(item, t).title}
+                />
                 ))}
               </>
             )}
@@ -1062,6 +1073,7 @@ function CronEditorDialog({
 
   const blueprint =
     templateChoice === CUSTOM_TEMPLATE ? null : (blueprintList.find(item => item.key === templateChoice) ?? null)
+  const blueprintCopy = blueprint ? localizedBlueprintCopy(blueprint, t) : null
 
   const isBlueprint = blueprint !== null
 
@@ -1222,12 +1234,12 @@ function CronEditorDialog({
                 <SelectItem value={CUSTOM_TEMPLATE}>{c.blueprints.custom}</SelectItem>
                 {blueprintList.map(item => (
                   <SelectItem key={item.key} value={item.key}>
-                    {item.title}
+                    {localizedBlueprintCopy(item, t).title}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {blueprint?.description && <FieldHint>{blueprint.description}</FieldHint>}
+            {blueprintCopy?.description && <FieldHint>{blueprintCopy.description}</FieldHint>}
           </Field>
         )}
 
