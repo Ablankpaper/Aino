@@ -697,6 +697,7 @@ export interface Translations {
       technicalDesc: string
       themeTitle: string
       themeDesc: string
+      themePresets: Record<string, { label: string; description: string }>
       themeProfileNote: (profile: string) => string
       installTitle: string
       installDesc: string
@@ -3590,6 +3591,9 @@ export interface Translations {
       switched: (label: string) => string
       listHeading: string
       listHint: string
+      completionList: string
+      completionNext: string
+      completionCurrent: string
       unknownTheme: (name: string, available: string) => string
     }
     commandResults: {

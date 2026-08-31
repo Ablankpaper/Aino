@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import {
   type CommandCatalogMeta,
   type CommandsCatalogLike,
@@ -72,6 +74,7 @@ describe('desktop slash command curation', () => {
 
   afterEach(() => {
     rememberDesktopCommandsCatalog(undefined)
+    setRuntimeI18nLocale('en')
   })
 
   it('keeps core desktop chat commands in suggestions', () => {
@@ -361,14 +364,34 @@ describe('desktop slash command curation', () => {
       {
         text: '/skin mono',
         display: '/skin mono',
-        meta: 'Mono (current) - Clean grayscale'
+        meta: 'Mono (current) - Clean grayscale — minimal and focused'
       },
       {
         text: '/skin midnight',
         display: '/skin midnight',
-        meta: 'Midnight - Deep blue'
+        meta: 'Midnight - Deep blue-violet with cool accents'
       }
     ])
+  })
+
+  it('localizes /skin completion metadata for Simplified Chinese users', () => {
+    setRuntimeI18nLocale('zh')
+
+    const completions = desktopSkinSlashCompletions(
+      [{ name: 'ember', label: 'Ember', description: 'Warm crimson and bronze' }],
+      'ember',
+      ''
+    )
+
+    expect(completions.slice(0, 2)).toEqual([
+      { text: '/skin list', display: '/skin list', meta: '显示可用的桌面主题' },
+      { text: '/skin next', display: '/skin next', meta: '切换到下一个桌面主题' }
+    ])
+    expect(completions[2]).toEqual({
+      text: '/skin ember',
+      display: '/skin ember',
+      meta: '余烬 (当前) - 温暖的深红与青铜色——锻造氛围'
+    })
   })
 
   it('explains known commands that desktop owns elsewhere', () => {

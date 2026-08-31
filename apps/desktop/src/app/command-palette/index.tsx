@@ -87,6 +87,7 @@ import {
 import { canOpenNewWindow, openNewWindow } from '@/store/windows'
 import { luminance } from '@/themes/color'
 import { type ThemeMode, useTheme } from '@/themes/context'
+import { localizedThemeCopy } from '@/themes/localized'
 import { isUserTheme, resolveTheme } from '@/themes/user-themes'
 
 import { openSession, openSessionIntentFromModifiers } from '../open-session'
@@ -1119,6 +1120,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
     result.push({
       heading: t.settings.appearance.themeTitle,
       items: availableThemes.map(theme => {
+        const copy = localizedThemeCopy(theme, t)
         // Same mode fixup as run(): if a theme cannot render the current
         // light/dark, preview (and commit) in the one mode it supports.
         const previewMode = themeSupportsMode(theme.name, resolvedMode)
@@ -1132,8 +1134,8 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
           icon: Palette,
           id: `search-theme-${theme.name}`,
           keepOpen: true,
-          keywords: ['theme', 'appearance', 'color', 'skin', theme.name, theme.description],
-          label: theme.label,
+          keywords: ['theme', 'appearance', 'color', 'skin', theme.name, copy.label, copy.description],
+          label: copy.label,
           onHighlight: () => previewTheme(theme.name, previewMode),
           run: () => {
             setTheme(theme.name)
@@ -1357,6 +1359,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
           {
             heading: t.settings.appearance.themeTitle,
             items: availableThemes.map(theme => {
+              const copy = localizedThemeCopy(theme, t)
               const previewMode = themeSupportsMode(theme.name, resolvedMode)
                 ? resolvedMode
                 : resolvedMode === 'dark'
@@ -1368,8 +1371,8 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
                 icon: Palette,
                 id: `theme-${theme.name}`,
                 keepOpen: true,
-                keywords: ['theme', 'appearance', 'palette', theme.label, theme.description ?? ''],
-                label: theme.label,
+                keywords: ['theme', 'appearance', 'palette', theme.name, copy.label, copy.description],
+                label: copy.label,
                 onHighlight: () => previewTheme(theme.name, previewMode),
                 run: () => {
                   setTheme(theme.name)

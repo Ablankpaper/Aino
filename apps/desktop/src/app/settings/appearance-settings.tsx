@@ -50,6 +50,7 @@ import { $vibeHeartsEnabled, setVibeHeartsEnabled } from '@/store/vibe-hearts-en
 import { $zoomPercent, setZoomPercent } from '@/store/zoom'
 import { getBaseColors, useTheme } from '@/themes/context'
 import { installVscodeThemeFromMarketplace } from '@/themes/install'
+import { localizedThemeCopy } from '@/themes/localized'
 import type { DesktopTheme } from '@/themes/types'
 import { $marketplaceInstalls, isUserTheme, removeUserTheme } from '@/themes/user-themes'
 
@@ -403,13 +404,18 @@ export function AppearanceSettings() {
   const needle = normalize(query)
 
   const filteredThemes = availableThemes
-    .filter(
-      theme =>
+    .filter(theme => {
+      const copy = localizedThemeCopy(theme, t)
+
+      return (
         !needle ||
-        theme.label.toLowerCase().includes(needle) ||
+        copy.label.toLowerCase().includes(needle) ||
         theme.name.toLowerCase().includes(needle) ||
+        copy.description.toLowerCase().includes(needle) ||
+        theme.label.toLowerCase().includes(needle) ||
         theme.description.toLowerCase().includes(needle)
-    )
+      )
+    })
     // Active theme first; stable sort keeps the rest in their original order.
     .sort((a, b) => Number(b.name === themeName) - Number(a.name === themeName))
 
@@ -494,6 +500,7 @@ export function AppearanceSettings() {
                       {filteredThemes.map(theme => {
                         const active = themeName === theme.name
                         const removable = isUserTheme(theme.name)
+                        const copy = localizedThemeCopy(theme, t)
 
                         return (
                           <div className="group relative" key={theme.name}>
@@ -508,10 +515,10 @@ export function AppearanceSettings() {
                               <ThemePreview mode={resolvedMode} name={theme.name} />
                               <div className="mt-3 px-1">
                                 <div className="truncate text-[length:var(--conversation-text-font-size)] font-medium">
-                                  {theme.label}
+                                  {copy.label}
                                 </div>
                                 <div className="mt-0.5 line-clamp-2 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
-                                  {theme.description}
+                                  {copy.description}
                                 </div>
                               </div>
                             </button>

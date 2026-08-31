@@ -28,7 +28,7 @@ describe('useSkinCommand localization', () => {
     setRuntimeI18nLocale('zh')
     const { result } = renderHook(() => useSkinCommand())
 
-    expect(result.current('next')).toBe('桌面主题已切换为 Ember。')
+    expect(result.current('next')).toBe('桌面主题已切换为 余烬。')
     expect(result.current('list')).toContain('桌面主题：')
     expect(result.current('list')).toContain('使用 /skin <name>，或使用 /skin 循环切换。')
   })

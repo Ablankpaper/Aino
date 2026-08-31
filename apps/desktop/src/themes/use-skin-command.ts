@@ -3,6 +3,7 @@ import { useCallback } from 'react'
 import { translateNow } from '@/i18n'
 
 import { useTheme } from './context'
+import { localizedThemeCopyNow } from './localized'
 
 // Retired skin names land on the canonical Nous skin so old muscle memory works.
 const ALIASES: Record<string, string> = {
@@ -33,11 +34,15 @@ export function useSkinCommand() {
         const next = availableThemes[(activeIndex + 1) % availableThemes.length]
         setTheme(next.name)
 
-        return translateNow('desktop.skinCommand.switched', next.label)
+        return translateNow('desktop.skinCommand.switched', localizedThemeCopyNow(next).label)
       }
 
       if (arg === 'list' || arg === 'ls' || arg === 'status') {
-        const rows = availableThemes.map(t => `${t.name === themeName ? '*' : ' '} ${t.name.padEnd(10)} ${t.label}`)
+        const rows = availableThemes.map(theme => {
+          const copy = localizedThemeCopyNow(theme)
+
+          return `${theme.name === themeName ? '*' : ' '} ${theme.name.padEnd(10)} ${copy.label}`
+        })
 
         return [
           translateNow('desktop.skinCommand.listHeading'),
@@ -51,7 +56,8 @@ export function useSkinCommand() {
       const targetName = ALIASES[normalized] || normalized
 
       const target = availableThemes.find(
-        t => t.name.toLowerCase() === targetName || t.label.toLowerCase() === normalized
+        theme =>
+          theme.name.toLowerCase() === targetName || localizedThemeCopyNow(theme).label.toLowerCase() === normalized
       )
 
       if (!target) {
@@ -60,7 +66,7 @@ export function useSkinCommand() {
 
       setTheme(target.name)
 
-      return translateNow('desktop.skinCommand.switched', target.label)
+      return translateNow('desktop.skinCommand.switched', localizedThemeCopyNow(target).label)
     },
     [availableThemes, setTheme, themeName]
   )

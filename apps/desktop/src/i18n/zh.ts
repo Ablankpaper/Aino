@@ -803,6 +803,19 @@ export const zh: Translations = {
       technicalDesc: '包含原始工具参数/结果及底层细节。',
       themeTitle: '主题',
       themeDesc: '仅桌面端调色板。所选模式叠加其上。',
+      themePresets: {
+        nous: { label: 'Nous', description: 'GitHub 风格界面，搭配 Nous 蓝色强调' },
+        github: { label: 'GitHub', description: 'GitHub 风格的浅色与深色默认主题' },
+        catppuccin: { label: 'Catppuccin', description: '柔和的粉彩色调——Latte 与 Mocha' },
+        everforest: { label: 'Everforest', description: '温暖、低对比度的森林绿' },
+        solarized: { label: 'Solarized', description: '固定对比度的浅色与深色主题' },
+        'nous-alt': { label: 'Nous 替代版', description: '玻璃质感中性色，搭配任务蓝' },
+        midnight: { label: '午夜', description: '深蓝紫色搭配冷色强调' },
+        ember: { label: '余烬', description: '温暖的深红与青铜色——锻造氛围' },
+        mono: { label: '单色', description: '简洁的灰度界面——极简且专注' },
+        slate: { label: '石板', description: '冷调石板蓝——专注开发者主题' },
+        cyberpunk: { label: '赛博朋克', description: '黑底霓虹绿——矩阵终端风格' }
+      },
       themeProfileNote: profile => `已为「${profile}」配置文件保存——每个配置文件保留各自的主题。`,
       installTitle: '从 VS Code 安装',
       installDesc: '粘贴 Marketplace 扩展 ID（例如 dracula-theme.theme-dracula），将其配色主题转换为桌面调色板。',
@@ -4433,6 +4446,9 @@ export const zh: Translations = {
       switched: label => `桌面主题已切换为 ${label}。`,
       listHeading: '桌面主题：',
       listHint: '使用 /skin <name>，或使用 /skin 循环切换。',
+      completionList: '显示可用的桌面主题',
+      completionNext: '切换到下一个桌面主题',
+      completionCurrent: '当前',
       unknownTheme: (name, available) => `未知桌面主题：${name}\n可用：${available}`
     },
     commandResults: {

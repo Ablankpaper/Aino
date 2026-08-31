@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { SECTIONS } from '@/app/settings/constants'
 import { PROJECT_IDEA_TEMPLATES } from '@/lib/project-idea-templates'
+import { BUILTIN_THEME_LIST } from '@/themes/presets'
 
 import { en } from './en'
 import { zh } from './zh'
@@ -53,7 +54,11 @@ function findMissingLeaves(english: unknown, simplifiedChinese: unknown, prefix 
   }
 
   return Object.keys(english).flatMap(key =>
-    findMissingLeaves(english[key], isRecord(simplifiedChinese) ? simplifiedChinese[key] : undefined, prefix ? `${prefix}.${key}` : key)
+    findMissingLeaves(
+      english[key],
+      isRecord(simplifiedChinese) ? simplifiedChinese[key] : undefined,
+      prefix ? `${prefix}.${key}` : key
+    )
   )
 }
 
@@ -71,6 +76,14 @@ describe('Simplified Chinese catalog coverage', () => {
   it('defines Simplified Chinese copy for every project idea template', () => {
     const missing = PROJECT_IDEA_TEMPLATES.filter(template => !zh.sidebar.projects.ideaTemplates[template.id]).map(
       template => template.id
+    )
+
+    expect(missing).toEqual([])
+  })
+
+  it('defines Simplified Chinese copy for every built-in theme', () => {
+    const missing = BUILTIN_THEME_LIST.filter(theme => !zh.settings.appearance.themePresets[theme.name]).map(
+      theme => theme.name
     )
 
     expect(missing).toEqual([])

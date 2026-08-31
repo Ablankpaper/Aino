@@ -820,6 +820,19 @@ export const en: Translations = {
       technicalDesc: 'Include raw tool args/results and low-level details.',
       themeTitle: 'Theme',
       themeDesc: 'Desktop palettes only. The selected mode is applied on top.',
+      themePresets: {
+        nous: { label: 'Nous', description: 'GitHub chrome, Nous blue accent' },
+        github: { label: 'GitHub', description: 'GitHub Light Default and Dark Default' },
+        catppuccin: { label: 'Catppuccin', description: 'Soothing pastels — Latte and Mocha' },
+        everforest: { label: 'Everforest', description: 'Warm, low-contrast forest greens' },
+        solarized: { label: 'Solarized', description: 'Fixed-contrast light and dark' },
+        'nous-alt': { label: 'Nous Alt', description: 'Glass neutrals, cream on mission-blue' },
+        midnight: { label: 'Midnight', description: 'Deep blue-violet with cool accents' },
+        ember: { label: 'Ember', description: 'Warm crimson and bronze — forge vibes' },
+        mono: { label: 'Mono', description: 'Clean grayscale — minimal and focused' },
+        slate: { label: 'Slate', description: 'Cool slate blue — focused developer theme' },
+        cyberpunk: { label: 'Cyberpunk', description: 'Neon green on black — matrix terminal' }
+      },
       themeProfileNote: profile => `Saved for the ${profile} profile — each profile keeps its own theme.`,
       installTitle: 'Install from VS Code',
       installDesc:
@@ -4261,6 +4274,9 @@ export const en: Translations = {
       switched: label => `Desktop theme switched to ${label}.`,
       listHeading: 'Desktop themes:',
       listHint: 'Use /skin <name>, or /skin to cycle.',
+      completionList: 'Show available desktop themes',
+      completionNext: 'Cycle to the next desktop theme',
+      completionCurrent: 'current',
       unknownTheme: (name, available) => `Unknown desktop theme: ${name}\nAvailable: ${available}`
     },
     commandResults: {

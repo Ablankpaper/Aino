@@ -1,5 +1,6 @@
-import type { Translations } from '@/i18n'
+import { translateNow, type Translations } from '@/i18n'
 import { peekCachedSlashCompletion } from '@/lib/slash-completion-cache'
+import { localizedThemeCopyNow } from '@/themes/localized'
 
 export interface CommandsCatalogSection {
   name: string
@@ -617,18 +618,22 @@ export function desktopSkinSlashCompletions(
     {
       text: '/skin list',
       display: '/skin list',
-      meta: 'Show available desktop themes'
+      meta: translateNow('desktop.skinCommand.completionList')
     },
     {
       text: '/skin next',
       display: '/skin next',
-      meta: 'Cycle to the next desktop theme'
+      meta: translateNow('desktop.skinCommand.completionNext')
     },
-    ...themes.map(theme => ({
-      text: `/skin ${theme.name}`,
-      display: `/skin ${theme.name}`,
-      meta: `${theme.label}${theme.name === activeThemeName ? ' (current)' : ''} - ${theme.description}`
-    }))
+    ...themes.map(theme => {
+      const copy = localizedThemeCopyNow(theme)
+
+      return {
+        text: `/skin ${theme.name}`,
+        display: `/skin ${theme.name}`,
+        meta: `${copy.label}${theme.name === activeThemeName ? ` (${translateNow('desktop.skinCommand.completionCurrent')})` : ''} - ${copy.description}`
+      }
+    })
   ]
 
   if (!prefix) {
