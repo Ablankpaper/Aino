@@ -2862,6 +2862,12 @@ export const zhHant = defineLocale({
       stderr: '標準錯誤',
       errorDetails: '錯誤詳細資訊',
       snapshotSummary: '快照摘要',
+      fallbacks: {
+        returnedError: '工具回傳了錯誤。',
+        returnedSuccessFalse: '工具回傳 success=false。',
+        returnedStatus: status => `工具回傳狀態「${status}」。`,
+        commandFailedExitCode: code => `指令以結束代碼 ${code} 失敗。`
+      },
       recoveredOne: '在 1 個失敗步驟後已復原',
       recoveredMany: count => `在 ${count} 個失敗步驟後已復原`,
       failedOne: '1 個步驟失敗',

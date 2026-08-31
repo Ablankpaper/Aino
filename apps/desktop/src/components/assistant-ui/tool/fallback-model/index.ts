@@ -656,7 +656,11 @@ function toolErrorText(part: ToolPart, result: Record<string, unknown>): string 
   const extractedError = extractToolErrorMessage(part.result)
 
   if (part.isError) {
-    return extractedError || (typeof part.result === 'string' && part.result.trim()) || 'Tool returned an error.'
+    return (
+      extractedError ||
+      (typeof part.result === 'string' && part.result.trim()) ||
+      translateNow('assistant.tool.fallbacks.returnedError')
+    )
   }
 
   if (typeof result.error === 'string' && result.error.trim()) {
@@ -668,11 +672,14 @@ function toolErrorText(part: ToolPart, result: Record<string, unknown>): string 
   }
 
   if (result.success === false || result.ok === false) {
-    return firstStringField(result, ['message', 'reason', 'detail']) || 'Tool returned success=false.'
+    return firstStringField(result, ['message', 'reason', 'detail']) || translateNow('assistant.tool.fallbacks.returnedSuccessFalse')
   }
 
   if (typeof result.status === 'string' && /\b(error|failed|failure)\b/i.test(result.status)) {
-    return firstStringField(result, ['message', 'reason', 'detail']) || `Tool returned status "${result.status}".`
+    return (
+      firstStringField(result, ['message', 'reason', 'detail']) ||
+      translateNow('assistant.tool.fallbacks.returnedStatus', result.status)
+    )
   }
 
   // A non-zero exit code alone is a weak failure signal: grep returns 1 on
@@ -687,7 +694,7 @@ function toolErrorText(part: ToolPart, result: Record<string, unknown>): string 
   if (exit !== null && exit !== 0) {
     const hasOutput = Boolean(firstStringField(result, ['output', 'stdout', 'stderr', 'output_preview'])?.trim())
 
-    return hasOutput ? '' : `Command failed with exit code ${exit}.`
+    return hasOutput ? '' : translateNow('assistant.tool.fallbacks.commandFailedExitCode', exit)
   }
 
   return ''

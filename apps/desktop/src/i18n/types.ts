@@ -3402,6 +3402,12 @@ export interface Translations {
       stderr: string
       errorDetails: string
       snapshotSummary: string
+      fallbacks: {
+        returnedError: string
+        returnedSuccessFalse: string
+        returnedStatus: (status: string) => string
+        commandFailedExitCode: (code: number) => string
+      }
       recoveredOne: string
       recoveredMany: (count: number) => string
       failedOne: string

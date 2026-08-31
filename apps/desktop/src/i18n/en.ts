@@ -3955,6 +3955,12 @@ export const en: Translations = {
       stderr: 'stderr',
       errorDetails: 'Error details',
       snapshotSummary: 'Snapshot summary',
+      fallbacks: {
+        returnedError: 'Tool returned an error.',
+        returnedSuccessFalse: 'Tool returned success=false.',
+        returnedStatus: status => `Tool returned status "${status}".`,
+        commandFailedExitCode: code => `Command failed with exit code ${code}.`
+      },
       recoveredOne: 'Recovered after 1 failed step',
       recoveredMany: count => `Recovered after ${count} failed steps`,
       failedOne: '1 step failed',

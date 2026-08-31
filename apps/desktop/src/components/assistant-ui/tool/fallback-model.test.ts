@@ -92,6 +92,22 @@ describe('buildToolView terminal exit-code status', () => {
   })
 })
 
+describe('buildToolView generic fallback errors', () => {
+  it('uses Simplified Chinese copy for app-generated tool errors', () => {
+    setRuntimeI18nLocale('zh')
+
+    const returnedError = buildToolView(part({ isError: true, result: {}, toolName: 'terminal' }), '')
+    const returnedFalse = buildToolView(part({ result: { success: false }, toolName: 'vision_analyze' }), '')
+    const returnedStatus = buildToolView(part({ result: { status: 'failed' }, toolName: 'vision_analyze' }), '')
+    const failedCommand = buildToolView(part({ result: { exit_code: 127 }, toolName: 'terminal' }), '')
+
+    expect(returnedError.detail).toBe('工具返回了错误。')
+    expect(returnedFalse.detail).toContain('工具返回 success=false。')
+    expect(returnedStatus.detail).toContain('工具返回状态“failed”。')
+    expect(failedCommand.detail).toContain('命令失败，退出码为 127。')
+  })
+})
+
 describe('buildToolView browser_exec step label', () => {
   const bexec = (code: string) =>
     buildToolView(part({ args: { code }, result: undefined, toolName: 'browser_exec' }), '')

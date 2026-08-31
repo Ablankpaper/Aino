@@ -4094,6 +4094,12 @@ export const zh: Translations = {
       stderr: '标准错误',
       errorDetails: '错误详情',
       snapshotSummary: '快照摘要',
+      fallbacks: {
+        returnedError: '工具返回了错误。',
+        returnedSuccessFalse: '工具返回 success=false。',
+        returnedStatus: status => `工具返回状态“${status}”。`,
+        commandFailedExitCode: code => `命令失败，退出码为 ${code}。`
+      },
       recoveredOne: '在 1 个失败步骤后已恢复',
       recoveredMany: count => `在 ${count} 个失败步骤后已恢复`,
       failedOne: '1 个步骤失败',

@@ -2959,6 +2959,12 @@ export const ja = defineLocale({
       stderr: '標準エラー',
       errorDetails: 'エラーの詳細',
       snapshotSummary: 'スナップショットの概要',
+      fallbacks: {
+        returnedError: 'ツールがエラーを返しました。',
+        returnedSuccessFalse: 'ツールが success=false を返しました。',
+        returnedStatus: status => `ツールがステータス「${status}」を返しました。`,
+        commandFailedExitCode: code => `コマンドが終了コード ${code} で失敗しました。`
+      },
       recoveredOne: '1 つの失敗したステップの後に回復しました',
       recoveredMany: count => `${count} つの失敗したステップの後に回復しました`,
       failedOne: '1 つのステップが失敗しました',
