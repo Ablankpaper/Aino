@@ -632,7 +632,7 @@ export const zh: Translations = {
         repoLabel: '仓库',
         includesHeading: '此包包含',
         agentLabel: '智能体插件',
-        desktopLabel: '桌面 UI',
+        desktopLabel: '桌面界面',
         agentTargetLocal: profile => `安装到 ${profile} 后端（~/.hermes/plugins/）`,
         agentTargetRemote: profile => `安装到已连接的 ${profile} 后端`,
         desktopTarget: '安装到此应用的本地 desktop-plugins 文件夹',
@@ -1096,7 +1096,7 @@ export const zh: Translations = {
     fieldDescriptions: defineFieldCopy({
       model: '用于新对话，除非你在输入框中选择其他模型。',
       modelContextLength: '保持为 0 则使用所选模型检测到的上下文窗口。',
-      fallbackProviders: '默认模型失败时尝试的备用 provider:model 条目。',
+      fallbackProviders: '默认模型失败时尝试的备用“提供方:模型”条目。',
       display: {
         personality: '新会话的默认助手风格。',
         showReasoning: '当后端提供推理内容时予以显示。'
@@ -2484,18 +2484,18 @@ export const zh: Translations = {
       bluebubbles:
         '在装有 iMessage 的 Mac 上运行 BlueBubbles Server，暴露其 API，然后用服务器密码把 Hermes 指向该 URL。',
       homeassistant: '在 Home Assistant 中打开你的个人资料并创建长期访问令牌。把它连同你的 HA URL 一起粘贴到这里。',
-      email: '使用专用邮箱。对于 Gmail/Workspace,创建应用专用密码并使用 imap.gmail.com / smtp.gmail.com。',
-      sms: '从 Twilio 控制台获取你的 Account SID 和 Auth Token，以及一个可发送短信的电话号码。',
+      email: '使用专用邮箱。对于 Gmail/Workspace，创建应用专用密码并使用 imap.gmail.com / smtp.gmail.com。',
+      sms: '从 Twilio 控制台获取你的 Account SID 和访问令牌，以及一个可发送短信的电话号码。',
       dingtalk: '在开发者控制台创建钉钉应用，然后在此复制 Client ID(App key) 和 Client Secret。',
-      feishu: '创建飞书 / Lark 应用，配置机器人能力，复制 App ID、App secret 和事件加密密钥。',
-      wecom: '在企业微信中添加群机器人，复制其 webhook key 作为 WECOM_BOT_ID。仅可发送——双向请用企业微信 (应用) 选项。',
+      feishu: '创建飞书 / Lark 应用，配置机器人能力，复制 App ID、应用密钥和事件加密密钥。',
+      wecom: '在企业微信中添加群机器人，复制其 Webhook 密钥作为 WECOM_BOT_ID。仅可发送——双向请用企业微信（应用）选项。',
       wecom_callback: '设置一个企业微信自建应用，暴露其回调 URL，并提供 corp ID、secret、agent ID 和 AES key。',
       weixin:
         '运行 `hermes gateway setup`，选择 Weixin，然后使用个人微信账号扫描并确认二维码。Hermes 会通过腾讯 iLink Bot API 连接并保存凭据。',
       qqbot: '在 QQ 开放平台 (q.qq.com) 注册一个应用，复制 App ID 和 Client Secret。',
       api_server:
         '把 Hermes 暴露为兼容 OpenAI 的 API。设置一个鉴权密钥，然后把 Open WebUI / LobeChat 等指向 host:port。',
-      webhook: '运行一个 HTTP 服务器，供其他工具 (GitHub、GitLab、自定义应用)POST。用 secret 验证签名。'
+      webhook: '运行一个 HTTP 服务器，供其他工具（GitHub、GitLab、自定义应用）POST。用密钥验证签名。'
     }
   },
 
@@ -3587,7 +3587,7 @@ export const zh: Translations = {
       },
       implementationPlan: {
         label: '实现计划',
-        description: '在动代码之前先勾勒方案，让 diff 保持聚焦。',
+        description: '在动代码之前先勾勒方案，让代码差异保持聚焦。',
         text: '请在修改代码前制定一个简洁的实现计划。'
       },
       explainThis: {

@@ -263,6 +263,27 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('sidebar.row.ownedByProfile', '工作')).toBe('配置档案：工作')
   })
 
+  it('translates clear Chinese equivalents while keeping configuration identifiers', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('settings.plugins.installModal.desktopLabel')).toBe('桌面界面')
+    expect(translateNow('settings.fieldDescriptions.fallbackProviders')).toBe(
+      '默认模型失败时尝试的备用“提供方:模型”条目。'
+    )
+    expect(translateNow('composer.snippets.implementationPlan.description')).toBe(
+      '在动代码之前先勾勒方案，让代码差异保持聚焦。'
+    )
+    expect(translateNow('messaging.platformIntro.sms')).toContain('Account SID 和访问令牌')
+    expect(translateNow('messaging.platformIntro.feishu')).toContain('App ID、应用密钥')
+    expect(translateNow('messaging.platformIntro.wecom')).toContain('Webhook 密钥')
+    expect(translateNow('messaging.platformIntro.webhook')).toBe(
+      '运行一个 HTTP 服务器，供其他工具（GitHub、GitLab、自定义应用）POST。用密钥验证签名。'
+    )
+    expect(translateNow('messaging.platformIntro.email')).toBe(
+      '使用专用邮箱。对于 Gmail/Workspace，创建应用专用密码并使用 imap.gmail.com / smtp.gmail.com。'
+    )
+  })
+
   it('describes the embedded skills-hub action in Simplified Chinese', () => {
     setRuntimeI18nLocale('zh')
 
