@@ -1898,6 +1898,12 @@ export const en: Translations = {
     },
     changeTheme: 'Change theme',
     changeColorMode: 'Change color mode…',
+    splitDirections: {
+      right: 'Right',
+      bottom: 'Down',
+      left: 'Left',
+      top: 'Up'
+    },
     pets: {
       title: 'Pets',
       placeholder: 'Search pets…',

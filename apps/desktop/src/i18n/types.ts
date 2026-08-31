@@ -1663,6 +1663,12 @@ export interface Translations {
     }
     changeTheme: string
     changeColorMode: string
+    splitDirections: {
+      right: string
+      bottom: string
+      left: string
+      top: string
+    }
     pets: {
       title: string
       placeholder: string

@@ -2072,6 +2072,12 @@ export const zh: Translations = {
     },
     changeTheme: '更改主题',
     changeColorMode: '更改颜色模式…',
+    splitDirections: {
+      right: '右侧',
+      bottom: '下方',
+      left: '左侧',
+      top: '上方'
+    },
     pets: {
       title: '宠物',
       placeholder: '搜索宠物…',
