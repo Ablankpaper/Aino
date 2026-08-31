@@ -165,6 +165,7 @@ type BotsMessages = {
     skills: string
     tools: string
     mcp: string
+    cloneFromProfile: string
     cloneFromRemote: (target: string) => string
     freshProfile: string
     inheritedModel: string
@@ -555,6 +556,7 @@ const en: BotsMessages = {
     skills: 'Skills',
     tools: 'Tools',
     mcp: 'MCP',
+    cloneFromProfile: 'Clone from profile',
     cloneFromRemote: target => `Clone from profile (on ${target})`,
     freshProfile: 'Fresh profile (bundled skills)',
     inheritedModel: 'inherited from launch profile',
@@ -938,6 +940,7 @@ const ja: BotsMessages = {
     skills: 'スキル',
     tools: 'ツール',
     mcp: 'MCP',
+    cloneFromProfile: 'プロファイルから複製',
     cloneFromRemote: target => `プロファイルから複製（${target}）`,
     freshProfile: '新規プロファイル（同梱スキル）',
     inheritedModel: '起動プロファイルから継承',
@@ -1317,6 +1320,7 @@ const zh: BotsMessages = {
     skills: '技能',
     tools: '工具',
     mcp: 'MCP',
+    cloneFromProfile: '从配置档案克隆',
     cloneFromRemote: target => `从配置档案克隆（位于 ${target}）`,
     freshProfile: '全新配置档案（包含内置技能）',
     inheritedModel: '继承启动配置档案',
@@ -1692,6 +1696,7 @@ const zhHant: BotsMessages = {
     skills: '技能',
     tools: '工具',
     mcp: 'MCP',
+    cloneFromProfile: '從設定檔複製',
     cloneFromRemote: target => `從設定檔複製（位於 ${target}）`,
     freshProfile: '全新設定檔（包含內建技能）',
     inheritedModel: '繼承啟動設定檔',

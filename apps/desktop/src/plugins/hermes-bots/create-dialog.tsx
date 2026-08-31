@@ -744,7 +744,7 @@ export function CreateAgentDialog({ open, onClose, roster }: CreateAgentDialogPr
               {advTab === 'general' ? (
                 <div className="grid gap-3.5">
                   {labeled(
-                    remoteTarget ? b.bot.cloneFromRemote(targetLabel) : t.profiles.cloneFrom,
+                    remoteTarget ? b.bot.cloneFromRemote(targetLabel) : b.bot.cloneFromProfile,
                     <Select
                       disabled={remoteTarget}
                       onValueChange={value => {
