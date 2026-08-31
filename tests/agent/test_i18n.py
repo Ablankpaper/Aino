@@ -131,6 +131,18 @@ def test_simplified_chinese_localizes_telegram_topic_guidance():
     )
 
 
+def test_simplified_chinese_localizes_kanban_worker_notifications():
+    """Kanban notifications should explain worker and dispatcher states in Chinese."""
+    assert i18n.t("gateway.kanban.error_prefix", lang="zh", error="连接失败") == "⚠ 看板错误：连接失败"
+    assert i18n.t("gateway.kanban.wake.crashed", lang="zh") == "崩溃（工作进程异常退出），任务调度器将重试"
+    assert i18n.t("gateway.kanban.wake.timed_out", lang="zh") == "超时，任务调度器将重试"
+    assert i18n.t("gateway.kanban.wake.changes_requested", lang="zh") == "评审要求修改（BLOCK/阻塞），实现未获批准"
+    assert i18n.t("gateway.kanban.wake.review_detail", lang="zh", reason="缺少测试") == (
+        "评审反馈：缺少测试\n请检查现有卡片及其当前评审运行；将工作返回同一实现任务。"
+        "不要把此 BLOCK 视为批准，也不要创建重复任务。"
+    )
+
+
 def test_simplified_chinese_localizes_resume_and_matrix_recovery_copy():
     """Resume recovery guidance should be readable in Simplified Chinese."""
     assert i18n.t("gateway.resume.db_unavailable", lang="zh") == "会话数据库不可用。"
