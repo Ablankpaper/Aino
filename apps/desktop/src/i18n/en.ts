@@ -2290,6 +2290,8 @@ export const en: Translations = {
     switchToProfile: name => `Switch to ${name}`,
     switchToConnection: name => `Switch to ${name}`,
     switchConnectionFailed: name => `Could not connect to ${name}`,
+    switchProfileFailed: name => `Failed to switch to profile "${name}"`,
+    openProfileFailed: name => `Failed to open profile "${name}"`,
     manageProfiles: 'Manage profiles…',
     connectGateway: 'Manage gateways…',
     fleet: {

@@ -2463,6 +2463,8 @@ export const zh: Translations = {
     switchToProfile: name => `切换到 ${name}`,
     switchToConnection: name => `切换到 ${name}`,
     switchConnectionFailed: name => `无法连接到 ${name}`,
+    switchProfileFailed: name => `切换配置档案“${name}”失败`,
+    openProfileFailed: name => `打开配置档案“${name}”失败`,
     manageProfiles: '管理配置档案…',
     connectGateway: '管理网关…',
     fleet: {

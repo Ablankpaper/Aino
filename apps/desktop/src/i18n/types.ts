@@ -1938,6 +1938,8 @@ export interface Translations {
     switchToProfile: (name: string) => string
     switchToConnection: (name: string) => string
     switchConnectionFailed: (name: string) => string
+    switchProfileFailed: (name: string) => string
+    openProfileFailed: (name: string) => string
     manageProfiles: string
     connectGateway: string
     fleet: {

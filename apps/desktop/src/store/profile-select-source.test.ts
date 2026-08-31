@@ -1,5 +1,7 @@
 import { atom } from 'nanostores'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { setRuntimeI18nLocale } from '@/i18n'
 
 // Picking a profile must stay on the source the user is LOOKING at. $profiles
 // is the active gateway's list, so a pick made while a registry source is live
@@ -16,6 +18,7 @@ const openGatewayForProfile = vi.fn(async (_profile: string) => undefined)
 const activeGatewayConnectionId = vi.fn<() => null | string>(() => null)
 const $gateway = atom<unknown>({ id: 'live-socket' })
 const resetStarmapGraph = vi.fn()
+const notifyError = vi.fn()
 
 vi.mock('@/store/gateway', () => ({
   $gateway,
@@ -30,6 +33,7 @@ vi.mock('@/hermes', () => ({
 }))
 vi.mock('@/lib/query-client', () => ({ invalidateProfileScopedQueries: vi.fn() }))
 vi.mock('@/store/starmap', () => ({ resetStarmapGraph }))
+vi.mock('@/store/notifications', () => ({ notify: vi.fn(), notifyError }))
 
 const { $activeGatewayProfile, newSessionInProfile, selectProfile } = await import('./profile')
 
@@ -43,9 +47,23 @@ beforeEach(() => {
   // resolveConnectionForAgent is best-effort; without a bridge it resolves
   // null and the previous descriptor stays, which is fine here.
   ;(globalThis as { window?: unknown }).window = {}
+  notifyError.mockClear()
+})
+
+afterEach(() => {
+  setRuntimeI18nLocale('en')
 })
 
 describe('selectProfile', () => {
+  it('uses Simplified Chinese failure copy when activation fails', async () => {
+    setRuntimeI18nLocale('zh')
+    ensureGatewayForProfile.mockRejectedValueOnce(new Error('backend unreachable'))
+
+    selectProfile('ops')
+
+    await vi.waitFor(() => expect(notifyError).toHaveBeenCalledWith(expect.any(Error), '切换配置档案“ops”失败'))
+  })
+
   it('activates the pick on the live registry source, not the primary', async () => {
     activeGatewayConnectionId.mockReturnValue('mini')
 
