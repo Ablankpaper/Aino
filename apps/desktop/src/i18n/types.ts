@@ -2383,6 +2383,27 @@ export interface Translations {
     wakeWordListening: (phrase: string) => string
     wakeWordOff: (phrase: string) => string
     wakeWordPausedVoice: (phrase: string) => string
+    completionGroups: {
+      commands: string
+      configuration: string
+      exit: string
+      info: string
+      options: string
+      session: string
+      sessions: string
+      skills: string
+      themes: string
+      toolsAndSkills: string
+    }
+    referenceDescriptions: {
+      file: string
+      folder: string
+      git: string
+      image: string
+      tool: string
+      url: string
+    }
+    browseAllSessions: string
     lookupLoading: string
     lookupNoMatches: string
     lookupTry: string

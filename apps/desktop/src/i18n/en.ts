@@ -2807,6 +2807,27 @@ export const en: Translations = {
     wakeWordListening: phrase => `Wake word: "${phrase}" — listening`,
     wakeWordOff: phrase => `Wake word: "${phrase}" — off`,
     wakeWordPausedVoice: phrase => `Wake word: "${phrase}" — paused during voice chat`,
+    completionGroups: {
+      commands: 'Commands',
+      configuration: 'Configuration',
+      exit: 'Exit',
+      info: 'Info',
+      options: 'Options',
+      session: 'Session',
+      sessions: 'Sessions',
+      skills: 'Skills',
+      themes: 'Themes',
+      toolsAndSkills: 'Tools & Skills'
+    },
+    referenceDescriptions: {
+      file: 'Attach a file reference',
+      folder: 'Attach a folder reference',
+      git: 'Attach git context',
+      image: 'Attach an image reference',
+      tool: 'Attach a tool reference',
+      url: 'Attach a URL reference'
+    },
+    browseAllSessions: 'Browse all sessions…',
     lookupLoading: 'Looking up…',
     lookupNoMatches: 'No matches.',
     lookupTry: 'Try',

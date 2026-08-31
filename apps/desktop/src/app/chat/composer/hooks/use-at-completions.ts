@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { refChipLabel } from '@/components/assistant-ui/directive-text'
 import { useContributions } from '@/contrib/react/use-contributions'
 import type { HermesGateway } from '@/hermes'
+import { type Translations, useI18n } from '@/i18n'
 import { cachedPathCompletion, hasCachedPathCompletion } from '@/lib/slash-completion-cache'
 import { normalize } from '@/lib/text'
 
@@ -14,20 +15,16 @@ import type { CompletionEntry, CompletionPayload } from './use-live-completion-a
 import { useLiveCompletionAdapter } from './use-live-completion-adapter'
 
 const KIND_RE = /^@(file|folder|url|image|tool|git):(.*)$/
-const REF_STARTERS = new Set(['file', 'folder', 'url', 'image', 'tool', 'git'])
+type ReferenceDescriptionKey = keyof Translations['composer']['referenceDescriptions']
+
+const REF_STARTERS = new Set<ReferenceDescriptionKey>(['file', 'folder', 'url', 'image', 'tool', 'git'])
 // These bare tokens are context actions, not profile handles.
 const SIMPLE_CONTEXT_REFS = new Set(['@diff', '@staged'])
 
-const STARTER_META: Record<string, string> = {
-  file: 'Attach a file reference',
-  folder: 'Attach a folder reference',
-  url: 'Attach a URL reference',
-  image: 'Attach an image reference',
-  tool: 'Attach a tool reference',
-  git: 'Attach git context'
-}
-
-function starterEntries(query: string): CompletionEntry[] {
+function starterEntries(
+  query: string,
+  descriptions: Translations['composer']['referenceDescriptions']
+): CompletionEntry[] {
   const q = normalize(query)
   const kinds = Array.from(REF_STARTERS)
   const filtered = q ? kinds.filter(kind => kind.startsWith(q)) : kinds
@@ -35,7 +32,7 @@ function starterEntries(query: string): CompletionEntry[] {
   return filtered.map(kind => ({
     text: `@${kind}:`,
     display: `@${kind}:`,
-    meta: STARTER_META[kind] || ''
+    meta: descriptions[kind]
   }))
 }
 
@@ -117,6 +114,8 @@ export function useAtCompletions(options: {
   cwd: string | null
 }): { adapter: Unstable_TriggerAdapter; loading: boolean } {
   const { gateway, sessionId, cwd } = options
+  const { t } = useI18n()
+  const referenceDescriptions = t.composer.referenceDescriptions
   const enabled = Boolean(gateway)
 
   const contributed = useContributions(COMPOSER_AREAS.atCompletions)
@@ -165,14 +164,14 @@ export function useAtCompletions(options: {
 
   const fetcher = useCallback(
     async (query: string): Promise<CompletionPayload> => {
-      const starters = starterEntries(query)
+      const starters = starterEntries(query, referenceDescriptions)
       const extras = contributedEntries(query)
 
       if (!gateway) {
         return { items: mergeCompletionEntries(extras, starters), query }
       }
 
-      const word = REF_STARTERS.has(query) ? `@${query}:` : `@${query}`
+      const word = REF_STARTERS.has(query as ReferenceDescriptionKey) ? `@${query}:` : `@${query}`
       const params: Record<string, unknown> = { word }
 
       if (sessionId) {
@@ -201,7 +200,7 @@ export function useAtCompletions(options: {
         return { items: mergeCompletionEntries(extras, starters), query }
       }
     },
-    [cacheKey, contributedEntries, gateway, sessionId, cwd]
+    [cacheKey, contributedEntries, gateway, referenceDescriptions, sessionId, cwd]
   )
 
   const toItem = useCallback((entry: CompletionEntry, index: number): Unstable_TriggerItem => {

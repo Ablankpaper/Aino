@@ -2975,6 +2975,27 @@ export const zh: Translations = {
     wakeWordListening: phrase => `唤醒词:"${phrase}" — 正在监听`,
     wakeWordOff: phrase => `唤醒词:"${phrase}" — 已关闭`,
     wakeWordPausedVoice: phrase => `唤醒词:"${phrase}" — 语音对话期间暂停`,
+    completionGroups: {
+      commands: '命令',
+      configuration: '配置',
+      exit: '退出',
+      info: '信息',
+      options: '选项',
+      session: '会话',
+      sessions: '会话',
+      skills: '技能',
+      themes: '主题',
+      toolsAndSkills: '工具与技能'
+    },
+    referenceDescriptions: {
+      file: '引用文件',
+      folder: '引用文件夹',
+      git: '引用 Git 上下文',
+      image: '引用图片',
+      tool: '引用工具',
+      url: '引用网址'
+    },
+    browseAllSessions: '浏览全部会话…',
     lookupLoading: '查找中…',
     lookupNoMatches: '没有匹配项。',
     lookupTry: '试试',

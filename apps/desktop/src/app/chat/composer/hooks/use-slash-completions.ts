@@ -3,6 +3,7 @@ import { useStore } from '@nanostores/react'
 import { useCallback, useEffect } from 'react'
 
 import type { HermesGateway } from '@/hermes'
+import { useI18n } from '@/i18n'
 import { sessionTitle } from '@/lib/chat-runtime'
 import {
   type CommandsCatalogLike,
@@ -66,6 +67,8 @@ export function useSlashCompletions(options: {
   loading: boolean
 } {
   const { gateway, skinThemes, activeSkin } = options
+  const { t } = useI18n()
+  const browseAllSessions = t.composer.browseAllSessions
   const enabled = Boolean(gateway)
   const epoch = useStore($slashCompletionsEpoch)
 
@@ -142,7 +145,7 @@ export function useSlashCompletions(options: {
         // submitting it (Enter) still opens the overlay if the action is skipped.
         items.push({
           text: '/resume',
-          display: 'Browse all sessions…',
+          display: browseAllSessions,
           meta: '',
           group: 'Sessions',
           action: 'session-picker'
@@ -251,7 +254,7 @@ export function useSlashCompletions(options: {
         return { items: [], query }
       }
     },
-    [gateway, skinThemes, activeSkin]
+    [activeSkin, browseAllSessions, gateway, skinThemes]
   )
 
   const toItem = useCallback((entry: CompletionEntry, index: number): Unstable_TriggerItem => {

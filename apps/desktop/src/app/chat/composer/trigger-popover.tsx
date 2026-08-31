@@ -89,6 +89,20 @@ export function ComposerTriggerPopover({
 }: ComposerTriggerPopoverProps) {
   const { t } = useI18n()
   const copy = t.composer
+
+  const groupLabels: Record<string, string> = {
+    Commands: copy.completionGroups.commands,
+    Configuration: copy.completionGroups.configuration,
+    Exit: copy.completionGroups.exit,
+    Info: copy.completionGroups.info,
+    Options: copy.completionGroups.options,
+    Session: copy.completionGroups.session,
+    Sessions: copy.completionGroups.sessions,
+    Skills: copy.completionGroups.skills,
+    Themes: copy.completionGroups.themes,
+    'Tools & Skills': copy.completionGroups.toolsAndSkills
+  }
+
   const isSlash = kind === '/'
   const isEmoji = kind === ':'
   const listRef = useRef<HTMLDivElement>(null)
@@ -193,12 +207,15 @@ export function ComposerTriggerPopover({
           const showHeader = isSlash && Boolean(group) && group !== lastGroup
           const isFirstHeader = lastGroup === undefined
           lastGroup = group || lastGroup
+          const groupLabel = group ? (groupLabels[group] ?? group) : group
           const active = index === activeIndex
           const refKind = referenceKind(rowKind(item, isSlash))
 
           return (
             <Fragment key={item.id}>
-              {showHeader && <div className={cn(GROUP_HEADER_CLASS, isFirstHeader ? 'pt-0.5' : 'pt-2')}>{group}</div>}
+              {showHeader && (
+                <div className={cn(GROUP_HEADER_CLASS, isFirstHeader ? 'pt-0.5' : 'pt-2')}>{groupLabel}</div>
+              )}
               <button
                 className={ROW_CLASS}
                 data-highlighted={active ? '' : undefined}
