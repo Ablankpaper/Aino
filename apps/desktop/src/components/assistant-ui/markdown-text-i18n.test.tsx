@@ -8,7 +8,7 @@ import type * as MediaApi from '@/lib/media'
 const { resolveMediaDisplaySrc } = vi.hoisted(() => ({ resolveMediaDisplaySrc: vi.fn() }))
 
 vi.mock('@/lib/media', async importOriginal => ({
-  ...(await importOriginal<MediaApi>()),
+  ...(await importOriginal<typeof MediaApi>()),
   resolveMediaDisplaySrc
 }))
 

@@ -3424,6 +3424,7 @@ export interface Translations {
     boundaryTitle: string
     boundaryDesc: string
     contribFailedToRender: (id: string) => string
+    logUnavailable: (error: string) => string
     reloadWindow: string
     openLogs: string
   }

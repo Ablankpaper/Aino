@@ -1483,7 +1483,7 @@ export const en: Translations = {
     },
     computerUse: {
       checking: 'Checking Computer Use status…',
-      unsupported: platform => `Computer Use isn\'t supported on this platform (${platform}).`,
+      unsupported: platform => `Computer Use isn't supported on this platform (${platform}).`,
       installDriver: 'Install the cua-driver backend below to drive this machine.',
       grantAfterInstall: ' Then grant Accessibility and Screen Recording here.',
       identityNote:
@@ -1513,7 +1513,7 @@ export const en: Translations = {
       dangerZone: 'Danger zone',
       checking: "Checking what's installed…",
       confirmTitle: 'Confirm uninstall',
-      confirmBody: consequence => `This removes ${consequence}. This can\'t be undone.`,
+      confirmBody: consequence => `This removes ${consequence}. This can't be undone.`,
       appPath: path => `App: ${path}`,
       uninstalling: 'Uninstalling…',
       yesUninstall: 'Yes, uninstall',
@@ -4028,6 +4028,7 @@ export const en: Translations = {
     boundaryTitle: 'Something broke in the interface',
     boundaryDesc: 'The view hit an unexpected error. Your chats and settings are safe.',
     contribFailedToRender: id => `“${id}” failed to render`,
+    logUnavailable: error => `Log unavailable: ${error}`,
     reloadWindow: 'Reload window',
     openLogs: 'Open logs'
   },

@@ -4155,6 +4155,7 @@ export const zh: Translations = {
     boundaryTitle: '界面出错了',
     boundaryDesc: '此视图遇到意外错误。你的对话和设置是安全的。',
     contribFailedToRender: id => `面板“${id}”渲染失败`,
+    logUnavailable: error => `日志暂不可用：${error}`,
     reloadWindow: '重新加载窗口',
     openLogs: '打开日志'
   },
