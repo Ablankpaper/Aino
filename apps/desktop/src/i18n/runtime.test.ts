@@ -130,6 +130,23 @@ describe('desktop i18n runtime translator', () => {
     )
   })
 
+  it('keeps gateway authentication and profile guidance in Simplified Chinese', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('settings.gateway.remoteAuthHint')).toBe(
+      '托管网关使用 OAuth 或用户名密码；自托管网关也可能使用会话令牌。'
+    )
+    expect(translateNow('settings.gateway.plainTextConfirmTitle')).toBe('以明文存储网关令牌？')
+    expect(translateNow('settings.gateway.incompleteToken')).toBe('切换到远程前，请输入远程 URL 和会话令牌。')
+    expect(translateNow('settings.gateway.restartingMessage')).toBe(
+      'Aino 桌面端将使用已保存设置重新连接（界面保持打开）。'
+    )
+    expect(translateNow('settings.gateway.sshErrUpdateRequired')).toBe(
+      '使用桌面端 SSH 连接前，请更新远程主机上的 Aino。'
+    )
+    expect(translateNow('settings.profileScope.editsProfile', '工作')).toBe('此页面的更改将应用于“工作”配置档案。')
+  })
+
   it('falls back to English when the active locale cannot resolve a key', () => {
     const boot = TRANSLATIONS.ja.boot as { ready?: string }
     const originalReady = boot.ready

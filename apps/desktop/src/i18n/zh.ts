@@ -1362,7 +1362,7 @@ export const zh: Translations = {
       localDesc: '在 localhost 启动私有 Hermes 后端。这是默认方式，并且可离线工作。',
       remoteTitle: '远程网关',
       remoteDesc: '将此桌面外壳连接到远程 Hermes 后端。',
-      remoteAuthHint: '托管网关使用 OAuth 或用户名密码；自托管网关也可能使用会话 token。',
+      remoteAuthHint: '托管网关使用 OAuth 或用户名密码；自托管网关也可能使用会话令牌。',
       cloudTitle: 'Hermes Cloud',
       cloudDesc: '只需登录 Hermes Cloud 一次，即可从你账户下的智能体中选择——无需粘贴 URL。',
       cloudSignInTitle: 'Hermes Cloud',
@@ -1412,16 +1412,16 @@ export const zh: Translations = {
       existingToken: value => `现有令牌 ${value}`,
       savedToken: '已保存',
       pasteSessionToken: '粘贴会话令牌',
-      plainTextConfirmTitle: '以明文存储网关 token？',
+      plainTextConfirmTitle: '以明文存储网关令牌？',
       plainTextConfirmDesc:
-        '在此设备上未找到操作系统的密钥环服务，因此 token 将以未加密的明文保存在应用的连接设置文件中，以该用户身份运行的任何进程都可读取。请安装或启用 GNOME Keyring 或 KWallet 以进行加密存储。',
+        '在此设备上未找到操作系统的密钥环服务，因此令牌将以未加密的明文保存在应用的连接设置文件中，以该用户身份运行的任何进程都可读取。请安装或启用 GNOME Keyring 或 KWallet 以进行加密存储。',
       plainTextConfirmAction: '以明文保存',
-      plainTextStoredTitle: 'Token 以明文存储',
+      plainTextStoredTitle: '令牌以明文存储',
       plainTextStoredDesc:
-        '安全存储不可用，因此已保存的 token 以未加密方式存储在此设备上应用的连接设置文件中。请安装或启用 GNOME Keyring 或 KWallet 以对其加密。',
+        '安全存储不可用，因此已保存的令牌以未加密方式存储在此设备上应用的连接设置文件中。请安装或启用 GNOME Keyring 或 KWallet 以对其加密。',
       keychainEncryptionTitle: '使用系统钥匙串加密已保存的机密',
       keychainEncryptionDesc:
-        '默认关闭。开启后，网关 token 和登录凭据将使用系统钥匙串（Keychain Access、GNOME Keyring 或 Windows DPAPI）加密——系统可能会请求授权或密码。关闭时，它们以仅当前用户可读的普通文件形式存储。',
+        '默认关闭。开启后，网关令牌和登录凭据将使用系统钥匙串（Keychain Access、GNOME Keyring 或 Windows DPAPI）加密——系统可能会请求授权或密码。关闭时，它们以仅当前用户可读的普通文件形式存储。',
       keychainEncryptionFailed: '无法更改机密加密设置',
       testRemote: '测试远程',
       saveForRestart: '保存到下次重启',
@@ -1431,13 +1431,13 @@ export const zh: Translations = {
       openLogs: '打开日志',
       incompleteTitle: '远程网关配置不完整',
       incompleteSignIn: '切换到远程前，请输入远程 URL 并完成登录。',
-      incompleteToken: '切换到远程前，请输入远程 URL 和会话 token。',
+      incompleteToken: '切换到远程前，请输入远程 URL 和会话令牌。',
       incompleteSignInTest: '测试前，请输入远程 URL 并完成登录。',
-      incompleteTokenTest: '测试前，请输入远程 URL 和会话 token。',
+      incompleteTokenTest: '测试前，请输入远程 URL 和会话令牌。',
       enterUrlFirst: '请先输入远程 URL。',
       restartingTitle: '网关连接正在重启',
       savedTitle: '网关设置已保存',
-      restartingMessage: 'Hermes Desktop 将使用已保存设置重新连接（界面保持打开）。',
+      restartingMessage: 'Hermes 桌面端将使用已保存设置重新连接（界面保持打开）。',
       savedMessage: '已保存，下一次重启生效。',
       connectedTo: (baseUrl, version) => `已连接到 ${baseUrl}${version ? ` · Hermes ${version}` : ''}`,
       reachableTitle: '远程网关可访问',
@@ -1482,7 +1482,7 @@ export const zh: Translations = {
         '远程主机上未安装 Hermes。请在远程安装（curl -fsSL https://hermes-agent.nousresearch.com/install.sh | sh）或设置 Hermes 路径。',
       sshErrPlatform: '不支持的远程平台。Hermes Desktop 的 SSH 模式支持 Linux、macOS 和 Windows 远程主机。',
       sshErrTimeout: 'SSH 连接超时。主机可能无法访问或处于休眠状态。',
-      sshErrUpdateRequired: '使用 Desktop SSH 连接前，请更新远程主机上的 Hermes。',
+      sshErrUpdateRequired: '使用桌面端 SSH 连接前，请更新远程主机上的 Hermes。',
       sshErrUnknown: 'SSH 连接失败。'
     },
     keys: {
@@ -1496,7 +1496,7 @@ export const zh: Translations = {
     },
     profileScope: {
       appliesTo: '应用于',
-      editsProfile: profile => `此页面的更改将应用于“${profile}”配置文件。`
+      editsProfile: profile => `此页面的更改将应用于“${profile}”配置档案。`
     },
     mcp: {
       loading: '正在加载 MCP 服务器...',
