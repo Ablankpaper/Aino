@@ -113,6 +113,24 @@ def test_simplified_chinese_uses_consistent_agent_terminology():
     assert i18n.t("gateway.usage.detailed_after_first", lang="zh") == "_（首次智能体响应后可查看详细使用情况）_"
 
 
+def test_simplified_chinese_localizes_telegram_topic_guidance():
+    """Telegram topic guidance should be Chinese while retaining menu identifiers."""
+    assert i18n.t("gateway.topic.unauthorized", lang="zh") == "您无权在此机器人上使用 /topic。"
+    assert i18n.t("gateway.topic.restore_needs_topic", lang="zh") == (
+        "若要恢复会话，请先创建或打开一个 Telegram 主题，然后在该主题中发送 /topic <session-id>。"
+        "要创建新主题，请打开“所有消息（All Messages）”并在其中发送任意消息。"
+    )
+    assert i18n.t("gateway.topic.enable_failed", lang="zh", error="权限不足") == "启用 Telegram 主题模式失败：权限不足"
+    assert i18n.t("gateway.topic.bound_status", lang="zh", label="工作", session_id="s1") == (
+        "此主题已关联到：\n会话：工作\nID：s1\n\n使用 /new 将此主题替换为新会话。"
+        "\n如需并行工作，请打开“所有消息（All Messages）”并在其中发送消息以创建另一个主题。"
+    )
+    assert i18n.t("gateway.topic.thread_ready", lang="zh") == (
+        "Telegram 多会话主题已启用。\n\n此主题将作为独立的 Hermes 会话使用。"
+        "使用 /new 替换此主题的当前会话。如需并行工作，请打开“所有消息（All Messages）”并在其中发送消息以创建另一个主题。"
+    )
+
+
 def test_simplified_chinese_localizes_resume_and_matrix_recovery_copy():
     """Resume recovery guidance should be readable in Simplified Chinese."""
     assert i18n.t("gateway.resume.db_unavailable", lang="zh") == "会话数据库不可用。"
