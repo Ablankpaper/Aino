@@ -61,6 +61,24 @@ beforeEach(() => {
 })
 
 describe('opening a room', () => {
+  it('uses the active Simplified Chinese bundle for the blocked workspace hint', async () => {
+    const room = await loadRoom()
+    const shared = await import('./shared')
+    const context = scriptedStorage(room.gateway.storage) as Record<string, unknown>
+
+    context.i18n = {
+      t: (key: string) => (key === 'group.newConversationHint' ? '新的群组对话将在群组输入框中开始。' : key)
+    }
+    shared.setPluginCtx(context as never)
+
+    room.view.openGroupChat('Core')
+
+    expect(host.setWorkspaceScope).toHaveBeenCalledWith('bots', 'group:name:Core', {
+      kind: 'blocked',
+      message: '新的群组对话将在群组输入框中开始。'
+    })
+  })
+
   it('follows the main-window tab open and close', async () => {
     const room = await loadRoom()
     let onClose: () => void = () => undefined

@@ -74,6 +74,7 @@ describe('BOTS_LOCALES', () => {
       'bot.updateGatewayTitle',
       'bot.updateGatewayMessage',
       'bot.attentionProviderAuth',
+      'group.newConversationHint',
       'group.you',
       'group.botCount',
       'group.availability',

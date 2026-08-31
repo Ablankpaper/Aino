@@ -235,6 +235,7 @@ type BotsMessages = {
   /** Group chats: the room, its composer, threads and activity feed. */
   group: {
     newTitle: string
+    newConversationHint: string
     manageDesc: string
     manageTitle: string
     settingsTitle: string
@@ -664,6 +665,7 @@ const en: BotsMessages = {
   },
   group: {
     newTitle: 'New group chat',
+    newConversationHint: 'New group conversations start in the group composer.',
     manageDesc: 'A bot can join multiple group chats. Memberships sync to every machine.',
     manageTitle: 'Manage groups',
     settingsTitle: 'Group settings',
@@ -1085,6 +1087,7 @@ const ja: BotsMessages = {
   },
   group: {
     newTitle: '新しいグループチャット',
+    newConversationHint: '新しいグループ会話はグループ入力欄から開始します。',
     manageDesc: 'ボットは複数のグループチャットに参加できます。メンバーシップはすべてのマシンに同期されます。',
     manageTitle: 'グループを管理',
     settingsTitle: 'グループ設定',
@@ -1500,6 +1503,7 @@ const zh: BotsMessages = {
   },
   group: {
     newTitle: '新建群聊',
+    newConversationHint: '新的群组对话将在群组输入框中开始。',
     manageDesc: '一个机器人可以加入多个群聊。成员关系会同步到每台设备。',
     manageTitle: '管理群组',
     settingsTitle: '群组设置',
@@ -1913,6 +1917,7 @@ const zhHant: BotsMessages = {
   },
   group: {
     newTitle: '新增群組聊天',
+    newConversationHint: '新的群組對話將在群組輸入框中開始。',
     manageDesc: '一個機器人可以加入多個群組聊天。成員關係會同步到每台裝置。',
     manageTitle: '管理群組',
     settingsTitle: '群組設定',

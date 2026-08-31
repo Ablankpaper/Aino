@@ -1386,7 +1386,7 @@ export function openGroupChat(group: string): void {
     [group]: false
   })
   const ownerKey = groupWorkspaceOwnerKey(group)
-  setBotsWorkspaceOwner(ownerKey, null, 'New group conversations start in the group composer.')
+  setBotsWorkspaceOwner(ownerKey, null, botsText().group.newConversationHint)
 
   if (typeof host.openWorkspace === 'function') {
     try {
