@@ -2,6 +2,8 @@
 
 import { type CSSProperties } from 'react'
 
+import { useI18n } from '@/i18n'
+
 import type { FrameEmbed } from './providers/types'
 import { ScrollGate } from './scroll-gate'
 import { useIsDark } from './use-is-dark'
@@ -12,6 +14,7 @@ const ALLOW = 'autoplay; encrypted-media; picture-in-picture; clipboard-write; f
 // wheel chain to the transcript instead of capturing it. Maps are the one
 // exception — they're interactive, so a ScrollGate blocks them until ⌘ is held.
 export default function FrameEmbedRenderer({ descriptor }: { descriptor: FrameEmbed }) {
+  const { t } = useI18n()
   const isDark = useIsDark()
   const isMap = descriptor.provider === 'googlemaps' || descriptor.provider === 'openstreetmap'
   // color-scheme makes the iframe's default (unpainted) backdrop follow the
@@ -32,7 +35,7 @@ export default function FrameEmbedRenderer({ descriptor }: { descriptor: FrameEm
           referrerPolicy="strict-origin-when-cross-origin"
           src={descriptor.embedUrl}
           style={{ colorScheme }}
-          title={`${descriptor.label} embed`}
+          title={t.ui.accessibility.frameEmbed(descriptor.label)}
         />
         <ScrollGate />
       </div>
@@ -49,7 +52,7 @@ export default function FrameEmbedRenderer({ descriptor }: { descriptor: FrameEm
       scrolling="no"
       src={descriptor.embedUrl}
       style={style}
-      title={`${descriptor.label} embed`}
+      title={t.ui.accessibility.frameEmbed(descriptor.label)}
     />
   )
 }

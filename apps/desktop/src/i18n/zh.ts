@@ -4998,6 +4998,7 @@ export const zh: Translations = {
       generatedImage: '生成的图片',
       youtubeEmbed: 'YouTube 嵌入',
       spotifyEmbed: 'Spotify 嵌入',
+      frameEmbed: label => `${label} 嵌入`,
       conversationTimeline: '对话时间线',
       holdToZoom: '按住 ⌘ 进行缩放',
       moreActions: '更多操作',

@@ -3819,6 +3819,7 @@ export interface Translations {
       generatedImage: string
       youtubeEmbed: string
       spotifyEmbed: string
+      frameEmbed: (label: string) => string
       conversationTimeline: string
       holdToZoom: string
       moreActions: string

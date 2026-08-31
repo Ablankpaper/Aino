@@ -4646,6 +4646,7 @@ export const en: Translations = {
       generatedImage: 'Generated image',
       youtubeEmbed: 'YouTube embed',
       spotifyEmbed: 'Spotify embed',
+      frameEmbed: label => `${label} embed`,
       conversationTimeline: 'Conversation timeline',
       holdToZoom: 'Hold ⌘ to zoom',
       moreActions: 'More actions',
