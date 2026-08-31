@@ -55,7 +55,7 @@ import { $groupChats, $groupChatWorkspace } from './group-chat'
 import { botGroups, groupLastActivity } from './group-membership'
 import { fallbackSelectionAfterHide, isBotHidden, isBotPinned } from './hidden-bots'
 import { useBots } from './i18n'
-import { displayName, stripPreviewMarkdown } from './labels'
+import { displayName, rosterConnectionLabel, stripPreviewMarkdown } from './labels'
 import { duplicateBot } from './profile-ops'
 import { openRosterBot } from './roster-actions'
 import { botRosterMeta, botWorkspaceOwnerKey, setBotsWorkspaceOwner } from './routing'
@@ -172,7 +172,7 @@ export function BotRow({ bot, onDelete, onEdit, onGroup, showHandle }: BotRowPro
   )
 
   const handle = botHandle(bot.name, bot)
-  const gatewayLabel = bot.connectionLabel || (bot.connectionId === 'local' ? t.cron.deliveryLabels.local : '')
+  const gatewayLabel = rosterConnectionLabel(bot) || (bot.connectionId === 'local' ? t.cron.deliveryLabels.local : '')
   const showDetailsRow = Boolean(showHandle || displayPreview || fromBot)
 
   const rowTooltip = [displayName(bot, meta), `@${handle}`, gatewayLabel, sourceStatus.label]

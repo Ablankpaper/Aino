@@ -57,7 +57,7 @@ import {
 import { groupWorkspaceOwnerKey } from './group-membership'
 import { annotateOrphanedGroupChatMembers } from './hygiene'
 import { BOTS_LOCALES } from './i18n'
-import { displayName } from './labels'
+import { displayName, rosterConnectionLabel } from './labels'
 import { startBotRelay, stopBotRelay } from './relay'
 import { $activityToasts } from './roster-actions'
 import {
@@ -157,7 +157,8 @@ export default {
               continue
             }
 
-            const source = profile.connectionLabel ? ` · ${profile.connectionLabel}` : ''
+            const sourceLabel = rosterConnectionLabel(profile)
+            const source = sourceLabel ? ` · ${sourceLabel}` : ''
             items.push({
               insert: `@${tag}`,
               display: `@${tag}`,

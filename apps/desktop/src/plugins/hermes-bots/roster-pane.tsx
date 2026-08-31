@@ -62,6 +62,7 @@ import { groupChatMemberBots, groupChatNames, groupLastActivity } from './group-
 import { $groupMainTabsRev, shouldRenderGroupChatInPane } from './group-panes'
 import { $showHiddenBots, isBotHidden, isBotPinned } from './hidden-bots'
 import { useBots } from './i18n'
+import { rosterConnectionLabel } from './labels'
 import { deleteBot, mergeServerMeta, pullServerAvatars } from './profile-ops'
 import { $activityToasts, setActivityToasts, trackInboundActivity } from './roster-actions'
 import {
@@ -589,7 +590,14 @@ export function BotsPane() {
       <div className="flex min-w-0 items-center gap-1.5 px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-quaternary)">
         <GatewayKindGlyph kind={section.option?.kind} />
         <span className="min-w-0 flex-1 truncate">
-          {section.option?.label || section.option?.connectionId || b.roster.currentGateway}
+          {rosterConnectionLabel({
+            connectionId: section.option?.connectionId,
+            connectionKind: section.option?.kind,
+            connectionLabel: section.option?.label
+          }) ||
+            section.option?.label ||
+            section.option?.connectionId ||
+            b.roster.currentGateway}
         </span>
         <span className="shrink-0 font-normal tabular-nums">{section.rows.length}</span>
       </div>
@@ -725,7 +733,15 @@ export function BotsPane() {
                             className={cn('mr-1.5', !status.available && 'text-amber-600 dark:text-amber-300')}
                             kind={option.kind}
                           />
-                          <span className="min-w-0 flex-1 truncate">{option.label || option.connectionId}</span>
+                          <span className="min-w-0 flex-1 truncate">
+                            {rosterConnectionLabel({
+                              connectionId: option.connectionId,
+                              connectionKind: option.kind,
+                              connectionLabel: option.label
+                            }) ||
+                              option.label ||
+                              option.connectionId}
+                          </span>
                           <span className="text-[0.625rem] tabular-nums text-(--ui-text-quaternary)">
                             {option.count}
                           </span>

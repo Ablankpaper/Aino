@@ -61,7 +61,15 @@ vi.mock('@/i18n', () => ({
         switchToProfile: (name: string) => `Switch to ${name}`,
         title: 'Profiles'
       },
-      settings: { connections: { kindCloud: 'Cloud', kindLocal: 'This device', kindRemote: 'Remote', kindSsh: 'SSH' } }
+      settings: {
+        connections: {
+          kindCloud: 'Cloud',
+          kindLocal: 'This device',
+          kindRemote: 'Remote',
+          kindSsh: 'SSH',
+          localLabel: 'This device'
+        }
+      }
     }
   })
 }))

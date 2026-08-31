@@ -10,8 +10,8 @@
 import { Codicon, ConnectionGlyph, DisclosureCaret, RowButton, Tip } from '@hermes/plugin-sdk'
 
 import { botHandle, botRosterKey, botSourceStatus, filterBots } from './data'
-import { displayName } from './labels'
 import { botsText } from './i18n'
+import { displayName, rosterConnectionLabel } from './labels'
 import { botRosterMeta } from './routing'
 import type { BotMeta, GatewaySource, RosterRow } from './types'
 
@@ -286,7 +286,16 @@ export function GatewaySectionHeading({ collapsed, count, onToggle, option }: Ga
     sourceReachable: option?.reachable
   })
 
-  const label = option?.label || option?.connectionId || botsText().roster.currentGateway
+  const rawLabel = option?.label || option?.connectionId || botsText().roster.currentGateway
+
+  const label = option?.label
+    ? rosterConnectionLabel({
+        connectionId: option.connectionId,
+        connectionKind: option.kind,
+        connectionLabel: option.label
+      }) || rawLabel
+    : rawLabel
+
   const kind = option?.kind || 'remote'
 
   return (

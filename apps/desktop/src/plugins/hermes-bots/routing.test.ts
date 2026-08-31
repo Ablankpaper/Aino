@@ -28,18 +28,25 @@ import {
 } from './routing'
 import type { ProfileRoute, RosterRow } from './types'
 
-const { hostMock } = vi.hoisted(() => ({
+const { hostMock, localLabel } = vi.hoisted(() => ({
   hostMock: {
     request: vi.fn(),
     requestProfile: vi.fn(),
     setWorkspaceScope: vi.fn(),
     state: { connectionId: { get: vi.fn(() => 'local') } }
-  }
+  },
+  localLabel: { value: 'This device' }
 }))
 
 vi.mock('@hermes/plugin-sdk', () => ({
   host: hostMock,
-  translateNow: (key: string) => (key === 'desktop.botMode.selectBotOrGroup' ? '请先选择一个机器人或群组。' : key)
+  translateNow: (key: string) => {
+    if (key === 'desktop.botMode.selectBotOrGroup') {
+      return '请先选择一个机器人或群组。'
+    }
+
+    return key === 'settings.connections.localLabel' ? localLabel.value : key
+  }
 }))
 
 const MOXIE_ROUTE: ProfileRoute = {
@@ -64,11 +71,41 @@ const hostedRow = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  localLabel.value = 'This device'
   hostMock.state.connectionId.get.mockReturnValue('local')
   indexAliasRoutes([])
 })
 
 describe('alias identity survives the hosted handoff (#89131)', () => {
+  it('localizes the built-in local source label without changing custom labels', () => {
+    localLabel.value = '此设备'
+
+    expect(
+      displayName(
+        {
+          connectionId: 'local',
+          connectionKind: 'local',
+          connectionLabel: 'This device',
+          name: 'default',
+          remoteSource: true
+        },
+        null
+      )
+    ).toBe('此设备')
+    expect(
+      displayName(
+        {
+          connectionId: 'local',
+          connectionKind: 'local',
+          connectionLabel: '我的电脑',
+          name: 'default',
+          remoteSource: true
+        },
+        null
+      )
+    ).toBe('我的电脑')
+  })
+
   it('names the backend row after the alias, through every meta generation', () => {
     indexAliasRoutes([
       { connectionId: 'local', mode: 'local', profile: 'default', targetProfile: 'default' },
