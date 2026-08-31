@@ -2947,6 +2947,7 @@ export interface Translations {
       reconnectGateway: string
       openSystem: string
       connection: (label: string) => string
+      state: (state: string) => string
       recentActivity: string
       viewAllLogs: string
       messagingPlatforms: string

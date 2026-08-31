@@ -3990,6 +3990,25 @@ export const zh: Translations = {
       reconnectGateway: '重连网关',
       openSystem: '打开系统面板',
       connection: label => `连接：${label}`,
+      state: state =>
+        ({
+          connected: '已连接',
+          connecting: '连接中',
+          closed: '已关闭',
+          disconnected: '已断开',
+          disabled: '已禁用',
+          error: '错误',
+          fatal: '严重错误',
+          idle: '空闲',
+          offline: '离线',
+          open: '已连接',
+          pending_restart: '等待重启',
+          retrying: '重试中',
+          running: '运行中',
+          startup_failed: '启动失败',
+          starting: '启动中',
+          stopped: '已停止'
+        })[state] ?? state.replace(/_/g, ' '),
       recentActivity: '最近活动',
       viewAllLogs: '查看全部日志 →',
       messagingPlatforms: '消息平台'

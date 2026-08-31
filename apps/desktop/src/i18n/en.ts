@@ -3644,6 +3644,7 @@ export const en: Translations = {
       reconnectGateway: 'Reconnect gateway',
       openSystem: 'Open system panel',
       connection: label => `Connection: ${label}`,
+      state: state => state.replace(/_/g, ' ').replace(/^./, char => char.toUpperCase()),
       recentActivity: 'Recent activity',
       viewAllLogs: 'View all logs →',
       messagingPlatforms: 'Messaging platforms'
