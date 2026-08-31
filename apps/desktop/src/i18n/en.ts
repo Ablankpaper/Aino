@@ -4062,6 +4062,18 @@ export const en: Translations = {
     branchFailed: 'Branch failed',
     stopProcessFailed: 'Could not stop the process',
     gatewayReconnectUnavailable: 'Gateway reconnect is unavailable',
+    commandResults: {
+      noCommands: 'No desktop commands available.',
+      steerQueued: text => `Steered · "${text}" queued for next tool call`,
+      steerQueuedNoText: 'Steered next tool call',
+      steerRejected: 'Steer rejected — agent declined input',
+      stoppedProcesses: count => `Stopped ${count} background process${count === 1 ? '' : 'es'}.`,
+      noBackgroundProcesses: 'No background processes to stop.',
+      savedTranscript: path => `Saved transcript to ${path}`,
+      usage: (calls, input, output, total) => `Usage: ${calls} calls · ${input} in / ${output} out · ${total} total`,
+      noBackgroundTasks: 'No background tasks running.',
+      processLine: (status, command, metadata) => `• [${status}] ${command}${metadata ? ` (${metadata})` : ''}`
+    },
     openSessionWindowFailed: 'Could not open chat in a new window',
     openNewWindowFailed: 'Could not open a new window',
     popOutBrowserFailed: 'Could not pop out browser',

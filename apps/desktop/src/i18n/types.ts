@@ -3480,6 +3480,18 @@ export interface Translations {
     branchFailed: string
     stopProcessFailed: string
     gatewayReconnectUnavailable: string
+    commandResults: {
+      noCommands: string
+      steerQueued: (text: string) => string
+      steerQueuedNoText: string
+      steerRejected: string
+      stoppedProcesses: (count: number) => string
+      noBackgroundProcesses: string
+      savedTranscript: (path: string) => string
+      usage: (calls: string, input: string, output: string, total: string) => string
+      noBackgroundTasks: string
+      processLine: (status: string, command: string, metadata: string) => string
+    }
     openSessionWindowFailed: string
     openNewWindowFailed: string
     popOutBrowserFailed: string

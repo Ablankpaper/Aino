@@ -4187,6 +4187,18 @@ export const zh: Translations = {
     branchFailed: '分支失败',
     stopProcessFailed: '无法停止进程',
     gatewayReconnectUnavailable: '网关重连不可用',
+    commandResults: {
+      noCommands: '当前没有可用的桌面命令。',
+      steerQueued: text => `已引导：“${text}” 已排队，将在下一次工具调用时发送`,
+      steerQueuedNoText: '已引导下一次工具调用',
+      steerRejected: '引导已拒绝 — 智能体拒绝了输入',
+      stoppedProcesses: count => `已停止 ${count} 个后台进程。`,
+      noBackgroundProcesses: '当前没有可停止的后台进程。',
+      savedTranscript: path => `已将记录保存到 ${path}`,
+      usage: (calls, input, output, total) => `用量：${calls} 次调用 · 输入 ${input} / 输出 ${output} · 总计 ${total}`,
+      noBackgroundTasks: '当前没有运行中的后台任务。',
+      processLine: (status, command, metadata) => `• [${status}] ${command}${metadata ? `（${metadata}）` : ''}`
+    },
     openSessionWindowFailed: '无法在新窗口打开会话',
     openNewWindowFailed: '无法打开新窗口',
     popOutBrowserFailed: '无法弹出浏览器窗口',
