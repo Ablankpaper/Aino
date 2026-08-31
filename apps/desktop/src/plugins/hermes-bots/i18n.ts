@@ -220,6 +220,10 @@ type BotsMessages = {
     noImageModel: string
     checkingImageBackend: string
     chooseImage: string
+    petGalleryEmpty: string
+    petSearchPlaceholder: (count: number) => string
+    petNoMatch: string
+    petScrollMore: (visible: number, total: number) => string
   }
   /** Group chats: the room, its composer, threads and activity feed. */
   group: {
@@ -638,7 +642,11 @@ const en: BotsMessages = {
     noImageModel:
       'No image model available. If you just enabled one (or updated Hermes), restart the gateway: Ctrl+K → "Restart gateway".',
     checkingImageBackend: 'Checking image backend…',
-    chooseImage: 'Choose an image…'
+    chooseImage: 'Choose an image…',
+    petGalleryEmpty: 'No pets in the petdex gallery. Run `hermes pets` to explore.',
+    petSearchPlaceholder: count => `Search ${count} pets…`,
+    petNoMatch: 'No pets match.',
+    petScrollMore: (visible, total) => `Scroll for more (${visible} of ${total})`
   },
   group: {
     newTitle: 'New group chat',
@@ -1048,7 +1056,11 @@ const ja: BotsMessages = {
     noImageModel:
       '画像モデルがありません。有効化またはHermes更新直後の場合は、ゲートウェイを再起動してください（Ctrl+K →「ゲートウェイを再起動」）。',
     checkingImageBackend: '画像バックエンドを確認中…',
-    chooseImage: '画像を選択…'
+    chooseImage: '画像を選択…',
+    petGalleryEmpty: 'ペット図鑑にペットがありません。`hermes pets` を実行して探してください。',
+    petSearchPlaceholder: count => `${count}匹のペットを検索…`,
+    petNoMatch: '一致するペットはありません。',
+    petScrollMore: (visible, total) => `さらに表示（${visible}/${total}）`
   },
   group: {
     newTitle: '新しいグループチャット',
@@ -1452,7 +1464,11 @@ const zh: BotsMessages = {
     faceFollowsName: '头像会跟随名称变化。',
     noImageModel: '没有可用的图像模型。如果你刚启用模型或更新了 Hermes，请重启网关：Ctrl+K →“重启网关”。',
     checkingImageBackend: '正在检查图像后端…',
-    chooseImage: '选择图片…'
+    chooseImage: '选择图片…',
+    petGalleryEmpty: '宠物图鉴中没有宠物。运行 `hermes pets` 来探索。',
+    petSearchPlaceholder: count => `搜索 ${count} 只宠物…`,
+    petNoMatch: '没有匹配的宠物。',
+    petScrollMore: (visible, total) => `滚动查看更多（${visible}/${total}）`
   },
   group: {
     newTitle: '新建群聊',
@@ -1854,7 +1870,11 @@ const zhHant: BotsMessages = {
     faceFollowsName: '頭像會跟隨名稱變化。',
     noImageModel: '沒有可用的圖片模型。如果你剛啟用模型或更新 Hermes，請重新啟動閘道：Ctrl+K →「重新啟動閘道」。',
     checkingImageBackend: '正在檢查圖片後端…',
-    chooseImage: '選擇圖片…'
+    chooseImage: '選擇圖片…',
+    petGalleryEmpty: '寵物圖鑑中沒有寵物。執行 `hermes pets` 來探索。',
+    petSearchPlaceholder: count => `搜尋 ${count} 隻寵物…`,
+    petNoMatch: '沒有符合的寵物。',
+    petScrollMore: (visible, total) => `捲動查看更多（${visible}/${total}）`
   },
   group: {
     newTitle: '新增群組聊天',
