@@ -12,6 +12,7 @@ import {
   validateProviderCredential
 } from '@/hermes'
 import { PRODUCT_NAME } from '@/lib/brand'
+import { translateNow } from '@/i18n'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { evaluateRuntimeReadiness, type RuntimeReadinessResult } from '@/lib/runtime-readiness'
 import { setMainModelAssignment } from '@/store/cron-model-impact'
@@ -193,20 +194,16 @@ function shouldPreserveConfiguredOnFallback(runtime: RuntimeReadinessResult, sta
 }
 
 function notifyReady(provider: string) {
-  notify({ kind: 'success', title: `${PRODUCT_NAME} is ready`, message: `${provider} connected.` })
+  notify({
+    kind: 'success',
+    title: translateNow('onboarding.readyTitle'),
+    message: translateNow('onboarding.readyMessage', provider)
+  })
 }
 
 // Human-friendly labels for tools auto-routed through the Nous Tool Gateway,
 // mirroring hermes_cli/nous_subscription._GATEWAY_TOOL_LABELS so the GUI and
 // CLI describe the same thing.
-const GATEWAY_TOOL_LABELS: Record<string, string> = {
-  browser: 'browser automation',
-  image_gen: 'image generation',
-  tts: 'text-to-speech',
-  video_gen: 'video generation',
-  web: 'web search & extract'
-}
-
 // When switching to Nous auto-routes unconfigured tools through the Tool
 // Gateway, tell the user which ones — same information the CLI prints. Silent
 // when nothing changed (subscriber already configured, has own keys, etc.).
@@ -215,14 +212,14 @@ function notifyGatewayTools(tools: string[] | undefined) {
     return
   }
 
-  const labels = tools.map(t => GATEWAY_TOOL_LABELS[t] ?? t)
+  const labels = tools.map(tool => translateNow('onboarding.gatewayToolLabel', tool))
   const list = labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`
 
   notify({
     durationMs: 8000,
     kind: 'info',
-    message: `${list} now run through your Nous subscription — no separate API keys needed.`,
-    title: 'Tool Gateway enabled'
+    message: translateNow('onboarding.gatewayToolsMessage', list),
+    title: translateNow('onboarding.gatewayToolsTitle')
   })
 }
 
@@ -332,7 +329,7 @@ async function completeWithModelConfirm(
 
       notifyGatewayTools(res.gateway_tools)
     } catch (error) {
-      onFail(error instanceof Error ? error.message : `${PRODUCT_NAME} could not save the selected model.`)
+      onFail(error instanceof Error ? error.message : translateNow('onboarding.saveCredentialFailed', PRODUCT_NAME))
 
       return
     }
@@ -365,11 +362,7 @@ async function completeWithModelConfirm(
 }
 
 export function providerResolutionFailure(reason: null | string) {
-  const detail = reason?.trim()
-
-  return detail
-    ? `Connected, but ${PRODUCT_NAME} still cannot resolve a usable provider. ${detail}`
-    : `Connected, but ${PRODUCT_NAME} still cannot resolve a usable provider.`
+  return translateNow('onboarding.providerResolutionFailure', reason?.trim() || undefined)
 }
 
 async function refreshProviders() {
@@ -566,8 +559,8 @@ export async function refreshOnboarding(ctx: OnboardingContext) {
     notify({
       id: 'runtime-not-ready',
       kind: 'error',
-      title: 'Runtime not ready',
-      message: `${PRODUCT_NAME} Desktop could not verify the running backend on startup. Some features may be unavailable until the gateway is reachable.`
+      title: translateNow('onboarding.runtimeNotReadyTitle'),
+      message: translateNow('onboarding.runtimeNotReadyMessage')
     })
 
     return false
@@ -632,7 +625,7 @@ export async function startProviderOAuth(provider: OAuthProvider, ctx: Onboardin
     setFlow({ status: 'polling', provider, start, copied: false })
     pollTimer = window.setInterval(() => void pollSession(provider, start, ctx), POLL_MS)
   } catch (error) {
-    setFlow({ status: 'error', provider, message: `Could not start sign-in: ${errMessage(error)}` })
+    setFlow({ status: 'error', provider, message: translateNow('onboarding.startSignInFailed', errMessage(error)) })
   }
 }
 
@@ -653,11 +646,16 @@ async function pollSession(provider: OAuthProvider, start: DeviceStart, ctx: Onb
       )
     } else if (status !== 'pending') {
       clearPoll()
-      setFlow({ status: 'error', provider, start, message: error_message || `Sign-in ${status}.` })
+      setFlow({
+        status: 'error',
+        provider,
+        start,
+        message: error_message || translateNow('onboarding.signInStatus', status)
+      })
     }
   } catch (error) {
     clearPoll()
-    setFlow({ status: 'error', provider, start, message: `Polling failed: ${errMessage(error)}` })
+    setFlow({ status: 'error', provider, start, message: translateNow('onboarding.pollFailed', errMessage(error)) })
   }
 }
 
@@ -692,7 +690,12 @@ export async function submitOnboardingCode(ctx: OnboardingContext) {
         })
       )
     } else {
-      setFlow({ status: 'error', provider, start, message: resp.message || 'Token exchange failed.' })
+      setFlow({
+        status: 'error',
+        provider,
+        start,
+        message: resp.message || translateNow('onboarding.tokenExchangeFailed')
+      })
     }
   } catch (error) {
     setFlow({ status: 'error', provider, start, message: errMessage(error) })
@@ -768,8 +771,7 @@ export async function recheckExternalSignin(ctx: OnboardingContext) {
       status: 'error',
       provider,
       message:
-        reason?.trim() ||
-        `${PRODUCT_NAME} still cannot reach ${provider.name}. Run \`${provider.cli_command}\` in a terminal first.`
+        reason?.trim() || translateNow('onboarding.externalProviderUnreachable', provider.name, provider.cli_command)
     })
   )
 }
@@ -787,7 +789,7 @@ export async function saveOnboardingApiKey(
   const trimmed = value.trim()
 
   if (!trimmed) {
-    return { ok: false, message: 'Enter a value first.' }
+    return { ok: false, message: translateNow('onboarding.enterValueFirst') }
   }
 
   // The "Local / custom endpoint" option carries a base URL (in `value`) plus
@@ -817,7 +819,7 @@ export async function saveOnboardingApiKey(
 
     return { ok: true }
   } catch (error) {
-    notifyError(error, `Could not save ${label}`)
+    notifyError(error, translateNow('onboarding.saveCredentialFailed', label))
 
     return { ok: false, message: errMessage(error) }
   }
@@ -844,7 +846,7 @@ export async function saveOnboardingLocalEndpoint(baseUrl: string, apiKey: strin
   const key = apiKey.trim()
 
   if (!url) {
-    return { ok: false, message: 'Enter the endpoint URL first.' }
+    return { ok: false, message: translateNow('onboarding.endpointUrlFirst') }
   }
 
   // Probe connectivity + discover the served models. Any HTTP response proves
@@ -856,22 +858,22 @@ export async function saveOnboardingLocalEndpoint(baseUrl: string, apiKey: strin
     const probe = await validateProviderCredential('OPENAI_BASE_URL', url, key)
 
     if (!probe.ok && probe.reachable) {
-      return { ok: false, message: probe.message || 'Could not reach that endpoint.' }
+      return { ok: false, message: probe.message || translateNow('onboarding.endpointUnreachable', url) }
     }
 
     if (!probe.reachable) {
-      return { ok: false, message: probe.message || `Could not reach ${url}.` }
+      return { ok: false, message: probe.message || translateNow('onboarding.endpointUnreachable', url) }
     }
 
     model = (probe.models?.[0] ?? '').trim()
   } catch {
-    return { ok: false, message: `Could not reach ${url}.` }
+    return { ok: false, message: translateNow('onboarding.endpointUnreachable', url) }
   }
 
   if (!model) {
     return {
       ok: false,
-      message: `Connected to ${url}, but it advertised no models at /v1/models. Start a model on that endpoint and try again.`
+      message: translateNow('onboarding.endpointNoModels', url)
     }
   }
 
@@ -884,7 +886,7 @@ export async function saveOnboardingLocalEndpoint(baseUrl: string, apiKey: strin
     if (!runtime.ready) {
       const detail = (runtime.reason ?? '').trim()
 
-      return { ok: false, message: detail || `Saved, but ${PRODUCT_NAME} still cannot reach ${url}.` }
+      return { ok: false, message: detail || translateNow('onboarding.savedEndpointUnreachable', url) }
     }
 
     notifyReady('Local / custom endpoint')
@@ -893,7 +895,7 @@ export async function saveOnboardingLocalEndpoint(baseUrl: string, apiKey: strin
 
     return { ok: true }
   } catch (error) {
-    notifyError(error, 'Could not save local endpoint')
+    notifyError(error, translateNow('onboarding.saveEndpointFailed'))
 
     return { ok: false, message: errMessage(error) }
   }
@@ -923,7 +925,7 @@ export async function setOnboardingModel(model: string) {
       setFlow({ ...current, currentModel: model, saving: false })
     }
   } catch (error) {
-    notifyError(error, 'Could not change model')
+    notifyError(error, translateNow('onboarding.couldNotChangeModel'))
     const current = $desktopOnboarding.get().flow
 
     if (current.status === 'confirming_model') {

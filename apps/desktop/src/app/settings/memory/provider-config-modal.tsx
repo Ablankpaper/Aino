@@ -12,6 +12,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { saveMemoryProviderConfig } from '@/hermes'
+import { useI18n } from '@/i18n'
 import { ExternalLink, Loader2, Save, SlidersHorizontal } from '@/lib/icons'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile } from '@/store/profile'
@@ -59,6 +60,8 @@ export function ProviderConfigModal({
   onOpenChange: (open: boolean) => void
   onSaved: () => Promise<void> | void
 }) {
+  const { t } = useI18n()
+  const m = t.settings.memory
   const activeProfile = useStore($activeGatewayProfile)
   const [values, setValues] = useState<Record<string, string>>({})
   const [seeded, setSeeded] = useState<Record<string, string>>({})
@@ -81,11 +84,11 @@ export function ProviderConfigModal({
 
     try {
       await saveMemoryProviderConfig(provider, edited, profile)
-      notify({ kind: 'success', title: `${config.label} saved`, message: 'Memory provider configuration updated.' })
+      notify({ kind: 'success', title: m.savedTitle(config.label), message: m.savedMessage })
       await onSaved()
       onOpenChange(false)
     } catch (err) {
-      notifyError(err, `Failed to save ${config.label} settings`)
+      notifyError(err, m.saveFailed(config.label))
     } finally {
       setSaving(false)
     }
@@ -95,11 +98,10 @@ export function ProviderConfigModal({
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent bodyClassName="dt-portal-scrollbar" className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle icon={SlidersHorizontal}>{config.label} — full configuration</DialogTitle>
-          <DialogDescription>
-            Every {config.label} option for the <span className="font-medium">{profile ?? activeProfile}</span> profile.
-            Blank fields fall back to the resolved host or built-in default.
-          </DialogDescription>
+          <DialogTitle icon={SlidersHorizontal}>
+            {config.label} — {m.fullConfig}
+          </DialogTitle>
+          <DialogDescription>{m.fullConfigDescription(config.label, profile ?? activeProfile)}</DialogDescription>
           {config.docs_url && (
             <a
               className="inline-flex w-fit items-center gap-1 text-[length:var(--conversation-caption-font-size)] text-(--ui-accent-secondary) underline-offset-4 transition-colors hover:underline"
@@ -111,7 +113,7 @@ export function ProviderConfigModal({
               rel="noreferrer"
               target="_blank"
             >
-              {config.label} configuration reference
+              {config.label} {m.configurationReference}
               <ExternalLink className="size-3" />
             </a>
           )}
@@ -121,7 +123,7 @@ export function ProviderConfigModal({
           {groupFields(config.fields).map(([group, fields]) => (
             <section className="mt-6 first:mt-2" key={group}>
               <h3 className="border-b border-(--ui-accent-secondary)/30 pb-1.5 font-mono text-[0.68rem] uppercase tracking-wide text-(--ui-accent-secondary)">
-                {group}
+                {group === 'Other' ? m.groupOther : group}
               </h3>
               <div className="pl-1">
                 {fields.map(field => (
@@ -147,12 +149,12 @@ export function ProviderConfigModal({
         <DialogFooter>
           <DialogClose asChild>
             <Button size="sm" type="button" variant="ghost">
-              Cancel
+              {m.cancel}
             </Button>
           </DialogClose>
           <Button disabled={saving} onClick={() => void save()} size="sm">
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save />}
-            Save changes
+            {m.saveChanges}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -78,6 +78,22 @@ describe('desktop i18n runtime translator', () => {
     expect(fieldCopyForSchemaKey(zh.settings.fieldDescriptions, field)).toBe('当后端提供推理内容时予以显示。')
   })
 
+  it('exposes Chinese copy for settings and lifecycle flows', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('settings.customEndpoints.emptyTitle')).toBe('暂无自定义端点')
+    expect(translateNow('settings.customEndpoints.emptyDescription')).toBe('在下方添加一个 OpenAI 兼容端点。')
+    expect(translateNow('settings.providers.descriptions.DeepSeek')).toBe('DeepSeek 直连接口（V3.x、R1）。')
+    expect(translateNow('settings.computerUse.ready')).toBe('已就绪')
+    expect(translateNow('settings.uninstall.dangerZone')).toBe('危险区域')
+    expect(translateNow('settings.appearance.themeSearchPlaceholder')).toBe('搜索你的主题或 VS Code Marketplace…')
+    expect(translateNow('onboarding.runtimeNotReadyTitle')).toBe('运行时未就绪')
+    expect(translateNow('updates.desktopBridgeUnavailable')).toBe('桌面桥接不可用。')
+    expect(translateNow('updates.starting')).toBe('正在开始更新…')
+    expect(translateNow('updates.backendApplied')).toBe('后端更新已应用。')
+    expect(translateNow('updates.backendNoReturn')).toBe('后端未恢复在线。')
+  })
+
   it('falls back to English when the active locale cannot resolve a key', () => {
     const boot = TRANSLATIONS.ja.boot as { ready?: string }
     const originalReady = boot.ready

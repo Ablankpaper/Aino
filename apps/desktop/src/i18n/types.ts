@@ -511,6 +511,9 @@ export interface Translations {
       installed: (name: string) => string
       removeTheme: string
       importedBadge: string
+      themeSearchPlaceholder: string
+      marketplaceHeading: string
+      noInstalledThemesMatch: (query: string) => string
       pet: {
         title: string
         intro: string
@@ -944,6 +947,12 @@ export interface Translations {
       provider: string
       model: string
       applying: string
+      setupProvider: (provider: string) => string
+      activating: string
+      activate: string
+      apiKeyPlaceholder: (key: string) => string
+      providerNeedsApiKey: (provider: string) => string
+      providerNeedsBrowser: (provider: string) => string
       defaultsLabel: string
       reasoning: string
       reasoningOff: string
@@ -958,6 +967,24 @@ export interface Translations {
       fallbackAdd: string
       fallbackEmpty: string
       notInCatalog: string
+      otherProviders: string
+      staleAuxiliary: (count: number, names: string, provider: string) => string
+      moa: {
+        title: string
+        description: string
+        preset: string
+        enabled: string
+        setDefault: string
+        delete: string
+        newPresetPlaceholder: string
+        addPreset: string
+        defaultLabel: string
+        reference: (index: number) => string
+        toggleReference: (enabled: boolean, index: number) => string
+        remove: string
+        addReferenceModel: string
+        aggregator: string
+      }
       tasks: Record<string, AuxTaskCopy>
     }
     providers: {
@@ -985,7 +1012,128 @@ export interface Translations {
         title: string
         description: string
       }
+      descriptions: Record<string, string>
       loading: string
+    }
+    customEndpoints: {
+      title: string
+      active: string
+      apiKeySet: string
+      use: string
+      deleteEndpoint: string
+      emptyTitle: string
+      emptyDescription: string
+      editTitle: string
+      addTitle: string
+      name: string
+      namePlaceholder: string
+      providerId: string
+      providerIdPlaceholder: string
+      endpointUrl: string
+      endpointUrlPlaceholder: string
+      defaultModel: string
+      defaultModelPlaceholder: string
+      context: string
+      contextPlaceholder: string
+      apiKey: string
+      apiKeyKeepPlaceholder: string
+      apiKeyOptionalPlaceholder: string
+      useForNewChats: string
+      discoverModels: string
+      test: string
+      testing: string
+      save: string
+      saving: string
+      newEndpoint: string
+      loadFailed: string
+      saved: string
+      saveFailed: string
+      validationFailed: string
+      activationFailed: string
+      deleteFailed: string
+      deleteConfirm: (name: string) => string
+      endpointReachable: string
+      endpointReachableModels: (count: number) => string
+      endpointValidationFailed: string
+    }
+    memory: {
+      loadFailed: string
+      loading: string
+      settingsTitle: (label: string) => string
+      fullConfig: string
+      fullConfigDescription: (label: string, profile: string) => string
+      configurationReference: string
+      groupOther: string
+      blankFallback: string
+      cancel: string
+      saveChanges: string
+      savedTitle: (label: string) => string
+      savedMessage: string
+      saveFailed: (label: string) => string
+      retry: string
+      fieldAbout: (label: string) => string
+      set: string
+      notSet: string
+      connectViaOAuth: string
+      reconnect: string
+      connect: string
+      apiKeySet: string
+      oauthSet: string
+      waitingBrowserConsent: string
+      cancelConnection: string
+      startConnectionFailed: string
+      failedStartConnection: string
+      timedOut: string
+      connectionFailed: string
+    }
+    computerUse: {
+      checking: string
+      unsupported: (platform: string) => string
+      installDriver: string
+      grantAfterInstall: string
+      identityNote: string
+      linuxNote: string
+      windowsNote: string
+      recheck: string
+      accessibility: string
+      accessibilityHint: string
+      screenRecording: string
+      screenRecordingHint: string
+      driverHealth: string
+      granted: string
+      notGranted: string
+      unknown: string
+      ready: string
+      notReady: string
+      readyHint: string
+      waitingApproval: string
+      grantPermissions: string
+      approveTitle: string
+      approveMessage: string
+      requestPermissionsFailed: string
+      readStatusFailed: string
+    }
+    uninstall: {
+      dangerZone: string
+      checking: string
+      confirmTitle: string
+      confirmBody: (consequence: string) => string
+      appPath: (path: string) => string
+      uninstalling: string
+      yesUninstall: string
+      cancel: string
+      heading: (name: string) => string
+      intro: string
+      guiTitle: string
+      guiDescription: (name: string) => string
+      guiConsequence: string
+      liteTitle: string
+      liteDescription: (name: string) => string
+      liteConsequence: (name: string) => string
+      fullTitle: string
+      fullDescription: string
+      fullConsequence: (name: string) => string
+      couldNotStart: string
     }
     sessions: {
       loading: string
@@ -2253,6 +2401,10 @@ export interface Translations {
       failed: string
       noReturn: string
     }
+    desktopBridgeUnavailable: string
+    starting: string
+    backendApplied: string
+    backendNoReturn: string
   }
 
   install: {
@@ -2371,6 +2523,27 @@ export interface Translations {
     change: string
     startChatting: string
     docs: (provider: string) => string
+    readyTitle: string
+    readyMessage: (provider: string) => string
+    gatewayToolsTitle: string
+    gatewayToolsMessage: (tools: string) => string
+    gatewayToolLabel: (tool: string) => string
+    runtimeNotReadyTitle: string
+    runtimeNotReadyMessage: string
+    providerResolutionFailure: (detail?: string) => string
+    startSignInFailed: (detail: string) => string
+    pollFailed: (detail: string) => string
+    signInStatus: (status: string) => string
+    tokenExchangeFailed: string
+    externalProviderUnreachable: (provider: string, command: string) => string
+    enterValueFirst: string
+    saveCredentialFailed: (label: string) => string
+    endpointUrlFirst: string
+    endpointUnreachable: (url: string) => string
+    endpointNoModels: (url: string) => string
+    savedEndpointUnreachable: (url: string) => string
+    saveEndpointFailed: string
+    couldNotChangeModel: string
   }
 
   modelPicker: {

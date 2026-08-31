@@ -431,11 +431,11 @@ export async function applyUpdates(opts: DesktopUpdateApplyOptions = {}): Promis
   const bridge = window.hermesDesktop?.updates
 
   if (!bridge) {
-    return { ok: false, error: 'unavailable', message: 'Desktop bridge unavailable.' }
+    return { ok: false, error: 'unavailable', message: translateNow('updates.desktopBridgeUnavailable') }
   }
 
   dismissNotification(UPDATE_TOAST_ID)
-  $updateApply.set({ ...IDLE, applying: true, stage: 'prepare', message: 'Starting update…' })
+  $updateApply.set({ ...IDLE, applying: true, stage: 'prepare', message: translateNow('updates.starting') })
 
   try {
     const result = await bridge.apply(opts)
@@ -554,7 +554,7 @@ function finishBackendApply(returned: boolean): DesktopUpdateApplyResult {
     // them the app itself was stale). Nudge with a one-click client update.
     void maybeNudgeClientAfterBackendUpdate()
 
-    return { ok: true, message: 'Backend update applied.' }
+    return { ok: true, message: translateNow('updates.backendApplied') }
   }
 
   $backendUpdateApply.set({
@@ -565,7 +565,7 @@ function finishBackendApply(returned: boolean): DesktopUpdateApplyResult {
     message: translateNow('updates.applyStatus.noReturn')
   })
 
-  return { ok: false, error: 'apply-failed', message: 'Backend did not come back online.' }
+  return { ok: false, error: 'apply-failed', message: translateNow('updates.backendNoReturn') }
 }
 
 function ingestBackendActionStatus(status: Awaited<ReturnType<typeof getActionStatus>>): void {
@@ -750,7 +750,7 @@ async function runBackendUpdate(): Promise<DesktopUpdateApplyResult> {
       message: translateNow('updates.applyStatus.failed')
     })
 
-    return { ok: false, error: 'apply-failed', message: 'Backend update failed.' }
+    return { ok: false, error: 'apply-failed', message: translateNow('updates.applyStatus.failed') }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     $backendUpdateApply.set({

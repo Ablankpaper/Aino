@@ -156,6 +156,9 @@ interface StaleAuxWarningProps {
 // $0-balance provider after switching main away from it) and offers the
 // existing one-click reset rather than auto-clearing legitimate pins.
 function StaleAuxWarning({ applying, onReset, slots, taskLabel }: StaleAuxWarningProps) {
+  const { t } = useI18n()
+  const m = t.settings.model
+
   if (!slots.length) {
     return null
   }
@@ -163,16 +166,22 @@ function StaleAuxWarning({ applying, onReset, slots, taskLabel }: StaleAuxWarnin
   const provider = slots[0].provider
   const allSameProvider = slots.every(slot => slot.provider === provider)
   const names = slots.map(slot => taskLabel(slot.task)).join(', ')
+  const warning = m.staleAuxiliary(slots.length, names, allSameProvider ? provider : m.otherProviders)
+  const providerMarker = allSameProvider ? provider : m.otherProviders
+  const markerIndex = warning.indexOf(providerMarker)
+  const beforeProvider = markerIndex >= 0 ? warning.slice(0, markerIndex) : `${warning} `
+  const afterProvider = markerIndex >= 0 ? warning.slice(markerIndex + providerMarker.length) : ''
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
       <AlertTriangle className="size-3.5 shrink-0" />
       <span className="grow">
-        {slots.length} auxiliary task{slots.length === 1 ? '' : 's'} ({names}) still run on{' '}
-        <span className="font-mono">{allSameProvider ? provider : 'other providers'}</span>, not your main model.
+        {beforeProvider}
+        {markerIndex >= 0 && <span className="font-mono">{providerMarker}</span>}
+        {afterProvider}
       </span>
       <Button disabled={applying} onClick={onReset} size="sm" variant="textStrong">
-        Reset all to main
+        {m.resetAllToMain}
       </Button>
     </div>
   )
@@ -815,7 +824,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
                       void activateApiKeyProvider()
                     }
                   }}
-                  placeholder={`Paste ${selectedProviderRow?.key_env ?? 'API key'}`}
+                  placeholder={m.apiKeyPlaceholder(selectedProviderRow?.key_env ?? 'API key')}
                   type="password"
                   value={apiKeyDraft}
                 />
@@ -825,12 +834,12 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
                   size="sm"
                 >
                   {activating && <Loader2 className="size-3.5 animate-spin" />}
-                  {activating ? 'Activating...' : 'Activate'}
+                  {activating ? m.activating : m.activate}
                 </Button>
               </>
             ) : (
               <Button onClick={startProviderSetup} size="sm" variant="textStrong">
-                Set up {selectedProviderRow?.name ?? 'provider'}
+                {m.setupProvider(selectedProviderRow?.name ?? 'provider')}
               </Button>
             )
           ) : (
@@ -861,8 +870,8 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
         {needsSetup && !setupIsApiKey && selectedProviderRow && (
           <p className="mt-2 text-xs text-muted-foreground">
             {selectedProviderRow?.auth_type === 'api_key'
-              ? `${selectedProviderRow?.name} needs an API key — set it up to choose a model.`
-              : `${selectedProviderRow?.name} signs in through your browser — Hermes runs the flow for you.`}
+              ? m.providerNeedsApiKey(selectedProviderRow.name)
+              : m.providerNeedsBrowser(selectedProviderRow.name)}
           </p>
         )}
         {config && mainModel && (reasoningSupported || fastSupported) && (
@@ -1033,15 +1042,12 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
       </section>
       {moa && currentMoaPreset && (
         <section>
-          <SectionHeading icon={Cpu} title="Mixture of Agents" />
-          <p className="mb-2 text-xs text-muted-foreground">
-            Configure named presets that appear as models under the Mixture of Agents provider. The aggregator is the
-            acting model.
-          </p>
+          <SectionHeading icon={Cpu} title={m.moa.title} />
+          <p className="mb-2 text-xs text-muted-foreground">{m.moa.description}</p>
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Select onValueChange={setSelectedMoaPreset} value={selectedMoaPreset || moa.default_preset}>
               <SelectTrigger className={cn('min-w-40', CONTROL_TEXT)}>
-                <SelectValue placeholder="Preset" />
+                <SelectValue placeholder={m.moa.preset} />
               </SelectTrigger>
               <SelectContent>
                 {Object.keys(moa.presets).map(name => (
@@ -1052,7 +1058,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
               </SelectContent>
             </Select>
             <label className="flex items-center gap-2 rounded-sm border border-border px-2 py-1 text-xs">
-              Enabled
+              {m.moa.enabled}
               <Switch
                 checked={currentMoaPreset.enabled !== false}
                 disabled={applying}
@@ -1073,7 +1079,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
               size="sm"
               variant="text"
             >
-              Set default
+              {m.moa.setDefault}
             </Button>
             <Button
               disabled={Object.keys(moa.presets).length <= 1 || applying}
@@ -1099,12 +1105,12 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
               size="sm"
               variant="ghost"
             >
-              Delete
+              {m.moa.delete}
             </Button>
             <Input
               className={cn('w-40', CONTROL_TEXT)}
               onChange={event => setNewMoaPresetName(event.target.value)}
-              placeholder="new preset"
+              placeholder={m.moa.newPresetPlaceholder}
               value={newMoaPresetName}
             />
             <Button
@@ -1127,18 +1133,18 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
               size="sm"
               variant="textStrong"
             >
-              Add preset
+              {m.moa.addPreset}
             </Button>
           </div>
           <div className="mb-2 text-xs text-muted-foreground">
-            Default: <span className="font-mono">{moa.default_preset}</span>
+            {m.moa.defaultLabel}: <span className="font-mono">{moa.default_preset}</span>
           </div>
           <div className="grid gap-1">
             {currentMoaPreset.reference_models.map((slot, index) => (
               <ListRow
                 action={
                   <Switch
-                    aria-label={`${slot.enabled !== false ? 'Disable' : 'Enable'} reference ${index + 1}`}
+                    aria-label={m.moa.toggleReference(slot.enabled !== false, index + 1)}
                     checked={slot.enabled !== false}
                     disabled={applying}
                     onCheckedChange={checked =>
@@ -1215,7 +1221,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
                       size="sm"
                       variant="ghost"
                     >
-                      Remove
+                      {m.moa.remove}
                     </Button>
                   </div>
                 }
@@ -1226,7 +1232,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
                   </span>
                 }
                 key={`${selectedMoaPreset}-${index}`}
-                title={`Reference ${index + 1}`}
+                title={m.moa.reference(index + 1)}
               />
             ))}
             <Button
@@ -1240,7 +1246,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
               size="sm"
               variant="textStrong"
             >
-              Add reference model
+              {m.moa.addReferenceModel}
             </Button>
             <ListRow
               below={
@@ -1302,7 +1308,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
                   {currentMoaPreset.aggregator.provider} · {currentMoaPreset.aggregator.model}
                 </span>
               }
-              title="Aggregator"
+              title={m.moa.aggregator}
             />
           </div>
         </section>
