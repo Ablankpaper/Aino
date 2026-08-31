@@ -338,6 +338,14 @@ describe('desktop slash command curation', () => {
     )
   })
 
+  it('prefers a locale-specific description for the canonical command', () => {
+    expect(
+      desktopSlashDescription('/fork', 'Branch the current session', {
+        '/branch': '将最新消息分支到新对话'
+      })
+    ).toBe('将最新消息分支到新对话')
+  })
+
   it('builds /skin completions from desktop themes', () => {
     const completions = desktopSkinSlashCompletions(
       [

@@ -68,6 +68,7 @@ export function useSlashCompletions(options: {
 } {
   const { gateway, skinThemes, activeSkin } = options
   const { t } = useI18n()
+  const commandDescriptions = t.composer.commandDescs
   const browseAllSessions = t.composer.browseAllSessions
   const enabled = Boolean(gateway)
   const epoch = useStore($slashCompletionsEpoch)
@@ -170,7 +171,7 @@ export function useSlashCompletions(options: {
               text: command,
               display: command,
               group: section.name || undefined,
-              meta
+              meta: desktopSlashDescription(command, textValue(meta), commandDescriptions)
             }))
           )
 
@@ -231,7 +232,9 @@ export function useSlashCompletions(options: {
             // blurb). Only command rows get the registry description — looking
             // one up for `/personality none` would clobber it with the parent
             // command's text.
-            meta: isArgCompletion ? textValue(item.meta) : desktopSlashDescription(item.text, textValue(item.meta))
+            meta: isArgCompletion
+              ? textValue(item.meta)
+              : desktopSlashDescription(item.text, textValue(item.meta), commandDescriptions)
           }))
 
         // Keep each group contiguous so headers render once: Commands before
@@ -254,7 +257,7 @@ export function useSlashCompletions(options: {
         return { items: [], query }
       }
     },
-    [activeSkin, browseAllSessions, gateway, skinThemes]
+    [activeSkin, browseAllSessions, commandDescriptions, gateway, skinThemes]
   )
 
   const toItem = useCallback((entry: CompletionEntry, index: number): Unstable_TriggerItem => {

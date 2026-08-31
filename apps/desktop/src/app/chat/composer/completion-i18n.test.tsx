@@ -40,6 +40,13 @@ describe('composer completion localization', () => {
           return { items: [] }
         }
 
+        if (method === 'commands.catalog') {
+          return {
+            categories: [{ name: 'Session', pairs: [['/branch', 'Branch the current session']] }],
+            pairs: [['/branch', 'Branch the current session']]
+          }
+        }
+
         return { items: [] }
       })
     }
@@ -58,9 +65,14 @@ describe('composer completion localization', () => {
 
     const atItems = await settleSearch(at, '')
     const slashItems = await settleSearch(slash, 'resume ')
+    const catalogItems = await settleSearch(slash, '')
+
     expect(atItems.find(item => item.label === '@file:')?.description).toBe('引用文件')
     expect(atItems.find(item => item.label === '@folder:')?.description).toBe('引用文件夹')
     expect(slashItems.some(item => item.label === '浏览全部会话…')).toBe(true)
+    expect(catalogItems.find(item => (item.metadata as { command?: string }).command === '/branch')?.description).toBe(
+      '将最新消息分支到新对话'
+    )
   })
 
   it('localizes slash completion group headings without changing their internal ids', () => {

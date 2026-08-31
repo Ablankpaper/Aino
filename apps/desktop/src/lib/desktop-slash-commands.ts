@@ -569,8 +569,10 @@ export function desktopSlashUnavailableMessage(command: string): string | null {
   return null
 }
 
-export function desktopSlashDescription(command: string, fallback = ''): string {
-  return SPEC_BY_NAME.get(canonicalDesktopSlashCommand(command))?.description || fallback
+export function desktopSlashDescription(command: string, fallback = '', localized?: Record<string, string>): string {
+  const canonical = canonicalDesktopSlashCommand(command)
+
+  return localized?.[canonical] || SPEC_BY_NAME.get(canonical)?.description || fallback
 }
 
 export function desktopSlashCommandArgumentMode(command: string): DesktopSlashArgumentMode | null {
