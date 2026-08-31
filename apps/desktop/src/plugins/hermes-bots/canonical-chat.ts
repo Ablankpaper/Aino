@@ -158,10 +158,11 @@ function botModeGatewayNeedsUpdate(error: unknown) {
 export function notifyBotOpenFailure(error: unknown, bot: RosterRow, fallbackMessage: string) {
   if (botModeGatewayNeedsUpdate(error)) {
     const gateway = bot.connectionLabel || bot.connectionId || 'this gateway'
+    const i18n = getPluginCtx()?.i18n
     host.notify?.({
       kind: 'error',
-      title: 'Update this gateway to use Bot Mode',
-      message: `Update ${gateway}, then try again.`
+      title: i18n?.t('bot.updateGatewayTitle') ?? 'Update this gateway to use Bot Mode',
+      message: i18n?.t('bot.updateGatewayMessage', gateway) ?? `Update ${gateway}, then try again.`
     })
 
     return

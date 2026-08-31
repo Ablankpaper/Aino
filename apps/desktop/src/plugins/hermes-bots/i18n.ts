@@ -114,6 +114,8 @@ type BotsMessages = {
     advancedHint: string
     advancedFailed: string
     openAnotherChatUnsupported: string
+    updateGatewayTitle: string
+    updateGatewayMessage: (gateway: string) => string
     remoteConnectionsUnsupported: string
     /** Stands under the bot's name in a chat it has not spoken in yet. */
     chatEmpty: string
@@ -535,6 +537,8 @@ const en: BotsMessages = {
     advancedHint: 'Advanced — model, skills, toolsets, SOUL.md',
     advancedFailed: 'Advanced configuration failed',
     openAnotherChatUnsupported: 'Update Hermes Desktop to open another Bot chat.',
+    updateGatewayTitle: 'Update this gateway to use Bot Mode',
+    updateGatewayMessage: gateway => `Update ${gateway}, then try again.`,
     remoteConnectionsUnsupported: 'Update Hermes Desktop to chat with bots on other connections.',
     chatEmpty: 'Say something to get started.',
     kickoff: 'Hey, tell me about yourself!',
@@ -948,6 +952,8 @@ const ja: BotsMessages = {
     advancedHint: '詳細設定 — モデル、スキル、ツールセット、SOUL.md',
     advancedFailed: '詳細設定に失敗しました',
     openAnotherChatUnsupported: '別のボットチャットを開くには Hermes Desktop を更新してください。',
+    updateGatewayTitle: 'このゲートウェイを更新してボットモードを使用',
+    updateGatewayMessage: gateway => `${gateway} を更新してから、もう一度お試しください。`,
     remoteConnectionsUnsupported: '他の接続上のボットとチャットするには Hermes Desktop を更新してください。',
     chatEmpty: '何か書いて始めましょう。',
     kickoff: 'こんにちは、自己紹介をしてください！',
@@ -1361,6 +1367,8 @@ const zh: BotsMessages = {
     advancedHint: '高级 — 模型、技能、工具集、SOUL.md',
     advancedFailed: '高级配置失败',
     openAnotherChatUnsupported: '请更新 Hermes Desktop 以打开另一个机器人聊天。',
+    updateGatewayTitle: '更新此网关以使用机器人模式',
+    updateGatewayMessage: gateway => `${gateway} 需要更新，然后再重试。`,
     remoteConnectionsUnsupported: '请更新 Hermes Desktop 以与其他连接上的机器人聊天。',
     chatEmpty: '说点什么开始吧。',
     kickoff: '你好，介绍一下你自己吧！',
@@ -1767,6 +1775,8 @@ const zhHant: BotsMessages = {
     advancedHint: '進階 — 模型、技能、工具集、SOUL.md',
     advancedFailed: '進階設定失敗',
     openAnotherChatUnsupported: '請更新 Hermes Desktop 以開啟另一個機器人聊天。',
+    updateGatewayTitle: '更新此閘道以使用機器人模式',
+    updateGatewayMessage: gateway => `請更新 ${gateway}，然後再試一次。`,
     remoteConnectionsUnsupported: '請更新 Hermes Desktop 以與其他連線上的機器人聊天。',
     chatEmpty: '說點什麼開始吧。',
     kickoff: '你好，介紹一下你自己吧！',

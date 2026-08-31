@@ -22,7 +22,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RosterRow } from './types'
 
 const { hostMock, persistMock, pluginCtx, requestForBotMock, saveBotMetaMock } = vi.hoisted(() => ({
-  hostMock: { openSession: vi.fn(), request: vi.fn() },
+  hostMock: { notify: vi.fn(), openSession: vi.fn(), request: vi.fn() },
   persistMock: vi.fn(),
   // Null unless a test installs one — the plugin ctx is genuinely absent until
   // register() runs, which is why every read of it carries an English floor.
@@ -215,6 +215,29 @@ describe('the lazy row is materialized before anything else touches it', () => {
     // Creation can race plugin registration; an unresolved key must never
     // reach the model as the literal `bot.kickoff`.
     expect(await kickoffTextSent()).toBe('Hey, tell me about yourself!')
+  })
+
+  it('localizes an update-required gateway notification', async () => {
+    pluginCtx.current = {
+      i18n: {
+        t: (key: string, ...args: unknown[]) =>
+          key === 'bot.updateGatewayTitle'
+            ? '更新此网关以使用机器人模式'
+            : key === 'bot.updateGatewayMessage'
+              ? `${String(args[0])} 需要更新，然后再重试。`
+              : key
+      }
+    }
+
+    const { notifyBotOpenFailure } = await loadModule()
+
+    notifyBotOpenFailure(new Error('method not found'), { connectionLabel: '远程网关' } as RosterRow, '备用错误')
+
+    expect(hostMock.notify).toHaveBeenCalledWith({
+      kind: 'error',
+      title: '更新此网关以使用机器人模式',
+      message: '远程网关 需要更新，然后再重试。'
+    })
   })
 
   it('retries navigation after the compat kickoff when the eager title is unsupported', async () => {
