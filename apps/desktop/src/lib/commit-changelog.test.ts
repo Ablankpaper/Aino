@@ -41,6 +41,28 @@ describe('parseCommitHeader', () => {
 })
 
 describe('buildCommitChangelog', () => {
+  const zhCopy = {
+    groups: {
+      new: '新功能',
+      fixed: '修复',
+      faster: '性能提升',
+      improved: '改进',
+      other: '其他改进'
+    },
+    fallbackItem: '改进与修复',
+    fallbackLabel: '本次更新'
+  }
+
+  it('uses the supplied locale copy for changelog headings and fallback text', () => {
+    const groups = buildCommitChangelog([{ summary: 'feat: add a localized release note' }], { copy: zhCopy })
+
+    expect(groups[0]).toMatchObject({ id: 'new', label: '新功能' })
+
+    expect(buildCommitChangelog([{ summary: 'chore: bump' }], { copy: zhCopy })).toEqual([
+      { id: 'other', items: ['改进与修复'], label: '本次更新' }
+    ])
+  })
+
   it('groups commits into user-friendly buckets and capitalizes subjects', () => {
     const groups = buildCommitChangelog([
       { summary: 'feat(desktop): add NSIS prereq detection page' },

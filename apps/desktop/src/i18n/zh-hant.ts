@@ -2242,6 +2242,17 @@ export const zhHant = defineLocale({
       notAvailable: '此後端無法更新。',
       failed: '後端更新失敗。',
       noReturn: '後端未恢復連線。更新可能未完成——請檢查後端主機。'
+    },
+    changelog: {
+      groups: {
+        new: '新功能',
+        fixed: '修復',
+        faster: '效能提升',
+        improved: '改進',
+        other: '其他改進'
+      },
+      fallbackItem: '改進與修復',
+      fallbackLabel: '本次更新'
     }
   },
 

@@ -31,18 +31,37 @@ export interface CommitChangelogInput {
   summary?: string
 }
 
+export interface CommitChangelogCopy {
+  groups: Record<CommitGroupId, string>
+  fallbackItem: string
+  fallbackLabel: string
+}
+
 interface BuildOptions {
   maxGroups?: number
   maxPerGroup?: number
   maxTotal?: number
+  copy?: CommitChangelogCopy
 }
 
-const GROUP_META: Record<CommitGroupId, { label: string; order: number }> = {
-  new: { label: "What's new", order: 0 },
-  fixed: { label: 'Fixed', order: 1 },
-  faster: { label: 'Faster', order: 2 },
-  improved: { label: 'Improved', order: 3 },
-  other: { label: 'Other improvements', order: 4 }
+const DEFAULT_COPY: CommitChangelogCopy = {
+  groups: {
+    new: "What's new",
+    fixed: 'Fixed',
+    faster: 'Faster',
+    improved: 'Improved',
+    other: 'Other improvements'
+  },
+  fallbackItem: 'Improvements and fixes',
+  fallbackLabel: 'In this update'
+}
+
+const GROUP_ORDER: Record<CommitGroupId, number> = {
+  new: 0,
+  fixed: 1,
+  faster: 2,
+  improved: 3,
+  other: 4
 }
 
 const TYPE_TO_GROUP: Record<string, CommitGroupId> = {
@@ -75,8 +94,6 @@ const HIDDEN_TYPES = new Set([
   'tests',
   'wip'
 ])
-
-const FALLBACK_GROUP: CommitGroup = { id: 'other', items: ['Improvements and fixes'], label: 'In this update' }
 
 const CONVENTIONAL_HEADER = /^(?<type>[a-zA-Z][a-zA-Z0-9_-]*)(?:\((?<scope>[^)]+)\))?(?<bang>!)?:\s+(?<subject>.+)$/
 
@@ -124,7 +141,7 @@ export function buildCommitChangelog(
   commits: readonly CommitChangelogInput[] | undefined,
   options: BuildOptions = {}
 ): CommitGroup[] {
-  const { maxGroups = 3, maxPerGroup = 4, maxTotal = 6 } = options
+  const { copy = DEFAULT_COPY, maxGroups = 3, maxPerGroup = 4, maxTotal = 6 } = options
   const groups = new Map<CommitGroupId, string[]>()
   const seen = new Set<string>()
   let total = 0
@@ -166,13 +183,13 @@ export function buildCommitChangelog(
   }
 
   const result = Array.from(groups.entries())
-    .map(([id, items]) => ({ id, items, label: GROUP_META[id].label, order: GROUP_META[id].order }))
+    .map(([id, items]) => ({ id, items, label: copy.groups[id], order: GROUP_ORDER[id] }))
     .sort((a, b) => a.order - b.order)
     .slice(0, maxGroups)
     .map(({ id, items, label }): CommitGroup => ({ id, items, label }))
 
   if (result.length === 0) {
-    return [FALLBACK_GROUP]
+    return [{ id: 'other', items: [copy.fallbackItem], label: copy.fallbackLabel }]
   }
 
   return result

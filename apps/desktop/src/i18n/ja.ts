@@ -2319,6 +2319,17 @@ export const ja = defineLocale({
       failed: 'バックエンドの更新に失敗しました。',
       noReturn:
         'バックエンドがオンラインに戻りませんでした。更新が完了していない可能性があります。バックエンドホストを確認してください。'
+    },
+    changelog: {
+      groups: {
+        new: '新機能',
+        fixed: '修正',
+        faster: '高速化',
+        improved: '改善',
+        other: 'その他の改善'
+      },
+      fallbackItem: '改善と修正',
+      fallbackLabel: '今回の更新'
     }
   },
 

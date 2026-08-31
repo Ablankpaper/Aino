@@ -3355,7 +3355,18 @@ export const en: Translations = {
     desktopBridgeUnavailable: 'Desktop bridge unavailable.',
     starting: 'Starting update…',
     backendApplied: 'Backend update applied.',
-    backendNoReturn: 'Backend did not come back online.'
+    backendNoReturn: 'Backend did not come back online.',
+    changelog: {
+      groups: {
+        new: "What's new",
+        fixed: 'Fixed',
+        faster: 'Faster',
+        improved: 'Improved',
+        other: 'Other improvements'
+      },
+      fallbackItem: 'Improvements and fixes',
+      fallbackLabel: 'In this update'
+    }
   },
 
   install: {

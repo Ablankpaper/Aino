@@ -3716,7 +3716,18 @@ export const zh: Translations = {
     desktopBridgeUnavailable: '桌面桥接不可用。',
     starting: '正在开始更新…',
     backendApplied: '后端更新已应用。',
-    backendNoReturn: '后端未恢复在线。'
+    backendNoReturn: '后端未恢复在线。',
+    changelog: {
+      groups: {
+        new: '新功能',
+        fixed: '修复',
+        faster: '性能提升',
+        improved: '改进',
+        other: '其他改进'
+      },
+      fallbackItem: '改进与修复',
+      fallbackLabel: '本次更新'
+    }
   },
 
   install: {

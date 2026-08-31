@@ -2728,6 +2728,17 @@ export interface Translations {
     starting: string
     backendApplied: string
     backendNoReturn: string
+    changelog: {
+      groups: {
+        new: string
+        fixed: string
+        faster: string
+        improved: string
+        other: string
+      }
+      fallbackItem: string
+      fallbackLabel: string
+    }
   }
 
   install: {

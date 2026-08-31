@@ -231,7 +231,7 @@ function IdleView({
     )
   }
 
-  const groups = buildCommitChangelog(commits)
+  const groups = buildCommitChangelog(commits, { copy: u.changelog })
   const shownItems = totalItems(groups)
   const remaining = Math.max(0, behind - shownItems)
 
