@@ -4392,6 +4392,7 @@ export const zh: Translations = {
       },
       mediaFetchFailed: name => `无法从网关获取 ${name}（文件缺失、不可读取或过大）。`,
       openFile: kind => `打开${kind === 'audio' ? '音频' : '视频'}文件`,
+      openMedia: name => `打开 ${name}`,
       imageLoadFailed: name => `图片加载失败：${name}。`,
       openImage: '打开图片',
       loading: name => `正在加载 ${name}…`

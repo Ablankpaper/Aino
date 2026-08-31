@@ -144,6 +144,7 @@ function OpenMediaButton({ kind, path }: { kind: 'audio' | 'video'; path: string
 }
 
 function MediaAttachment({ path }: { path: string }) {
+  const { t } = useI18n()
   const [src, setSrc] = useState('')
   const [failed, setFailed] = useState(false)
   const { open, openFailed } = useOpenMediaFile(path)
@@ -235,7 +236,7 @@ function MediaAttachment({ path }: { path: string }) {
           open()
         }}
       >
-        {failed ? `Open ${name}` : `Loading ${name}...`}
+        {failed ? t.assistant.markdown.openMedia(name) : t.assistant.markdown.loading(name)}
       </a>
       {openFailed && <OpenMediaFailedNote name={name} />}
     </span>

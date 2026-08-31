@@ -4033,6 +4033,7 @@ export const en: Translations = {
       },
       mediaFetchFailed: name => `Couldn't fetch ${name} from the gateway (missing, unreadable, or too large).`,
       openFile: kind => `Open ${kind} file`,
+      openMedia: name => `Open ${name}`,
       imageLoadFailed: name => `Couldn't load ${name}.`,
       openImage: 'Open image',
       loading: name => `Loading ${name}...`

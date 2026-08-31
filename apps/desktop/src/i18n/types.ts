@@ -3317,6 +3317,7 @@ export interface Translations {
       }
       mediaFetchFailed: (name: string) => string
       openFile: (kind: 'audio' | 'video') => string
+      openMedia: (name: string) => string
       imageLoadFailed: (name: string) => string
       openImage: string
       loading: (name: string) => string
