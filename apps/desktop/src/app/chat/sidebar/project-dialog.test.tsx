@@ -23,6 +23,9 @@ vi.mock('@/i18n', () => ({
           ideaLabel: 'Idea',
           ideaPlaceholder: 'What are you building?',
           ideaShuffle: 'Shuffle ideas',
+          ideaTemplates: {
+            rocket: { label: '火箭追踪', idea: '用于追踪火箭发射的项目。' }
+          },
           namePlaceholder: 'Project name',
           noFolders: 'No folders yet',
           primaryBadge: 'Primary',
@@ -63,7 +66,7 @@ vi.mock('@/store/notifications', () => ({
 }))
 
 vi.mock('@/lib/project-idea-templates', () => ({
-  randomIdeaTemplates: () => [{ emoji: '🚀', idea: 'A rocket tracker', label: 'Rocket tracker' }]
+  randomIdeaTemplates: () => [{ emoji: '🚀', id: 'rocket' }]
 }))
 
 const tipTrigger = (el: HTMLElement) => el.closest('[data-slot="tooltip-trigger"]')
@@ -74,6 +77,14 @@ describe('ProjectDialog', () => {
 
     const button = screen.getByRole('button', { name: 'Shuffle ideas' })
     expect(tipTrigger(button)).toBeTruthy()
+  })
+
+  it('renders the localized idea template and inserts its localized content', () => {
+    render(<ProjectDialog />)
+
+    fireEvent.click(screen.getByRole('button', { name: '火箭追踪' }))
+
+    expect(screen.getByDisplayValue('用于追踪火箭发射的项目。')).toBeTruthy()
   })
 
   it('wraps the "remove folder" button in a Tip once a folder is added', async () => {

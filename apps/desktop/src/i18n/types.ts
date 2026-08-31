@@ -2290,6 +2290,7 @@ export interface Translations {
       ideaGenerate: string
       ideaGenerating: string
       ideaShuffle: string
+      ideaTemplates: Record<string, { label: string; idea: string }>
       noFolders: string
       addFolder: string
       primaryBadge: string

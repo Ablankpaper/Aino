@@ -249,18 +249,26 @@ export function ProjectDialog() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-1">
-              {templates.map(template => (
-                <button
-                  className="flex items-center gap-1 rounded-full border border-(--ui-stroke-tertiary) px-2 py-0.5 text-[0.6875rem] text-(--ui-text-secondary) transition-colors hover:border-(--ui-stroke-secondary) hover:bg-(--ui-control-hover-background) hover:text-foreground disabled:opacity-50"
-                  disabled={submitting}
-                  key={template.label}
-                  onClick={() => setIdea(template.idea)}
-                  type="button"
-                >
-                  <span aria-hidden>{template.emoji}</span>
-                  {template.label}
-                </button>
-              ))}
+              {templates.map(template => {
+                const copy = p.ideaTemplates[template.id]
+
+                if (!copy) {
+                  return null
+                }
+
+                return (
+                  <button
+                    className="flex items-center gap-1 rounded-full border border-(--ui-stroke-tertiary) px-2 py-0.5 text-[0.6875rem] text-(--ui-text-secondary) transition-colors hover:border-(--ui-stroke-secondary) hover:bg-(--ui-control-hover-background) hover:text-foreground disabled:opacity-50"
+                    disabled={submitting}
+                    key={template.id}
+                    onClick={() => setIdea(copy.idea)}
+                    type="button"
+                  >
+                    <span aria-hidden>{template.emoji}</span>
+                    {copy.label}
+                  </button>
+                )
+              })}
               <Tip label={p.ideaShuffle}>
                 <Button
                   aria-label={p.ideaShuffle}

@@ -4,101 +4,82 @@
 // freely, order doesn't matter.
 
 export interface ProjectIdeaTemplate {
+  id: string
   emoji: string
-  label: string
-  idea: string
 }
 
 export const PROJECT_IDEA_TEMPLATES: ProjectIdeaTemplate[] = [
   {
-    emoji: '🎮',
-    label: 'Game jam',
-    idea: 'A tiny browser game built in a weekend.\n\n- One core mechanic, juicy feedback\n- No build step — single HTML/JS file\n- Playable in under 60 seconds'
+    id: 'game-jam',
+    emoji: '🎮'
   },
   {
-    emoji: '📚',
-    label: 'Novel',
-    idea: 'A novel-in-progress.\n\n- Track chapters, characters, and timeline\n- Daily word-count goal\n- Keep research notes beside the draft'
+    id: 'novel',
+    emoji: '📚'
   },
   {
-    emoji: '🤖',
-    label: 'Discord bot',
-    idea: 'A Discord bot for a small community.\n\n- Slash commands + a fun daily ritual\n- Lightweight persistence\n- Deploy somewhere free'
+    id: 'discord-bot',
+    emoji: '🤖'
   },
   {
-    emoji: '📊',
-    label: 'Data viz',
-    idea: 'An interactive visualization of a dataset I care about.\n\n- Pick the dataset and the one question it answers\n- Clean → chart → annotate\n- Shareable as a single page'
+    id: 'data-viz',
+    emoji: '📊'
   },
   {
-    emoji: '🎨',
-    label: 'Generative art',
-    idea: 'A generative art piece.\n\n- One algorithm, lots of seeds\n- Export high-res stills\n- A gallery of the best outputs'
+    id: 'generative-art',
+    emoji: '🎨'
   },
   {
-    emoji: '🍳',
-    label: 'Recipe box',
-    idea: 'A personal recipe collection.\n\n- Searchable by ingredient and mood\n- Scale servings on the fly\n- Auto-build a shopping list'
+    id: 'recipe-box',
+    emoji: '🍳'
   },
   {
-    emoji: '🧪',
-    label: 'Research log',
-    idea: 'A research notebook for an open question.\n\n- Log experiments, results, and dead ends\n- Cite sources inline\n- Weekly synthesis of what I learned'
+    id: 'research-log',
+    emoji: '🧪'
   },
   {
-    emoji: '💸',
-    label: 'Budget tracker',
-    idea: 'A no-nonsense budget tracker.\n\n- Import transactions, tag them fast\n- Monthly burn vs. plan\n- One chart that tells the truth'
+    id: 'budget-tracker',
+    emoji: '💸'
   },
   {
-    emoji: '🌱',
-    label: 'Habit tracker',
-    idea: 'A habit tracker that actually sticks.\n\n- A handful of daily checkboxes\n- Streaks without guilt\n- A calm weekly review'
+    id: 'habit-tracker',
+    emoji: '🌱'
   },
   {
-    emoji: '🗺️',
-    label: 'Trip planner',
-    idea: 'A trip planner for an upcoming adventure.\n\n- Day-by-day itinerary\n- Map of pins + notes\n- Packing + budget checklist'
+    id: 'trip-planner',
+    emoji: '🗺️'
   },
   {
-    emoji: '🎵',
-    label: 'Music toy',
-    idea: 'A little music-making toy.\n\n- One instrument or sequencer\n- Web Audio, no installs\n- Record + share a loop'
+    id: 'music-toy',
+    emoji: '🎵'
   },
   {
-    emoji: '🧩',
-    label: 'Puzzle maker',
-    idea: 'A generator for a puzzle I love.\n\n- Procedurally make solvable puzzles\n- Difficulty dial\n- Printable + playable'
+    id: 'puzzle-maker',
+    emoji: '🧩'
   },
   {
-    emoji: '📝',
-    label: 'Digital garden',
-    idea: 'A digital garden / personal wiki.\n\n- Atomic notes that link to each other\n- Grows over time, never "done"\n- Publish the public ones'
+    id: 'digital-garden',
+    emoji: '📝'
   },
   {
-    emoji: '🛰️',
-    label: 'API wrapper',
-    idea: 'A clean wrapper around an API I keep reaching for.\n\n- Typed client + sensible defaults\n- One example per endpoint\n- Publish it'
+    id: 'api-wrapper',
+    emoji: '🛰️'
   },
   {
-    emoji: '🏋️',
-    label: 'Workout plan',
-    idea: 'A workout planner / logger.\n\n- Build a weekly split\n- Log sets fast on mobile\n- Track progress over months'
+    id: 'workout-plan',
+    emoji: '🏋️'
   },
   {
-    emoji: '🧠',
-    label: 'Flashcards',
-    idea: 'A spaced-repetition flashcard app.\n\n- Quick card capture\n- Simple SM-2 scheduling\n- A daily review that fits in 5 minutes'
+    id: 'flashcards',
+    emoji: '🧠'
   },
   {
-    emoji: '✍️',
-    label: 'Screenplay',
-    idea: 'A short screenplay.\n\n- Logline → beats → scenes\n- Proper format, distraction-free\n- A table read by the end'
+    id: 'screenplay',
+    emoji: '✍️'
   },
   {
-    emoji: '🔭',
-    label: 'Learn-by-building',
-    idea: "A project to learn a thing I've been avoiding.\n\n- Smallest real thing that teaches it\n- Notes on every gotcha\n- A writeup when it works"
+    id: 'learn-by-building',
+    emoji: '🔭'
   }
 ]
 

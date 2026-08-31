@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { SECTIONS } from '@/app/settings/constants'
+import { PROJECT_IDEA_TEMPLATES } from '@/lib/project-idea-templates'
 
 import { en } from './en'
 import { zh } from './zh'
@@ -63,6 +64,14 @@ describe('Simplified Chinese catalog coverage', () => {
 
   it('defines a Simplified Chinese label for every rendered settings section', () => {
     const missing = SECTIONS.filter(section => !zh.settings.sections[section.id]).map(section => section.id)
+
+    expect(missing).toEqual([])
+  })
+
+  it('defines Simplified Chinese copy for every project idea template', () => {
+    const missing = PROJECT_IDEA_TEMPLATES.filter(template => !zh.sidebar.projects.ideaTemplates[template.id]).map(
+      template => template.id
+    )
 
     expect(missing).toEqual([])
   })
