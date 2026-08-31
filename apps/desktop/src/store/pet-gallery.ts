@@ -1,5 +1,6 @@
 import { atom } from 'nanostores'
 
+import { translateNow } from '@/i18n'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { normalize } from '@/lib/text'
 import {
@@ -149,7 +150,7 @@ export function loadPetGallery(request: GatewayRequest, options: { force?: boole
         // Only surface a hard error when we have nothing to show; a transient
         // hiccup mid-session leaves the cached gallery intact.
         $petGalleryStatus.set('error')
-        $petGalleryError.set(e instanceof Error ? e.message : 'Could not reach the petdex gallery.')
+        $petGalleryError.set(e instanceof Error ? e.message : translateNow('commandCenter.pets.error'))
       }
     } finally {
       galleryLoad = null
