@@ -144,6 +144,16 @@ def test_simplified_chinese_localizes_kanban_worker_notifications():
     )
 
 
+def test_simplified_chinese_localizes_gateway_mode_state_labels():
+    """Gateway mode labels should be Chinese while preserving enum values."""
+    assert i18n.t("gateway.fast.label_fast", lang="zh") == "快速"
+    assert i18n.t("gateway.fast.label_normal", lang="zh") == "标准"
+    assert i18n.t("gateway.fast.status_fast", lang="zh") == "fast（快速）"
+    assert i18n.t("gateway.fast.status_normal", lang="zh") == "normal（标准）"
+    assert i18n.t("gateway.footer.state_on", lang="zh") == "开启"
+    assert i18n.t("gateway.footer.state_off", lang="zh") == "关闭"
+
+
 def test_simplified_chinese_localizes_resume_and_matrix_recovery_copy():
     """Resume recovery guidance should be readable in Simplified Chinese."""
     assert i18n.t("gateway.resume.db_unavailable", lang="zh") == "会话数据库不可用。"
