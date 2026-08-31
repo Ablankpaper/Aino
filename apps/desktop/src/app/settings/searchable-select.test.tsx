@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { stubResizeObserver } from '@/test/jsdom'
 import type { ConfigFieldSchema } from '@/types/hermes'
+import { I18nProvider } from '@/i18n'
 
 import { ConfigField } from './config-field'
 import { rankSearchOption, SearchableSelect } from './searchable-select'
@@ -52,6 +53,13 @@ describe('rankSearchOption', () => {
 describe('SearchableSelect', () => {
   const options = ['America/New_York', 'Asia/Kolkata', 'Europe/Berlin', 'UTC']
 
+  const renderChinese = (ui: React.ReactNode) =>
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        {ui}
+      </I18nProvider>
+    )
+
   it('opens, filters, and selects an option', () => {
     const onChange = vi.fn()
 
@@ -87,6 +95,17 @@ describe('SearchableSelect', () => {
     render(<SearchableSelect onChange={vi.fn()} options={options} placeholder="Search…" value="" />)
 
     expect(screen.getByRole('combobox').textContent).toContain('Search…')
+  })
+
+  it('uses localized defaults when callers omit placeholder and empty-state copy', () => {
+    renderChinese(<SearchableSelect onChange={vi.fn()} options={options} value="" />)
+
+    expect(screen.getByRole('combobox').textContent).toContain('搜索…')
+
+    fireEvent.click(screen.getByRole('combobox'))
+    fireEvent.change(screen.getByPlaceholderText('搜索…'), { target: { value: 'does-not-exist' } })
+
+    expect(screen.getByText('未找到结果')).toBeTruthy()
   })
 })
 
