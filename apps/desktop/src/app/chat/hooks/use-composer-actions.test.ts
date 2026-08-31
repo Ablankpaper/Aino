@@ -1,7 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
+import { createElement, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
 import { $composerAttachments, type ComposerAttachment, updateComposerAttachment } from '@/store/composer'
+import { $notifications } from '@/store/notifications'
 import { $connection } from '@/store/session'
 
 import {
@@ -321,6 +324,29 @@ describe('useComposerActions native image drops', () => {
         path: durablePath
       })
     )
+  })
+})
+
+describe('useComposerActions drop failures', () => {
+  afterEach(() => {
+    $notifications.set([])
+  })
+
+  it('localizes a path-less file drop warning for Simplified Chinese users', async () => {
+    const { result } = renderHook(
+      () => useComposerActions({ activeSessionId: null, currentCwd: '', requestGateway: vi.fn() }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) =>
+          createElement(I18nProvider, { children, configClient: null, initialLocale: 'zh' })
+      }
+    )
+
+    await act(async () => {
+      await result.current.attachDroppedItems([{ path: '' }])
+    })
+
+    expect($notifications.get()[0]?.message).toBe('无法附加文件')
+    expect($notifications.get()[0]?.message).not.toBe('Could not attach file')
   })
 })
 

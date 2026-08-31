@@ -3442,6 +3442,8 @@ export interface Translations {
     noClipboardImage: string
     clipboardPasteFailed: string
     dropFiles: string
+    attachFailed: (target?: string) => string
+    attachFolderFailed: (target?: string) => string
     pickFilesTitle: string
     pickFoldersTitle: string
     quickEntry: {

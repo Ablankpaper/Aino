@@ -4022,6 +4022,8 @@ export const en: Translations = {
     noClipboardImage: 'No image found in clipboard',
     clipboardPasteFailed: 'Clipboard paste failed',
     dropFiles: 'Drop files',
+    attachFailed: target => (target ? `Could not attach ${target}` : 'Could not attach file'),
+    attachFolderFailed: target => (target ? `Could not attach folder ${target}` : 'Could not attach folder'),
     pickFilesTitle: 'Add files as context',
     pickFoldersTitle: 'Add folders as context',
     quickEntry: {
