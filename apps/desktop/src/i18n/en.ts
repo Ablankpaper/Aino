@@ -4041,6 +4041,7 @@ export const en: Translations = {
     branchTitle: n => `Draft: Branch #${n}`,
     branchFailed: 'Branch failed',
     stopProcessFailed: 'Could not stop the process',
+    gatewayReconnectUnavailable: 'Gateway reconnect is unavailable',
     openSessionWindowFailed: 'Could not open chat in a new window',
     openNewWindowFailed: 'Could not open a new window',
     popOutBrowserFailed: 'Could not pop out browser',

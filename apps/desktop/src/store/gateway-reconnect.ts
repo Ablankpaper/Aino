@@ -1,3 +1,5 @@
+import { translateNow } from '@/i18n'
+
 type GatewayReconnectHandler = () => Promise<void> | void
 
 let activeHandler: GatewayReconnectHandler | null = null
@@ -21,7 +23,7 @@ export function reconnectGateway(): Promise<void> {
   const handler = activeHandler
 
   if (!handler) {
-    return Promise.reject(new Error('Gateway reconnect is unavailable'))
+    return Promise.reject(new Error(translateNow('desktop.gatewayReconnectUnavailable')))
   }
 
   inFlight = Promise.resolve()

@@ -4166,6 +4166,7 @@ export const zh: Translations = {
     branchTitle: n => `草稿：分支 #${n}`,
     branchFailed: '分支失败',
     stopProcessFailed: '无法停止进程',
+    gatewayReconnectUnavailable: '网关重连不可用',
     openSessionWindowFailed: '无法在新窗口打开会话',
     openNewWindowFailed: '无法打开新窗口',
     popOutBrowserFailed: '无法弹出浏览器窗口',

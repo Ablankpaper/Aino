@@ -3459,6 +3459,7 @@ export interface Translations {
     branchTitle: (n: number) => string
     branchFailed: string
     stopProcessFailed: string
+    gatewayReconnectUnavailable: string
     openSessionWindowFailed: string
     openNewWindowFailed: string
     popOutBrowserFailed: string
