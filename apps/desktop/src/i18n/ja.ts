@@ -331,7 +331,23 @@ export const ja = defineLocale({
       testUnsupported: 'このシステムはネイティブ通知に対応していません。',
       completionSoundTitle: '完了サウンド',
       completionSoundDesc: 'エージェントのターン終了時に再生されます。プリセットを選んでここで試聴できます。',
-      completionSoundPreview: '試聴'
+      completionSoundPreview: '試聴',
+      completionSoundNames: {
+        '1': '2音の安らぎ',
+        '2': 'グラス・ピング',
+        '3': 'ソフトマリンバ',
+        '4': '3音メッセージ',
+        '5': 'エアリー・ウーシュ',
+        '6': 'ディスカバリー・クラスター',
+        '7': 'システムオンライン',
+        '8': 'IBM ターミナル',
+        '9': 'モデム・チャープ',
+        '10': '風鈴',
+        '11': 'シンギングボウル',
+        '12': 'ハープ・リフト',
+        '13': 'ソナー・ピング',
+        '14': 'オルゴール'
+      }
     },
     sections: {
       model: 'モデル',

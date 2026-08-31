@@ -4,7 +4,11 @@ import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
-import { COMPLETION_SOUND_VARIANTS, previewCompletionSound } from '@/lib/completion-sound'
+import {
+  COMPLETION_SOUND_VARIANTS,
+  localizedCompletionSoundName,
+  previewCompletionSound
+} from '@/lib/completion-sound'
 import { triggerHaptic } from '@/lib/haptics'
 import { Bell, Play } from '@/lib/icons'
 import { cn } from '@/lib/utils'
@@ -82,7 +86,7 @@ export function NotificationsSettings() {
               <SelectContent>
                 {COMPLETION_SOUND_VARIANTS.map(variant => (
                   <SelectItem key={variant.id} value={String(variant.id)}>
-                    {variant.name}
+                    {localizedCompletionSoundName(variant.id, variant.name, copy.completionSoundNames)}
                   </SelectItem>
                 ))}
               </SelectContent>

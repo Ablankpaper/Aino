@@ -702,7 +702,23 @@ export const zh: Translations = {
       testUnsupported: '此系统不支持原生通知。',
       completionSoundTitle: '完成提示音',
       completionSoundDesc: '智能体回合结束时播放。可在此选择预设并预览。',
-      completionSoundPreview: '预览'
+      completionSoundPreview: '预览',
+      completionSoundNames: {
+        '1': '双音舒缓',
+        '2': '玻璃叮响',
+        '3': '柔和木琴',
+        '4': '三音消息',
+        '5': '轻盈呼啸',
+        '6': '探索和弦',
+        '7': '系统上线',
+        '8': 'IBM 终端',
+        '9': '调制解调器提示音',
+        '10': '风铃',
+        '11': '吟唱钵',
+        '12': '竖琴上扬',
+        '13': '声纳提示音',
+        '14': '音乐盒'
+      }
     },
     sections: {
       model: '模型',

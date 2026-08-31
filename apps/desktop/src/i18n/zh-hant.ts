@@ -322,7 +322,23 @@ export const zhHant = defineLocale({
       testUnsupported: '此系統不支援原生通知。',
       completionSoundTitle: '完成提示音',
       completionSoundDesc: '代理回合結束時播放。可在此選擇預設並預覽。',
-      completionSoundPreview: '預覽'
+      completionSoundPreview: '預覽',
+      completionSoundNames: {
+        '1': '雙音舒緩',
+        '2': '玻璃叮響',
+        '3': '柔和木琴',
+        '4': '三音訊息',
+        '5': '輕盈呼嘯',
+        '6': '探索和弦',
+        '7': '系統上線',
+        '8': 'IBM 終端機',
+        '9': '數據機提示音',
+        '10': '風鈴',
+        '11': '頌缽',
+        '12': '豎琴上揚',
+        '13': '聲納提示音',
+        '14': '音樂盒'
+      }
     },
     sections: {
       model: '模型',

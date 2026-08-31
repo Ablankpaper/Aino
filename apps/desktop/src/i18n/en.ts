@@ -717,7 +717,23 @@ export const en: Translations = {
       testUnsupported: 'This system does not support native notifications.',
       completionSoundTitle: 'Completion Sound',
       completionSoundDesc: 'Plays when an agent turn finishes. Pick a preset and preview it here.',
-      completionSoundPreview: 'Preview'
+      completionSoundPreview: 'Preview',
+      completionSoundNames: {
+        '1': 'Two-note comfort',
+        '2': 'Glass ping',
+        '3': 'Soft marimba',
+        '4': 'Tri-tone message',
+        '5': 'Airy whoosh',
+        '6': 'Discovery cluster',
+        '7': 'Systems online',
+        '8': 'IBM terminal',
+        '9': 'Modem chirp',
+        '10': 'Wind chimes',
+        '11': 'Singing bowl',
+        '12': 'Harp lift',
+        '13': 'Sonar ping',
+        '14': 'Music box'
+      }
     },
     sections: {
       model: 'Model',

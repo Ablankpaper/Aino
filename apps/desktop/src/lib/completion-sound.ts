@@ -201,6 +201,17 @@ export interface CompletionSoundVariant {
   play: (ac: AudioContext, master: GainNode, t0: number) => void
 }
 
+/** Resolve a preset's display name without changing the stable audio id/name. */
+export function localizedCompletionSoundName(
+  variantId: number,
+  fallback: string,
+  names: Readonly<Record<string, string>>
+): string {
+  const localized = names[String(variantId)]?.trim()
+
+  return localized || fallback
+}
+
 // Note frequencies (equal temperament). Everything lives in a low-mid register
 // (C3–C5) so the chimes feel warm and "appy" rather than bright and arcade-y.
 const A2 = 110
