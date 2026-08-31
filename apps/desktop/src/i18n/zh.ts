@@ -798,6 +798,36 @@ export const zh: Translations = {
         chooseDesc: '选择后会自动安装（如需）并设为当前宠物。',
         searchPlaceholder: '搜索宠物…',
         hatchingProgress: '孵化进度',
+        messagePlaceholder: '消息…',
+        openApp: product => `打开 ${product}`,
+        bubble: {
+          run: [
+            '处理中…',
+            '马上…',
+            '计算中…',
+            '调试中…',
+            '忙碌中…',
+            '深挖中…',
+            '连接中…',
+            '推进中…',
+            '专心处理…',
+            '敲代码中…'
+          ],
+          review: [
+            '思考中…',
+            '阅读中…',
+            '审查中…',
+            '斟酌中…',
+            '串联线索…',
+            '衡量中…',
+            '追踪中…',
+            '琢磨中…',
+            '规划中…',
+            '嗯…'
+          ],
+          failed: ['遇到一点问题', '糟糕', '这里出错了', '哎呀', '卡住了'],
+          waiting: ['轮到你了', '交给你', '请继续', '等你接手', '等待指示']
+        },
         unreachable: '无法连接到 petdex 画廊。请检查网络连接并重新打开此页面。',
         noMatch: query => `没有匹配「${query}」的宠物。`,
         installedTag: '已安装',

@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
 import { useEffect, useState } from 'react'
 
+import { type Translations, useI18n } from '@/i18n'
 import { AlertCircle, Clock, type IconComponent } from '@/lib/icons'
 import { $petActivity, $petState, type PetState } from '@/store/pet'
 
@@ -19,54 +20,36 @@ import { $petActivity, $petState, type PetState } from '@/store/pet'
 
 type Tone = 'error' | 'wait'
 
-interface Spec {
-  lines: string[]
+interface SpecMeta {
+  copyKey: keyof PetBubbleCopy
   glyph?: IconComponent
   tone?: Tone
 }
 
-// Phrasings per mood, picked at random (no immediate repeat) for a bit of life.
-// Keep them short — the bubble is tiny and never wraps.
-const SPECS: Partial<Record<PetState, Spec>> = {
+// Visual metadata per mood. The short phrases themselves live in the locale
+// catalog so the pop-out mascot does not leak English into a localized UI.
+const SPEC_META: Partial<Record<PetState, SpecMeta>> = {
   run: {
-    lines: [
-      'working…',
-      'on it…',
-      'crunching…',
-      'tinkering…',
-      'cooking…',
-      'in the weeds…',
-      'wiring it up…',
-      'making moves…',
-      'heads down…',
-      'hammering away…'
-    ]
+    copyKey: 'run'
   },
   review: {
-    lines: [
-      'thinking…',
-      'reading…',
-      'reviewing…',
-      'pondering…',
-      'connecting dots…',
-      'sizing it up…',
-      'tracing it…',
-      'mulling…',
-      'scheming…',
-      'hmm…'
-    ]
+    copyKey: 'review'
   },
   failed: {
     glyph: AlertCircle,
-    lines: ['hit a snag', 'welp', 'that broke', 'oof', 'snagged'],
+    copyKey: 'failed',
     tone: 'error'
   },
   waiting: {
     glyph: Clock,
-    lines: ['your turn', 'all yours', 'over to you', 'ball’s in your court', 'awaiting orders'],
+    copyKey: 'waiting',
     tone: 'wait'
   }
 }
+
+type PetBubbleCopy = Translations['settings']['appearance']['pet']['bubble']
+
+const EMPTY_LINES: readonly string[] = []
 
 const TONE_COLOR: Record<Tone, string> = {
   error: 'var(--ui-red)',
@@ -74,7 +57,7 @@ const TONE_COLOR: Record<Tone, string> = {
 }
 
 // Random pick that avoids repeating the line we're already showing.
-function pick(lines: string[], prev: string): string {
+function pick(lines: readonly string[], prev: string): string {
   if (lines.length <= 1) {
     return lines[0] ?? ''
   }
@@ -89,47 +72,47 @@ function pick(lines: string[], prev: string): string {
 }
 
 export function PetBubble() {
+  const { t } = useI18n()
   const state = useStore($petState)
   const activity = useStore($petActivity)
   const [line, setLine] = useState('')
+  const bubbleCopy = t.settings.appearance.pet.bubble
 
   // Finish beats are carried by the sprite/mail icon; idle only speaks up when
   // it's actually the user's turn. Everything else maps to a mood spec.
   const specKey: null | PetState =
-    state in SPECS ? state : state === 'idle' && activity.awaitingInput ? 'waiting' : null
+    state in SPEC_META ? state : state === 'idle' && activity.awaitingInput ? 'waiting' : null
 
   const rotating = specKey === 'run' || specKey === 'review'
+  const meta = specKey ? SPEC_META[specKey] : null
+  const lines = meta ? bubbleCopy[meta.copyKey] : EMPTY_LINES
 
   // Pick a fresh line on every mood change, then keep rotating (random, no
   // repeat) only while the agent is actively working/thinking.
   useEffect(() => {
-    const spec = specKey ? SPECS[specKey] : null
-
-    if (!spec) {
+    if (!meta) {
       setLine('')
 
       return
     }
 
-    setLine(prev => pick(spec.lines, prev))
+    setLine(prev => pick(lines, prev))
 
-    if (!rotating || spec.lines.length <= 1) {
+    if (!rotating || lines.length <= 1) {
       return
     }
 
-    const id = window.setInterval(() => setLine(prev => pick(spec.lines, prev)), 2600)
+    const id = window.setInterval(() => setLine(prev => pick(lines, prev)), 2600)
 
     return () => window.clearInterval(id)
-  }, [specKey, rotating])
+  }, [lines, meta, rotating, specKey])
 
-  const spec = specKey ? SPECS[specKey] : null
-
-  if (!spec) {
+  if (!meta) {
     return null
   }
 
-  const Glyph = spec.glyph
-  const text = line || spec.lines[0]
+  const Glyph = meta.glyph
+  const text = line || lines[0]
   const hasText = Boolean(text)
 
   return (
@@ -156,7 +139,7 @@ export function PetBubble() {
     >
       {Glyph && (
         <span style={{ display: 'inline-flex' }}>
-          <Glyph style={{ color: spec.tone ? TONE_COLOR[spec.tone] : 'currentColor', height: 13, width: 13 }} />
+          <Glyph style={{ color: meta.tone ? TONE_COLOR[meta.tone] : 'currentColor', height: 13, width: 13 }} />
         </span>
       )}
       {text}

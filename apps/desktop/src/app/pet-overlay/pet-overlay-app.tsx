@@ -5,6 +5,8 @@ import { PetHeartField, playVibeHearts } from '@/components/chat/vibe-hearts'
 import { PetBubble } from '@/components/pet/pet-bubble'
 import { PetSprite } from '@/components/pet/pet-sprite'
 import { type PetZoomAnchor, usePetZoomGesture } from '@/components/pet/use-pet-zoom-gesture'
+import { useI18n } from '@/i18n'
+import { PRODUCT_NAME } from '@/lib/brand'
 import { Mail } from '@/lib/icons'
 import { $petActivity, $petInfo, setPetInfo } from '@/store/pet'
 import { overlayWindowSize } from '@/store/pet-overlay'
@@ -61,6 +63,7 @@ interface DragState {
 }
 
 export function PetOverlayApp() {
+  const { t } = useI18n()
   const info = useStore($petInfo)
   const [composerOpen, setComposerOpen] = useState(false)
   const [draft, setDraft] = useState('')
@@ -397,7 +400,7 @@ export function PetOverlayApp() {
               setComposerOpen(false)
             }
           }}
-          placeholder="Message…"
+          placeholder={t.settings.appearance.pet.messagePlaceholder}
           ref={inputRef}
           style={{
             background: 'var(--ui-bg-elevated)',
@@ -447,7 +450,7 @@ export function PetOverlayApp() {
               stopPropagation keeps a click from starting a window drag. */}
           {unread && (
             <button
-              aria-label="Open in Hermes"
+              aria-label={t.settings.appearance.pet.openApp(PRODUCT_NAME)}
               onClick={openApp}
               onPointerDown={e => e.stopPropagation()}
               onPointerUp={e => e.stopPropagation()}
@@ -468,7 +471,7 @@ export function PetOverlayApp() {
                 top: 0,
                 width: 24
               }}
-              title="Open in Hermes"
+              title={t.settings.appearance.pet.openApp(PRODUCT_NAME)}
               type="button"
             >
               <Mail style={{ height: 13, width: 13 }} />

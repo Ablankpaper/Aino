@@ -698,6 +698,14 @@ export interface Translations {
         chooseDesc: string
         searchPlaceholder: string
         hatchingProgress: string
+        messagePlaceholder: string
+        openApp: (product: string) => string
+        bubble: {
+          run: readonly string[]
+          review: readonly string[]
+          failed: readonly string[]
+          waiting: readonly string[]
+        }
         unreachable: string
         noMatch: (query: string) => string
         installedTag: string

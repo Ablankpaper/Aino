@@ -822,6 +822,36 @@ export const en: Translations = {
         chooseDesc: 'Picking one installs it (if needed) and makes it active.',
         searchPlaceholder: 'Search pets…',
         hatchingProgress: 'Hatching progress',
+        messagePlaceholder: 'Message…',
+        openApp: product => `Open in ${product}`,
+        bubble: {
+          run: [
+            'working…',
+            'on it…',
+            'crunching…',
+            'tinkering…',
+            'cooking…',
+            'in the weeds…',
+            'wiring it up…',
+            'making moves…',
+            'heads down…',
+            'hammering away…'
+          ],
+          review: [
+            'thinking…',
+            'reading…',
+            'reviewing…',
+            'pondering…',
+            'connecting dots…',
+            'sizing it up…',
+            'tracing it…',
+            'mulling…',
+            'scheming…',
+            'hmm…'
+          ],
+          failed: ['hit a snag', 'welp', 'that broke', 'oof', 'snagged'],
+          waiting: ['your turn', 'all yours', 'over to you', 'ball’s in your court', 'awaiting orders']
+        },
         unreachable: "Couldn't reach the petdex gallery. Check your connection and reopen this page.",
         noMatch: query => `No pets match "${query}".`,
         installedTag: 'installed',
