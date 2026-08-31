@@ -1076,6 +1076,8 @@ export interface Translations {
       catalogInstallFailed: (name: string) => string
       catalogEnvPrompt: (name: string) => string
       catalogEnvRequired: string
+      oauthTag: string
+      apiKeyTag: string
       capabilitySummary: (tools: number, prompts: number, resources: number) => string
       costTokens: (tokens: string) => string
       usage30d: (uses: string) => string

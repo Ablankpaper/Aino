@@ -1414,6 +1414,8 @@ export const zh: Translations = {
       catalogInstallFailed: name => `安装 ${name} 失败`,
       catalogEnvPrompt: name => `${name} 需要凭据`,
       catalogEnvRequired: '安装前请填写必需的值。',
+      oauthTag: 'OAuth',
+      apiKeyTag: 'API 密钥',
       capabilitySummary: (tools, prompts, resources) =>
         `已启用 ${[`${tools} 个工具`, ...(prompts ? [`${prompts} 个提示`] : []), ...(resources ? [`${resources} 个资源`] : [])].join('、')}`,
       costTokens: tokens => `每次调用约 ${tokens} token`,

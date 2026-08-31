@@ -1522,7 +1522,7 @@ function CatalogTag({ children }: { children: string }) {
 // The Nous-approved MCP catalog: one-click installs of curated servers, with an
 // inline prompt for any required credentials (never shows stored values). On
 // install the parent refetches config + catalog and reloads live sessions.
-function McpCatalog({
+export function McpCatalog({
   entries,
   loading,
   onInstalled,
@@ -1620,8 +1620,8 @@ function McpCatalog({
                     {prettyName(entry.name)}
                   </span>
                   <CatalogTag>{entry.transport}</CatalogTag>
-                  {entry.auth_type === 'oauth' && <CatalogTag>OAuth</CatalogTag>}
-                  {entry.auth_type === 'api_key' && <CatalogTag>API key</CatalogTag>}
+                  {entry.auth_type === 'oauth' && <CatalogTag>{m.oauthTag}</CatalogTag>}
+                  {entry.auth_type === 'api_key' && <CatalogTag>{m.apiKeyTag}</CatalogTag>}
                   {entry.needs_install && !entry.installed && <CatalogTag>{m.catalogNeedsInstall}</CatalogTag>}
                   {entry.installed && (
                     <span className="text-[0.6rem] text-emerald-400">

@@ -1225,6 +1225,8 @@ export const en: Translations = {
       catalogInstallFailed: name => `Failed to install ${name}`,
       catalogEnvPrompt: name => `${name} requires credentials`,
       catalogEnvRequired: 'Fill in the required values before installing.',
+      oauthTag: 'OAuth',
+      apiKeyTag: 'API key',
       capabilitySummary: (tools, prompts, resources) =>
         `${[`${tools} tools`, ...(prompts ? [`${prompts} prompts`] : []), ...(resources ? [`${resources} resources`] : [])].join(', ')} enabled`,
       costTokens: tokens => `~${tokens} tok/call`,

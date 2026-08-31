@@ -6,6 +6,7 @@ import type * as ReactRouterDom from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type * as HermesApi from '@/hermes'
+import { I18nProvider } from '@/i18n'
 import { queryClient } from '@/lib/query-client'
 
 const getSkills = vi.fn()
@@ -110,6 +111,46 @@ afterEach(() => {
 // (2× in a row on PR #93612, plus a main run the same hour). Give this file
 // headroom; the tests are not slow individually.
 describe('SkillsView toolset management', { timeout: 60_000 }, () => {
+  it('localizes skill provenance badges for Simplified Chinese users', async () => {
+    getSkills.mockResolvedValue([
+      {
+        name: 'learned-skill',
+        description: 'A learned skill',
+        category: 'general',
+        enabled: true,
+        usage: 0,
+        provenance: 'agent'
+      },
+      {
+        name: 'hub-skill',
+        description: 'A hub skill',
+        category: 'general',
+        enabled: true,
+        usage: 0,
+        provenance: 'hub'
+      }
+    ])
+
+    const { SkillsView } = await import('./index')
+
+    await act(async () => {
+      render(
+        <I18nProvider configClient={null} initialLocale="zh">
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={['/skills?tab=skills']}>
+              <SkillsView />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </I18nProvider>
+      )
+    })
+
+    expect(await screen.findByText('习得')).toBeTruthy()
+    expect((await screen.findAllByText('技能中心')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('learned')).toBeNull()
+    expect(screen.queryByText('hub')).toBeNull()
+  })
+
   it('renders a switch for each toolset and toggles it off', async () => {
     await renderSkills()
 
