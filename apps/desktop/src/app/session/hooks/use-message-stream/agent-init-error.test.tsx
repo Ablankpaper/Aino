@@ -1,6 +1,7 @@
 import { act, cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import { textPart } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $notifications, clearNotifications } from '@/store/notifications'
@@ -29,11 +30,13 @@ function seedOptimisticFirstMessage() {
 
 describe('useMessageStream agent-init error surfacing (#63078)', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     clearNotifications()
   })
 
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     clearNotifications()
     vi.restoreAllMocks()
   })
@@ -90,5 +93,20 @@ describe('useMessageStream agent-init error surfacing (#63078)', () => {
     expect(state.messages.some(m => m.role === 'assistant' && m.error?.includes('cancelled'))).toBe(true)
     expect(state.messages.some(m => m.id === 'user-123-abc')).toBe(true)
     expect(state.busy).toBe(false)
+  })
+
+  it('uses Simplified Chinese for the global gateway error toast title', () => {
+    setRuntimeI18nLocale('zh')
+    mountStream()
+
+    act(() =>
+      stream.handleEvent({
+        payload: { message: 'The upstream service returned an unexpected response.' },
+        session_id: SID,
+        type: 'error'
+      })
+    )
+
+    expect($notifications.get().find(notification => notification.id?.startsWith('gateway-error:'))?.title).toBe('本轮失败')
   })
 })
