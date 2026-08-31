@@ -4788,6 +4788,7 @@ export const zh: Translations = {
     setProfileFailed: '设置配置档案失败',
     sttDisabled: '设置中已禁用语音转文字。',
     stopFailed: '停止失败',
+    modelSwitchConfirm: '确认切换此模型？',
     regenerateFailed: '重新生成失败',
     editFailed: '编辑失败',
     editTurnUnavailable: '此回合已不在服务器历史中（可能已被压缩移除）。',

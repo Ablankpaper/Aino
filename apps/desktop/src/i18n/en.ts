@@ -4433,6 +4433,7 @@ export const en: Translations = {
     setProfileFailed: 'Failed to set profile',
     sttDisabled: 'Speech-to-text is disabled in settings.',
     stopFailed: 'Stop failed',
+    modelSwitchConfirm: 'Confirm this model switch?',
     regenerateFailed: 'Regenerate failed',
     editFailed: 'Edit failed',
     editTurnUnavailable: 'This turn is no longer in server history (it may have been compressed away).',

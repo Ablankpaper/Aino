@@ -3672,6 +3672,7 @@ export interface Translations {
     setProfileFailed: string
     sttDisabled: string
     stopFailed: string
+    modelSwitchConfirm: string
     regenerateFailed: string
     editFailed: string
     editTurnUnavailable: string
