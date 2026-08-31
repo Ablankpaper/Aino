@@ -4108,6 +4108,21 @@ export const zh: Translations = {
         delivery: '发送到',
         nextRun: '下次运行'
       },
+      subtitles: {
+        navigatedInBrowser: '已在浏览器中导航',
+        capturedBrowserSnapshot: '已捕获浏览器无障碍快照',
+        clickedPage: '已点击页面',
+        clickedPageElement: target =>
+          target.startsWith('@') ? `已点击页面元素（内部引用 ${target}）` : `已点击 ${target}`,
+        filledPageInput: '已填写页面输入',
+        fieldValue: (field, value) =>
+          [field && `字段：${field}`, value && `值：${value}`].filter(Boolean).join(' · '),
+        queriedWebSources: '已查询网页来源',
+        query: query => `查询：${query}`,
+        executedCommand: '已执行命令',
+        changedFile: '已更改文件',
+        fetchedWebpage: '已获取网页'
+      },
       recoveredOne: '在 1 个失败步骤后已恢复',
       recoveredMany: count => `在 ${count} 个失败步骤后已恢复`,
       failedOne: '1 个步骤失败',

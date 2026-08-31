@@ -2973,6 +2973,21 @@ export const ja = defineLocale({
         delivery: '配信',
         nextRun: '次回実行'
       },
+      subtitles: {
+        navigatedInBrowser: 'ブラウザーで移動しました',
+        capturedBrowserSnapshot: 'ブラウザーのアクセシビリティスナップショットを取得しました',
+        clickedPage: 'ページをクリックしました',
+        clickedPageElement: target =>
+          target.startsWith('@') ? `ページ要素をクリックしました（内部参照 ${target}）` : `${target}をクリックしました`,
+        filledPageInput: 'ページの入力欄に入力しました',
+        fieldValue: (field, value) =>
+          [field && `フィールド: ${field}`, value && `値: ${value}`].filter(Boolean).join(' · '),
+        queriedWebSources: 'Web ソースを検索しました',
+        query: query => `クエリ: ${query}`,
+        executedCommand: 'コマンドを実行しました',
+        changedFile: 'ファイルを変更しました',
+        fetchedWebpage: 'Web ページを取得しました'
+      },
       recoveredOne: '1 つの失敗したステップの後に回復しました',
       recoveredMany: count => `${count} つの失敗したステップの後に回復しました`,
       failedOne: '1 つのステップが失敗しました',

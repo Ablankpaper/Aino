@@ -955,39 +955,38 @@ function toolSubtitle(
       firstStringField(resultRecord, ['url']) ||
       findFirstUrl(argsRecord, resultRecord)
 
-    return url ? hostnameOf(url) : 'Navigated in browser'
+    return url ? hostnameOf(url) : translateNow('assistant.tool.subtitles.navigatedInBrowser')
   }
 
   if (toolName === 'browser_snapshot') {
     const snapshot = firstStringField(resultRecord, ['snapshot'])
 
-    return snapshot ? summarizeBrowserSnapshot(snapshot) : 'Captured a browser accessibility snapshot'
+    return snapshot ? summarizeBrowserSnapshot(snapshot) : translateNow('assistant.tool.subtitles.capturedBrowserSnapshot')
   }
 
   if (toolName === 'browser_click') {
     const clicked = firstStringField(resultRecord, ['clicked']) || firstStringField(argsRecord, ['ref', 'target'])
 
     if (!clicked) {
-      return 'Clicked on page'
+      return translateNow('assistant.tool.subtitles.clickedPage')
     }
 
-    return clicked.startsWith('@') ? `Clicked page element (internal ref ${clicked})` : `Clicked ${clicked}`
+    return translateNow('assistant.tool.subtitles.clickedPageElement', clicked)
   }
 
   if (toolName === 'browser_fill' || toolName === 'browser_type') {
     const field = firstStringField(argsRecord, ['label', 'field', 'ref', 'target'])
     const value = firstStringField(argsRecord, ['value', 'text'])
 
-    return (
-      [field && `Field: ${field}`, value && `Value: ${compactPreview(value, 42)}`].filter(Boolean).join(' · ') ||
-      'Filled page input'
-    )
+    return field || value
+      ? translateNow('assistant.tool.subtitles.fieldValue', field, compactPreview(value, 42))
+      : translateNow('assistant.tool.subtitles.filledPageInput')
   }
 
   if (toolName === 'web_search') {
     const query = firstStringField(argsRecord, ['search_term', 'query']) || contextValue(argsRecord)
 
-    return query ? `Query: ${query}` : 'Queried web sources'
+    return query ? translateNow('assistant.tool.subtitles.query', query) : translateNow('assistant.tool.subtitles.queriedWebSources')
   }
 
   if (toolName === 'terminal' || toolName === 'execute_code') {
@@ -1012,7 +1011,7 @@ function toolSubtitle(
 
     const command = firstStringField(argsRecord, ['context', 'preview', 'command', 'code']) || contextValue(argsRecord)
 
-    return command ? '' : 'Executed command'
+    return command ? '' : translateNow('assistant.tool.subtitles.executedCommand')
   }
 
   if (toolName === 'read_file' || isFileEditTool(toolName)) {
@@ -1030,7 +1029,7 @@ function toolSubtitle(
       return fallbackDetailText(argsRecord, resultRecord)
     }
 
-    return inlineDiffFromResult(resultRecord) ? 'Changed file' : ''
+    return inlineDiffFromResult(resultRecord) ? translateNow('assistant.tool.subtitles.changedFile') : ''
   }
 
   if (toolName === 'web_extract') {
@@ -1039,7 +1038,7 @@ function toolSubtitle(
       firstStringField(resultRecord, ['url']) ||
       findFirstUrl(argsRecord, resultRecord)
 
-    return url ? hostnameOf(url) : 'Fetched webpage'
+    return url ? hostnameOf(url) : translateNow('assistant.tool.subtitles.fetchedWebpage')
   }
 
   if (toolName === 'memory') {

@@ -2876,6 +2876,21 @@ export const zhHant = defineLocale({
         delivery: '傳送到',
         nextRun: '下次執行'
       },
+      subtitles: {
+        navigatedInBrowser: '已在瀏覽器中導覽',
+        capturedBrowserSnapshot: '已擷取瀏覽器無障礙快照',
+        clickedPage: '已點擊頁面',
+        clickedPageElement: target =>
+          target.startsWith('@') ? `已點擊頁面元素（內部參照 ${target}）` : `已點擊 ${target}`,
+        filledPageInput: '已填寫頁面輸入欄',
+        fieldValue: (field, value) =>
+          [field && `欄位：${field}`, value && `值：${value}`].filter(Boolean).join(' · '),
+        queriedWebSources: '已查詢網頁來源',
+        query: query => `查詢：${query}`,
+        executedCommand: '已執行指令',
+        changedFile: '已變更檔案',
+        fetchedWebpage: '已取得網頁'
+      },
       recoveredOne: '在 1 個失敗步驟後已復原',
       recoveredMany: count => `在 ${count} 個失敗步驟後已復原`,
       failedOne: '1 個步驟失敗',

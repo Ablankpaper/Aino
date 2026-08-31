@@ -3969,6 +3969,21 @@ export const en: Translations = {
         delivery: 'Delivery',
         nextRun: 'Next run'
       },
+      subtitles: {
+        navigatedInBrowser: 'Navigated in browser',
+        capturedBrowserSnapshot: 'Captured a browser accessibility snapshot',
+        clickedPage: 'Clicked on page',
+        clickedPageElement: target =>
+          target.startsWith('@') ? `Clicked page element (internal ref ${target})` : `Clicked ${target}`,
+        filledPageInput: 'Filled page input',
+        fieldValue: (field, value) =>
+          [field && `Field: ${field}`, value && `Value: ${value}`].filter(Boolean).join(' · '),
+        queriedWebSources: 'Queried web sources',
+        query: query => `Query: ${query}`,
+        executedCommand: 'Executed command',
+        changedFile: 'Changed file',
+        fetchedWebpage: 'Fetched webpage'
+      },
       recoveredOne: 'Recovered after 1 failed step',
       recoveredMany: count => `Recovered after ${count} failed steps`,
       failedOne: '1 step failed',

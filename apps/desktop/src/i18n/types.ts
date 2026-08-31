@@ -3416,6 +3416,19 @@ export interface Translations {
         delivery: string
         nextRun: string
       }
+      subtitles: {
+        navigatedInBrowser: string
+        capturedBrowserSnapshot: string
+        clickedPage: string
+        clickedPageElement: (target: string) => string
+        filledPageInput: string
+        fieldValue: (field: string, value: string) => string
+        queriedWebSources: string
+        query: (query: string) => string
+        executedCommand: string
+        changedFile: string
+        fetchedWebpage: string
+      }
       recoveredOne: string
       recoveredMany: (count: number) => string
       failedOne: string

@@ -136,6 +136,41 @@ describe('buildToolView cron summaries', () => {
   })
 })
 
+describe('buildToolView browser and command summaries', () => {
+  it('uses Simplified Chinese copy for fixed subtitles while preserving dynamic text', () => {
+    setRuntimeI18nLocale('zh')
+
+    const navigated = buildToolView(part({ result: {}, toolName: 'browser_navigate' }), '')
+    const snapshot = buildToolView(part({ result: {}, toolName: 'browser_snapshot' }), '')
+    const clicked = buildToolView(part({ result: {}, toolName: 'browser_click' }), '')
+
+    const clickedInternal = buildToolView(
+      part({ result: { clicked: '@email' }, toolName: 'browser_click' }),
+      ''
+    )
+
+    const filled = buildToolView(
+      part({ args: { label: '邮箱', value: 'alice@example.com' }, result: {}, toolName: 'browser_fill' }),
+      ''
+    )
+
+    const searched = buildToolView(part({ result: {}, toolName: 'web_search' }), '')
+    const executed = buildToolView(part({ result: {}, toolName: 'terminal' }), '')
+    const changed = buildToolView(part({ result: { inline_diff: '--- a/a.ts\n+++ b/a.ts' }, toolName: 'patch' }), '')
+    const fetched = buildToolView(part({ result: {}, toolName: 'web_extract' }), '')
+
+    expect(navigated.subtitle).toBe('已在浏览器中导航')
+    expect(snapshot.subtitle).toBe('已捕获浏览器无障碍快照')
+    expect(clicked.subtitle).toBe('已点击页面')
+    expect(clickedInternal.subtitle).toBe('已点击页面元素（内部引用 @email）')
+    expect(filled.subtitle).toBe('字段：邮箱 · 值：alice@example.com')
+    expect(searched.subtitle).toBe('已查询网页来源')
+    expect(executed.subtitle).toBe('已执行命令')
+    expect(changed.subtitle).toBe('已更改文件')
+    expect(fetched.subtitle).toBe('已获取网页')
+  })
+})
+
 describe('buildToolView browser_exec step label', () => {
   const bexec = (code: string) =>
     buildToolView(part({ args: { code }, result: undefined, toolName: 'browser_exec' }), '')
