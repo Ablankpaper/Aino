@@ -694,6 +694,49 @@ describe('usePromptActions /wake', () => {
   })
 })
 
+describe('usePromptActions /browser', () => {
+  beforeEach(() => {
+    setRuntimeI18nLocale('en')
+    setSessions(() => [sessionInfo()])
+  })
+
+  afterEach(() => {
+    cleanup()
+    setRuntimeI18nLocale('en')
+    vi.restoreAllMocks()
+  })
+
+  it('renders the disconnected browser status in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'browser.manage') {
+        return { connected: false } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/browser status')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain(
+      '浏览器未连接（请尝试 /browser connect <url>，或在 config.yaml 中设置 browser.cdp_url）'
+    )
+  })
+})
+
 describe('usePromptActions /compress', () => {
   beforeEach(() => {
     setSessions(() => [sessionInfo()])

@@ -3474,6 +3474,15 @@ export interface Translations {
     sessionTitleCleared: string
     sessionBusyQueued: string
     sessionBusyInterrupt: string
+    browserRemoteUnavailable: string
+    browserUsage: string
+    browserChecking: (url: string) => string
+    browserStatusConnected: (url: string) => string
+    browserNotConnected: string
+    browserDisconnected: string
+    browserConnected: string
+    browserEndpoint: (url: string) => string
+    browserNextCall: string
     yoloArmed: string
     yoloOff: string
     yoloSystem: (active: boolean) => string

@@ -953,9 +953,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const { render: renderSlashOutput, sessionId } = resolved
 
           if ($connection.get()?.mode === 'remote') {
-            renderSlashOutput(
-              '/browser manages a Chromium-family browser on the gateway host — only available when connected to a local gateway.'
-            )
+            renderSlashOutput(copy.browserRemoteUnavailable)
 
             return
           }
@@ -964,9 +962,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const cmdAction = rawAction.toLowerCase()
 
           if (!['connect', 'disconnect', 'status'].includes(cmdAction)) {
-            renderSlashOutput(
-              'usage: /browser [connect|disconnect|status] [url] · persistent: set browser.cdp_url in config.yaml'
-            )
+            renderSlashOutput(copy.browserUsage)
 
             return
           }
@@ -974,7 +970,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const url = cmdAction === 'connect' ? rest.join(' ').trim() || 'http://127.0.0.1:9222' : undefined
 
           if (url) {
-            renderSlashOutput(`checking Chromium-family browser remote debugging at ${url}...`)
+            renderSlashOutput(copy.browserChecking(url))
           }
 
           try {
@@ -991,26 +987,26 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             if (cmdAction === 'status') {
               renderSlashOutput(
                 result?.connected
-                  ? `browser connected: ${result.url || '(url unavailable)'}`
-                  : 'browser not connected (try /browser connect <url> or set browser.cdp_url in config.yaml)'
+                  ? copy.browserStatusConnected(result.url || '(url unavailable)')
+                  : copy.browserNotConnected
               )
 
               return
             }
 
             if (cmdAction === 'disconnect') {
-              renderSlashOutput('browser disconnected')
+              renderSlashOutput(copy.browserDisconnected)
 
               return
             }
 
             if (result?.connected) {
-              renderSlashOutput('Browser connected to live Chromium-family browser via CDP')
-              renderSlashOutput(`Endpoint: ${result.url || '(url unavailable)'}`)
-              renderSlashOutput('next browser tool call will use this CDP endpoint')
+              renderSlashOutput(copy.browserConnected)
+              renderSlashOutput(copy.browserEndpoint(result.url || '(url unavailable)'))
+              renderSlashOutput(copy.browserNextCall)
             }
           } catch (err) {
-            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
+            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
           }
         }
       }
