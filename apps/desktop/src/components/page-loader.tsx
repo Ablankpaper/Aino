@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react'
 
 import { Loader } from '@/components/ui/loader'
+import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 interface PageLoaderProps extends Omit<ComponentProps<'div'>, 'children'> {
@@ -10,14 +11,17 @@ interface PageLoaderProps extends Omit<ComponentProps<'div'>, 'children'> {
 export function PageLoader({
   'aria-label': ariaLabel,
   className,
-  label = 'Loading',
+  label,
   role = 'status',
   ...props
 }: PageLoaderProps) {
+  const { t } = useI18n()
+  const resolvedLabel = label ?? t.common.loading
+
   return (
     <div
       {...props}
-      aria-label={ariaLabel ?? label}
+      aria-label={ariaLabel ?? resolvedLabel}
       className={cn('grid h-full place-items-center', className)}
       role={role}
     >
