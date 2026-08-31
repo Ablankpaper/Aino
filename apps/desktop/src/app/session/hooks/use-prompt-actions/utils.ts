@@ -464,9 +464,9 @@ export function friendlyRemoteAttachError(err: unknown, label: string): Error {
   }
 
   const limitBytes = Number(message.match(/limit (\d+) bytes/)?.[1])
-  const cap = Number.isFinite(limitBytes) && limitBytes > 0 ? ` (max ${Math.floor(limitBytes / (1024 * 1024))} MB)` : ''
+  const maxMb = Number.isFinite(limitBytes) && limitBytes > 0 ? Math.floor(limitBytes / (1024 * 1024)) : undefined
 
-  return new Error(`${label} is too large to upload to the remote gateway${cap}.`)
+  return new Error(translateNow('desktop.remoteAttachTooLarge', label, maxMb))
 }
 
 export function renderCommandsCatalog(catalog: CommandsCatalogLike, copy: Translations['desktop']): string {

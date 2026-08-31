@@ -4187,6 +4187,7 @@ export const zh: Translations = {
     branchFailed: '分支失败',
     stopProcessFailed: '无法停止进程',
     gatewayReconnectUnavailable: '网关重连不可用',
+    remoteAttachTooLarge: (label, maxMb) => `${label} 太大，无法上传到远程网关${maxMb ? `（上限 ${maxMb} MB）` : ''}。`,
     commandResults: {
       noCommands: '当前没有可用的桌面命令。',
       steerQueued: text => `已引导：“${text}” 已排队，将在下一次工具调用时发送`,

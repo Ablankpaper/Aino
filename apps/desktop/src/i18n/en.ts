@@ -4062,6 +4062,8 @@ export const en: Translations = {
     branchFailed: 'Branch failed',
     stopProcessFailed: 'Could not stop the process',
     gatewayReconnectUnavailable: 'Gateway reconnect is unavailable',
+    remoteAttachTooLarge: (label, maxMb) =>
+      `${label} is too large to upload to the remote gateway${maxMb ? ` (max ${maxMb} MB)` : ''}.`,
     commandResults: {
       noCommands: 'No desktop commands available.',
       steerQueued: text => `Steered · "${text}" queued for next tool call`,

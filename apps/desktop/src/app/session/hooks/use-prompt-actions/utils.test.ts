@@ -381,6 +381,14 @@ describe('friendlyRemoteAttachError', () => {
     const original = new Error('something else')
     expect(friendlyRemoteAttachError(original, 'pic.png')).toBe(original)
   })
+
+  it('uses Simplified Chinese copy for a too-large remote attachment', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(
+      friendlyRemoteAttachError(new Error('file is too large (20 bytes; limit 16777216 bytes)'), 'pic.png')
+    ).toHaveProperty('message', 'pic.png 太大，无法上传到远程网关（上限 16 MB）。')
+  })
 })
 
 describe('readFileDataUrlForAttach', () => {

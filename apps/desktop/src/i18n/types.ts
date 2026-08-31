@@ -3480,6 +3480,7 @@ export interface Translations {
     branchFailed: string
     stopProcessFailed: string
     gatewayReconnectUnavailable: string
+    remoteAttachTooLarge: (label: string, maxMb?: number) => string
     commandResults: {
       noCommands: string
       steerQueued: (text: string) => string
