@@ -4176,6 +4176,8 @@ export const zh: Translations = {
       auto: '自动',
       systemDefault: '系统默认'
     },
+    sessionTitleSet: (title, queued) => `会话标题已设置：${title}${queued ? '（会话初始化期间已排队）' : ''}`,
+    sessionTitleCleared: '会话标题已清除。',
     yoloArmed: '此对话已启用 YOLO',
     yoloOff: 'YOLO 已关闭',
     yoloSystem: active => `此会话 YOLO ${active ? '已开启' : '已关闭'}`,

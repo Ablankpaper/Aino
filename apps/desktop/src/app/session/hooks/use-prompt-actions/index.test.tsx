@@ -251,11 +251,13 @@ function Harness({
 
 describe('usePromptActions /title', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     setSessions(() => [sessionInfo()])
   })
 
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     vi.restoreAllMocks()
   })
 
@@ -306,6 +308,32 @@ describe('usePromptActions /title', () => {
     // Even when queued, the sidebar reflects the chosen title optimistically.
     expect(refreshSessions).toHaveBeenCalledTimes(1)
     expect($sessions.get()[0]?.title).toBe('Fresh chat')
+  })
+
+  it('renders a queued title result in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const refreshSessions = vi.fn(async () => undefined)
+
+    const requestGateway = vi.fn(
+      async (method: string) => (method === 'session.title' ? { pending: true, title: '我的新会话' } : {}) as never
+    )
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={refreshSessions}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/title 我的新会话')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain('会话标题已设置：我的新会话（会话初始化期间已排队）')
   })
 
   it('falls through to the slash worker for a bare /title (show current title)', async () => {

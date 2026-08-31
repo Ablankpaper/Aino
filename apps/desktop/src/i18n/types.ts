@@ -3470,6 +3470,8 @@ export interface Translations {
       auto: string
       systemDefault: string
     }
+    sessionTitleSet: (title: string, queued: boolean) => string
+    sessionTitleCleared: string
     yoloArmed: string
     yoloOff: string
     yoloSystem: (active: boolean) => string

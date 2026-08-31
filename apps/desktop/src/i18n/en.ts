@@ -4049,6 +4049,9 @@ export const en: Translations = {
       auto: 'auto',
       systemDefault: 'system default'
     },
+    sessionTitleSet: (title, queued) =>
+      `Session title set: ${title}${queued ? ' (queued while session initializes)' : ''}`,
+    sessionTitleCleared: 'Session title cleared.',
     yoloArmed: 'YOLO armed for this chat',
     yoloOff: 'YOLO off',
     yoloSystem: active => `YOLO ${active ? 'on' : 'off'} for this session`,
