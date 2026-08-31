@@ -4123,6 +4123,7 @@ export const zh: Translations = {
     branchNoText: '此消息没有可用于分支的文本。',
     branchTitle: n => `草稿：分支 #${n}`,
     branchFailed: '分支失败',
+    stopProcessFailed: '无法停止进程',
     deleteFailed: '删除失败',
     archived: '已归档',
     archiveFailed: '归档失败',

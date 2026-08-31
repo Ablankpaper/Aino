@@ -3996,6 +3996,7 @@ export const en: Translations = {
     branchNoText: 'This message has no text to branch from.',
     branchTitle: n => `Draft: Branch #${n}`,
     branchFailed: 'Branch failed',
+    stopProcessFailed: 'Could not stop the process',
     deleteFailed: 'Delete failed',
     archived: 'Archived',
     archiveFailed: 'Archive failed',

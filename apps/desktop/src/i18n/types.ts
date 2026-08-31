@@ -3416,6 +3416,7 @@ export interface Translations {
     branchNoText: string
     branchTitle: (n: number) => string
     branchFailed: string
+    stopProcessFailed: string
     deleteFailed: string
     archived: string
     archiveFailed: string

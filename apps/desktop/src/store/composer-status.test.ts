@@ -1,13 +1,17 @@
 import { JsonRpcGatewayError } from '@hermes/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+import { $notifications } from '@/store/notifications'
+
 import {
   $backgroundStatusBySession,
   dismissBackgroundProcess,
   isSessionGoneForBackgroundPolling,
   reconcileBackgroundProcesses,
   refreshBackgroundProcesses,
-  resetBackgroundPollingGuard
+  resetBackgroundPollingGuard,
+  stopBackgroundProcess
 } from './composer-status'
 import { $gateway } from './gateway'
 
@@ -23,6 +27,23 @@ const exited = (id: string, exit_code = 0, command = `cmd ${id}`) => ({
 })
 
 const items = () => $backgroundStatusBySession.get()[SID] ?? []
+
+describe('stopBackgroundProcess errors', () => {
+  afterEach(() => {
+    setRuntimeI18nLocale('en')
+    $gateway.set(null as never)
+    $notifications.set([])
+  })
+
+  it('uses the Simplified Chinese failure title', async () => {
+    setRuntimeI18nLocale('zh')
+    $gateway.set({ request: vi.fn().mockRejectedValue(new Error('boom')) } as never)
+
+    await stopBackgroundProcess(SID, 'proc-1')
+
+    expect($notifications.get()[0]?.title).toBe('无法停止进程')
+  })
+})
 
 describe('reconcileBackgroundProcesses', () => {
   beforeEach(() => {
