@@ -5,7 +5,7 @@ const { usePluginI18n } = vi.hoisted(() => ({ usePluginI18n: vi.fn() }))
 
 vi.mock('@hermes/plugin-sdk', () => ({ usePluginI18n }))
 
-import { KANBAN_LOCALES, useKanban } from './i18n'
+import { KANBAN_LOCALES, laneLabel, type KanbanText, useKanban } from './i18n'
 
 type Leaf = string | ((...args: never[]) => string)
 
@@ -54,6 +54,27 @@ describe('KANBAN_LOCALES', () => {
 
     expect(zh.autoDescribeFailed).toBeDefined()
     expect(zh.autoDescribeFailed).not.toBe(en.autoDescribeFailed)
+  })
+
+  it('localizes workspace and run-state identifiers without hiding unknown values', () => {
+    const zh = KANBAN_LOCALES.zh as unknown as {
+      runStatusLabel: (status: string) => string
+      workspaceKindLabel: (kind: string) => string
+    }
+
+    expect(zh.workspaceKindLabel('scratch')).toBe('临时沙箱')
+    expect(zh.workspaceKindLabel('worktree')).toBe('工作树')
+    expect(zh.workspaceKindLabel('custom_workspace')).toBe('custom_workspace')
+    expect(zh.runStatusLabel('timed_out')).toBe('已超时')
+    expect(zh.runStatusLabel('spawn_failed')).toBe('启动失败')
+    expect(zh.runStatusLabel('future_state')).toBe('future_state')
+  })
+
+  it('uses the translated label for the synthetic unassigned lane', () => {
+    const k = { unassigned: '未分配' } as unknown as KanbanText
+
+    expect(laneLabel(k, 'unassigned')).toBe('未分配')
+    expect(laneLabel(k, 'researcher')).toBe('researcher')
   })
 })
 

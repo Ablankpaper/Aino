@@ -63,6 +63,7 @@ type KanbanMessages = {
   descPlaceholder: string
   priority: string
   workspace: string
+  workspaceKindLabel: (kind: string) => string
   boardDefaultSuffix: string
   workspaceOverride: string
   model: string
@@ -148,6 +149,7 @@ type KanbanMessages = {
   notePosted: string
   activity: (n: number) => string
   runs: (n: number) => string
+  runStatusLabel: (status: string) => string
   workerLog: string
   workerLogTail: string
   attachments: (n: number) => string
@@ -211,6 +213,94 @@ type KanbanMessages = {
     artifacts: (n: number) => string
   }
 }
+
+const WORKSPACE_KIND_LABELS = {
+  en: { dir: 'Directory', scratch: 'Scratch sandbox', worktree: 'Worktree' },
+  ja: { dir: 'ディレクトリ', scratch: '一時サンドボックス', worktree: 'ワークツリー' },
+  zh: { dir: '目录', scratch: '临时沙箱', worktree: '工作树' },
+  'zh-hant': { dir: '目錄', scratch: '暫存沙箱', worktree: '工作樹' }
+} as const
+
+const RUN_STATUS_LABELS = {
+  en: {
+    blocked: 'Blocked',
+    changes_requested: 'Changes requested',
+    crashed: 'Crashed',
+    completed: 'Completed',
+    done: 'Done',
+    failed: 'Failed',
+    gave_up: 'Gave up',
+    pending: 'Pending',
+    queued: 'Queued',
+    reclaimed: 'Reclaimed',
+    released: 'Released',
+    review_requested: 'Review requested',
+    running: 'Running',
+    scheduled: 'Scheduled',
+    spawn_failed: 'Spawn failed',
+    stale: 'Stale',
+    timed_out: 'Timed out'
+  },
+  ja: {
+    blocked: 'ブロック中',
+    changes_requested: '変更を要求',
+    crashed: 'クラッシュ',
+    completed: '完了',
+    done: '完了',
+    failed: '失敗',
+    gave_up: '断念',
+    pending: '保留中',
+    queued: 'キュー待ち',
+    reclaimed: '再取得',
+    released: '解放済み',
+    review_requested: 'レビュー要求',
+    running: '実行中',
+    scheduled: 'スケジュール済み',
+    spawn_failed: '起動失敗',
+    stale: '期限切れ',
+    timed_out: 'タイムアウト'
+  },
+  zh: {
+    blocked: '受阻',
+    changes_requested: '已请求修改',
+    crashed: '已崩溃',
+    completed: '已完成',
+    done: '已完成',
+    failed: '失败',
+    gave_up: '已放弃',
+    pending: '待处理',
+    queued: '排队中',
+    reclaimed: '已回收',
+    released: '已释放',
+    review_requested: '已请求审查',
+    running: '运行中',
+    scheduled: '已排期',
+    spawn_failed: '启动失败',
+    stale: '已过期',
+    timed_out: '已超时'
+  },
+  'zh-hant': {
+    blocked: '受阻',
+    changes_requested: '已要求修改',
+    crashed: '已當機',
+    completed: '已完成',
+    done: '已完成',
+    failed: '失敗',
+    gave_up: '已放棄',
+    pending: '待處理',
+    queued: '排隊中',
+    reclaimed: '已回收',
+    released: '已釋放',
+    review_requested: '已要求審查',
+    running: '執行中',
+    scheduled: '已排程',
+    spawn_failed: '啟動失敗',
+    stale: '已過期',
+    timed_out: '已逾時'
+  }
+} as const
+
+const lookupLabel = (value: string, labels: Readonly<Record<string, string>>): string => labels[value] ?? value
 
 export const en: KanbanMessages = {
   nav: 'Kanban',
@@ -277,6 +367,7 @@ export const en: KanbanMessages = {
   descPlaceholder: 'Description (optional)',
   priority: 'Priority',
   workspace: 'Workspace',
+  workspaceKindLabel: kind => lookupLabel(kind, WORKSPACE_KIND_LABELS.en),
   boardDefaultSuffix: ' · board default',
   workspaceOverride: 'Workspace path (optional override)',
   model: 'Model',
@@ -365,6 +456,7 @@ export const en: KanbanMessages = {
   notePosted: 'Note posted — worker requeued',
   activity: n => `Activity · ${n}`,
   runs: n => `Runs · ${n}`,
+  runStatusLabel: status => lookupLabel(status, RUN_STATUS_LABELS.en),
   workerLog: 'Worker log',
   workerLogTail: 'Worker log · tail',
   attachments: n => `Attachments · ${n}`,
@@ -490,6 +582,7 @@ const ja: KanbanMessages = {
   descPlaceholder: '説明（任意）',
   priority: '優先度',
   workspace: 'ワークスペース',
+  workspaceKindLabel: kind => lookupLabel(kind, WORKSPACE_KIND_LABELS.ja),
   boardDefaultSuffix: '・ボード既定',
   workspaceOverride: 'ワークスペースパス（任意の上書き）',
   model: 'モデル',
@@ -577,6 +670,7 @@ const ja: KanbanMessages = {
   notePosted: 'メモを投稿しました — ワーカーを再キューしました',
   activity: n => `アクティビティ・${n}`,
   runs: n => `実行・${n}`,
+  runStatusLabel: status => lookupLabel(status, RUN_STATUS_LABELS.ja),
   workerLog: 'ワーカーログ',
   workerLogTail: 'ワーカーログ・末尾',
   attachments: n => `添付・${n}`,
@@ -701,6 +795,7 @@ const zh: KanbanMessages = {
   descPlaceholder: '描述（可选）',
   priority: '优先级',
   workspace: '工作区',
+  workspaceKindLabel: kind => lookupLabel(kind, WORKSPACE_KIND_LABELS.zh),
   boardDefaultSuffix: '・面板默认',
   workspaceOverride: '工作区路径（可选覆盖）',
   model: '模型',
@@ -787,6 +882,7 @@ const zh: KanbanMessages = {
   notePosted: '备注已发布 — 工作单元已重新入队',
   activity: n => `活动・${n}`,
   runs: n => `运行・${n}`,
+  runStatusLabel: status => lookupLabel(status, RUN_STATUS_LABELS.zh),
   workerLog: '工作单元日志',
   workerLogTail: '工作单元日志・末尾',
   attachments: n => `附件・${n}`,
@@ -910,6 +1006,7 @@ const zhHant: KanbanMessages = {
   descPlaceholder: '描述（選填）',
   priority: '優先順序',
   workspace: '工作區',
+  workspaceKindLabel: kind => lookupLabel(kind, WORKSPACE_KIND_LABELS['zh-hant']),
   boardDefaultSuffix: '・面板預設',
   workspaceOverride: '工作區路徑（選填覆寫）',
   model: '模型',
@@ -996,6 +1093,7 @@ const zhHant: KanbanMessages = {
   notePosted: '備註已發布 — 工作單元已重新排入佇列',
   activity: n => `活動・${n}`,
   runs: n => `執行・${n}`,
+  runStatusLabel: status => lookupLabel(status, RUN_STATUS_LABELS['zh-hant']),
   workerLog: '工作單元日誌',
   workerLogTail: '工作單元日誌・末尾',
   attachments: n => `附件・${n}`,
@@ -1110,3 +1208,4 @@ export function useKanban(): KanbanText {
 export const columnLabel = (k: KanbanText, name: string) => k.col[name as keyof KanbanText['col']]?.label ?? name
 export const columnHelp = (k: KanbanText, name: string) => k.col[name as keyof KanbanText['col']]?.help ?? ''
 export const lockedReason = (k: KanbanText, name: string) => k.locked[name as keyof KanbanText['locked']] ?? ''
+export const laneLabel = (k: KanbanText, name: string) => (name === 'unassigned' ? k.unassigned : name)

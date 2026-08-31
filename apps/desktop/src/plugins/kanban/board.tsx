@@ -93,6 +93,7 @@ import {
   errText,
   FIELD_LABEL,
   isLockedTarget,
+  laneLabel,
   lockedReason,
   RunClock,
   shortId,
@@ -467,7 +468,7 @@ function Column({
               <div className="flex flex-col gap-2" key={assignee}>
                 <div className="flex items-center gap-1.5 px-1 pt-1 text-[0.625rem] text-(--ui-text-quaternary)">
                   {assignee !== UNASSIGNED_LANE && <Avatar name={assignee} size="0.875rem" />}
-                  {assignee}
+                  {laneLabel(k, assignee)}
                   <span className="tabular-nums">{tasks.length}</span>
                 </div>
                 {tasks.map(task => (
@@ -710,7 +711,7 @@ function NewTaskDialog({
                 <SelectContent>
                   {WORKSPACE_KINDS.map(kind => (
                     <SelectItem key={kind} value={kind}>
-                      {kind}
+                      {k.workspaceKindLabel(kind)}
                       {kind === boardDefaultKind ? k.boardDefaultSuffix : ''}
                     </SelectItem>
                   ))}
