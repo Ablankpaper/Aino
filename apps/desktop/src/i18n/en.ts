@@ -3574,6 +3574,8 @@ export const en: Translations = {
     tryAgain: 'Try again',
     loadingTree: 'Loading file tree',
     loadingFiles: 'Loading files',
+    loadingPlaceholder: 'Loading…',
+    unableToReadPlaceholder: error => `Unable to read (${error})`,
     terminalHide: 'Hide terminal',
     terminalsAria: 'Terminals',
     terminalNew: 'New terminal',

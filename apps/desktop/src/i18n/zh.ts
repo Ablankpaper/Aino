@@ -3719,6 +3719,8 @@ export const zh: Translations = {
     tryAgain: '重试',
     loadingTree: '正在加载文件树',
     loadingFiles: '正在加载文件',
+    loadingPlaceholder: '正在加载…',
+    unableToReadPlaceholder: error => `无法读取 (${error})`,
     terminalHide: '隐藏终端',
     terminalsAria: '终端',
     terminalNew: '新建终端',

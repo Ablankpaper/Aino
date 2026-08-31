@@ -3038,6 +3038,8 @@ export interface Translations {
     tryAgain: string
     loadingTree: string
     loadingFiles: string
+    loadingPlaceholder: string
+    unableToReadPlaceholder: (error: string) => string
     terminalHide: string
     terminalsAria: string
     terminalNew: string

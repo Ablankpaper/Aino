@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react'
 import { atom } from 'nanostores'
 import { useCallback, useEffect, useMemo } from 'react'
 
+import { translateNow } from '@/i18n'
 import { desktopFsCacheKey } from '@/lib/desktop-fs'
 import { $connection } from '@/store/session'
 import { $workspaceChangeTick, consumeWorkspaceChange } from '@/store/workspace-events'
@@ -77,14 +78,19 @@ function mergeChildren(existing: TreeNode[], entries: ProjectTreeEntry[]): TreeN
 }
 
 function placeholderChild(parentId: string): TreeNode {
-  return { id: `${parentId}::${PLACEHOLDER_ID}`, isDirectory: false, name: 'Loading…', placeholder: 'loading' }
+  return {
+    id: `${parentId}::${PLACEHOLDER_ID}`,
+    isDirectory: false,
+    name: translateNow('rightSidebar.loadingPlaceholder'),
+    placeholder: 'loading'
+  }
 }
 
 function errorChild(parentId: string, error: string | undefined): TreeNode {
   return {
     id: `${parentId}::${ERROR_PLACEHOLDER_ID}`,
     isDirectory: false,
-    name: `Unable to read (${error || 'read-error'})`,
+    name: translateNow('rightSidebar.unableToReadPlaceholder', error || 'read-error'),
     placeholder: 'error'
   }
 }
