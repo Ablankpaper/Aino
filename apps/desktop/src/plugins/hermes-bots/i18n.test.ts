@@ -73,7 +73,16 @@ describe('BOTS_LOCALES', () => {
       'avatar.lockFace',
       'avatar.faceLocked',
       'avatar.noImageModel',
-      'avatar.chooseImage'
+      'avatar.chooseImage',
+      'bot.createDescription',
+      'bot.remoteCreateHint',
+      'bot.capabilitiesImmediate',
+      'tools.browseHub',
+      'tools.hubHint',
+      'mcp.saveTest',
+      'mcp.setupNeeded',
+      'model.backToDropdowns',
+      'model.inheritLaunch'
     ] as const
     const enByPath = Object.fromEntries(leafEntries(en))
     const zhByPath = Object.fromEntries(leafEntries(zh))

@@ -139,6 +139,45 @@ type BotsMessages = {
     attentionMissingConfig: string
     attentionBlocked: string
     attentionGeneric: string
+    createDescription: string
+    descriptionLabel: string
+    createOn: string
+    currentSuffix: string
+    titlePlaceholder: string
+    namePlaceholder: string
+    remoteCreateHint: (target: string) => string
+    capabilitiesImmediate: string
+    appearanceDescription: (name: string, slug: string) => string
+    sectionsFailed: (sections: string) => string
+    updated: (name: string) => string
+    draftDiscarded: (name: string) => string
+    draftCleanupFailed: (name: string) => string
+    nameTaken: (slug: string) => string
+    nameTakenOn: (slug: string, target: string) => string
+    general: string
+    capabilities: string
+    skills: string
+    tools: string
+    mcp: string
+    cloneFromRemote: (target: string) => string
+    freshProfile: string
+    inheritedModel: string
+    soulLabel: string
+    shareAuth: string
+    shareAuthDescription: string
+    noSkills: string
+    capabilitiesNameTaken: string
+    capabilitiesNameHint: string
+    skillsUnsupported: string
+    catalogUnsupported: string
+    emptySkills: string
+    catalogFrom: (source: string) => string
+    toolsetHint: string
+    mcpHint: string
+    catalogInstalled: string
+    catalog: string
+    createAction: string
+    creating: string
   }
   /** Avatar picker: shapes, blobs, pets, uploads, generation. */
   avatar: {
@@ -281,6 +320,42 @@ type BotsMessages = {
     added: string
     installing: (name: string) => string
     installFailed: (name: string) => string
+  }
+
+  /** Inline MCP server setup states. */
+  mcp: {
+    setupNeeded: (requires: string) => string
+    setupDone: string
+    saveTest: string
+    authorizing: string
+    setupFailed: string
+    retry: string
+    signIn: string
+    setUp: string
+    completeSignIn: string
+    noTargetProfile: string
+    couldNotAddServer: string
+    failedToSet: (key: string) => string
+    configured: (name: string) => string
+    serverTestFailed: string
+    oauthStartFailed: string
+    oauthCallbackFailed: string
+    oauthFailed: string
+    authenticated: (name: string) => string
+  }
+
+  /** Provider/model picker copy that is not present in core model settings. */
+  model: {
+    providerCustom: string
+    modelCustom: string
+    providerPlaceholder: string
+    modelPlaceholder: string
+    providerCustomPlaceholder: string
+    modelCustomPlaceholder: string
+    backToDropdowns: string
+    inheritLaunch: string
+    enterManually: string
+    modelNamePlaceholder: string
   }
 
   /** Bot-scoped scheduled jobs. Generic scheduling chrome (weekday names,
@@ -442,7 +517,50 @@ const en: BotsMessages = {
     attentionQuota: 'Quota or balance exhausted',
     attentionMissingConfig: 'Provider not configured — run hermes model',
     attentionBlocked: 'Bot is blocked — see its last message',
-    attentionGeneric: 'Needs attention'
+    attentionGeneric: 'Needs attention',
+    createDescription: 'A named teammate with its own memory, skills, and chat. It can message your other agents.',
+    descriptionLabel: 'Description',
+    createOn: 'Create on',
+    currentSuffix: 'current',
+    titlePlaceholder: 'Inbox Triage',
+    namePlaceholder: 'inbox-triage',
+    remoteCreateHint: target =>
+      `The agent is created on ${target} and appears in the roster as a Connections bot. Chat routes to that machine.`,
+    capabilitiesImmediate: 'Capabilities (applies immediately — skills, tools, MCP)',
+    appearanceDescription: (name, slug) => `Appearance and role for ${name} (${slug}).`,
+    sectionsFailed: sections => `Some sections failed: ${sections}`,
+    updated: name => `${name} updated`,
+    draftDiscarded: name => `Draft agent "${name}" discarded`,
+    draftCleanupFailed: name => `Could not clean up draft profile "${name}"`,
+    nameTaken: slug => `An agent named "${slug}" already exists.`,
+    nameTakenOn: (slug, target) => `An agent named "${slug}" already exists on ${target}.`,
+    general: 'General',
+    capabilities: 'Capabilities',
+    skills: 'Skills',
+    tools: 'Tools',
+    mcp: 'MCP',
+    cloneFromRemote: target => `Clone from profile (on ${target})`,
+    freshProfile: 'Fresh profile (bundled skills)',
+    inheritedModel: 'inherited from launch profile',
+    soulLabel: 'SOUL.md (optional — replaces the generated persona)',
+    shareAuth: 'Share keys & accounts with the main profile',
+    shareAuthDescription:
+      'Subscriptions, OAuth logins, and API keys stay shared (not copied), so token refreshes never invalidate each other. Uncheck for an isolated snapshot copy.',
+    noSkills: 'Create empty (skip bundled skills)',
+    capabilitiesNameTaken: 'That name is taken — pick another before configuring capabilities.',
+    capabilitiesNameHint:
+      'Name the bot first — a draft profile is created when you open this tab (discarded if you cancel).',
+    skillsUnsupported: 'Skills need a newer Hermes Desktop.',
+    catalogUnsupported: 'Capability catalog needs a newer gateway (restart it after updating Hermes).',
+    emptySkills: '“Create empty” is checked — no bundled skills will be installed.',
+    catalogFrom: source => `Catalog from ${source} — unchecked skills are disabled after creation.`,
+    toolsetHint: 'Leaving all (or none) checked keeps the default toolset behavior.',
+    mcpHint:
+      'Configured servers copy from the main profile; catalog entries are the bundled MCP menu. Entries needing API keys route through setup first (credentials follow the shared keys setting).',
+    catalogInstalled: 'catalog · installed',
+    catalog: 'catalog',
+    createAction: 'Create Bot',
+    creating: 'Creating…'
   },
   avatar: {
     classicShapes: 'Classic shapes',
@@ -583,6 +701,38 @@ const en: BotsMessages = {
     added: '✓ added',
     installing: name => `Installing "${name}"…`,
     installFailed: name => `Installing "${name}" failed`
+  },
+  mcp: {
+    setupNeeded: requires => `Needs setup (${requires}) — restart the gateway to enable in-app setup`,
+    setupDone: 'Set up ✓',
+    saveTest: 'Save & test',
+    authorizing: 'Authorizing…',
+    setupFailed: 'Setup failed',
+    retry: 'retry',
+    signIn: 'Sign in…',
+    setUp: 'Set up…',
+    completeSignIn: 'Complete sign-in in your browser…',
+    noTargetProfile: 'No target profile',
+    couldNotAddServer: 'Could not add server',
+    failedToSet: key => `Failed to set ${key}`,
+    configured: name => `${name} configured`,
+    serverTestFailed: 'Server test failed after setup',
+    oauthStartFailed: 'Could not start OAuth',
+    oauthCallbackFailed: 'OAuth callback relay failed',
+    oauthFailed: 'OAuth failed',
+    authenticated: name => `${name} authenticated`
+  },
+  model: {
+    providerCustom: 'Provider (Custom)',
+    modelCustom: 'Model (Custom)',
+    providerPlaceholder: 'omnirouter / 9router / nous …',
+    modelPlaceholder: 'antigravity/gemini-3.6-flash-high',
+    providerCustomPlaceholder: 'e.g. omnirouter, inferx, 9router',
+    modelCustomPlaceholder: 'e.g. antigravity/gemini-3.6-flash-high',
+    backToDropdowns: '← Back to dropdowns',
+    inheritLaunch: 'Inherit (launch profile)',
+    enterManually: '✏️ Enter manually…',
+    modelNamePlaceholder: 'e.g. model name'
   },
   cron: {
     filterHint:
@@ -739,7 +889,51 @@ const ja: BotsMessages = {
     attentionQuota: 'クォータまたは残高が不足しています',
     attentionMissingConfig: 'プロバイダー未設定 — hermes model を実行してください',
     attentionBlocked: 'ボットがブロックされています — 最新メッセージを確認してください',
-    attentionGeneric: '要対応'
+    attentionGeneric: '要対応',
+    createDescription:
+      'メモリ、スキル、チャットを持つ名前付きのチームメイトです。他のエージェントにもメッセージを送れます。',
+    descriptionLabel: '説明',
+    createOn: '作成先',
+    currentSuffix: '現在',
+    titlePlaceholder: '受信トレイの振り分け',
+    namePlaceholder: 'inbox-triage',
+    remoteCreateHint: target =>
+      `${target} 上にエージェントを作成します。名簿には接続ボットとして表示され、チャットはそのマシンに接続します。`,
+    capabilitiesImmediate: '機能（スキル、ツール、MCPに即時適用）',
+    appearanceDescription: (name, slug) => `${name}（${slug}）の外観と役割。`,
+    sectionsFailed: sections => `一部のセクションに失敗しました: ${sections}`,
+    updated: name => `${name}を更新しました`,
+    draftDiscarded: name => `下書きエージェント「${name}」を破棄しました`,
+    draftCleanupFailed: name => `下書きプロファイル「${name}」をクリーンアップできませんでした`,
+    nameTaken: slug => `「${slug}」というエージェントはすでに存在します。`,
+    nameTakenOn: (slug, target) => `${target} に「${slug}」というエージェントはすでに存在します。`,
+    general: '一般',
+    capabilities: '機能',
+    skills: 'スキル',
+    tools: 'ツール',
+    mcp: 'MCP',
+    cloneFromRemote: target => `プロファイルから複製（${target}）`,
+    freshProfile: '新規プロファイル（同梱スキル）',
+    inheritedModel: '起動プロファイルから継承',
+    soulLabel: 'SOUL.md（任意 — 生成されたペルソナを置換）',
+    shareAuth: 'メインプロファイルとキーとアカウントを共有',
+    shareAuthDescription:
+      'サブスクリプション、OAuthログイン、APIキーは共有され（コピーされません）、トークン更新が互いを無効にしません。オフにすると分離したスナップショットになります。',
+    noSkills: '空で作成（同梱スキルをスキップ）',
+    capabilitiesNameTaken: 'その名前は使用中です。機能を設定する前に別の名前を選んでください。',
+    capabilitiesNameHint:
+      'まずボット名を入力してください。このタブを開くと下書きプロファイルが作成され、キャンセル時に破棄されます。',
+    skillsUnsupported: 'スキルには新しい Hermes Desktop が必要です。',
+    catalogUnsupported: '機能カタログには新しいゲートウェイが必要です（Hermes更新後に再起動してください）。',
+    emptySkills: '「空で作成」が選択されています — 同梱スキルはインストールされません。',
+    catalogFrom: source => `${source} のカタログ — 未チェックのスキルは作成後に無効になります。`,
+    toolsetHint: 'すべて（またはなし）をチェックすると、既定のツールセット動作になります。',
+    mcpHint:
+      '設定済みサーバーはメインプロファイルからコピーされます。カタログ項目は同梱MCPメニューです。APIキーが必要な項目は先にセットアップへ進みます。',
+    catalogInstalled: 'カタログ・インストール済み',
+    catalog: 'カタログ',
+    createAction: 'ボットを作成',
+    creating: '作成中…'
   },
   avatar: {
     classicShapes: 'クラシックシェイプ',
@@ -880,6 +1074,39 @@ const ja: BotsMessages = {
     added: '✓ 追加済み',
     installing: name => `「${name}」をインストール中…`,
     installFailed: name => `「${name}」のインストールに失敗しました`
+  },
+  mcp: {
+    setupNeeded: requires =>
+      `セットアップが必要（${requires}） — アプリ内設定を有効にするにはゲートウェイを再起動してください`,
+    setupDone: 'セットアップ済み ✓',
+    saveTest: '保存してテスト',
+    authorizing: '認証中…',
+    setupFailed: 'セットアップに失敗しました',
+    retry: '再試行',
+    signIn: 'サインイン…',
+    setUp: 'セットアップ…',
+    completeSignIn: 'ブラウザーでサインインを完了してください…',
+    noTargetProfile: '対象プロファイルがありません',
+    couldNotAddServer: 'サーバーを追加できませんでした',
+    failedToSet: key => `${key}の設定に失敗しました`,
+    configured: name => `${name}を設定しました`,
+    serverTestFailed: '設定後のサーバーテストに失敗しました',
+    oauthStartFailed: 'OAuthを開始できませんでした',
+    oauthCallbackFailed: 'OAuthコールバックの中継に失敗しました',
+    oauthFailed: 'OAuthに失敗しました',
+    authenticated: name => `${name}を認証しました`
+  },
+  model: {
+    providerCustom: 'プロバイダー（カスタム）',
+    modelCustom: 'モデル（カスタム）',
+    providerPlaceholder: 'omnirouter / 9router / nous …',
+    modelPlaceholder: 'antigravity/gemini-3.6-flash-high',
+    providerCustomPlaceholder: '例: omnirouter、inferx、9router',
+    modelCustomPlaceholder: '例: antigravity/gemini-3.6-flash-high',
+    backToDropdowns: '← ドロップダウンに戻る',
+    inheritLaunch: '継承（起動プロファイル）',
+    enterManually: '✏️ 手動入力…',
+    modelNamePlaceholder: '例: モデル名'
   },
   cron: {
     filterHint:
@@ -1034,7 +1261,48 @@ const zh: BotsMessages = {
     attentionQuota: '配额或余额已用尽',
     attentionMissingConfig: '提供方未配置 — 请运行 hermes model',
     attentionBlocked: '机器人已被阻止 — 查看它的最后一条消息',
-    attentionGeneric: '需要处理'
+    attentionGeneric: '需要处理',
+    createDescription: '一个拥有独立记忆、技能和聊天的命名队友，也可以向其他智能体发送消息。',
+    descriptionLabel: '描述',
+    createOn: '创建位置',
+    currentSuffix: '当前',
+    titlePlaceholder: '收件箱分流',
+    namePlaceholder: '收件箱分流',
+    remoteCreateHint: target => `机器人将在 ${target} 上创建，并以连接机器人显示在名单中；聊天会路由到那台机器。`,
+    capabilitiesImmediate: '能力（技能、工具和 MCP 会立即应用）',
+    appearanceDescription: (name, slug) => `${name}（${slug}）的外观和角色。`,
+    sectionsFailed: sections => `部分区域失败：${sections}`,
+    updated: name => `已更新 ${name}`,
+    draftDiscarded: name => `已放弃草稿机器人“${name}”`,
+    draftCleanupFailed: name => `无法清理草稿配置档案“${name}”`,
+    nameTaken: slug => `名为“${slug}”的智能体已存在。`,
+    nameTakenOn: (slug, target) => `${target} 上已存在名为“${slug}”的智能体。`,
+    general: '常规',
+    capabilities: '能力',
+    skills: '技能',
+    tools: '工具',
+    mcp: 'MCP',
+    cloneFromRemote: target => `从配置档案克隆（位于 ${target}）`,
+    freshProfile: '全新配置档案（包含内置技能）',
+    inheritedModel: '继承启动配置档案',
+    soulLabel: 'SOUL.md（可选 — 替换自动生成的人格）',
+    shareAuth: '与主配置档案共享密钥和账户',
+    shareAuthDescription:
+      '订阅、OAuth 登录和 API 密钥保持共享（不会复制），因此令牌刷新不会互相失效。取消勾选可创建隔离的快照副本。',
+    noSkills: '创建空配置（跳过内置技能）',
+    capabilitiesNameTaken: '该名称已被占用 — 请先换一个名称再配置能力。',
+    capabilitiesNameHint: '请先填写机器人名称 — 打开此标签页时会创建草稿配置档案（取消时会放弃）。',
+    skillsUnsupported: '技能需要更新版本的 Hermes Desktop。',
+    catalogUnsupported: '能力目录需要更新版本的网关（更新 Hermes 后请重启网关）。',
+    emptySkills: '已勾选“创建空配置” — 不会安装内置技能。',
+    catalogFrom: source => `目录来源：${source} — 创建后未勾选的技能会被禁用。`,
+    toolsetHint: '全部（或全部不选）会保留默认工具集行为。',
+    mcpHint:
+      '已配置的服务器会从主配置档案复制；目录条目是内置 MCP 菜单。需要 API 密钥的条目会先进入设置流程（凭据遵循共享密钥设置）。',
+    catalogInstalled: '目录 · 已安装',
+    catalog: '目录',
+    createAction: '创建机器人',
+    creating: '创建中…'
   },
   avatar: {
     classicShapes: '经典形状',
@@ -1173,6 +1441,38 @@ const zh: BotsMessages = {
     added: '✓ 已添加',
     installing: name => `正在安装“${name}”…`,
     installFailed: name => `安装“${name}”失败`
+  },
+  mcp: {
+    setupNeeded: requires => `需要设置（${requires}） — 请重启网关以启用应用内设置`,
+    setupDone: '已设置 ✓',
+    saveTest: '保存并测试',
+    authorizing: '授权中…',
+    setupFailed: '设置失败',
+    retry: '重试',
+    signIn: '登录…',
+    setUp: '设置…',
+    completeSignIn: '请在浏览器中完成登录…',
+    noTargetProfile: '没有目标配置档案',
+    couldNotAddServer: '无法添加服务器',
+    failedToSet: key => `无法设置 ${key}`,
+    configured: name => `已配置 ${name}`,
+    serverTestFailed: '设置后服务器测试失败',
+    oauthStartFailed: '无法启动 OAuth',
+    oauthCallbackFailed: 'OAuth 回调转发失败',
+    oauthFailed: 'OAuth 失败',
+    authenticated: name => `${name} 已完成身份验证`
+  },
+  model: {
+    providerCustom: '提供方（自定义）',
+    modelCustom: '模型（自定义）',
+    providerPlaceholder: 'omnirouter / 9router / nous …',
+    modelPlaceholder: 'antigravity/gemini-3.6-flash-high',
+    providerCustomPlaceholder: '例如：omnirouter、inferx、9router',
+    modelCustomPlaceholder: '例如：antigravity/gemini-3.6-flash-high',
+    backToDropdowns: '← 返回下拉选项',
+    inheritLaunch: '继承（启动配置档案）',
+    enterManually: '✏️ 手动输入…',
+    modelNamePlaceholder: '例如：模型名称'
   },
   cron: {
     filterHint:
@@ -1327,7 +1627,48 @@ const zhHant: BotsMessages = {
     attentionQuota: '配額或餘額已用盡',
     attentionMissingConfig: '提供者尚未設定 — 請執行 hermes model',
     attentionBlocked: '機器人已遭封鎖 — 查看它的最後一則訊息',
-    attentionGeneric: '需要處理'
+    attentionGeneric: '需要處理',
+    createDescription: '一個擁有獨立記憶、技能和聊天的命名隊友，也可以向其他智慧體傳送訊息。',
+    descriptionLabel: '描述',
+    createOn: '建立位置',
+    currentSuffix: '目前',
+    titlePlaceholder: '收件匣分流',
+    namePlaceholder: '收件匣分流',
+    remoteCreateHint: target => `機器人將在 ${target} 上建立，並以連線機器人顯示在名單中；聊天會路由到那台機器。`,
+    capabilitiesImmediate: '能力（技能、工具和 MCP 會立即套用）',
+    appearanceDescription: (name, slug) => `${name}（${slug}）的外觀和角色。`,
+    sectionsFailed: sections => `部分區域失敗：${sections}`,
+    updated: name => `已更新 ${name}`,
+    draftDiscarded: name => `已放棄草稿機器人「${name}」`,
+    draftCleanupFailed: name => `無法清理草稿設定檔「${name}」`,
+    nameTaken: slug => `名為「${slug}」的智慧體已存在。`,
+    nameTakenOn: (slug, target) => `${target} 上已存在名為「${slug}」的智慧體。`,
+    general: '一般',
+    capabilities: '能力',
+    skills: '技能',
+    tools: '工具',
+    mcp: 'MCP',
+    cloneFromRemote: target => `從設定檔複製（位於 ${target}）`,
+    freshProfile: '全新設定檔（包含內建技能）',
+    inheritedModel: '繼承啟動設定檔',
+    soulLabel: 'SOUL.md（選用 — 取代自動產生的人格）',
+    shareAuth: '與主要設定檔共用金鑰和帳戶',
+    shareAuthDescription:
+      '訂閱、OAuth 登入和 API 金鑰保持共用（不會複製），因此權杖更新不會互相失效。取消勾選可建立隔離的快照副本。',
+    noSkills: '建立空設定（略過內建技能）',
+    capabilitiesNameTaken: '該名稱已被使用 — 請先換一個名稱再設定能力。',
+    capabilitiesNameHint: '請先填寫機器人名稱 — 開啟此分頁時會建立草稿設定檔（取消時會放棄）。',
+    skillsUnsupported: '技能需要較新版本的 Hermes Desktop。',
+    catalogUnsupported: '能力目錄需要較新版本的閘道（更新 Hermes 後請重新啟動閘道）。',
+    emptySkills: '已勾選「建立空設定」 — 不會安裝內建技能。',
+    catalogFrom: source => `目錄來源：${source} — 建立後未勾選的技能會被停用。`,
+    toolsetHint: '全部（或全部不選）會保留預設工具集行為。',
+    mcpHint:
+      '已設定的伺服器會從主要設定檔複製；目錄項目是內建 MCP 選單。需要 API 金鑰的項目會先進入設定流程（憑證遵循共用金鑰設定）。',
+    catalogInstalled: '目錄 · 已安裝',
+    catalog: '目錄',
+    createAction: '建立機器人',
+    creating: '建立中…'
   },
   avatar: {
     classicShapes: '經典形狀',
@@ -1466,6 +1807,38 @@ const zhHant: BotsMessages = {
     added: '✓ 已新增',
     installing: name => `正在安裝「${name}」…`,
     installFailed: name => `安裝「${name}」失敗`
+  },
+  mcp: {
+    setupNeeded: requires => `需要設定（${requires}） — 請重新啟動閘道以啟用應用程式內設定`,
+    setupDone: '已設定 ✓',
+    saveTest: '儲存並測試',
+    authorizing: '授權中…',
+    setupFailed: '設定失敗',
+    retry: '重試',
+    signIn: '登入…',
+    setUp: '設定…',
+    completeSignIn: '請在瀏覽器中完成登入…',
+    noTargetProfile: '沒有目標設定檔',
+    couldNotAddServer: '無法新增伺服器',
+    failedToSet: key => `無法設定 ${key}`,
+    configured: name => `已設定 ${name}`,
+    serverTestFailed: '設定後伺服器測試失敗',
+    oauthStartFailed: '無法啟動 OAuth',
+    oauthCallbackFailed: 'OAuth 回呼轉送失敗',
+    oauthFailed: 'OAuth 失敗',
+    authenticated: name => `${name} 已完成驗證`
+  },
+  model: {
+    providerCustom: '提供者（自訂）',
+    modelCustom: '模型（自訂）',
+    providerPlaceholder: 'omnirouter / 9router / nous …',
+    modelPlaceholder: 'antigravity/gemini-3.6-flash-high',
+    providerCustomPlaceholder: '例如：omnirouter、inferx、9router',
+    modelCustomPlaceholder: '例如：antigravity/gemini-3.6-flash-high',
+    backToDropdowns: '← 返回下拉選單',
+    inheritLaunch: '繼承（啟動設定檔）',
+    enterManually: '✏️ 手動輸入…',
+    modelNamePlaceholder: '例如：模型名稱'
   },
   cron: {
     filterHint:
