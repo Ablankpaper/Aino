@@ -4198,6 +4198,16 @@ export const zh: Translations = {
     slashEmptyMessage: name => `/${name}：消息为空`,
     slashInvalidResponse: 'command.dispatch 返回无效响应',
     slashCommandFailed: (name, error) => `/${name} 执行失败：${error}`,
+    slashUnavailable: {
+      advanced: command => `${command} 未在桌面 slash 面板中显示。请使用相应的桌面控件或终端界面。`,
+      composerVoice: '语音对话位于这里的输入框：点击麦克风按钮并选择“开始语音对话”（或按 Ctrl+B）。',
+      messaging: command => `${command} 只能从消息平台使用。`,
+      settings: command => `${command} 由桌面侧边栏管理。`,
+      terminal: command => `${command} 只能在终端界面使用。`,
+      modelPicker: command => `${command} 使用桌面模型选择器，而不是 slash 命令。`,
+      sessionPicker: command => `${command} 使用桌面会话选择器，而不是 slash 命令。`,
+      fallback: command => `${command} 在桌面端不可用。`
+    },
     yoloArmed: '此对话已启用 YOLO',
     yoloOff: 'YOLO 已关闭',
     yoloSystem: active => `此会话 YOLO ${active ? '已开启' : '已关闭'}`,

@@ -1233,6 +1233,30 @@ describe('usePromptActions exec fallback error reporting', () => {
     expect(renderedSeedTexts(seeds).join('\n')).toContain('错误：/debug 执行失败：slash worker timed out')
   })
 
+  it('localizes a desktop-unavailable slash explanation in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+    const requestGateway = vi.fn(async () => ({}) as never)
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/voice')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain(
+      '语音对话位于这里的输入框：点击麦克风按钮并选择“开始语音对话”（或按 Ctrl+B）。'
+    )
+    expect(requestGateway).not.toHaveBeenCalled()
+  })
+
   it('falls back to slash.exec when an older gateway lacks a dedicated RPC', async () => {
     const seeds: Record<string, unknown>[] = []
 

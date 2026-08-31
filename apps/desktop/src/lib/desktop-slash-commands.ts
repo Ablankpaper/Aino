@@ -1,3 +1,4 @@
+import type { Translations } from '@/i18n'
 import { peekCachedSlashCompletion } from '@/lib/slash-completion-cache'
 
 export interface CommandsCatalogSection {
@@ -550,7 +551,10 @@ export function isModelPickerCommand(command: string): boolean {
   return isPickerCommand(command, 'model')
 }
 
-export function desktopSlashUnavailableMessage(command: string): string | null {
+export function desktopSlashUnavailableMessage(
+  command: string,
+  localized?: Translations['desktop']['slashUnavailable']
+): string | null {
   const canonical = canonicalDesktopSlashCommand(command)
   const surface = resolveDesktopCommand(canonical)?.surface
 
@@ -559,10 +563,33 @@ export function desktopSlashUnavailableMessage(command: string): string | null {
   }
 
   if (surface.kind === 'unavailable') {
+    if (localized) {
+      switch (surface.reason) {
+        case 'advanced':
+          return localized.advanced(canonical)
+
+        case 'composer-voice':
+          return localized.composerVoice
+
+        case 'messaging':
+          return localized.messaging(canonical)
+
+        case 'settings':
+          return localized.settings(canonical)
+
+        case 'terminal':
+          return localized.terminal(canonical)
+      }
+    }
+
     return UNAVAILABLE_MESSAGE[surface.reason](canonical)
   }
 
   if (surface.kind === 'picker') {
+    if (localized) {
+      return surface.picker === 'model' ? localized.modelPicker(canonical) : localized.sessionPicker(canonical)
+    }
+
     return PICKER_UNAVAILABLE_MESSAGE[surface.picker](canonical)
   }
 

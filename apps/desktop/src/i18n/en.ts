@@ -4073,6 +4073,18 @@ export const en: Translations = {
     slashEmptyMessage: name => `/${name}: empty message`,
     slashInvalidResponse: 'invalid response: command.dispatch',
     slashCommandFailed: (name, error) => `/${name} failed: ${error}`,
+    slashUnavailable: {
+      advanced: command =>
+        `${command} is not shown in the desktop slash palette. Use the relevant desktop control or terminal interface instead.`,
+      composerVoice:
+        'Voice chat lives in the composer here: click the microphone button and choose "Start voice chat" (or press Ctrl+B).',
+      messaging: command => `${command} is only used from messaging platforms.`,
+      settings: command => `${command} is managed from the desktop sidebar.`,
+      terminal: command => `${command} is only available in the terminal interface.`,
+      modelPicker: command => `${command} uses the desktop model picker instead of a slash command.`,
+      sessionPicker: command => `${command} uses the desktop session picker instead of a slash command.`,
+      fallback: command => `${command} is not available in the desktop app.`
+    },
     yoloArmed: 'YOLO armed for this chat',
     yoloOff: 'YOLO off',
     yoloSystem: active => `YOLO ${active ? 'on' : 'off'} for this session`,

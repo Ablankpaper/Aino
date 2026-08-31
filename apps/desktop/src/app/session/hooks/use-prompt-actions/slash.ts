@@ -263,7 +263,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
         const { render: renderSlashOutput, sessionId, storedSessionId } = resolved
 
         if (!isDesktopSlashCommand(name)) {
-          renderSlashOutput(desktopSlashUnavailableMessage(name) || `/${name} is not available in the desktop app.`)
+          renderSlashOutput(
+            desktopSlashUnavailableMessage(name, copy.slashUnavailable) || copy.slashUnavailable.fallback(`/${name}`)
+          )
 
           return
         }
@@ -1089,7 +1091,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
         switch (surface?.kind) {
           case 'unavailable': {
             const resolved = await withSlashOutput(ctx)
-            resolved?.render(desktopSlashUnavailableMessage(name) || `/${name} is not available in the desktop app.`)
+            resolved?.render(
+              desktopSlashUnavailableMessage(name, copy.slashUnavailable) || copy.slashUnavailable.fallback(`/${name}`)
+            )
 
             return
           }

@@ -3492,6 +3492,16 @@ export interface Translations {
     slashEmptyMessage: (name: string) => string
     slashInvalidResponse: string
     slashCommandFailed: (name: string, error: string) => string
+    slashUnavailable: {
+      advanced: (command: string) => string
+      composerVoice: string
+      messaging: (command: string) => string
+      settings: (command: string) => string
+      terminal: (command: string) => string
+      modelPicker: (command: string) => string
+      sessionPicker: (command: string) => string
+      fallback: (command: string) => string
+    }
     yoloArmed: string
     yoloOff: string
     yoloSystem: (active: boolean) => string
