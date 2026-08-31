@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+import { $notifications } from '@/store/notifications'
+
 import {
   $dataUrlReadMaxMb,
   clampDataUrlReadMaxMb,
@@ -20,13 +23,17 @@ const set = vi.fn(async (maxMb: number) => ({
 }))
 
 beforeEach(() => {
+  setRuntimeI18nLocale('zh')
   desktopWindow.hermesDesktop = { dataUrlReadMax: { get, set } } as unknown as Window['hermesDesktop']
   $dataUrlReadMaxMb.set(DATA_URL_READ_DEFAULT_MAX_MB)
+  $notifications.set([])
   get.mockClear()
   set.mockClear()
 })
 
 afterEach(() => {
+  setRuntimeI18nLocale('en')
+  $notifications.set([])
   desktopWindow.hermesDesktop = initialHermesDesktop
 })
 
@@ -59,5 +66,6 @@ describe('data-url-read-max store', () => {
 
     await expect(setDataUrlReadMaxMb(48)).resolves.toBe(16)
     expect($dataUrlReadMaxMb.get()).toBe(16)
+    expect($notifications.get()[0]?.title).toBe('无法保存附件大小上限')
   })
 })

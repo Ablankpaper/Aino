@@ -789,6 +789,7 @@ export interface Translations {
       attachmentSizeDesc: string
       attachmentSizeUnit: string
       attachmentSizeLabel: string
+      attachmentSizeSaveFailed: string
     }
     quickEntry: {
       enabledTitle: string

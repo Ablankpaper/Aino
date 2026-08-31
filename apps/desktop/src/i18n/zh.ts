@@ -1134,7 +1134,8 @@ export const zh: Translations = {
       attachmentSizeDesc:
         '桌面端为预览和图片附件加载本地文件的大小上限（MB）。默认为 16。远程非图片附件使用单独的 256 MB 上限。设置过大会将整个文件读入内存，可能导致应用卡死或崩溃。',
       attachmentSizeUnit: 'MB',
-      attachmentSizeLabel: '预览 / 图片加载大小上限（MB）'
+      attachmentSizeLabel: '预览 / 图片加载大小上限（MB）',
+      attachmentSizeSaveFailed: '无法保存附件大小上限'
     },
     quickEntry: {
       enabledTitle: '快速输入',
