@@ -1,12 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { I18nProvider } from '@/i18n'
+import { I18nProvider, setRuntimeI18nLocale } from '@/i18n'
 
-import { CopyButton } from './copy-button'
+import { CopyButton, writeClipboardText } from './copy-button'
 
 describe('CopyButton i18n', () => {
   afterEach(() => {
+    setRuntimeI18nLocale('en')
     cleanup()
     vi.restoreAllMocks()
   })
@@ -32,5 +33,13 @@ describe('CopyButton i18n', () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('hello'))
     await waitFor(() => expect(screen.getByRole('button', { name: '已复制' })).toBeTruthy())
     expect(screen.getByRole('button', { name: '已复制' }).textContent).toContain('已复制')
+  })
+
+  it('uses Simplified Chinese copy when no clipboard bridge is available', async () => {
+    setRuntimeI18nLocale('zh')
+    Object.defineProperty(window, 'hermesDesktop', { configurable: true, value: undefined })
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined })
+
+    await expect(writeClipboardText('hello')).rejects.toThrow('剪贴板功能不可用')
   })
 })

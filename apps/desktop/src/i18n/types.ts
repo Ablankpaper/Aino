@@ -69,6 +69,7 @@ export interface Translations {
     copied: string
     copy: string
     copyFailed: string
+    clipboardUnavailable: string
     delete: string
     docs: string
     done: string

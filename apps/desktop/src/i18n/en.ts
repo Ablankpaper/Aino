@@ -21,6 +21,7 @@ export const en: Translations = {
     copied: 'Copied',
     copy: 'Copy',
     copyFailed: 'Copy failed',
+    clipboardUnavailable: 'Clipboard API is unavailable',
     delete: 'Delete',
     docs: 'Docs',
     done: 'Done',

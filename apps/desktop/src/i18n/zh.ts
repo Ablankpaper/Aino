@@ -21,6 +21,7 @@ export const zh: Translations = {
     copied: '已复制',
     copy: '复制',
     copyFailed: '复制失败',
+    clipboardUnavailable: '剪贴板功能不可用',
     delete: '删除',
     docs: '文档',
     done: '完成',
