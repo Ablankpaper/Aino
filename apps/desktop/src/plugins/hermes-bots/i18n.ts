@@ -379,6 +379,13 @@ type BotsMessages = {
     needsRosterFirst: string
     staleNotice: string
     readFailure: string
+    untitledJob: string
+    jobNameNul: string
+    jobInstructionNul: string
+    statusActive: string
+    statusPaused: string
+    defaultTime: string
+    rawPlaceholder: string
     createDesc: (bot: string) => string
     instruction: string
     whenToRun: string
@@ -769,6 +776,13 @@ const en: BotsMessages = {
     needsRosterFirst: 'This bot has to appear in the roster first.',
     staleNotice: 'Could not refresh scheduled jobs. Showing the last list we had.',
     readFailure: 'The list may still be there — this was a read failure, not a delete.',
+    untitledJob: 'Untitled job',
+    jobNameNul: 'Job name cannot contain NUL (U+0000).',
+    jobInstructionNul: 'Job instruction cannot contain NUL (U+0000).',
+    statusActive: 'Active',
+    statusPaused: 'Paused',
+    defaultTime: '9:00 AM',
+    rawPlaceholder: 'every 1d · every 2h · 0 9 * * * (cron)',
     createDesc: bot => `A recurring task ${bot} runs on a schedule. Runs land in its own chat history.`,
     instruction: 'Instruction',
     whenToRun: 'When to run',
@@ -1158,6 +1172,13 @@ const ja: BotsMessages = {
     needsRosterFirst: 'このボットは先に名簿に表示される必要があります。',
     staleNotice: '定期実行ジョブを更新できませんでした。最後に取得したリストを表示しています。',
     readFailure: 'リストはまだ存在している可能性があります — これは読み取りの失敗で、削除ではありません。',
+    untitledJob: '無題のジョブ',
+    jobNameNul: 'ジョブ名に NUL（U+0000）を含めることはできません。',
+    jobInstructionNul: 'ジョブの指示に NUL（U+0000）を含めることはできません。',
+    statusActive: '有効',
+    statusPaused: '一時停止',
+    defaultTime: '9:00 AM',
+    rawPlaceholder: 'every 1d · every 2h · 0 9 * * *（cron）',
     createDesc: bot => `${bot}がスケジュールに沿って実行する定期タスクです。実行結果は専用のチャット履歴に残ります。`,
     instruction: '指示',
     whenToRun: '実行するタイミング',
@@ -1538,6 +1559,13 @@ const zh: BotsMessages = {
     needsRosterFirst: '这个机器人需要先出现在名册中。',
     staleNotice: '无法刷新定时任务。显示的是上一次获取的列表。',
     readFailure: '列表可能仍然存在 — 这是一次读取失败，不是删除。',
+    untitledJob: '未命名任务',
+    jobNameNul: '任务名称不能包含 NUL（U+0000）。',
+    jobInstructionNul: '任务指令不能包含 NUL（U+0000）。',
+    statusActive: '运行中',
+    statusPaused: '已暂停',
+    defaultTime: '上午 9:00',
+    rawPlaceholder: 'every 1d · every 2h · 0 9 * * *（cron）',
     createDesc: bot => `由 ${bot} 按计划运行的重复任务。运行结果会保存在它自己的聊天记录中。`,
     instruction: '指令',
     whenToRun: '运行时间',
@@ -1918,6 +1946,13 @@ const zhHant: BotsMessages = {
     needsRosterFirst: '這個機器人需要先出現在名冊中。',
     staleNotice: '無法重新整理排程工作。顯示的是上一次取得的清單。',
     readFailure: '清單可能仍然存在 — 這是一次讀取失敗，不是刪除。',
+    untitledJob: '未命名工作',
+    jobNameNul: '工作名稱不能包含 NUL（U+0000）。',
+    jobInstructionNul: '工作指示不能包含 NUL（U+0000）。',
+    statusActive: '執行中',
+    statusPaused: '已暫停',
+    defaultTime: '上午 9:00',
+    rawPlaceholder: 'every 1d · every 2h · 0 9 * * *（cron）',
     createDesc: bot => `由 ${bot} 按排程執行的重複工作。執行結果會保存在它自己的聊天紀錄中。`,
     instruction: '指示',
     whenToRun: '執行時間',

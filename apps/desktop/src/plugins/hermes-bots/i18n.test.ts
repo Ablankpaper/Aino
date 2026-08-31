@@ -82,7 +82,11 @@ describe('BOTS_LOCALES', () => {
       'mcp.saveTest',
       'mcp.setupNeeded',
       'model.backToDropdowns',
-      'model.inheritLaunch'
+      'model.inheritLaunch',
+      'cron.jobDescription',
+      'cron.detailStatus',
+      'cron.pausedSecurity',
+      'cron.onceMinutes'
     ] as const
     const enByPath = Object.fromEntries(leafEntries(en))
     const zhByPath = Object.fromEntries(leafEntries(zh))
