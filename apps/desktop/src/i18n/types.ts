@@ -3578,6 +3578,15 @@ export interface Translations {
   }
 
   desktop: {
+    activity: {
+      sessionTask: string
+      agentTaskRunning: string
+      previewRestart: string
+      running: string
+      completed: string
+      unknown: string
+      failed: (code: string) => string
+    }
     fsBridgeUnavailable: (product: string) => string
     fsSavingUnavailable: string
     fsRenameUnavailable: string

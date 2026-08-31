@@ -4665,6 +4665,15 @@ export const zh: Translations = {
   },
 
   desktop: {
+    activity: {
+      sessionTask: '会话任务',
+      agentTaskRunning: '代理任务运行中',
+      previewRestart: '重启预览',
+      running: '运行中',
+      completed: '已完成',
+      unknown: '未知',
+      failed: code => `失败（${code}）`
+    },
     fsBridgeUnavailable: product => `${product} 桌面桥不可用`,
     fsSavingUnavailable: '保存功能不可用',
     fsRenameUnavailable: '重命名功能不可用',

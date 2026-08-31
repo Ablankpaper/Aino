@@ -4321,6 +4321,15 @@ export const en: Translations = {
   },
 
   desktop: {
+    activity: {
+      sessionTask: 'Session task',
+      agentTaskRunning: 'Agent task running',
+      previewRestart: 'Preview restart',
+      running: 'Running',
+      completed: 'Completed',
+      unknown: 'unknown',
+      failed: code => `Failed (${code})`
+    },
     fsBridgeUnavailable: product => `${product} Desktop bridge is unavailable`,
     fsSavingUnavailable: 'Saving is not available',
     fsRenameUnavailable: 'Rename is not available',
