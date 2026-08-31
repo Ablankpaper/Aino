@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import { $gateway } from '@/store/gateway'
 import {
   $sendDiagnostics,
@@ -30,7 +31,12 @@ function stubDesktopLogs(lines: null | string[]) {
 }
 
 describe('send-diagnostics store', () => {
+  beforeEach(() => {
+    setRuntimeI18nLocale('zh')
+  })
+
   afterEach(() => {
+    setRuntimeI18nLocale('en')
     $sendDiagnostics.set(null)
     vi.restoreAllMocks()
   })
@@ -114,6 +120,36 @@ describe('send-diagnostics store', () => {
 
       expect(state?.phase).toBe('error')
       expect(state?.error).toContain('NAS unavailable')
+    } finally {
+      restoreDesktop()
+      restoreGateway()
+    }
+  })
+
+  it('uses Chinese fallback text when no gateway is available', async () => {
+    const original = $gateway.get()
+    $gateway.set(null as never)
+
+    try {
+      requestSendDiagnostics()
+      await confirmSendDiagnostics()
+
+      expect($sendDiagnostics.get()).toMatchObject({ phase: 'error', error: 'Aino 网关不可用' })
+    } finally {
+      $gateway.set(original)
+    }
+  })
+
+  it('uses Chinese fallback text when the upload response has no error detail', async () => {
+    const request = vi.fn().mockResolvedValue({ ok: false })
+    const restoreGateway = stubGateway(request)
+    const restoreDesktop = stubDesktopLogs(null)
+
+    try {
+      requestSendDiagnostics()
+      await confirmSendDiagnostics()
+
+      expect($sendDiagnostics.get()).toMatchObject({ phase: 'error', error: '诊断信息上传失败' })
     } finally {
       restoreDesktop()
       restoreGateway()

@@ -436,6 +436,8 @@ export interface Translations {
     doneDescription: string
     failedTitle: string
     failedHint: string
+    gatewayUnavailable: string
+    uploadFailed: string
     handoffLead: string
     links: {
       discord: string

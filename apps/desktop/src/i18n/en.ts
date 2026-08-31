@@ -408,6 +408,8 @@ export const en: Translations = {
     failedTitle: 'Upload failed',
     failedHint:
       'You can also run `hermes debug share --nous` from a terminal, or `hermes debug share --local` to print the report without uploading.',
+    gatewayUnavailable: 'Hermes gateway unavailable',
+    uploadFailed: 'Diagnostics upload failed',
     handoffLead: 'Pick up the discussion in:',
     links: {
       github: 'GitHub Issues',

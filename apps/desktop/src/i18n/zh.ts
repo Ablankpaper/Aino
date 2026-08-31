@@ -395,6 +395,8 @@ export const zh: Translations = {
     failedTitle: '上传失败',
     failedHint:
       '您也可以在终端运行 `hermes debug share --nous`，或运行 `hermes debug share --local` 在不上传的情况下查看报告。',
+    gatewayUnavailable: 'Hermes 网关不可用',
+    uploadFailed: '诊断信息上传失败',
     handoffLead: '在以下位置继续讨论:',
     links: {
       github: 'GitHub Issues',
