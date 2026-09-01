@@ -2,7 +2,9 @@ import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DesktopConnectionsRegistry } from '@/global'
+import { setRuntimeI18nLocale } from '@/i18n'
 import { createClientSessionState } from '@/lib/chat-runtime'
+import { BACKEND_BOOT_WAIT_TIMEOUT_MS } from '@/lib/with-timeout'
 import { $desktopBoot } from '@/store/boot'
 import {
   $connectionsRegistry,
@@ -266,6 +268,7 @@ function Harness({
 const originalWebSocket = globalThis.WebSocket
 
 beforeEach(() => {
+  setRuntimeI18nLocale('en')
   // Drop any parked gateway left by a prior file/case (globalThis slot).
   const leftover = takeGatewaySurvivor()
 
@@ -307,6 +310,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  setRuntimeI18nLocale('en')
   cleanup()
   // Vitest keeps import.meta.hot truthy, so the boot effect's cleanup parks an
   // open gateway instead of tearing it down (the real HMR path). Drain + close
@@ -357,6 +361,34 @@ async function advanceBackoff() {
 }
 
 describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => {
+  it('localizes the initial backend timeout shown by the boot failure surface', async () => {
+    setRuntimeI18nLocale('zh')
+
+    const desktop = fakeDesktop()
+    desktop.getConnection = vi.fn(() => new Promise(() => undefined))
+    ;(window as { hermesDesktop?: unknown }).hermesDesktop = desktop
+
+    render(<Harness />)
+    await flushAsync()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(BACKEND_BOOT_WAIT_TIMEOUT_MS)
+      await vi.advanceTimersByTimeAsync(0)
+    })
+
+    expect($desktopBoot.get().error).toBe('连接 Aino 后端超时')
+  })
+
+  it('localizes the missing desktop bridge failure shown during startup', async () => {
+    setRuntimeI18nLocale('zh')
+    delete (window as { hermesDesktop?: unknown }).hermesDesktop
+
+    render(<Harness />)
+    await flushAsync()
+
+    expect($desktopBoot.get().error).toBe('桌面 IPC 桥不可用。')
+  })
+
   it('INITIAL boot against a dead VPS: getConnection hangs (waitForHermes) → app sits in the connecting combo, then fails', async () => {
     // The report's actual path: a fresh launch pointed at an unreachable VPS.
     // startHermes()'s remote branch awaits waitForHermes() for 45s before it

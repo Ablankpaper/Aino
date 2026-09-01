@@ -918,11 +918,7 @@ export function BotsPane() {
       <ConfirmDialog
         busyLabel={b.roster.deleting}
         confirmLabel={b.group.deleteAction}
-        description={
-          deletingGroup
-            ? `This removes “${deletingGroup.name}” from its bots and clears the shared room log. The bots and their individual chats are kept.`
-            : null
-        }
+        description={deletingGroup ? b.group.disbandDescription(deletingGroup.name) : null}
         destructive
         doneLabel={b.roster.deleted}
         onClose={() => setDeletingGroup(null)}

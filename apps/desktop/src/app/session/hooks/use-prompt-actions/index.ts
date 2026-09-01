@@ -4,7 +4,7 @@ import { useStore } from '@nanostores/react'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 
 import { transcribeAudio } from '@/hermes'
-import { useI18n } from '@/i18n'
+import { translateNow, useI18n } from '@/i18n'
 import { stripAnsi } from '@/lib/ansi'
 import { type ChatMessage, textPart } from '@/lib/chat-messages'
 import { pathLabel, SLASH_COMMAND_RE } from '@/lib/chat-runtime'
@@ -155,11 +155,16 @@ export async function uploadComposerAttachment(
         fileDataUrl = await readFileDataUrlForAttach(path)
       }
     } catch (err) {
-      throw friendlyRemoteAttachError(err, label)
+      const friendly = friendlyRemoteAttachError(err, label)
+      const rawMessage = err instanceof Error ? err.message : String(err)
+
+      // Keep the size-specific diagnostic from the desktop bridge, but don't
+      // leak filesystem/IPC implementation errors into a user-facing toast.
+      throw friendly.message === rawMessage ? new Error(translateNow('desktop.attachmentReadFailed', label)) : friendly
     }
 
     if (attachment.kind === 'image' ? !imagePayload : !fileDataUrl) {
-      throw new Error(`Could not read ${label}`)
+      throw new Error(translateNow('desktop.attachmentReadFailed', label))
     }
   }
 
@@ -177,7 +182,7 @@ export async function uploadComposerAttachment(
           })
 
       if (!result.attached) {
-        throw new Error(result.message || `Could not attach ${label}`)
+        throw new Error(result.message || translateNow('desktop.attachmentAttachFailed', label))
       }
 
       const attachedPath = result.path || path
@@ -199,7 +204,7 @@ export async function uploadComposerAttachment(
     })
 
     if (!result.attached || !result.ref_text) {
-      throw new Error(result.message || `Could not attach ${label}`)
+      throw new Error(result.message || translateNow('desktop.attachmentAttachFailed', label))
     }
 
     return {
@@ -962,7 +967,7 @@ export function usePromptActions({
       const sessionId = activeSessionIdRef.current
 
       if (!sessionId) {
-        throw new Error('No active session to restore.')
+        throw new Error(translateNow('desktop.restoreNoActiveSession'))
       }
 
       const messages = $messages.get()

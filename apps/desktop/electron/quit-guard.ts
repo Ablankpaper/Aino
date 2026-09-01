@@ -60,6 +60,18 @@ export interface QuitPrompt {
   message: string
 }
 
+export interface QuitPromptCopy {
+  more: (count: number) => string
+  warning: string
+  working: (count: number) => string
+}
+
+const ENGLISH_QUIT_PROMPT_COPY: QuitPromptCopy = {
+  more: count => `• ${count} more`,
+  warning: 'Quitting stops the agent mid-turn. Any work it has not finished writing is lost.',
+  working: count => `${PRODUCT_NAME} is still working on ${count} chat${count === 1 ? '' : 's'}.`
+}
+
 /**
  * The confirmation to show, or null when quitting should just proceed.
  *
@@ -67,7 +79,11 @@ export interface QuitPrompt {
  * are the app replacing itself, not the user walking away, and a modal there
  * would strand the detached script waiting on a PID that never exits.
  */
-export function quitPromptFor(work: ActiveWork, quittingForHandoff: boolean): null | QuitPrompt {
+export function quitPromptFor(
+  work: ActiveWork,
+  quittingForHandoff: boolean,
+  copy: QuitPromptCopy = ENGLISH_QUIT_PROMPT_COPY
+): null | QuitPrompt {
   if (quittingForHandoff || work.count < 1) {
     return null
   }
@@ -77,21 +93,14 @@ export function quitPromptFor(work: ActiveWork, quittingForHandoff: boolean): nu
   const lines = listed.map(title => `• ${title}`)
 
   if (remaining > 0) {
-    lines.push(remaining === 1 ? '• 1 more' : `• ${remaining} more`)
+    lines.push(copy.more(remaining))
   }
 
   return {
-    detail: [
-      lines.join('\n'),
-      lines.length > 0 ? '' : null,
-      'Quitting stops the agent mid-turn. Any work it has not finished writing is lost.'
-    ]
+    detail: [lines.join('\n'), lines.length > 0 ? '' : null, copy.warning]
       .filter(line => line !== null)
       .join('\n')
       .trim(),
-    message:
-      work.count === 1
-        ? `${PRODUCT_NAME} is still working on 1 chat.`
-        : `${PRODUCT_NAME} is still working on ${work.count} chats.`
+    message: copy.working(work.count)
   }
 }

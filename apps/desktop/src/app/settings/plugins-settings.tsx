@@ -8,6 +8,7 @@ import { Codicon } from '@/components/ui/codicon'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Tip } from '@/components/ui/tooltip'
+import { localizedPluginMetadata } from '@/contrib/plugin-metadata'
 import { $pluginRecords, type PluginRecord, setPluginEnabled } from '@/contrib/plugins-store'
 import { discoverRuntimePlugins } from '@/contrib/runtime-loader'
 import { getProfiles } from '@/hermes'
@@ -323,8 +324,9 @@ function AgentPluginsSection() {
 }
 
 function PluginRow({ record }: { record: PluginRecord }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const p = t.settings.plugins
+  const metadata = localizedPluginMetadata(record, locale)
 
   return (
     <PluginLine
@@ -338,7 +340,7 @@ function PluginRow({ record }: { record: PluginRecord }) {
             </Tip>
           )}
           <Switch
-            aria-label={`${record.status === 'disabled' ? p.enable : p.disable} ${record.name}`}
+            aria-label={`${record.status === 'disabled' ? p.enable : p.disable} ${metadata.name}`}
             checked={record.status !== 'disabled'}
             onCheckedChange={on => {
               triggerHaptic('selection')
@@ -351,13 +353,13 @@ function PluginRow({ record }: { record: PluginRecord }) {
         record.status === 'error' ? (
           <span className="text-(--ui-danger,#f87171)">{record.error}</span>
         ) : (
-          (record.description ?? record.file ?? record.id)
+          (metadata.description ?? record.file ?? record.id)
         )
       }
       id={pluginElementId(record.id)}
       title={
         <>
-          <span>{record.name}</span>
+          <span>{metadata.name}</span>
           <Pill>{p.kinds[record.kind]}</Pill>
           {record.status === 'error' && <Pill tone="primary">{p.failed}</Pill>}
         </>

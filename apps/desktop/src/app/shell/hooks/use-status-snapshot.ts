@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { getStatus } from '@/hermes'
+import { translateNow } from '@/i18n'
 import { evaluateRuntimeReadiness, type RuntimeReadinessResult } from '@/lib/runtime-readiness'
 import type { StatusResponse } from '@/types/hermes'
 
@@ -59,7 +60,11 @@ export function useStatusSnapshot(
         // race newer healthy results.
         const [statusResult, inferenceResult] = await Promise.allSettled([
           getStatus(),
-          gatewayState === 'open' ? evaluateRuntimeReadiness(requestGateway) : Promise.resolve(null)
+          gatewayState === 'open'
+            ? evaluateRuntimeReadiness(requestGateway, {
+                defaultReason: translateNow('desktop.providerCredentialRequired')
+              })
+            : Promise.resolve(null)
         ])
 
         if (cancelled) {

@@ -62,6 +62,8 @@ export interface ApiKeyOption {
   name: string
   placeholder?: string
   short?: string
+  /** Optional locale-specific display title; `name` remains the provider id/name. */
+  title?: string
 }
 
 // Curated order mirrors CANONICAL_PROVIDERS: Fireworks sits #2 overall (after
@@ -100,6 +102,7 @@ const API_KEY_OPTIONS: ApiKeyOption[] = [
   {
     id: 'local',
     name: 'Local / custom endpoint',
+    title: 'Local / custom endpoint',
     envKey: 'OPENAI_BASE_URL',
     docsUrl: 'https://github.com/NousResearch/hermes-agent#bring-your-own-endpoint',
     placeholder: 'http://127.0.0.1:8000/v1'
@@ -161,7 +164,6 @@ function useApiKeyCatalog(): ApiKeyOption[] {
         id: row.slug,
         name: row.name,
         envKey,
-        description: `Direct API access to ${row.name}.`,
         docsUrl: ''
       })
     }
@@ -604,7 +606,7 @@ export function ApiKeyForm({
   // or unusual key can't block the user from continuing.
   const canSave = value.trim().length >= 1
   const optionCopy = t.onboarding.apiKeyOptions[option.id]
-  const optionDescription = optionCopy?.description ?? option.description
+  const optionDescription = optionCopy?.description ?? option.description ?? t.onboarding.genericApiKeyDescription(option.name)
 
   const submit = async () => {
     if (!canSave || saving) {
@@ -646,7 +648,7 @@ export function ApiKeyForm({
             type="button"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">{o.name}</span>
+              <span className="text-sm font-medium">{t.onboarding.apiKeyOptions[o.id]?.title ?? o.title ?? o.name}</span>
               {isSet?.(o.envKey) ? <Check className="size-3.5 text-muted-foreground" /> : null}
             </div>
             {(t.onboarding.apiKeyOptions[o.id]?.short ?? o.short) ? (

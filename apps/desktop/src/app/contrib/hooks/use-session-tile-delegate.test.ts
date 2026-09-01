@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type * as HermesModule from '@/hermes'
+import { setRuntimeI18nLocale } from '@/i18n/runtime'
 import { setSessionOwnerHint, setSessions } from '@/store/session'
 import { sessionTileDelegate } from '@/store/session-states'
 import type { SessionInfo } from '@/types/hermes'
@@ -63,11 +64,13 @@ function renderTile(
 
 describe('useSessionTileDelegate resumeTile', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('zh')
     setSessions([])
     vi.mocked(getLatestSessionMessages).mockClear()
   })
 
   afterEach(() => {
+    setRuntimeI18nLocale('en')
     setSessions([])
   })
 
@@ -287,6 +290,15 @@ describe('useSessionTileDelegate resumeTile', () => {
     expect(next.provider).toBe('openai')
     expect(next.reasoningEffort).toBe('high')
     expect(next.fast).toBe(true)
+  })
+
+  it('uses localized fallback copy when a resume response omits its runtime id', async () => {
+    setSessions([row({ id: 'stored-missing-runtime', profile: 'default' })])
+    vi.mocked(requestGatewayForProfile).mockResolvedValueOnce({} as never)
+
+    renderTile(vi.fn(async () => ({}) as never))
+
+    await expect(sessionTileDelegate()!.resumeTile('stored-missing-runtime')).rejects.toThrow('恢复失败')
   })
 
   it('invalidateRuntimeBindings clears the stored→runtime map so tiles re-resume after reconnect', async () => {

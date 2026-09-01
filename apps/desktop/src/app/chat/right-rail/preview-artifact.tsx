@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CopyButton } from '@/components/ui/copy-button'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
+import { localizedPreviewError } from '@/i18n/preview-errors'
 import { artifactDownloadName, type ArtifactKind } from '@/lib/artifact-detect'
 import { downloadTextFile } from '@/lib/download-text'
 import { ChevronLeft, ChevronRight, Download, ExternalLink } from '@/lib/icons'
@@ -240,7 +241,9 @@ export function ArtifactPreview({ target }: { target: PreviewTarget }) {
                   aria-label={copy.openInBrowser}
                   className={HEADER_BUTTON_CLASS}
                   onClick={() =>
-                    void openHtmlInBrowser(version.content).catch(error => notifyError(error, copy.openInBrowserFailed))
+                    void openHtmlInBrowser(version.content).catch(error =>
+                      notifyError(new Error(localizedPreviewError(t, error)), copy.openInBrowserFailed)
+                    )
                   }
                   type="button"
                 >

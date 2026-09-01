@@ -1,6 +1,7 @@
 import { atom } from 'nanostores'
 
 import { translateNow } from '@/i18n'
+import { localizedWakeCaptureErrorNow } from '@/i18n/wake-errors'
 import { type ClientWakeCaptureHandle, startClientWakeCapture } from '@/lib/wake-client-capture'
 import { $gateway } from '@/store/gateway'
 
@@ -67,7 +68,7 @@ async function maybeStartClientCapture(result: WakeStartResponse | null | undefi
     $wakeWord.set({
       ...current,
       listening: false,
-      notice: error instanceof Error ? error.message : translateNow('composer.wakeWordClientMicrophoneFailed'),
+      notice: localizedWakeCaptureErrorNow(error),
       pending: false
     })
 

@@ -2,6 +2,7 @@ import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getStatus } from '@/hermes'
+import { setRuntimeI18nLocale } from '@/i18n'
 
 import { deferred } from '../../../test/deferred'
 
@@ -21,6 +22,7 @@ async function flushAsync() {
 
 beforeEach(() => {
   vi.useFakeTimers()
+  setRuntimeI18nLocale('en')
   vi.spyOn(document, 'hasFocus').mockReturnValue(true)
   vi.mocked(getStatus)
     .mockReset()
@@ -31,6 +33,7 @@ afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
   vi.useRealTimers()
+  setRuntimeI18nLocale('en')
 })
 
 describe('useStatusSnapshot', () => {
@@ -117,6 +120,22 @@ describe('useStatusSnapshot', () => {
       ready: false,
       reason: expect.stringContaining('No usable credentials found for nous.'),
       source: 'runtime_check'
+    })
+  })
+
+  it('localizes the default missing-provider reason for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    const requestGateway = vi.fn(async (method: string) =>
+      (method === 'setup.runtime_check' ? { ok: false } : { provider_configured: false }) as never
+    ) as unknown as GatewayRequester
+
+    const { result } = renderHook(() => useStatusSnapshot('open', requestGateway))
+
+    await flushAsync()
+
+    expect(result.current.inferenceStatus).toMatchObject({
+      ready: false,
+      reason: '发送第一条消息前请先添加提供方凭据。'
     })
   })
 

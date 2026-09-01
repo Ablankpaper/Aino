@@ -27,6 +27,7 @@ function LanguageProbe({ target = 'zh' }: { target?: Locale }) {
 describe('I18nProvider', () => {
   afterEach(() => {
     cleanup()
+    Reflect.deleteProperty(window, 'hermesDesktop')
     vi.restoreAllMocks()
   })
 
@@ -39,6 +40,25 @@ describe('I18nProvider', () => {
 
     expect(screen.getByTestId('locale').textContent).toBe('en')
     expect(screen.getByTestId('label').textContent).toBe('Language')
+  })
+
+  it('mirrors the active locale to the Electron native-surface bridge', async () => {
+    const setLocale = vi.fn().mockResolvedValue({ locale: 'en' })
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: { setLocale }
+    })
+
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <LanguageProbe target="ja" />
+      </I18nProvider>
+    )
+
+    await waitFor(() => expect(setLocale).toHaveBeenCalledWith('zh'))
+    fireEvent.click(screen.getByRole('button', { name: 'switch' }))
+    await waitFor(() => expect(setLocale).toHaveBeenCalledWith('ja'))
   })
 
   it('normalizes an initial locale alias and switches translations', async () => {
@@ -246,5 +266,24 @@ describe('I18nProvider', () => {
 
     expect(screen.getByTestId('locale').textContent).toBe('en')
     expect(screen.getByTestId('label').textContent).toBe('Language')
+  })
+
+  it('localizes a rejected language save result before rolling back', async () => {
+    const configClient: I18nConfigClient = {
+      getConfig: vi.fn().mockResolvedValue({ display: { language: 'en' } }),
+      saveConfig: vi.fn().mockResolvedValue({ ok: false })
+    }
+
+    render(
+      <I18nProvider configClient={configClient}>
+        <LanguageProbe target="zh" />
+      </I18nProvider>
+    )
+
+    await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('false'))
+    fireEvent.click(screen.getByRole('button', { name: 'switch' }))
+
+    await waitFor(() => expect(screen.getByTestId('save-error').textContent).toBe('语言更新失败'))
+    expect(screen.getByTestId('locale').textContent).toBe('en')
   })
 })

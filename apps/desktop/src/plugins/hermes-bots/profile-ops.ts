@@ -34,7 +34,7 @@ import {
   saveBotMeta
 } from './data'
 import { botConnectionRoute, botRouteKey, requestForBot } from './routing'
-import { getPluginCtx } from './shared'
+import { getPluginCtx, pluginText } from './shared'
 import type { RosterRow } from './types'
 
 const avatarFetchInflight = new Set<string>()
@@ -326,7 +326,7 @@ export async function duplicateBot(bot: RosterRow, roster: RosterRow[]) {
   }
 
   if (!name) {
-    throw new Error('No free name for the duplicate.')
+    throw new Error(pluginText('bot.duplicateNameExhausted', 'No free name is available for the duplicate.'))
   }
 
   await requestForBot(bot, 'profiles.create', {
@@ -386,7 +386,7 @@ export async function deleteBot(bot: RosterRow) {
   const route = botConnectionRoute(bot)
 
   if (isDefaultBot(bot) || String(route?.targetProfile || '').toLowerCase() === 'default') {
-    throw new Error('The default profile cannot be deleted.')
+    throw new Error(pluginText('bot.defaultDeleteBlocked', 'The default profile cannot be deleted.'))
   }
 
   if (typeof host.deleteProfile === 'function') {
@@ -398,7 +398,9 @@ export async function deleteBot(bot: RosterRow) {
   } else {
     // Older desktop without the SDK verb — source-scoped rows fail closed.
     if (route) {
-      throw new Error('Source-scoped profile deletion requires host.deleteProfile.')
+      throw new Error(
+        pluginText('bot.remoteDeleteUnsupported', 'Source-scoped profile deletion requires host.deleteProfile.')
+      )
     }
 
     const result: CliExecResult = await host.request('cli.exec', {
@@ -406,7 +408,7 @@ export async function deleteBot(bot: RosterRow) {
     })
 
     if (result?.blocked || result?.code !== 0) {
-      throw new Error(result?.hint || result?.output || `Could not delete profile ${bot.name}.`)
+      throw new Error(result?.hint || result?.output || pluginText('bot.deleteFailed', `Could not delete profile ${bot.name}.`, bot.name))
     }
   }
 

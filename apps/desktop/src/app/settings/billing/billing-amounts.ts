@@ -1,5 +1,6 @@
-import type { BillingStateResponse } from './types'
 import { en } from '@/i18n/en'
+
+import type { BillingStateResponse } from './types'
 import type { BillingCopy } from './use-billing-state'
 import { EMPTY_BILLING_VALUE } from './use-billing-state'
 

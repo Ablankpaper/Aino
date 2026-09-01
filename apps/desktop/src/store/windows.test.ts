@@ -128,6 +128,18 @@ describe('openSessionInNewWindow', () => {
     expect(notifyError).toHaveBeenCalledTimes(1)
   })
 
+  it('localizes an ok:false result with no error detail for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    installBridge(vi.fn().mockResolvedValue({ ok: false }))
+
+    await openSessionInNewWindow('s1')
+
+    expect(notifyError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: '发生错误' }),
+      '无法在新窗口打开会话'
+    )
+  })
+
   it('notifies when the bridge throws', async () => {
     installBridge(vi.fn().mockRejectedValue(new Error('boom')))
 

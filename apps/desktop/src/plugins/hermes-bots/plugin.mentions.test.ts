@@ -58,7 +58,7 @@ const ROSTER = {
 }
 
 const { cache, hostMock, live } = vi.hoisted(() => {
-  const live = { focused: 'default', profile: 'default' }
+  const live = { focused: 'default', profile: 'default', storedSessionId: null as null | string }
 
   return {
     cache: new Map<string, { key: unknown[]; value: unknown }>(),
@@ -69,7 +69,7 @@ const { cache, hostMock, live } = vi.hoisted(() => {
       state: {
         connectionId: { get: () => 'local', listen: () => () => undefined },
         focusedSessionProfile: { get: () => live.focused, listen: () => () => undefined },
-        focusedStoredSessionId: { get: () => null, listen: () => () => undefined },
+        focusedStoredSessionId: { get: () => live.storedSessionId, listen: () => () => undefined },
         gateway: { get: () => null, listen: () => () => undefined },
         profile: { get: () => live.profile, listen: () => () => undefined }
       }
@@ -121,6 +121,7 @@ interface Fixture {
   cacheKeyConnection?: string
   /** Profile owning the chat on screen; a bot never @s itself. */
   focused?: string
+  focusedStoredSessionId?: null | string
   profiles?: Array<Record<string, unknown>>
 }
 
@@ -128,11 +129,13 @@ interface Fixture {
 async function contributions({
   cacheKeyConnection = 'local',
   focused = 'default',
+  focusedStoredSessionId = null,
   profiles = ROSTER.profiles
 }: Fixture = {}) {
   vi.resetModules()
   cache.clear()
   live.focused = focused
+  live.storedSessionId = focusedStoredSessionId
   // Exactly where useRoster writes it: suffixed with the connection id.
   cache.set(JSON.stringify(['hermes-bots', 'roster', cacheKeyConnection]), {
     key: ['hermes-bots', 'roster', cacheKeyConnection],
@@ -144,7 +147,15 @@ async function contributions({
 
   try {
     plugin.register({
-      i18n: { register: () => () => undefined },
+      i18n: {
+        register: () => () => undefined,
+        t: (key: string) =>
+          ({
+            'bot.foreverChatTitle': '此聊天不会重置',
+            'bot.foreverChatMessage':
+              '机器人聊天会持续保留上下文，因此将改为压缩当前上下文。若要与此机器人开启临时会话，请使用“会话”模式。'
+          })[key] ?? key
+      },
       onDispose: () => undefined,
       register: (contribution: Contribution) => registered.push(contribution),
       storage: { get: async () => undefined, remove: async () => undefined, set: async () => undefined }
@@ -153,6 +164,13 @@ async function contributions({
     // Registration walks UI surfaces the stub does not fully model; the
     // contributions registered before any throw are what these tests drive.
   }
+
+  const [{ $selectedBot }, { $lastRoster }] = await Promise.all([import('./bot-state'), import('./data')])
+  // Registration synchronizes the selected owner from the host state. Seed
+  // the handler's view after that lifecycle work so this fixture controls the
+  // exact bot row it is exercising.
+  $selectedBot.set(focused)
+  $lastRoster.set(profiles as never)
 
   const completions = registered.find(entry => entry.id === 'mention-completions')
   const middleware = registered.find(entry => entry.id === 'mention-middleware')
@@ -173,6 +191,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   live.focused = 'default'
   live.profile = 'default'
+  live.storedSessionId = null
 })
 
 describe('@-mention completions', () => {
@@ -241,6 +260,22 @@ describe('@-mention completions', () => {
 })
 
 describe('the mention middleware', () => {
+  it('uses localized copy when /new is redirected inside a canonical Bot Chat', async () => {
+    const { handler } = await contributions({
+      focusedStoredSessionId: 'forever-chat',
+      profiles: [{ canonical_session: { id: 'forever-chat' }, name: 'default' }]
+    })
+
+    const result = await handler({ text: '/new' })
+
+    expect(hostMock.notify).toHaveBeenCalledWith({
+      kind: 'info',
+      title: '此聊天不会重置',
+      message:
+        '机器人聊天会持续保留上下文，因此将改为压缩当前上下文。若要与此机器人开启临时会话，请使用“会话”模式。'
+    })
+  })
+
   it('identifies a remote @name-device mention without delivering anything', async () => {
     const { handler } = await contributions()
     const result = await handler({ text: '@default-vera what is the disk space on the server?' })

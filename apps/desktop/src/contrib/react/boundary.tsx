@@ -52,11 +52,13 @@ export function ContribRender({ render }: ContribRenderProps) {
  * every other failure, not a raw stack dump.
  */
 export function ContribBoundary({ children, id, variant = 'pane' }: ContribBoundaryProps) {
+  const { t } = useI18n()
+
   return (
     <ErrorBoundary
       fallback={({ error, reset }) =>
         variant === 'chip' ? (
-          <Tip label={`${id}: ${error.message}`}>
+          <Tip label={t.errors.contribFailedToRenderDetail(id, error.message)}>
             <button
               className="inline-flex items-center gap-1 rounded px-1.5 text-[0.6875rem] text-destructive transition-colors hover:bg-(--chrome-action-hover)"
               onClick={reset}

@@ -1,5 +1,6 @@
 import { atom } from 'nanostores'
 
+import { translateNow } from '@/i18n'
 import { keyedTimeouts } from '@/lib/keyed-timeouts'
 
 import { $gateway } from './gateway'
@@ -99,7 +100,7 @@ function nextGoalFromText(text: string, previous?: SessionGoal): SessionGoal | n
     return {
       detail: line.replace(/^↻\s*/, ''),
       status: 'active',
-      title: previous?.title || 'Standing goal',
+      title: previous?.title || translateNow('statusStack.standingGoal'),
       updatedAt: now
     }
   }
@@ -108,7 +109,7 @@ function nextGoalFromText(text: string, previous?: SessionGoal): SessionGoal | n
     return {
       detail: line.replace(/^⏳\s*/, ''),
       status: 'waiting',
-      title: previous?.title || 'Standing goal',
+      title: previous?.title || translateNow('statusStack.standingGoal'),
       updatedAt: now
     }
   }
@@ -117,7 +118,7 @@ function nextGoalFromText(text: string, previous?: SessionGoal): SessionGoal | n
     return {
       detail: line.replace(/^⏸\s*/, ''),
       status: 'paused',
-      title: previous?.title || 'Standing goal',
+      title: previous?.title || translateNow('statusStack.standingGoal'),
       updatedAt: now
     }
   }
@@ -126,7 +127,7 @@ function nextGoalFromText(text: string, previous?: SessionGoal): SessionGoal | n
     return {
       detail: line.replace(/^✓\s*/, ''),
       status: 'done',
-      title: previous?.title || 'Standing goal',
+      title: previous?.title || translateNow('statusStack.standingGoal'),
       updatedAt: now
     }
   }

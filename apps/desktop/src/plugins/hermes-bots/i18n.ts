@@ -100,6 +100,8 @@ type BotsMessages = {
   /** Creating, editing and removing a bot. */
   bot: {
     newTitle: string
+    /** Command-palette label for opening the New Bot dialog. */
+    newCommand: string
     editTitle: string
     editMenu: string
     helpPromptPlaceholder: string
@@ -110,7 +112,11 @@ type BotsMessages = {
     openBotChat: string
     duplicate: string
     duplicateFailed: string
+    duplicateNameExhausted: string
     deleteTitle: string
+    deleteFailed: (name: string) => string
+    defaultDeleteBlocked: string
+    remoteDeleteUnsupported: string
     removeFromAllGroups: string
     createFirstHint: string
     createFailed: string
@@ -121,6 +127,9 @@ type BotsMessages = {
     updateGatewayTitle: string
     updateGatewayMessage: (gateway: string) => string
     remoteConnectionsUnsupported: string
+    /** Notice shown when /new is rerouted inside a canonical Bot Chat. */
+    foreverChatTitle: string
+    foreverChatMessage: string
     /** Stands under the bot's name in a chat it has not spoken in yet. */
     chatEmpty: string
     /** First line of a brand-new bot's forever-chat — see `kickoffText`. */
@@ -141,6 +150,8 @@ type BotsMessages = {
     duplicating: (name: string) => string
     duplicated: (name: string, source: string) => string
     chatOpenFailed: (name: string) => string
+    storedSessionOpenUnsupported: string
+    registryCheckFailed: (name: string, detail: string) => string
     attentionProviderAuth: string
     attentionQuota: string
     attentionMissingConfig: string
@@ -246,6 +257,7 @@ type BotsMessages = {
     removeFromSelection: string
     attachmentTooLarge: (name: string) => string
     disbandTitle: string
+    disbandDescription: (group: string) => string
     deleteTitle: string
     deleteAction: string
     composerPlaceholder: string
@@ -283,6 +295,8 @@ type BotsMessages = {
     holdReleaseHint: string
     needsYourInput: string
     pictureGenerationFailed: string
+    /** User-facing replacement for the agent-loop's `(empty)` sentinel. */
+    emptyResponse: string
     nameTaken: (name: string) => string
     memberCount: (count: number) => string
     settingsHint: (group: string) => string
@@ -532,6 +546,7 @@ const en: BotsMessages = {
   },
   bot: {
     newTitle: 'New bot',
+    newCommand: 'New Bot…',
     editTitle: 'Edit profile',
     editMenu: 'Edit…',
     helpPromptPlaceholder: 'What should this bot help with?',
@@ -540,7 +555,11 @@ const en: BotsMessages = {
     openBotChat: 'Open Bot Chat',
     duplicate: 'Duplicate',
     duplicateFailed: 'Duplicate failed',
+    duplicateNameExhausted: 'No free name is available for the duplicate.',
     deleteTitle: 'Delete bot and profile?',
+    deleteFailed: name => `Could not delete profile ${name}.`,
+    defaultDeleteBlocked: 'The default profile cannot be deleted.',
+    remoteDeleteUnsupported: 'This desktop cannot delete a source-scoped profile yet.',
     removeFromAllGroups: 'Remove from all groups',
     createFirstHint: 'Open the Bots pane and hit “New Bot”.',
     createFailed: 'Could not create the profile yet',
@@ -551,6 +570,9 @@ const en: BotsMessages = {
     updateGatewayTitle: 'Update this gateway to use Bot Mode',
     updateGatewayMessage: gateway => `Update ${gateway}, then try again.`,
     remoteConnectionsUnsupported: 'Update Hermes Desktop to chat with bots on other connections.',
+    foreverChatTitle: 'This chat never resets',
+    foreverChatMessage:
+      'Bot chats are one continuous conversation — compacting instead. For a throwaway session with this bot, use Sessions mode.',
     chatEmpty: 'Say something to get started.',
     kickoff: 'Hey, tell me about yourself!',
     pinToTop: 'Pin to top',
@@ -569,6 +591,9 @@ const en: BotsMessages = {
     duplicating: name => `Duplicating ${name}…`,
     duplicated: (name, source) => `Created ${name} — full copy of ${source}`,
     chatOpenFailed: name => `Could not open ${name}'s chat — try again`,
+    storedSessionOpenUnsupported: 'This desktop version cannot open stored sessions.',
+    registryCheckFailed: (name, detail) =>
+      `Could not check ${name}'s Bot Chat registry${detail ? ` (${detail})` : ''} — not starting a new chat`,
     attentionProviderAuth: 'Sign in again for this profile',
     attentionQuota: 'Quota or balance exhausted',
     attentionMissingConfig: 'Provider not configured — run hermes model',
@@ -677,6 +702,8 @@ const en: BotsMessages = {
     removeFromSelection: 'Remove from selection',
     attachmentTooLarge: name => `${name}: too large (max 15MB).`,
     disbandTitle: 'Disband group chat?',
+    disbandDescription: group =>
+      `This removes “${group}” from its bots and clears the shared room log. The bots and their individual chats are kept.`,
     deleteTitle: 'Delete group chat?',
     deleteAction: 'Delete',
     composerPlaceholder: 'Say something — every bot in this group hears the room.',
@@ -714,6 +741,8 @@ const en: BotsMessages = {
     holdReleaseHint: 'Mention a paused bot or send @all resume to release them.',
     needsYourInput: 'A bot in this group chat needs your input',
     pictureGenerationFailed: 'Group picture generation failed',
+    emptyResponse:
+      '⚠️ The model returned no response after processing tool results. This can happen with some models — try again or rephrase your question.',
     nameTaken: name => `A group named “${name}” already exists.`,
     memberCount: count => `${count} bots`,
     settingsHint: group => `Group settings — rename ${group} or set a room picture`,
@@ -954,6 +983,7 @@ const ja: BotsMessages = {
   },
   bot: {
     newTitle: '新しいボット',
+    newCommand: '新しいボット…',
     editTitle: 'プロファイルを編集',
     editMenu: '編集…',
     helpPromptPlaceholder: 'このボットは何を手伝いますか？',
@@ -962,7 +992,11 @@ const ja: BotsMessages = {
     openBotChat: 'ボットチャットを開く',
     duplicate: '複製',
     duplicateFailed: '複製に失敗しました',
+    duplicateNameExhausted: '複製に使える名前がありません',
     deleteTitle: 'ボットとプロファイルを削除しますか？',
+    deleteFailed: name => `${name}のプロファイルを削除できませんでした。`,
+    defaultDeleteBlocked: '既定のプロファイルは削除できません。',
+    remoteDeleteUnsupported: 'このデスクトップでは、ソース指定プロファイルをまだ削除できません。',
     removeFromAllGroups: 'すべてのグループから外す',
     createFirstHint: 'ボットパネルを開いて「新しいボット」を押してください。',
     createFailed: 'プロファイルをまだ作成できませんでした',
@@ -973,6 +1007,9 @@ const ja: BotsMessages = {
     updateGatewayTitle: 'このゲートウェイを更新してボットモードを使用',
     updateGatewayMessage: gateway => `${gateway} を更新してから、もう一度お試しください。`,
     remoteConnectionsUnsupported: '他の接続上のボットとチャットするには Hermes Desktop を更新してください。',
+    foreverChatTitle: 'このチャットはリセットされません',
+    foreverChatMessage:
+      'ボットチャットは一つの会話として続くため、代わりにコンテキストを圧縮します。このボットとの一時的なセッションには「セッション」モードを使ってください。',
     chatEmpty: '何か書いて始めましょう。',
     kickoff: 'こんにちは、自己紹介をしてください！',
     pinToTop: '上部にピン留め',
@@ -991,6 +1028,9 @@ const ja: BotsMessages = {
     duplicating: name => `${name}を複製中…`,
     duplicated: (name, source) => `${name}を作成しました — ${source}の完全なコピー`,
     chatOpenFailed: name => `${name}のチャットを開けませんでした — もう一度お試しください`,
+    storedSessionOpenUnsupported: 'このデスクトップのバージョンでは保存済みセッションを開けません。',
+    registryCheckFailed: (name, detail) =>
+      `${name}のボットチャットレジストリを確認できませんでした${detail ? `（${detail}）` : ''} — 新しいチャットは開始しません`,
     attentionProviderAuth: 'このプロファイルにもう一度サインインしてください',
     attentionQuota: 'クォータまたは残高が不足しています',
     attentionMissingConfig: 'プロバイダー未設定 — hermes model を実行してください',
@@ -1100,6 +1140,8 @@ const ja: BotsMessages = {
     removeFromSelection: '選択から外す',
     attachmentTooLarge: name => `${name}: 大きすぎます（最大 15MB）。`,
     disbandTitle: 'グループチャットを解散しますか？',
+    disbandDescription: group =>
+      `「${group}」をボットから外し、共有ルームのログを消去します。ボットと各自のチャットは保持されます。`,
     deleteTitle: 'グループチャットを削除しますか？',
     deleteAction: '削除',
     composerPlaceholder: '何か書いてください — このグループのすべてのボットが部屋の内容を受け取ります。',
@@ -1137,6 +1179,8 @@ const ja: BotsMessages = {
     holdReleaseHint: '一時停止中のボットにメンションするか、@all resume を送信して再開します。',
     needsYourInput: 'このグループチャットのボットが入力を待っています',
     pictureGenerationFailed: 'グループ画像の生成に失敗しました',
+    emptyResponse:
+      '⚠️ ツール結果の処理後、モデルから応答がありませんでした。一部のモデルで発生することがあります。もう一度試すか、質問を言い換えてください。',
     nameTaken: name => `「${name}」という名前のグループはすでに存在します。`,
     memberCount: count => `ボット${count}体`,
     settingsHint: group => `グループ設定 — ${group}の名前変更やルーム画像の設定`,
@@ -1376,6 +1420,7 @@ const zh: BotsMessages = {
   },
   bot: {
     newTitle: '新建机器人',
+    newCommand: '新建机器人…',
     editTitle: '编辑配置档案',
     editMenu: '编辑…',
     helpPromptPlaceholder: '这个机器人应该帮你做什么？',
@@ -1384,7 +1429,11 @@ const zh: BotsMessages = {
     openBotChat: '打开机器人聊天',
     duplicate: '复制',
     duplicateFailed: '复制失败',
+    duplicateNameExhausted: '没有可用的复制名称。',
     deleteTitle: '删除机器人和配置档案？',
+    deleteFailed: name => `无法删除配置档案“${name}”。`,
+    defaultDeleteBlocked: '默认配置档案不能删除。',
+    remoteDeleteUnsupported: '当前桌面端暂不支持删除来源限定的配置档案。',
     removeFromAllGroups: '从所有群组中移除',
     createFirstHint: '打开机器人面板，点击“新建机器人”。',
     createFailed: '暂时无法创建配置档案',
@@ -1395,6 +1444,9 @@ const zh: BotsMessages = {
     updateGatewayTitle: '更新此网关以使用机器人模式',
     updateGatewayMessage: gateway => `${gateway} 需要更新，然后再重试。`,
     remoteConnectionsUnsupported: '请更新 Hermes Desktop 以与其他连接上的机器人聊天。',
+    foreverChatTitle: '此聊天不会重置',
+    foreverChatMessage:
+      '机器人聊天会持续保留上下文，因此将改为压缩当前上下文。若要与此机器人开启临时会话，请使用“会话”模式。',
     chatEmpty: '说点什么开始吧。',
     kickoff: '你好，介绍一下你自己吧！',
     pinToTop: '置顶',
@@ -1413,6 +1465,9 @@ const zh: BotsMessages = {
     duplicating: name => `正在复制 ${name}…`,
     duplicated: (name, source) => `已创建 ${name} — ${source} 的完整副本`,
     chatOpenFailed: name => `无法打开 ${name} 的聊天，请重试`,
+    storedSessionOpenUnsupported: '当前桌面版本无法打开已保存的会话。',
+    registryCheckFailed: (name, detail) =>
+      `无法检查 ${name} 的机器人聊天注册表${detail ? `（${detail}）` : ''} — 不会启动新聊天`,
     attentionProviderAuth: '请重新登录此配置档案',
     attentionQuota: '配额或余额已用尽',
     attentionMissingConfig: '提供方未配置 — 请运行 hermes model',
@@ -1517,6 +1572,7 @@ const zh: BotsMessages = {
     removeFromSelection: '从选择中移除',
     attachmentTooLarge: name => `${name}：文件过大（最大 15MB）。`,
     disbandTitle: '解散群聊？',
+    disbandDescription: group => `这会从机器人中移除“${group}”并清空共享房间日志。机器人及其各自的聊天会保留。`,
     deleteTitle: '删除群聊？',
     deleteAction: '删除',
     composerPlaceholder: '说点什么 — 这个群里的每个机器人都会听到。',
@@ -1554,6 +1610,7 @@ const zh: BotsMessages = {
     holdReleaseHint: '提及已暂停的机器人，或发送 @all resume 以恢复它们。',
     needsYourInput: '此群聊中有机器人需要你输入',
     pictureGenerationFailed: '群组图片生成失败',
+    emptyResponse: '⚠️ 模型处理工具结果后没有返回内容。这可能是某些模型的行为，请重试或改写问题。',
     nameTaken: name => `已存在名为“${name}”的群聊。`,
     memberCount: count => `${count} 个机器人`,
     settingsHint: group => `群聊设置 — 重命名 ${group} 或设置房间图片`,
@@ -1791,6 +1848,7 @@ const zhHant: BotsMessages = {
   },
   bot: {
     newTitle: '新增機器人',
+    newCommand: '新增機器人…',
     editTitle: '編輯設定檔',
     editMenu: '編輯…',
     helpPromptPlaceholder: '這個機器人應該幫你做什麼？',
@@ -1799,7 +1857,11 @@ const zhHant: BotsMessages = {
     openBotChat: '開啟機器人聊天',
     duplicate: '複製',
     duplicateFailed: '複製失敗',
+    duplicateNameExhausted: '沒有可用的複製名稱。',
     deleteTitle: '刪除機器人和設定檔？',
+    deleteFailed: name => `無法刪除設定檔「${name}」。`,
+    defaultDeleteBlocked: '預設設定檔無法刪除。',
+    remoteDeleteUnsupported: '目前桌面版尚未支援刪除來源限定的設定檔。',
     removeFromAllGroups: '從所有群組中移除',
     createFirstHint: '開啟機器人面板，點「新增機器人」。',
     createFailed: '暫時無法建立設定檔',
@@ -1810,6 +1872,9 @@ const zhHant: BotsMessages = {
     updateGatewayTitle: '更新此閘道以使用機器人模式',
     updateGatewayMessage: gateway => `請更新 ${gateway}，然後再試一次。`,
     remoteConnectionsUnsupported: '請更新 Hermes Desktop 以與其他連線上的機器人聊天。',
+    foreverChatTitle: '此聊天不會重設',
+    foreverChatMessage:
+      '機器人聊天會持續保留上下文，因此將改為壓縮目前上下文。若要與此機器人開啟臨時工作階段，請使用「工作階段」模式。',
     chatEmpty: '說點什麼開始吧。',
     kickoff: '你好，介紹一下你自己吧！',
     pinToTop: '釘選到頂端',
@@ -1828,6 +1893,9 @@ const zhHant: BotsMessages = {
     duplicating: name => `正在複製 ${name}…`,
     duplicated: (name, source) => `已建立 ${name} — ${source} 的完整副本`,
     chatOpenFailed: name => `無法開啟 ${name} 的聊天，請再試一次`,
+    storedSessionOpenUnsupported: '目前桌面版本無法開啟已儲存的工作階段。',
+    registryCheckFailed: (name, detail) =>
+      `無法檢查 ${name} 的機器人聊天登錄${detail ? `（${detail}）` : ''} — 不會啟動新聊天`,
     attentionProviderAuth: '請重新登入此設定檔',
     attentionQuota: '配額或餘額已用盡',
     attentionMissingConfig: '提供者尚未設定 — 請執行 hermes model',
@@ -1932,6 +2000,7 @@ const zhHant: BotsMessages = {
     removeFromSelection: '從選取中移除',
     attachmentTooLarge: name => `${name}：檔案過大（最大 15MB）。`,
     disbandTitle: '解散群組聊天？',
+    disbandDescription: group => `這會從機器人中移除「${group}」並清除共享房間記錄。機器人及其各自的聊天會保留。`,
     deleteTitle: '刪除群組聊天？',
     deleteAction: '刪除',
     composerPlaceholder: '說點什麼 — 這個群組裡的每個機器人都會聽到。',
@@ -1969,6 +2038,7 @@ const zhHant: BotsMessages = {
     holdReleaseHint: '提及已暫停的機器人，或傳送 @all resume 以恢復它們。',
     needsYourInput: '此群組聊天中有機器人需要您的輸入',
     pictureGenerationFailed: '群組圖片產生失敗',
+    emptyResponse: '⚠️ 模型處理工具結果後沒有回傳內容。這可能是某些模型的行為，請再試一次或改寫問題。',
     nameTaken: name => `已存在名為「${name}」的群組聊天。`,
     memberCount: count => `${count} 個機器人`,
     settingsHint: group => `群組設定 — 重新命名 ${group} 或設定房間圖片`,

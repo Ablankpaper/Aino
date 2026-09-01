@@ -21,12 +21,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RosterRow } from './types'
 
-const { hostMock, persistMock, pluginCtx, requestForBotMock, saveBotMetaMock } = vi.hoisted(() => ({
-  hostMock: { notify: vi.fn(), openSession: vi.fn(), request: vi.fn() },
+const { botConnectionRouteMock, hostMock, persistMock, pluginCtx, requestForBotMock, saveBotMetaMock } = vi.hoisted(() => ({
+  botConnectionRouteMock: vi.fn(),
+  hostMock: { notify: vi.fn(), openSession: vi.fn(), request: vi.fn(), requestProfile: undefined as unknown },
   persistMock: vi.fn(),
   // Null unless a test installs one — the plugin ctx is genuinely absent until
   // register() runs, which is why every read of it carries an English floor.
-  pluginCtx: { current: null as null | { i18n?: { t: (key: string) => string } } },
+  pluginCtx: { current: null as null | { i18n?: { t: (key: string, ...args: unknown[]) => string } } },
   requestForBotMock: vi.fn(),
   saveBotMetaMock: vi.fn()
 }))
@@ -38,7 +39,7 @@ vi.mock('@hermes/plugin-sdk', () => ({
 
 vi.mock('./routing', () => ({
   backendTargetProfile: (route: { targetProfile?: string } | null, name: string) => route?.targetProfile ?? name,
-  botConnectionRoute: () => null,
+  botConnectionRoute: (...args: unknown[]) => botConnectionRouteMock(...args),
   botRosterMeta: () => ({}),
   botWorkspaceOwnerKey: (bot: { connectionId?: string; name?: string } | null) =>
     `bot:${bot?.connectionId ? `${bot.connectionId}::` : ''}${bot?.name || 'default'}`,
@@ -56,7 +57,14 @@ vi.mock('./data', () => ({
   saveBotMeta: saveBotMetaMock
 }))
 
-vi.mock('./shared', () => ({ getPluginCtx: () => pluginCtx.current }))
+vi.mock('./shared', () => ({
+  getPluginCtx: () => pluginCtx.current,
+  pluginText: (key: string, fallback: string, ...args: unknown[]) => {
+    const translated = pluginCtx.current?.i18n?.t(key, ...args)
+
+    return translated && translated !== key ? translated : fallback
+  }
+}))
 
 /** Ordered log of everything creation did — RPCs and navigations interleaved,
  *  because the ORDER between them is most of what this suite pins. */
@@ -79,6 +87,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   events = []
   pluginCtx.current = null
+  botConnectionRouteMock.mockReturnValue(null)
+  hostMock.requestProfile = undefined
   hostMock.openSession.mockImplementation(async (id: string) => {
     events.push(`open:${id}`)
   })
@@ -217,6 +227,15 @@ describe('the lazy row is materialized before anything else touches it', () => {
     expect(await kickoffTextSent()).toBe('Hey, tell me about yourself!')
   })
 
+  it('falls back to English when the translator returns the raw kickoff key', async () => {
+    // Older hosts expose the translator before the plugin bundle is ready and
+    // return the dotted key (rather than null). That key must never be sent to
+    // the model as the bot's first user-visible line.
+    pluginCtx.current = { i18n: { t: (key: string) => key } }
+
+    expect(await kickoffTextSent()).toBe('Hey, tell me about yourself!')
+  })
+
   it('localizes an update-required gateway notification', async () => {
     pluginCtx.current = {
       i18n: {
@@ -238,6 +257,36 @@ describe('the lazy row is materialized before anything else touches it', () => {
       title: '更新此网关以使用机器人模式',
       message: '远程网关 需要更新，然后再重试。'
     })
+  })
+
+  it('falls back to English when an update-required translator returns raw keys', async () => {
+    pluginCtx.current = { i18n: { t: (key: string) => key } }
+
+    const { notifyBotOpenFailure } = await loadModule()
+
+    notifyBotOpenFailure(new Error('method not found'), { connectionLabel: 'Remote gateway' } as RosterRow, '备用错误')
+
+    expect(hostMock.notify).toHaveBeenCalledWith({
+      kind: 'error',
+      title: 'Update this gateway to use Bot Mode',
+      message: 'Update Remote gateway, then try again.'
+    })
+  })
+
+  it('keeps the remote-connection compatibility error readable when the translator returns a raw key', async () => {
+    botConnectionRouteMock.mockReturnValue({
+      connectionId: 'remote-a',
+      mode: 'remote',
+      profile: 'ops',
+      targetProfile: 'ops'
+    })
+    pluginCtx.current = { i18n: { t: (key: string) => key } }
+
+    const { prepareBotSource } = await loadModule()
+
+    await expect(prepareBotSource({ name: 'ops', sourceScoped: true } as RosterRow)).rejects.toThrow(
+      'Update Hermes Desktop to chat with bots on other connections.'
+    )
   })
 
   it('retries navigation after the compat kickoff when the eager title is unsupported', async () => {

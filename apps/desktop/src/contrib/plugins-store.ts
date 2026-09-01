@@ -10,6 +10,8 @@
 
 import { atom } from 'nanostores'
 
+import type { PluginLocalizedMetadata } from './plugin-metadata'
+
 export type PluginKind = 'bundled' | 'disk' | 'runtime'
 export type PluginStatus = 'disabled' | 'error' | 'loaded'
 
@@ -20,6 +22,8 @@ export interface PluginRecord {
   status: PluginStatus
   /** One-liner from the plugin's own metadata (what it adds). */
   description?: string
+  /** Explicit locale overrides supplied by the plugin author. */
+  localized?: PluginLocalizedMetadata
   /** Load/registration failure message (status 'error'). */
   error?: string
   /** Absolute plugin.js path (disk plugins) — powers "Reveal in Finder". */

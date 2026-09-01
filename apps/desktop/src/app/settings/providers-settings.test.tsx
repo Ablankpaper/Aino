@@ -3,6 +3,7 @@ import { atom } from 'nanostores'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ConfirmHost } from '@/components/confirm-host'
+import { I18nProvider } from '@/i18n'
 import { $confirmRequest } from '@/store/confirm'
 import type { EnvVarInfo, OAuthProvider } from '@/types/hermes'
 
@@ -93,6 +94,37 @@ async function renderProvidersSettings() {
 }
 
 describe('ProvidersSettings', () => {
+  it('uses the active locale for curated provider descriptions', async () => {
+    getEnvVars.mockResolvedValue({
+      DEEPSEEK_API_KEY: keyVar({
+        provider: 'deepseek',
+        provider_label: 'DeepSeek',
+        url: 'https://platform.deepseek.com/api_keys'
+      })
+    })
+    listOAuthProviders.mockResolvedValue({ providers: [] })
+
+    const { ProvidersSettings } = await import('./providers-settings')
+    await act(async () => {
+      render(
+        <I18nProvider configClient={null} initialLocale="zh">
+          <ProvidersSettings onClose={vi.fn()} onViewChange={vi.fn()} view="keys" />
+        </I18nProvider>
+      )
+    })
+
+    const provider = await screen.findByText('DeepSeek')
+    fireEvent.click(provider)
+
+    expect(await screen.findByText('DeepSeek 直连接口（V3.x、R1）。')).toBeTruthy()
+    expect(screen.queryByText('Direct DeepSeek API (V3.x, R1).')).toBeNull()
+
+    const search = screen.getByPlaceholderText('搜索提供方…')
+    fireEvent.change(search, { target: { value: '直连接口' } })
+
+    expect(await screen.findByText('DeepSeek')).toBeTruthy()
+  })
+
   it('disconnects a connected provider account and refreshes the accounts list', async () => {
     await renderProvidersSettings()
 

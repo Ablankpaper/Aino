@@ -297,7 +297,7 @@ const toBackgroundItem = (proc: GatewayProcessEntry): ComposerStatusItem => {
     id: proc.session_id ?? '',
     output: proc.output_tail || undefined,
     state: exited ? (exitCode ? 'failed' : 'done') : 'running',
-    title: (proc.command ?? '').split('\n')[0]!.trim() || 'background process',
+    title: (proc.command ?? '').split('\n')[0]!.trim() || translateNow('statusStack.backgroundProcess'),
     type: 'background'
   }
 }

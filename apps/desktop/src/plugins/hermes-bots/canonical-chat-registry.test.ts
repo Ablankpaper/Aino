@@ -64,7 +64,10 @@ vi.mock('./data', () => ({
   saveBotMeta: saveBotMetaMock
 }))
 
-vi.mock('./shared', () => ({ getPluginCtx: () => null }))
+vi.mock('./shared', () => ({
+  getPluginCtx: () => null,
+  pluginText: (_key: string, fallback: string) => fallback
+}))
 
 /** Route every RPC through one table, recording what was asked. */
 function respondWith(handler: (method: string, params: Record<string, unknown>) => unknown) {

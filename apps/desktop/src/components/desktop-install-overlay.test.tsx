@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DesktopBootstrapEvent, DesktopBootstrapState, DesktopConnectionProbeResult } from '@/global'
+import { I18nProvider, setRuntimeI18nLocale } from '@/i18n'
 
 import { DesktopInstallOverlay } from './desktop-install-overlay'
 
@@ -81,11 +82,13 @@ function whenPresent(text: string): Promise<HTMLElement> {
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  setRuntimeI18nLocale('en')
 })
 
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  setRuntimeI18nLocale('en')
   Reflect.deleteProperty(window, 'hermesDesktop')
 })
 
@@ -568,5 +571,39 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     await waitFor(() => expect(screen.queryByText('Gateway URL')).toBeNull())
     expect(screen.queryByText('Aino needs a one-time install')).toBeNull()
+  })
+})
+
+describe('DesktopInstallOverlay stage labels', () => {
+  it('localizes known installer stage names for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    installDesktopMock(
+      bootstrapState({
+        active: true,
+        manifest: {
+          protocolVersion: 1,
+          stages: [{ category: 'prereqs', name: 'system-packages', needs_user_input: false, title: 'System packages' }],
+          type: 'manifest'
+        },
+        stages: {
+          'system-packages': {
+            durationMs: null,
+            error: null,
+            json: null,
+            startedAt: Date.now(),
+            state: 'running'
+          }
+        }
+      })
+    )
+
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <DesktopInstallOverlay />
+      </I18nProvider>
+    )
+
+    expect(await screen.findByText('系统组件')).toBeTruthy()
+    expect(screen.queryByText('System packages')).toBeNull()
   })
 })

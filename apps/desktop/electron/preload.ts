@@ -484,6 +484,11 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
     return () => ipcRenderer.removeListener('hermes:bootstrap:event', listener)
   },
   getVersion: () => ipcRenderer.invoke('hermes:version'),
+  // Keep Electron-owned menus/dialogs in lockstep with the renderer locale.
+  // The main process validates the value and falls back to English for older
+  // or malformed callers.
+  getLocale: () => ipcRenderer.invoke('hermes:locale:get'),
+  setLocale: locale => ipcRenderer.invoke('hermes:locale:set', locale),
   getRemoteDisplayReason: () => ipcRenderer.invoke('hermes:get-remote-display-reason'),
   uninstall: {
     summary: () => ipcRenderer.invoke('hermes:uninstall:summary'),

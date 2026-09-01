@@ -895,9 +895,7 @@ function cronjobSubtitle(argsRecord: Record<string, unknown>, resultRecord: Reco
   const jobs = Array.isArray(resultRecord.jobs) ? resultRecord.jobs : null
 
   if (jobs) {
-    return jobs.length
-      ? `${jobs.length} cron job${jobs.length === 1 ? '' : 's'}`
-      : translateNow('assistant.tool.cron.noJobs')
+    return jobs.length ? translateNow('assistant.tool.cron.jobsCount', jobs.length) : translateNow('assistant.tool.cron.noJobs')
   }
 
   const message = firstStringField(resultRecord, ['message'])

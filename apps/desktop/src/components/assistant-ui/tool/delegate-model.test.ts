@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import type { SubagentProgress } from '@/store/subagents'
 
 import { delegateGoals, delegateRowsFromCall, mergeDelegateRows } from './delegate-model'
@@ -24,6 +25,16 @@ describe('delegateGoals', () => {
     expect(delegateGoals({ tasks: [{ goal: 'A' }, { goal: 'B' }] })).toEqual(['A', 'B'])
     expect(delegateGoals({ goal: 'Solo' })).toEqual(['Solo'])
     expect(delegateGoals('{"goal":"Serialized"}')).toEqual(['Serialized'])
+  })
+
+  it('uses the active locale for unnamed tasks', () => {
+    setRuntimeI18nLocale('zh')
+
+    try {
+      expect(delegateGoals({ tasks: [{}] })).toEqual(['任务 1'])
+    } finally {
+      setRuntimeI18nLocale('en')
+    }
   })
 })
 
@@ -74,6 +85,16 @@ describe('delegateRowsFromCall', () => {
 
   it('still lists a background dispatch whose goals only survive in the result', () => {
     expect(delegateRowsFromCall({}, { status: 'dispatched', goals: ['A', 'B'] }).map(r => r.goal)).toEqual(['A', 'B'])
+  })
+
+  it('localizes the result-only fallback title', () => {
+    setRuntimeI18nLocale('zh')
+
+    try {
+      expect(delegateRowsFromCall({}, { results: [{ status: 'completed' }] })[0]?.goal).toBe('已委派任务')
+    } finally {
+      setRuntimeI18nLocale('en')
+    }
   })
 })
 

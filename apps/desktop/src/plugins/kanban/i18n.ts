@@ -1154,7 +1154,9 @@ const zhHant: KanbanMessages = {
 }
 
 /** Registered via `ctx.i18n.register` at plugin load (disposer tracked). */
-export const KANBAN_LOCALES: PluginLocaleBundles = { en, ja, zh, 'zh-hant': zhHant }
+// Keep the concrete message shape available to tests and local helpers while
+// still checking that the bundle satisfies the SDK's plugin-locale contract.
+export const KANBAN_LOCALES = { en, ja, zh, 'zh-hant': zhHant } satisfies PluginLocaleBundles
 
 // Bind the message SHAPE to a plugin translator: string leaves resolve now,
 // function leaves forward their args through t(path, …). One tiny generic

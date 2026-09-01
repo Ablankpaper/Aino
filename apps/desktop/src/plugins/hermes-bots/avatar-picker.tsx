@@ -102,7 +102,7 @@ export function AvatarPicker({ shape, color, image, onShape, onColor, onImage, g
             })
 
             if (!res?.success) {
-              throw new Error(res?.error || 'generation failed')
+              throw new Error(res?.error || b.avatar.generationFailed)
             }
 
             return res.image_data || res.image

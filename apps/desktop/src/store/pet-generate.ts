@@ -423,7 +423,7 @@ export async function generateDrafts(request: GatewayRequest, options: GenerateO
     }
 
     if (!result?.ok || !result.drafts?.length) {
-      throw new Error('generation produced no drafts')
+      throw new Error(translateNow('commandCenter.generatePet.genericError'))
     }
 
     $petGenToken.set(result.token)
@@ -554,7 +554,7 @@ export async function hatchSelected(request: GatewayRequest, options: HatchOptio
     }
 
     if (!result?.ok || !result.pet?.spritesheetBase64) {
-      throw new Error('hatch produced no preview')
+      throw new Error(translateNow('commandCenter.generatePet.hatchingError'))
     }
 
     $petGenPreview.set({ ...result.pet, enabled: true })
@@ -635,7 +635,7 @@ export async function adoptHatched(request: GatewayRequest, name?: string): Prom
     })
 
     if (!result?.ok) {
-      throw new Error('adopt failed')
+      throw new Error(translateNow('commandCenter.pets.adoptFailed'))
     }
 
     // pet.select already set the active mascot (disk + config). Reflect it

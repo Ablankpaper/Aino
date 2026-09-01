@@ -21,6 +21,7 @@ import { LazyShiki as ShikiHighlighter } from '@/components/chat/shiki-highlight
 import { PageLoader } from '@/components/page-loader'
 import { Tip } from '@/components/ui/tooltip'
 import { translateNow, useI18n } from '@/i18n'
+import { localizedPreviewError } from '@/i18n/preview-errors'
 import {
   desktopFileDiff,
   desktopFsCacheKey,
@@ -1041,11 +1042,11 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
   }
 
   if (state.error) {
-    return <PreviewEmptyState body={state.error} title={t.preview.unavailable} />
+    return <PreviewEmptyState body={localizedPreviewError(t, state.error)} title={t.preview.unavailable} />
   }
 
   if (pdfError) {
-    return <PreviewEmptyState body={pdfError} title={t.preview.unavailable} />
+    return <PreviewEmptyState body={localizedPreviewError(t, pdfError)} title={t.preview.unavailable} />
   }
 
   if (

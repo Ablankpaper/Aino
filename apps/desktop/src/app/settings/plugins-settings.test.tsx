@@ -25,6 +25,7 @@ vi.mock('@/store/notifications', async importOriginal => ({
 }))
 
 import { $pluginRecords } from '@/contrib/plugins-store'
+import type { PluginRecord } from '@/contrib/plugins-store'
 import { I18nProvider } from '@/i18n'
 import { queryClient } from '@/lib/query-client'
 import {
@@ -80,6 +81,30 @@ afterEach(() => {
 })
 
 describe('PluginsSettings', () => {
+  it('renders explicitly localized desktop plugin metadata for the active locale', () => {
+    const localizedRecord = {
+      id: 'accent',
+      name: 'Accent Picker',
+      description: 'Pick the theme accent.',
+      kind: 'bundled',
+      status: 'loaded',
+      localized: {
+        zh: {
+          name: '强调色选择器',
+          description: '从状态栏选择主题强调色。'
+        }
+      }
+    } as unknown as PluginRecord
+
+    $pluginRecords.set({ [localizedRecord.id]: localizedRecord })
+
+    renderSettings('zh')
+
+    expect(screen.getByText('强调色选择器')).toBeTruthy()
+    expect(screen.getByText('从状态栏选择主题强调色。')).toBeTruthy()
+    expect(screen.queryByText('Accent Picker')).toBeNull()
+  })
+
   it('renders and searches plugin rows returned without a canonical key', () => {
     renderSettings()
 

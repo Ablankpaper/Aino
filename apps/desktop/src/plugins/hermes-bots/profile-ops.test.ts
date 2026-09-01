@@ -12,16 +12,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { $botMeta } from './data'
-import { duplicateBot } from './profile-ops'
+import { deleteBot, duplicateBot } from './profile-ops'
 import type { RosterRow } from './types'
 
-const { ensureBotMetadataMock, hostMock, storageMock } = vi.hoisted(() => ({
+const { ensureBotMetadataMock, hostMock, pluginCtx, storageMock } = vi.hoisted(() => ({
   ensureBotMetadataMock: vi.fn(),
   hostMock: {
     request: vi.fn(),
     requestProfile: vi.fn(),
     state: { connectionId: { get: () => 'local' }, focusedSessionOwner: null, profile: { get: () => 'default' } }
   },
+  pluginCtx: { current: null as null | { i18n?: { t: (key: string, ...args: unknown[]) => string } } },
   storageMock: { get: vi.fn(), set: vi.fn() }
 }))
 
@@ -38,7 +39,15 @@ vi.mock('@hermes/plugin-sdk', async () => {
   }
 })
 
-vi.mock('./shared', () => ({ getPluginCtx: () => ({ storage: storageMock }), ID: 'hermes-bots' }))
+vi.mock('./shared', () => ({
+  getPluginCtx: () => ({ storage: storageMock, ...pluginCtx.current }),
+  ID: 'hermes-bots',
+  pluginText: (key: string, fallback: string, ...args: unknown[]) => {
+    const translated = pluginCtx.current?.i18n?.t(key, ...args)
+
+    return translated && translated !== key ? translated : fallback
+  }
+}))
 vi.mock('./avatar-image', () => ({ isBackfilledFacePng: () => false }))
 vi.mock('./canonical-chat', () => ({ ensureBotMetadata: ensureBotMetadataMock }))
 
@@ -49,6 +58,7 @@ beforeEach(() => {
   calls.length = 0
   $botMeta.set({})
   storageMock.set.mockResolvedValue(undefined)
+  pluginCtx.current = null
   hostMock.request.mockImplementation(async (method: string, params: Record<string, unknown>) => {
     calls.push({ method, params: structuredClone(params ?? {}) })
 
@@ -151,5 +161,44 @@ describe('duplicating a bot', () => {
     hostMock.requestProfile.mockResolvedValue({ ok: true })
 
     expect(await duplicateBot(bot, [bot, elsewhere])).toBe('ops-2')
+  })
+
+  it('localizes the exhausted duplicate-name error', async () => {
+    pluginCtx.current = {
+      i18n: {
+        t: key => (key === 'bot.duplicateNameExhausted' ? '没有可用的复制名称。' : key)
+      }
+    }
+
+    const base = 'x'.repeat(64)
+
+    const roster = Array.from({ length: 98 }, (_, index) => {
+      const suffix = `-${index + 2}`
+
+      return { name: `${base.slice(0, 64 - suffix.length)}${suffix}` }
+    })
+
+    await expect(duplicateBot({ name: base } as RosterRow, roster)).rejects.toThrow('没有可用的复制名称。')
+  })
+
+  it('localizes the default-profile deletion guard', async () => {
+    pluginCtx.current = {
+      i18n: {
+        t: key => (key === 'bot.defaultDeleteBlocked' ? '默认配置档案不能删除。' : key)
+      }
+    }
+
+    await expect(deleteBot({ name: 'default' } as RosterRow)).rejects.toThrow('默认配置档案不能删除。')
+  })
+
+  it('localizes the legacy profile-delete fallback when the gateway gives no detail', async () => {
+    pluginCtx.current = {
+      i18n: {
+        t: (key, name) => (key === 'bot.deleteFailed' ? `无法删除配置档案“${String(name)}”。` : key)
+      }
+    }
+    hostMock.request.mockResolvedValue({ code: 1 })
+
+    await expect(deleteBot({ name: 'researcher' } as RosterRow)).rejects.toThrow('无法删除配置档案“researcher”。')
   })
 })

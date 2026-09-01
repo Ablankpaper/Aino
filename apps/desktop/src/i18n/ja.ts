@@ -13,6 +13,7 @@ export const ja = defineLocale({
     choose: '選択',
     clear: 'クリア',
     close: '閉じる',
+    actions: 'アクション',
     collapse: '折りたたむ',
     confirm: '確認',
     connect: '接続',
@@ -999,6 +1000,8 @@ export const ja = defineLocale({
         '設定は文字列の `url` または `command` フィールドを持つ JSON オブジェクトである必要があります。',
       deepLinkErrorUrl: 'サーバー URL は http:// と https:// のみ許可されます。',
       deepLinkErrorTooLarge: '設定ペイロードが 32KB の上限を超えています。',
+      importExpectedObject: 'JSON オブジェクトが必要です。',
+      importServerWrapperRequired: '`{"mcpServers": {"name": …}}` でサーバーをラップして名前を付けてください。',
       importButton: 'インポート',
       importPlaceholder: 'mcp.json スニペット、npx/docker コマンド、claude mcp add 行、URL、Cursor リンクを貼り付け…',
       importNoMatch: '貼り付けたテキストからサーバー設定を認識できませんでした。',
@@ -1585,6 +1588,7 @@ export const ja = defineLocale({
     newProfile: '新しいプロファイル',
     importProfile: 'プロファイルをインポート…',
     exportProfile: 'プロファイルをエクスポート…',
+    archiveFilter: 'Hermes プロファイル',
     imported: 'プロファイルをインポートしました',
     exported: 'プロファイルをエクスポートしました',
     failedImport: 'プロファイルのインポートに失敗しました',
@@ -1958,6 +1962,8 @@ export const ja = defineLocale({
       copyPath: 'パスをコピー',
       removeFromSidebar: 'サイドバーから削除',
       createFailed: 'プロジェクトを作成できませんでした',
+      unavailableAllProfiles: 'すべてのプロファイルを表示中はプロジェクトを利用できません',
+      activeProfileChanged: '接続中にアクティブな Hermes プロファイルが変更されました',
       staleBackend:
         'プロジェクトを作成するには Hermes バックエンドを更新してください。バックエンドがこのデスクトップアプリより古いです（設定 → 更新 → バックエンド）。',
       deleteConfirm:
@@ -2357,6 +2363,19 @@ export const ja = defineLocale({
       skipped: 'スキップ',
       failed: '失敗'
     },
+    stageNames: {
+      'system-packages': 'システムパッケージ',
+      uv: 'uv',
+      python: 'Python 環境',
+      repo: 'Hermes リポジトリ',
+      dependencies: 'Python 依存関係',
+      node: 'Node ランタイム',
+      desktop: 'デスクトップアプリ',
+      handoff: '更新を準備中',
+      update: '最新バージョンをダウンロード中',
+      rebuild: 'デスクトップアプリを再ビルド中',
+      install: '更新をインストール中'
+    },
     oneTimeTitle: 'Hermes には一度限りのインストールが必要です',
     unsupportedDesc: platform =>
       `${platform} では自動の初回インストールはまだ利用できません。ターミナルを開いて以下のコマンドを実行し、このアプリを再起動してください。以降の起動ではこの手順はスキップされます。`,
@@ -2453,6 +2472,7 @@ export const ja = defineLocale({
       gemini: { short: 'Gemini モデル', description: 'Google Gemini モデルへの直接アクセス。' },
       xai: { short: 'Grok モデル', description: 'xAI Grok モデルへの直接アクセス。' },
       local: {
+        title: 'ローカル / カスタムエンドポイント',
         short: 'セルフホスト',
         description:
           'ローカルまたはセルフホストの OpenAI 互換エンドポイント（vLLM、llama.cpp、Ollama など）に Hermes を接続。'
@@ -2688,6 +2708,7 @@ export const ja = defineLocale({
     terminalNew: '新しいターミナル',
     terminalCloseOthers: '他を閉じる',
     terminalCloseAll: 'すべて閉じる',
+    terminalStartFailed: error => `ターミナルの起動に失敗しました: ${error}`,
     addToChat: 'チャットに追加'
   },
 
@@ -2759,6 +2780,8 @@ export const ja = defineLocale({
       restartingTitle: 'プレビューサーバーを再起動中',
       restartingMessage: 'Hermes はバックグラウンドで作業中です。進捗はプレビューコンソールで確認してください。',
       startRestartFailed: message => `サーバー再起動を開始できませんでした: ${message}`,
+      restartNoActiveSession: 'バックグラウンドで再起動するアクティブなセッションがありません。',
+      restartMissingTaskId: 'バックグラウンド再起動からタスク ID が返されませんでした。',
       restartFailed: 'サーバーの再起動に失敗しました',
       hideConsole: 'プレビューコンソールを非表示',
       showConsole: 'プレビューコンソールを表示',
@@ -3128,6 +3151,7 @@ export const ja = defineLocale({
 
   prompts: {
     gatewayDisconnected: 'Hermes ゲートウェイが接続されていません',
+    dangerousCommand: '危険なコマンド',
     sudoSendFailed: 'sudo パスワードを送信できませんでした',
     secretSendFailed: 'シークレットを送信できませんでした',
     sudoTitle: '管理者パスワード',
@@ -3141,6 +3165,7 @@ export const ja = defineLocale({
 
   desktop: {
     audioReadFailed: '録音した音声を読み取れませんでした',
+    fileDownloadBridgeUnavailable: 'デスクトップのファイルダウンロードブリッジを利用できません',
     sessionUnavailable: 'セッションが利用できません',
     createSessionFailed: '新しいセッションを作成できませんでした',
     promptFailed: 'プロンプトに失敗しました',
@@ -3148,6 +3173,8 @@ export const ja = defineLocale({
     emptySlashCommand: '空のスラッシュコマンド',
     desktopCommands: 'デスクトップコマンド',
     skillCommandsAvailable: count => `${count} 件のスキルコマンドが利用可能です。`,
+    petScaleUsage: '使用法: /pet scale <factor>（例: /pet scale 0.5）',
+    agentReportedError: 'Hermes がエラーを報告しました',
     warningLine: message => `警告: ${message}`,
     yoloArmed: 'このチャットでは YOLO が有効になっています',
     yoloOff: 'YOLO オフ',
@@ -3166,6 +3193,9 @@ export const ja = defineLocale({
     editFailed: '編集に失敗しました',
     editTurnUnavailable: 'このターンはサーバー履歴にありません（圧縮で削除された可能性があります）。',
     resumeFailed: '再開に失敗しました',
+    restoreNoActiveSession: '復元するアクティブなセッションがありません。',
+    restoreTargetMissing: '復元するメッセージが見つかりません。',
+    restoreEmptyMessage: '空のメッセージは復元できません。',
     readOnlyTranscriptTitle: '読み取り専用で開きました',
     readOnlyTranscriptBody:
       'この古いチャットを所有するバックエンドがまだ接続されていないため、読み取り専用のトランスクリプトとして開きました。履歴は無事です。バックエンドが所有を認識するまで送信は無効です。',
@@ -3186,6 +3216,9 @@ export const ja = defineLocale({
     deleteFailed: '削除に失敗しました',
     archived: 'アーカイブしました',
     archiveFailed: 'アーカイブに失敗しました',
+    sessionOwnershipUnavailable: 'セッションの所有者を解決できませんでした。操作をキャンセルしました。',
+    attachmentReadFailed: label => `添付ファイルを読み取れませんでした: ${label}`,
+    attachmentAttachFailed: label => `添付ファイルを追加できませんでした: ${label}`,
     cwdChangeFailed: '作業ディレクトリの変更に失敗しました',
     cwdStagedTitle: '作業ディレクトリがステージングされました',
     cwdStagedMessage:

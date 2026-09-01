@@ -151,8 +151,8 @@ export function ArtifactsView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
         const otherFailures = failures.length - safeLimitFailures
 
         const detail = [
-          safeLimitFailures ? `${safeLimitFailures} exceeded the safe transcript load limit.` : '',
-          otherFailures ? `${otherFailures} could not be read.` : ''
+          safeLimitFailures ? a.safeLoadFailure(safeLimitFailures) : '',
+          otherFailures ? a.unreadableFailure(otherFailures) : ''
         ]
           .filter(Boolean)
           .join(' ')
@@ -161,7 +161,7 @@ export function ArtifactsView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
           id: 'artifacts-partial-load',
           kind: 'warning',
           title: a.failedLoad,
-          message: `Skipped ${failures.length} of ${sessions.length} recent sessions while indexing artifacts.`,
+          message: a.partialLoadMessage(failures.length, sessions.length),
           detail,
           durationMs: 10_000
         })

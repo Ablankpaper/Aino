@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { I18nProvider } from '@/i18n'
 
 import { AgentDeliveryNotice } from './agent-delivery'
-
 import { deliveryTargetFromCommand, replyTextFromResult } from './agent-delivery'
 
 // Sender-side inter-agent deliveries render as "Messaged X" / "Message from
@@ -56,12 +55,12 @@ describe('AgentDeliveryNotice localization', () => {
     render(
       <I18nProvider configClient={null} initialLocale="zh">
         <AgentDeliveryNotice
+          addResult={() => {}}
           args={{ command: 'hermes -p helper chat -q "Message from 🤖 Hermes: hi"' }}
           argsText='{"command":"hermes -p helper chat -q \\"Message from 🤖 Hermes: hi\\""}'
-          addResult={() => {}}
           isError={false}
-          result={{ output: 'session_id: abc\nack' }}
           respondToApproval={() => {}}
+          result={{ output: 'session_id: abc\nack' }}
           resume={() => {}}
           status={{ type: 'complete' }}
           toolCallId="delivery-1"

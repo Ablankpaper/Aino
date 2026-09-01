@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import { $goalsBySession, applyGoalStatusText, clearSessionGoal } from './goals'
 
 describe('goal store', () => {
   afterEach(() => {
     vi.useRealTimers()
+    setRuntimeI18nLocale('en')
     $goalsBySession.set({})
   })
 
@@ -33,6 +36,14 @@ describe('goal store', () => {
       status: 'paused',
       title: 'ship the feature'
     })
+  })
+
+  it('localizes the fallback title for a goal without a stored title', () => {
+    setRuntimeI18nLocale('zh')
+
+    applyGoalStatusText('s1', '↻ Continuing toward goal (1/20): next step is tests')
+
+    expect($goalsBySession.get().s1?.title).toBe('持续目标')
   })
 
   it('lingers done goals before clearing them', () => {

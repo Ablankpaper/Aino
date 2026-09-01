@@ -56,7 +56,7 @@ describe('activity rail copy', () => {
 
     expect(tasks).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ detail: '代理任务运行中', id: 'session:missing-session', label: '会话任务' }),
+        expect.objectContaining({ detail: '智能体任务运行中', id: 'session:missing-session', label: '会话任务' }),
         expect.objectContaining({ detail: 'http://127.0.0.1:3000', id: 'preview:preview-1', label: '重启预览' }),
         expect.objectContaining({ detail: '运行中', id: 'action:同步模型', label: '同步模型' })
       ])

@@ -86,6 +86,14 @@ describe('pet generation background notifications', () => {
     expect($petGenError.get()).toBe('生成失败——请重试或选择一个建议。')
   })
 
+  it('uses Simplified Chinese copy when generation returns no drafts', async () => {
+    const request = vi.fn(async () => ({ drafts: [], ok: false, token: '' }))
+
+    await expect(generateDrafts(request as never, { prompt: 'a pixel dragon' })).resolves.toBe(false)
+
+    expect($petGenError.get()).toBe('生成失败——请重试或选择一个建议。')
+  })
+
   it('uses Simplified Chinese fallback copy when hatching throws a non-Error', async () => {
     $petGenToken.set('token-1')
     $petGenSelected.set(0)
@@ -100,12 +108,34 @@ describe('pet generation background notifications', () => {
     expect($petGenError.get()).toBe('孵化失败——请重试。')
   })
 
+  it('uses Simplified Chinese copy when hatching returns no preview', async () => {
+    $petGenToken.set('token-1')
+    $petGenSelected.set(0)
+    $petGenPrompt.set('a pixel dragon')
+
+    const request = vi.fn(async () => ({ ok: false, pet: undefined, slug: '' }))
+
+    await expect(hatchSelected(request as never, { name: 'Pixel Dragon' })).resolves.toBe(false)
+
+    expect($petGenError.get()).toBe('孵化失败——请重试。')
+  })
+
   it('uses Simplified Chinese fallback copy when adoption throws a non-Error', async () => {
     $petGenPreview.set({ enabled: true, slug: 'slug-1', displayName: 'Pixel Dragon' })
 
     const request = vi.fn(async () => {
       throw 'provider unavailable'
     })
+
+    await expect(adoptHatched(request as never)).resolves.toMatchObject({ ok: false })
+
+    expect($petGenError.get()).toBe('无法领养该宠物。')
+  })
+
+  it('uses Simplified Chinese copy when adoption is rejected', async () => {
+    $petGenPreview.set({ enabled: true, slug: 'slug-1', displayName: 'Pixel Dragon' })
+
+    const request = vi.fn(async () => ({ ok: false, slug: 'slug-1', displayName: 'Pixel Dragon' }))
 
     await expect(adoptHatched(request as never)).resolves.toMatchObject({ ok: false })
 

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import type { ProfileInfo } from '@/types/hermes'
 
 vi.mock('@/app/chat/session-view', async () => {
@@ -180,6 +181,7 @@ const profile = (name: string): ProfileInfo => ({
 })
 
 afterEach(() => {
+  setRuntimeI18nLocale('en')
   vi.clearAllMocks()
   vi.mocked(sessionTileDelegate).mockReturnValue(null)
   vi.mocked(activeGatewayConnectionId).mockReturnValue('local')
@@ -506,6 +508,21 @@ describe('connection-aware plugin host APIs', () => {
         targetProfile: 'default'
       })
     ).rejects.toThrow(/default profile cannot be deleted/i)
+
+    expect(deleteProfile).not.toHaveBeenCalled()
+  })
+
+  it('localizes the default-profile deletion guard for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+
+    await expect(
+      host.deleteProfile({
+        connectionId: 'source-a',
+        mode: 'remote',
+        profile: 'worker',
+        targetProfile: 'default'
+      })
+    ).rejects.toThrow('无法删除默认配置档案。')
 
     expect(deleteProfile).not.toHaveBeenCalled()
   })

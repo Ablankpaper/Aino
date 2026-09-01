@@ -20,7 +20,7 @@ import {
   requestForBot,
   setBotsWorkspaceOwner
 } from './routing'
-import { getPluginCtx, ID } from './shared'
+import { getPluginCtx, ID, pluginText } from './shared'
 import type {
   AttentionClass,
   BotMeta,
@@ -1079,8 +1079,7 @@ export function newBotChat(bot: RosterRow) {
   if (typeof host.newChat !== 'function') {
     host.notify?.({
       kind: 'error',
-      message:
-        getPluginCtx()?.i18n?.t('bot.openAnotherChatUnsupported') ?? 'Update Hermes Desktop to open another Bot chat.'
+      message: pluginText('bot.openAnotherChatUnsupported', 'Update Hermes Desktop to open another Bot chat.')
     })
 
     return
@@ -1091,8 +1090,7 @@ export function newBotChat(bot: RosterRow) {
   if (!route) {
     host.notify?.({
       kind: 'error',
-      message:
-        getPluginCtx()?.i18n?.t('bot.openAnotherChatUnsupported') ?? 'Update Hermes Desktop to open another Bot chat.'
+      message: pluginText('bot.openAnotherChatUnsupported', 'Update Hermes Desktop to open another Bot chat.')
     })
 
     return
@@ -1290,7 +1288,7 @@ interface BotSourceStatus {
  *  floor, not the intended reading. Guard `i18n` as well as the ctx: this runs
  *  on every roster row, and a throw here paints an empty rail. */
 function sourceLabel(key: string, fallback: string): string {
-  return getPluginCtx()?.i18n?.t(`roster.${key}`) ?? fallback
+  return pluginText(`roster.${key}`, fallback)
 }
 
 export function botSourceStatus(bot: BotSourceFields | null | undefined): BotSourceStatus {

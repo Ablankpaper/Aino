@@ -1,5 +1,6 @@
 import { atom } from 'nanostores'
 
+import { translateNow } from '@/i18n'
 import { capitalize } from '@/lib/text'
 
 export type SubagentStatus = 'completed' | 'failed' | 'interrupted' | 'queued' | 'running'
@@ -133,7 +134,7 @@ const appendStream = (stream: SubagentStreamEntry[], entry: SubagentStreamEntry)
 const timeoutSummary = (payload: SubagentPayload): string => {
   const seconds = num(payload.duration_seconds)
 
-  return str(payload.status) === 'timeout' ? `Timed out after ${seconds ?? '?'}s` : ''
+  return str(payload.status) === 'timeout' ? translateNow('agents.timedOutAfter', seconds ?? '?') : ''
 }
 
 function streamFromPayload(
@@ -187,7 +188,7 @@ function toProgress(payload: SubagentPayload, prev: SubagentProgress | undefined
   return {
     id: prev?.id ?? idOf(payload),
     parentId: str(payload.parent_id) || prev?.parentId || null,
-    goal: str(payload.goal) || prev?.goal || 'Subagent',
+    goal: str(payload.goal) || prev?.goal || translateNow('agents.defaultGoal'),
     sessionId: str(payload.child_session_id) || prev?.sessionId,
     model: str(payload.model) || prev?.model,
     status,

@@ -27,6 +27,16 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('assistant.tool.statusRecovered')).toBe('已恢复')
   })
 
+  it('localizes gateway timeout and unavailable copy for Simplified Chinese users', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('boot.errors.gatewayRevalidationTimeout')).toBe('重新验证网关连接超时')
+    expect(translateNow('boot.errors.gatewayReconnectTimeout')).toBe('重新连接 Aino 后端超时')
+    expect(translateNow('boot.errors.gatewayWsRemintTimeout')).toBe('重新生成网关 WebSocket 地址超时')
+    expect(translateNow('boot.errors.gatewayFallbackTimeout')).toBe('解析备用网关连接超时')
+    expect(translateNow('boot.errors.gatewayWsMintTimeout')).toBe('生成网关 WebSocket 地址超时')
+  })
+
   it('resolves Chinese copy for shared chat, accessibility, and quick entry affordances', () => {
     setRuntimeI18nLocale('zh')
 
@@ -106,6 +116,7 @@ describe('desktop i18n runtime translator', () => {
     setRuntimeI18nLocale('zh')
 
     expect(translateNow('settings.connections.localLabel')).toBe('此设备')
+    expect(translateNow('rightSidebar.terminalStartFailed', 'PTY 不可用')).toBe('终端启动失败：PTY 不可用')
     expect(translateNow('settings.managedUpdates.scopeNotRestored', '工作', '连接失败')).toBe(
       '配置档案“工作”未恢复：连接失败'
     )
@@ -209,6 +220,12 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('tips.items.profiles.title')).toBe('配置档案彼此独立')
   })
 
+  it('localizes the built-in indicator command description', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('composer.commandDescs./indicator')).toBe('选择终端忙碌指示器样式')
+  })
+
   it('localizes messaging setup terminology while preserving technical values', () => {
     setRuntimeI18nLocale('zh')
 
@@ -234,6 +251,22 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('messaging.platformIntro.discord')).toContain('添加机器人')
     expect(translateNow('messaging.platformIntro.slack')).toContain('机器人令牌和应用级令牌')
     expect(translateNow('messaging.platformIntro.matrix')).toContain('主服务器（homeserver）')
+  })
+
+  it('localizes artifact indexing and preview failure copy', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(translateNow('artifacts.partialLoadMessage', 2, 5)).toBe('索引产物时跳过了最近 5 个会话中的 2 个。')
+    expect(translateNow('artifacts.safeLoadFailure', 2)).toBe('其中 2 个会话超过了安全加载上限。')
+    expect(translateNow('artifacts.unreadableFailure', 1)).toBe('其中 1 个会话无法读取。')
+    expect(translateNow('preview.artifactWriteFailed')).toBe('无法写入产物文件。')
+    expect(translateNow('preview.invalidPdfDataUrl')).toBe('PDF 数据地址无效。')
+    expect(translateNow('preview.invalidPdfDataUrlType')).toBe('PDF 数据地址类型无效。')
+    expect(translateNow('preview.invalidPdfDataUrlPayload')).toBe('PDF 数据地址内容无效。')
+    expect(translateNow('preview.invalidPdfFileHeader')).toBe('PDF 文件头无效。')
+    expect(translateNow('preview.pdfObjectUrlUnsupported')).toBe('当前环境不支持 PDF 对象地址。')
+    expect(translateNow('preview.webviewNotReady')).toBe('预览页面尚未准备好，请稍后重试。')
+    expect(translateNow('preview.webviewInputUnavailable')).toBe('预览页面暂不支持输入操作。')
   })
 
   it('uses the Chinese token term consistently in usage surfaces', () => {

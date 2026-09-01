@@ -54,7 +54,7 @@ const viewportNow = (): FloatingViewport => ({
 })
 
 function FloatingPane({ pane }: { pane: Contribution }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const chrome = paneChrome(pane)
   const anchor = chrome.anchor ?? 'top-right'
 
@@ -169,7 +169,7 @@ function FloatingPane({ pane }: { pane: Contribution }) {
         style={{ touchAction: 'none' }}
       >
         <span className="truncate font-medium">
-          {localizedPaneTitle(t, pane.id, String(pane.title ?? pane.id), pane.source)}
+          {localizedPaneTitle(t, pane.id, String(pane.title ?? pane.id), pane.source, locale)}
         </span>
         <button
           className="rounded p-0.5 text-(--ui-text-quaternary) transition-colors hover:text-(--ui-text-primary)"

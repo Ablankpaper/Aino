@@ -94,16 +94,17 @@ interface Registration {
   area: string
   data?: Record<string, unknown>
   id: string
+  title?: string
 }
 
 /** A recording `PluginContext`: registrations, their disposers, teardown. */
-function recordingContext() {
+function recordingContext(t: (key: string) => string = (key: string) => key) {
   const disposers: (() => void)[] = []
   const registrations: Registration[] = []
   const unregisters = new Map<string, () => void>()
 
   const ctx = {
-    i18n: { register: () => () => undefined, t: (key: string) => key },
+    i18n: { register: () => () => undefined, t },
     onDispose: (fn: () => void) => disposers.push(fn),
     register: (registration: Registration) => {
       registrations.push(registration)
@@ -175,6 +176,36 @@ describe('the Bots pane dock', () => {
     expect((data.dock as { pos: string }).pos).not.toBe('bottom')
     // No heal token: the invariant runs at every adoption, unconditionally.
     expect(data).not.toHaveProperty('heal')
+
+    harness.dispose()
+  })
+})
+
+describe('localized registration labels', () => {
+  it('uses the active locale for the pane and palette labels', () => {
+    const harness = recordingContext(key =>
+      ({
+        'roster.title': '机器人',
+        'bot.newCommand': '新建机器人…'
+      })[key] ?? key
+    )
+
+    plugin.register(harness.ctx)
+
+    expect(harness.find('pane')?.title).toBe('机器人')
+    expect(harness.find('new-agent')?.data?.label).toBe('新建机器人…')
+
+    harness.dispose()
+  })
+
+  it('keeps registration labels readable when an older host echoes raw keys', () => {
+    paneStores()
+    const harness = recordingContext()
+
+    plugin.register(harness.ctx)
+
+    expect(harness.find('pane')?.title).toBe('Bots')
+    expect(harness.find('new-agent')?.data?.label).toBe('New Bot…')
 
     harness.dispose()
   })

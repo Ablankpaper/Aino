@@ -23,7 +23,7 @@ import { columnMeta, type KanbanTask } from './types'
 
 // Plugin-scoped i18n lives in ./i18n; re-exported so components import strings
 // and chrome from one place (./ui).
-export { columnHelp, columnLabel, laneLabel, type KanbanText, lockedReason, useKanban } from './i18n'
+export { columnHelp, columnLabel, type KanbanText, laneLabel, lockedReason, useKanban } from './i18n'
 
 /** One-shot "open the new-task dialog in this lane" request, so a command that
  *  fires from ANYWHERE (keybind, palette) can reach the board page without the

@@ -2,6 +2,7 @@ import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import { assistantTextPart, type ChatMessage } from '@/lib/chat-messages'
 import { $previewTabs, $previewTarget, closeRightRail, type PreviewTarget } from '@/store/preview'
 import { $activeSessionId, $currentCwd, $messages, $selectedStoredSessionId } from '@/store/session'
@@ -20,6 +21,22 @@ function fileTarget(path: string): PreviewTarget {
 }
 
 let handleEvent: (event: RpcEvent) => void = () => undefined
+
+type RestartPreviewServer = (url: string, context?: string) => Promise<string>
+
+function RestartHarness({ onReady, requestGateway }: { onReady: (restart: RestartPreviewServer) => void; requestGateway: <T = unknown>(method: string, params?: Record<string, unknown>) => Promise<T> }) {
+  const routing = usePreviewRouting({
+    baseHandleGatewayEvent: vi.fn(),
+    currentCwd: '/work',
+    requestGateway
+  })
+
+  useEffect(() => {
+    onReady(routing.restartPreviewServer)
+  }, [onReady, routing.restartPreviewServer])
+
+  return null
+}
 
 function Harness() {
   const routing = usePreviewRouting({
@@ -76,6 +93,7 @@ describe('preview routing', () => {
     closeRightRail()
     $activeSessionId.set(null)
     $selectedStoredSessionId.set(null)
+    setRuntimeI18nLocale('en')
     window.localStorage.clear()
     vi.restoreAllMocks()
   })
@@ -269,6 +287,38 @@ describe('preview routing', () => {
       await emitPreviewClose()
 
       expect($previewTabs.get()).toHaveLength(0)
+    })
+  })
+
+  describe('restart_preview_server', () => {
+    it('localizes the missing-session error in Simplified Chinese', async () => {
+      setRuntimeI18nLocale('zh')
+      $activeSessionId.set(null)
+      const requestGateway = vi.fn(async () => ({}) as never)
+      let restart: RestartPreviewServer | null = null
+
+      render(<RestartHarness onReady={value => (restart = value)} requestGateway={requestGateway} />)
+      await waitFor(() => expect(restart).not.toBeNull())
+
+      await expect(restart!('http://localhost:5173')).rejects.toThrow('没有活动会话，无法在后台重启。')
+      expect(requestGateway).not.toHaveBeenCalled()
+    })
+
+    it('localizes a restart response without a task id in Simplified Chinese', async () => {
+      setRuntimeI18nLocale('zh')
+      const requestGateway = vi.fn(async () => ({}) as never)
+      let restart: RestartPreviewServer | null = null
+
+      render(<RestartHarness onReady={value => (restart = value)} requestGateway={requestGateway} />)
+      await waitFor(() => expect(restart).not.toBeNull())
+
+      await expect(restart!('http://localhost:5173')).rejects.toThrow('后台重启未返回任务 ID。')
+      expect(requestGateway).toHaveBeenCalledWith('preview.restart', {
+        context: undefined,
+        cwd: '/work',
+        session_id: RUNTIME_SESSION_ID,
+        url: 'http://localhost:5173'
+      })
     })
   })
 })

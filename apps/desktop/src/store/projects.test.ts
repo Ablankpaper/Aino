@@ -76,6 +76,7 @@ const selectDesktopPaths = vi.mocked(fs.selectDesktopPaths)
 
 const gw = await import('@/store/gateway')
 const activeGateway = vi.mocked(gw.activeGateway)
+const ensureActiveGatewayOpen = vi.mocked(gw.ensureActiveGatewayOpen)
 const gatewayAtom = gw.$gateway
 
 const git = await import('@/lib/desktop-git')
@@ -136,7 +137,27 @@ describe('projects RPC profile forwarding', () => {
     $activeGatewayProfile.set('default')
     $activeProjectId.set(null)
     $projectTree.set([])
+    ensureActiveGatewayOpen.mockResolvedValue(null)
     setShowAllProfiles(false)
+  })
+
+  it('uses the localized gateway-unavailable copy when no project gateway is reachable', async () => {
+    activeGateway.mockReturnValue(null)
+
+    await expect(createProject({ name: 'Demo' })).rejects.toThrow('desktop.gatewayNotConnected')
+  })
+
+  it('uses localized copy when projects are unavailable in the all-profiles view', async () => {
+    const gateway = { connectionState: 'open', request: vi.fn() }
+    activeGateway.mockReturnValue(gateway as never)
+    gatewayAtom.set(gateway as never)
+    setShowAllProfiles(true)
+
+    try {
+      await expect(createProject({ name: 'Demo' })).rejects.toThrow('sidebar.projects.unavailableAllProfiles')
+    } finally {
+      setShowAllProfiles(false)
+    }
   })
 
   it('forwards the normalized active profile to project read RPCs', async () => {

@@ -1,4 +1,5 @@
 import { translateNow } from '@/i18n'
+
 import { notifyError } from './notifications'
 
 // Window flag set by the Electron main process when it opens a standalone
@@ -174,7 +175,7 @@ async function runWindowOpen(call: () => Promise<WindowOpenResult>, failMessage:
     const result = await call()
 
     if (!result?.ok) {
-      notifyError(new Error(result?.error || 'unknown error'), failMessage)
+      notifyError(new Error(result?.error || translateNow('errors.genericFailure')), failMessage)
 
       return false
     }

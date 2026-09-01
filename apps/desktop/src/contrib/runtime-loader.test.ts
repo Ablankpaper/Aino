@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { HermesReadDirResult } from '@/global'
 import type * as HermesModule from '@/hermes'
+import { setRuntimeI18nLocale } from '@/i18n'
+import { $notifications, clearNotifications } from '@/store/notifications'
 
 import { $pluginRecords, publishPlugin, setPluginEnabled } from './plugins-store'
 import { discoverRuntimePlugins, loadRuntimePlugin, watchRuntimePlugins } from './runtime-loader'
@@ -26,6 +28,8 @@ const stopPreviewFileWatch = vi.fn<(id: string) => Promise<boolean>>()
 const onPreviewFileChanged = vi.fn()
 
 beforeEach(() => {
+  setRuntimeI18nLocale('en')
+  clearNotifications()
   desktopPluginsRoot.mockReset()
   agentPluginsRoot.mockReset()
   readDir.mockReset()
@@ -50,7 +54,20 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  setRuntimeI18nLocale('en')
+  clearNotifications()
   delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
+})
+
+describe('runtime plugin localization', () => {
+  it('localizes the load failure title in Simplified Chinese', async () => {
+    setRuntimeI18nLocale('zh')
+
+    const id = await loadRuntimePlugin("import value from 'unsupported-package'; export default value", 'demo')
+
+    expect(id).toBeNull()
+    expect($notifications.get()[0]?.title).toBe('插件“demo”加载失败')
+  })
 })
 
 describe('scanDiskPlugins (#66899)', () => {

@@ -80,7 +80,7 @@ export function GroupImageControls({ image, onImage, seedName, seedMembers }: Gr
       })
 
       if (!res?.success) {
-        throw new Error(res?.error || 'generation failed')
+        throw new Error(res?.error || b.group.pictureGenerationFailed)
       }
 
       const img = res.image_data || res.image

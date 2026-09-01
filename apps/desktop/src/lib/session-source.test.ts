@@ -1,6 +1,17 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { isMessagingSource, MESSAGING_SESSION_SOURCE_IDS, sessionSourceSearchTerms } from './session-source'
+import { setRuntimeI18nLocale } from '@/i18n'
+
+import {
+  isMessagingSource,
+  MESSAGING_SESSION_SOURCE_IDS,
+  sessionSourceLabel,
+  sessionSourceSearchTerms
+} from './session-source'
+
+afterEach(() => {
+  setRuntimeI18nLocale('en')
+})
 
 // Regression guard for #46761 / PR #47395: Photon (iMessage) must keep its own
 // sidebar section. refreshMessagingSessions() filters rows through
@@ -31,5 +42,21 @@ describe('photon messaging source registration', () => {
     expect(isMessagingSource('cli')).toBe(false)
     expect(isMessagingSource(null)).toBe(false)
     expect(isMessagingSource(undefined)).toBe(false)
+  })
+})
+
+describe('session source labels', () => {
+  it('uses the active locale for built-in source labels', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(sessionSourceLabel('desktop')).toBe('桌面端')
+    expect(sessionSourceLabel('gateway')).toBe('网关')
+    expect(sessionSourceLabel('weixin')).toBe('微信')
+  })
+
+  it('keeps unknown source identifiers intact', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(sessionSourceLabel('custom_bridge')).toBe('Custom Bridge')
   })
 })

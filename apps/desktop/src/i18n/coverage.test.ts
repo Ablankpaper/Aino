@@ -92,4 +92,9 @@ describe('Simplified Chinese catalog coverage', () => {
   it('does not leave complete English sentences in the Chinese catalog', () => {
     expect(findEnglishOnlyLeaves(en, zh)).toEqual([])
   })
+
+  it('localizes the Webhook URL label for Chinese users', () => {
+    expect(zh.webhooks.webhookUrl).not.toBe(en.webhooks.webhookUrl)
+    expect(zh.webhooks.webhookUrl).toMatch(/\p{Script=Han}/u)
+  })
 })

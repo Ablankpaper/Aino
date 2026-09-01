@@ -78,7 +78,7 @@ export const Thread = memo(function Thread({
 
   const confirmRestore = useCallback(() => {
     if (!restoreConfirmTarget || !onRestoreToMessage) {
-      throw new Error('Restore is unavailable for this message.')
+      throw new Error(copy.restoreFailed)
     }
 
     const { messageId, text, userOrdinal } = restoreConfirmTarget

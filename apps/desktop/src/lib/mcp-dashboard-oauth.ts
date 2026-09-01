@@ -1,3 +1,5 @@
+import { translateNow } from '@/i18n'
+
 export interface McpOAuthFlow {
   flow_id: string
   server_name: string
@@ -27,7 +29,7 @@ interface CompleteOptions {
  *  skip error toasts for a deliberate user cancel. */
 export class McpOAuthCancelled extends Error {
   constructor() {
-    super('OAuth cancelled by user')
+    super(translateNow('settings.mcp.oauthCancelled'))
     this.name = 'McpOAuthCancelled'
   }
 }
@@ -47,11 +49,11 @@ export async function completeMcpDesktopOAuth({
   const started = await start(serverName)
 
   if (started.status === 'error') {
-    throw new Error(started.error || 'OAuth failed to start')
+    throw new Error(started.error || translateNow('settings.mcp.oauthStartFailed'))
   }
 
   if (!started.authorization_url) {
-    throw new Error('OAuth server did not provide an authorization URL')
+    throw new Error(translateNow('settings.mcp.oauthAuthorizationUrlMissing'))
   }
 
   await openExternal(started.authorization_url)
@@ -88,7 +90,7 @@ export async function completeMcpDesktopOAuth({
     }
 
     if (current.status === 'error') {
-      throw new Error(current.error || 'OAuth authorization failed')
+      throw new Error(current.error || translateNow('settings.mcp.oauthAuthorizationFailed'))
     }
 
     await sleep(1000)

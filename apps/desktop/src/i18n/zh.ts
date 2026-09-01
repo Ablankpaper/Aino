@@ -13,6 +13,7 @@ export const zh: Translations = {
     choose: '选择',
     clear: '清除',
     close: '关闭',
+    actions: '操作',
     collapse: '收起',
     confirm: '确认',
     connect: '连接',
@@ -84,7 +85,13 @@ export const zh: Translations = {
       gatewayConnectionLost: '与网关的连接已断开',
       gatewayConnectionLostDetail: '仍在后台重试。你可以继续阅读和撰写草稿；如果问题持续，请打开网关设置。',
       gatewaySignInRequired: '需要登录网关',
-      ipcBridgeUnavailable: '桌面 IPC 桥不可用。'
+      ipcBridgeUnavailable: '桌面 IPC 桥不可用。',
+      backendConnectionTimeout: '连接 Aino 后端超时',
+      gatewayRevalidationTimeout: '重新验证网关连接超时',
+      gatewayReconnectTimeout: '重新连接 Aino 后端超时',
+      gatewayWsRemintTimeout: '重新生成网关 WebSocket 地址超时',
+      gatewayFallbackTimeout: '解析备用网关连接超时',
+      gatewayWsMintTimeout: '生成网关 WebSocket 地址超时'
     },
     failure: {
       title: 'Hermes 无法启动',
@@ -117,7 +124,14 @@ export const zh: Translations = {
       signInFailed: '登录失败',
       signInToRemoteGateway: '登录远程网关',
       signInWithProvider: provider => `使用 ${provider} 登录`,
-      identityProvider: '你的身份提供方'
+      identityProvider: '你的身份提供方',
+      backendStartFailed: (message, profile) =>
+        profile ? `Aino 配置档案“${profile}”的后端启动失败：${message}` : `Aino 后端启动失败：${message}`,
+      backendExitedBeforeReady: (status, suffix, profile) =>
+        (profile
+          ? `Aino 配置档案“${profile}”的后端在准备就绪前退出（${status}）`
+          : `Aino 后端在准备就绪前退出（${status}）`) +
+        (suffix.startsWith('.') ? `。${suffix.slice(1)}` : suffix)
     }
   },
 
@@ -156,7 +170,8 @@ export const zh: Translations = {
       microphonePermission: '麦克风权限已被拒绝。',
       openaiRejectedApiKey: 'OpenAI 拒绝了该 API 密钥。',
       openaiRejectedApiKeyWithStatus: status => `OpenAI 拒绝了该 API 密钥 (${status} invalid_api_key)。`,
-      openaiTtsNeedsKey: 'OpenAI TTS 需要 VOICE_TOOLS_OPENAI_KEY 或 OPENAI_API_KEY。'
+      openaiTtsNeedsKey: 'OpenAI TTS 需要 VOICE_TOOLS_OPENAI_KEY 或 OPENAI_API_KEY。',
+      spawnFailed: '无法启动后台操作。'
     },
     voice: {
       configureSpeechToText: '配置语音转文字后即可使用语音模式。',
@@ -352,7 +367,11 @@ export const zh: Translations = {
       openVerification: '打开验证页面',
       dismiss: '关闭提示',
       waiting: '等待验证链接…',
-      verify: '验证后继续'
+      verify: '验证后继续',
+      verificationNotApprovedTitle: '验证未获批准',
+      verificationNotApprovedMessage: '验证完成，但未允许此终端使用远程消费。',
+      verificationCompleteTitle: '验证完成',
+      verificationCompleteMessage: '此终端已允许使用远程消费。'
     },
     refusal: {
       cardConfirmationTitle: '需要确认银行卡',
@@ -609,7 +628,8 @@ export const zh: Translations = {
         resolveFolder: '无法解析插件文件夹',
         openFolder: '无法打开插件文件夹',
         backendHomeMissing: '后端未提供其主目录',
-        unknown: '未知错误'
+        unknown: '未知错误',
+        runtimeLoadFailed: origin => `插件“${origin}”加载失败`
       },
       kinds: { bundled: '内置', disk: '磁盘', runtime: '运行时' },
       agent: {
@@ -922,7 +942,8 @@ export const zh: Translations = {
         exportFailed: slug => `无法导出 ${slug}`,
         noneAvailable: '当前没有可开启的宠物。',
         turnOnFailed: '无法开启宠物。',
-        turnOffFailed: '无法关闭宠物。'
+        turnOffFailed: '无法关闭宠物。',
+        spriteLabel: name => (name ? `${name} 宠物` : '宠物')
       }
     },
     fieldLabels: defineFieldCopy({
@@ -1551,6 +1572,29 @@ export const zh: Translations = {
       catalogEnvRequired: '安装前请填写必需的值。',
       oauthTag: 'OAuth',
       apiKeyTag: 'API 密钥',
+      oauthStartFailed: 'OAuth 启动失败',
+      oauthAuthorizationUrlMissing: 'OAuth 服务器未提供授权地址',
+      oauthAuthorizationFailed: 'OAuth 授权失败',
+      oauthCancelled: 'OAuth 已由用户取消',
+      catalogDescriptions: {
+        airtable: '管理 Airtable 工作区中的基础、表格和记录。',
+        asana: '管理 Asana 工作区中的任务、项目和目标。',
+        atlassian: '通过 Atlassian 托管的 MCP 访问 Jira 工单和 Confluence 页面。',
+        datadog: '获取 Datadog 的日志、监控器、仪表板和事件。',
+        figma: '从 Figma 文件获取设计上下文和 Code Connect 信息。',
+        hugging_face: '获取 Hugging Face Hub 中的模型、数据集、Spaces 和论文。',
+        intercom: '获取 Intercom 中的会话、工单和客户数据。',
+        linear: '查找、创建和更新 Linear 工单、项目与评论。',
+        netlify: '通过 Netlify 托管的 MCP 管理站点、部署和环境变量。',
+        notion: '管理 Notion 工作区中的页面和数据库。',
+        paypal: '通过 PayPal 托管的 MCP 管理付款、发票和订阅。',
+        sentry: '获取 Sentry 中的问题、堆栈跟踪和错误上下文。',
+        square: '通过 Square 托管的 MCP 管理目录、订单和付款。',
+        stripe: '通过 Stripe 托管的 MCP 管理付款、客户和发票。',
+        supabase: '管理 Supabase 项目的数据库、认证和存储。',
+        vercel: '通过 Vercel 托管的 MCP 管理部署、日志和项目。',
+        webflow: '通过 Webflow 托管的 MCP 管理站点、CMS 集合和页面。'
+      },
       capabilitySummary: (tools, prompts, resources) =>
         `已启用 ${[`${tools} 个工具`, ...(prompts ? [`${prompts} 个提示`] : []), ...(resources ? [`${resources} 个资源`] : [])].join('、')}`,
       costTokens: tokens => `每次调用约 ${tokens} 个词元`,
@@ -1582,6 +1626,8 @@ export const zh: Translations = {
       deepLinkErrorShape: '配置必须是包含字符串 `url` 或 `command` 字段的 JSON 对象。',
       deepLinkErrorUrl: '仅允许 http:// 和 https:// 服务器地址。',
       deepLinkErrorTooLarge: '配置负载超过 32KB 上限。',
+      importExpectedObject: '应为 JSON 对象。',
+      importServerWrapperRequired: '请将服务器包裹在 `{"mcpServers": {"name": …}}` 中，以便为其指定名称。',
       importButton: '导入',
       importPlaceholder: '粘贴 mcp.json 片段、npx/docker 命令、claude mcp add 命令、URL 或 Cursor 链接…',
       importNoMatch: '粘贴的文本中未识别到服务器配置。',
@@ -2093,6 +2139,8 @@ export const zh: Translations = {
     subtitle: '当前回合的子智能体实时活动。',
     emptyTitle: '暂无活跃子智能体',
     emptyDesc: '当某个回合派发任务时，子智能体会在此实时显示进度。',
+    defaultGoal: '子智能体',
+    timedOutAfter: seconds => `运行 ${seconds} 秒后超时`,
     running: '运行中',
     failed: '失败',
     done: '完成',
@@ -2534,7 +2582,7 @@ export const zh: Translations = {
     deliverOnly: '仅投递',
     createdTitle: '订阅已创建',
     createdSecretHint: '请立即复制密钥 —— 它只显示一次。',
-    webhookUrl: 'Webhook URL',
+    webhookUrl: 'Webhook 地址',
     secretOnce: '密钥（仅显示一次）',
     done: '完成',
     fieldName: '名称',
@@ -2575,6 +2623,7 @@ export const zh: Translations = {
     newProfile: '新建配置档案',
     importProfile: '导入配置档案…',
     exportProfile: '导出配置档案…',
+    archiveFilter: 'Aino 配置档案',
     imported: '配置档案已导入',
     exported: '配置档案已导出',
     failedImport: '导入配置档案失败',
@@ -2702,6 +2751,7 @@ export const zh: Translations = {
     close: '关闭定时任务',
     title: '定时任务',
     count: count => `${count} 个任务`,
+    jobFallbackTitle: '定时任务',
     modelImpact: {
       title: '定时任务需要检查',
       message: count => `在您检查模型设置之前，${count} 个定时任务将被跳过。`,
@@ -3009,6 +3059,9 @@ export const zh: Translations = {
     noArtifactsDesc: '当会话生成图片和文件输出时，它们会显示在这里。',
     failedLoad: '产物加载失败',
     openFailed: '打开失败',
+    partialLoadMessage: (failed, total) => `索引产物时跳过了最近 ${total} 个会话中的 ${failed} 个。`,
+    safeLoadFailure: count => `其中 ${count} 个会话超过了安全加载上限。`,
+    unreadableFailure: count => `其中 ${count} 个会话无法读取。`,
     itemsImage: '张图片',
     itemsLink: '个链接',
     itemsFile: '个文件',
@@ -3058,6 +3111,35 @@ export const zh: Translations = {
       messaging: '消息平台',
       artifacts: '产物',
       cron: '定时任务'
+    },
+    sources: {
+      api_server: 'API 服务',
+      bluebubbles: 'iMessage',
+      cli: '命令行',
+      codex: 'Codex',
+      desktop: '桌面端',
+      discord: 'Discord',
+      dingtalk: '钉钉',
+      email: '邮件',
+      feishu: '飞书',
+      gateway: '网关',
+      homeassistant: 'Home Assistant',
+      kanban: '看板',
+      local: '本地',
+      matrix: 'Matrix',
+      mattermost: 'Mattermost',
+      photon: 'Photon',
+      qqbot: 'QQ',
+      signal: 'Signal',
+      slack: 'Slack',
+      sms: '短信',
+      telegram: 'Telegram',
+      tui: '终端界面',
+      webhook: 'Webhook',
+      wecom: '企业微信',
+      weixin: '微信',
+      whatsapp: 'WhatsApp',
+      yuanbao: 'Yuanbao'
     },
     searchAria: '搜索会话',
     searchPlaceholder: '搜索会话…',
@@ -3189,6 +3271,8 @@ export const zh: Translations = {
       copyPath: '复制路径',
       removeFromSidebar: '从侧边栏移除',
       createFailed: '无法创建项目',
+      unavailableAllProfiles: '查看全部配置档案时无法使用项目功能',
+      activeProfileChanged: '连接期间活动配置档案发生变化',
       staleBackend: '请更新 Hermes 后端以创建项目——当前后端比桌面应用旧（设置 → 更新 → 后端）。',
       deleteConfirm: '这会从 Hermes 中移除已保存的项目。文件、git 仓库和工作树保持不变。',
       startWork: '新建工作树',
@@ -3441,6 +3525,7 @@ export const zh: Translations = {
       '/approvals': '查看或设置持久化的危险命令批准模式',
       '/reasoning': '管理推理强度和显示方式',
       '/fast': '切换快速模式——OpenAI 优先处理/Anthropic Fast Mode（普通/快速）',
+      '/indicator': '选择终端忙碌指示器样式',
       '/wake': '控制桌面唤醒词监听器 [on|off|status]',
       '/profile': '切换当前 Hermes 配置档案',
       '/skin': '切换桌面主题或切换到下一个主题',
@@ -3611,6 +3696,8 @@ export const zh: Translations = {
     stop: '停止',
     dismiss: '关闭',
     exit: code => `退出码 ${code}`,
+    backgroundProcess: '后台进程',
+    standingGoal: '持续目标',
     coding: {
       title: '工作区',
       noBranch: '无分支',
@@ -3757,6 +3844,19 @@ export const zh: Translations = {
       skipped: '已跳过',
       failed: '失败'
     },
+    stageNames: {
+      'system-packages': '系统组件',
+      uv: 'uv',
+      python: 'Python 环境',
+      repo: 'Aino 代码库',
+      dependencies: 'Python 依赖',
+      node: 'Node 运行时',
+      desktop: '桌面应用',
+      handoff: '准备更新',
+      update: '下载最新版本',
+      rebuild: '重新构建桌面应用',
+      install: '安装更新'
+    },
     oneTimeTitle: 'Hermes 需要一次性安装',
     unsupportedDesc: platform =>
       `${platform} 暂不支持自动首次启动安装。请打开终端并运行下面的命令，然后重新启动此应用。之后启动会跳过此步骤。`,
@@ -3852,6 +3952,7 @@ export const zh: Translations = {
       gemini: { short: 'Gemini 模型', description: '直接访问 Google Gemini 模型。' },
       xai: { short: 'Grok 模型', description: '直接访问 xAI Grok 模型。' },
       local: {
+        title: '本地 / 自定义端点',
         short: '自托管',
         description: '将 Hermes 指向本地或自托管的 OpenAI 兼容端点 (vLLM、llama.cpp、Ollama 等)。'
       }
@@ -3874,6 +3975,7 @@ export const zh: Translations = {
     connectedProvider: provider => `${provider} 已连接`,
     connectedPicking: provider => `${provider} 已连接。正在选择默认模型...`,
     signInFailed: '登录失败，请重试。',
+    genericApiKeyDescription: provider => `直接访问 ${provider} 的 API。`,
     pickDifferentProvider: '选择其他提供方',
     signInWith: provider => `使用 ${provider} 登录`,
     openedBrowser: provider => `已在浏览器中打开 ${provider}。`,
@@ -4057,6 +4159,7 @@ export const zh: Translations = {
       gatewayOffline: '离线',
       gatewayRestarting: '重启中…',
       gatewayTitle: '网关',
+      noRecentGatewayLogs: '暂无最近的网关日志',
       customizeTitle: '在状态栏中显示',
       hideStatusbar: '隐藏状态栏',
       resetStatusbar: '恢复默认设置',
@@ -4164,6 +4267,7 @@ export const zh: Translations = {
     terminalNew: '新建终端',
     terminalCloseOthers: '关闭其他',
     terminalCloseAll: '关闭全部',
+    terminalStartFailed: error => `终端启动失败：${error}`,
     addToChat: '添加到对话'
   },
 
@@ -4194,6 +4298,16 @@ export const zh: Translations = {
     truncated: '显示前 512 KB。',
     noInlineTitle: '没有内联预览',
     noInlineBody: mimeType => `${mimeType || '此文件类型'} 仍可作为上下文附件。`,
+    desktopBridgeUnavailable: '桌面桥接不可用',
+    artifactWriteFailed: '无法写入产物文件。',
+    invalidPdfDataUrl: 'PDF 数据地址无效。',
+    invalidPdfDataUrlType: 'PDF 数据地址类型无效。',
+    invalidPdfDataUrlPayload: 'PDF 数据地址内容无效。',
+    invalidPdfFileHeader: 'PDF 文件头无效。',
+    pdfObjectUrlUnsupported: '当前环境不支持 PDF 对象地址。',
+    webviewNotReady: '预览页面尚未准备好，请稍后重试。',
+    webviewInputUnavailable: '预览页面暂不支持输入操作。',
+    couldNotOpenTarget: target => `无法打开预览目标：${target}`,
     edit: '编辑',
     editing: '编辑中',
     unsavedChanges: '未保存的更改',
@@ -4265,6 +4379,8 @@ export const zh: Translations = {
       restartingTitle: '正在重启预览服务器',
       restartingMessage: 'Hermes 正在后台工作。可在预览控制台查看进度。',
       startRestartFailed: message => `无法启动服务器重启：${message}`,
+      restartNoActiveSession: '没有活动会话，无法在后台重启。',
+      restartMissingTaskId: '后台重启未返回任务 ID。',
       restartFailed: '服务器重启失败',
       hideConsole: '隐藏预览控制台',
       showConsole: '显示预览控制台',
@@ -4555,6 +4671,8 @@ export const zh: Translations = {
       stderr: '标准错误',
       errorDetails: '错误详情',
       snapshotSummary: '快照摘要',
+      delegatedTask: '已委派任务',
+      taskNumber: index => `任务 ${index}`,
       fallbacks: {
         returnedError: '工具返回了错误。',
         returnedSuccessFalse: '工具返回 success=false。',
@@ -4564,6 +4682,7 @@ export const zh: Translations = {
       cron: {
         noJobs: '没有 Cron 任务',
         noJobsScheduled: '没有已安排的 Cron 任务',
+        jobsCount: count => `${count} 个定时任务`,
         schedule: '计划',
         repeat: '重复',
         delivery: '发送到',
@@ -4691,6 +4810,7 @@ export const zh: Translations = {
 
   prompts: {
     gatewayDisconnected: 'Hermes 网关未连接',
+    dangerousCommand: '危险命令',
     sudoSendFailed: '无法发送 sudo 密码',
     secretSendFailed: '无法发送密钥',
     sudoTitle: '管理员密码',
@@ -4716,6 +4836,7 @@ export const zh: Translations = {
     fsRenameUnavailable: '重命名功能不可用',
     fsDeleteUnavailable: '删除功能不可用',
     audioReadFailed: '无法读取录制的音频',
+    fileDownloadBridgeUnavailable: '桌面文件下载桥不可用',
     sessionUnavailable: '会话不可用',
     gatewayConnectionClosed: 'Hermes 网关连接已关闭',
     gatewayConnectionFailed: '无法连接到 Hermes 网关',
@@ -4727,6 +4848,8 @@ export const zh: Translations = {
     emptySlashCommand: '空斜杠命令',
     desktopCommands: '桌面端命令',
     skillCommandsAvailable: count => `${count} 个技能命令可用。`,
+    petScaleUsage: '用法：/pet scale <factor>（例如：/pet scale 0.5）',
+    agentReportedError: 'Aino 报告了错误',
     warningLine: message => `警告：${message}`,
     errorLine: message => `错误：${message}`,
     wakeUsage: '用法：/wake [on|off|status]',
@@ -4759,6 +4882,7 @@ export const zh: Translations = {
     browserConnected: '浏览器已通过 CDP 连接到正在运行的 Chromium 系列浏览器',
     browserEndpoint: url => `端点：${url}`,
     browserNextCall: '下一次浏览器工具调用将使用此 CDP 端点',
+    browserUrlUnavailable: '（URL 不可用）',
     compressing: focusTopic => (focusTopic ? `正在压缩上下文：${focusTopic}` : '正在压缩上下文……'),
     compressedMessages: count => `已压缩 ${count} 条消息`,
     nothingToCompress: '没有可压缩的内容',
@@ -4800,6 +4924,9 @@ export const zh: Translations = {
     editFailed: '编辑失败',
     editTurnUnavailable: '此回合已不在服务器历史中（可能已被压缩移除）。',
     resumeFailed: '恢复失败',
+    restoreNoActiveSession: '没有可恢复的活动会话。',
+    restoreTargetMissing: '找不到要恢复的消息。',
+    restoreEmptyMessage: '无法恢复空消息。',
     readOnlyTranscriptTitle: '已以只读方式打开',
     readOnlyTranscriptBody:
       '尚无已连接的后端认领这个较早的会话，因此它以只读记录方式打开。历史记录完好；在有后端认领之前无法发送消息。',
@@ -4819,6 +4946,8 @@ export const zh: Translations = {
     stopProcessFailed: '无法停止进程',
     gatewayReconnectUnavailable: '网关重连不可用',
     remoteAttachTooLarge: (label, maxMb) => `${label} 太大，无法上传到远程网关${maxMb ? `（上限 ${maxMb} MB）` : ''}。`,
+    attachmentReadFailed: label => `无法读取附件：${label}`,
+    attachmentAttachFailed: label => `无法附加附件：${label}`,
     skinCommand: {
       noThemes: '当前没有可用的桌面主题。',
       switched: label => `桌面主题已切换为 ${label}。`,
@@ -4848,6 +4977,7 @@ export const zh: Translations = {
     deleteFailed: '删除失败',
     archived: '已归档',
     archiveFailed: '归档失败',
+    sessionOwnershipUnavailable: '无法确定会话归属，已取消操作。',
     cwdChangeFailed: '工作目录更改失败',
     cwdStagedTitle: '工作目录已暂存',
     cwdStagedMessage: '重启桌面后端后，工作目录更改才会应用到当前活跃会话。',
@@ -4860,6 +4990,7 @@ export const zh: Translations = {
     restartToUseSaveImage: '重启 Hermes 桌面版后可使用保存图片。',
     restartToSaveImages: '重启 Hermes 桌面版以保存图片',
     imageDownloadFailed: '图片下载失败',
+    imageFetchFailed: status => `无法获取图片（HTTP ${status}）。`,
     openImage: '打开图片',
     downloadImage: '下载图片',
     savingImage: '正在保存图片',
@@ -4945,6 +5076,7 @@ export const zh: Translations = {
     boundaryTitle: '界面出错了',
     boundaryDesc: '此视图遇到意外错误。你的对话和设置是安全的。',
     contribFailedToRender: id => `面板“${id}”渲染失败`,
+    contribFailedToRenderDetail: (id, error) => `“${id}”渲染失败：${error}`,
     logUnavailable: error => `日志暂不可用：${error}`,
     reloadWindow: '重新加载窗口',
     openLogs: '打开日志'
@@ -5009,7 +5141,8 @@ export const zh: Translations = {
       zoomIn: '放大',
       copy: '复制',
       copied: '已复制',
-      close: '关闭'
+      close: '关闭',
+      openPullRequest: number => `打开拉取请求 #${number}`
     },
     messages: {
       embedLoad: label => `加载 ${label}`,

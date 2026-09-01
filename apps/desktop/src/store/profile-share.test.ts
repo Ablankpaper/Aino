@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import type { DesktopTheme } from '@/themes/types'
 import type { ProfileDesktopOverlay } from '@/types/hermes'
 
@@ -22,7 +23,7 @@ vi.mock('@/hermes', () => ({
 vi.mock('@/lib/query-client', () => ({ invalidateProfileScopedQueries: vi.fn() }))
 vi.mock('@/store/starmap', () => ({ resetStarmapGraph: vi.fn() }))
 
-const { applyDesktopOverlay, buildDesktopOverlay, exportProfileBundle } = await import('./profile-share')
+const { applyDesktopOverlay, buildDesktopOverlay, exportProfileBundle, runExportProfileFlow } = await import('./profile-share')
 const { $profileColors, setProfileColor } = await import('./profile')
 const { modePref, skinPref } = await import('@/themes/context')
 const { $userThemes } = await import('@/themes/user-themes')
@@ -42,10 +43,12 @@ beforeEach(() => {
   window.localStorage.clear()
   $userThemes.set({})
   $profileColors.set({})
+  setRuntimeI18nLocale('en')
 })
 
 afterEach(() => {
   vi.clearAllMocks()
+  setRuntimeI18nLocale('en')
 })
 
 describe('buildDesktopOverlay', () => {
@@ -122,5 +125,22 @@ describe('exportProfileBundle', () => {
     const overlay = JSON.parse(call[1]?.extraFiles?.['desktop.json'] ?? '{}') as ProfileDesktopOverlay
     expect(overlay.skin).toBe('mono')
     expect(call[1]?.output).toBe('/tmp/glam.tar.gz')
+  })
+
+  it('localizes the native archive filter without changing its extensions', async () => {
+    const selectSavePath = vi.fn(async () => '/tmp/glam.tar.gz')
+
+    ;(window as unknown as { hermesDesktop: { selectSavePath: typeof selectSavePath } }).hermesDesktop = {
+      selectSavePath
+    }
+    setRuntimeI18nLocale('zh')
+
+    await runExportProfileFlow('glam')
+
+    expect(selectSavePath).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filters: [{ extensions: ['tar.gz', 'tgz'], name: 'Aino 配置档案' }]
+      })
+    )
   })
 })

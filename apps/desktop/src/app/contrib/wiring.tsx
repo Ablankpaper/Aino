@@ -35,6 +35,7 @@ import { SendDiagnosticsHost } from '@/components/send-diagnostics-dialog'
 import { TipHost } from '@/components/tips'
 import { emitGatewayEvent } from '@/contrib/events'
 import { getLatestSessionMessages } from '@/hermes'
+import { translateNow } from '@/i18n'
 import { type ChatMessage, chatMessageText, preserveLocalAssistantErrors, toChatMessages } from '@/lib/chat-messages'
 import { isMessagingSource } from '@/lib/session-source'
 import { latestSessionTodos } from '@/lib/todos'
@@ -764,7 +765,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
           } else {
             void ensureGatewayProfile(normalizeProfileKey(targetProfile)).catch((error: unknown) => {
               // #81094: the voice-path switch must surface its failure too.
-              notifyError(error, `Failed to switch to profile "${normalizeProfileKey(targetProfile)}"`)
+              notifyError(error, translateNow('profiles.switchProfileFailed', normalizeProfileKey(targetProfile)))
             })
           }
         } else if (payload?.start_new_session !== false) {

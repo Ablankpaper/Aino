@@ -69,6 +69,15 @@ describe('reconcileBackgroundProcesses', () => {
     expect(items()[2]!.exitCode).toBe(1)
   })
 
+  it('localizes the fallback title for an unnamed background process', () => {
+    setRuntimeI18nLocale('zh')
+
+    reconcileBackgroundProcesses(SID, [{ session_id: 'unnamed', status: 'running', command: '   ' }])
+
+    expect(items()[0]?.title).toBe('后台进程')
+    setRuntimeI18nLocale('en')
+  })
+
   it('keeps row order stable when a process flips state or the snapshot reorders', () => {
     reconcileBackgroundProcesses(SID, [running('a'), running('b')])
     // Snapshot arrives reordered AND `a` has exited — rows must not move.

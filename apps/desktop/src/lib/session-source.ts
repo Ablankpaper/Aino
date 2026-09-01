@@ -1,3 +1,4 @@
+import { translateNow } from '@/i18n'
 import { normalize } from '@/lib/text'
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -8,7 +9,9 @@ const SOURCE_LABELS: Record<string, string> = {
   desktop: 'Desktop',
   discord: 'Discord',
   email: 'Email',
+  feishu: 'Feishu',
   gateway: 'Gateway',
+  homeassistant: 'Home Assistant',
   kanban: 'Kanban',
   local: 'Local',
   matrix: 'Matrix',
@@ -21,6 +24,7 @@ const SOURCE_LABELS: Record<string, string> = {
   telegram: 'Telegram',
   tui: 'TUI',
   webhook: 'Webhook',
+  wecom: 'WeCom',
   weixin: 'WeChat',
   whatsapp: 'WhatsApp',
   yuanbao: 'Yuanbao'
@@ -113,6 +117,13 @@ export function sessionSourceLabel(source: null | string | undefined): string | 
 
   if (!id) {
     return null
+  }
+
+  const translationKey = `sidebar.sources.${id}`
+  const localized = translateNow(translationKey)
+
+  if (localized !== translationKey) {
+    return localized
   }
 
   return SOURCE_LABELS[id] || id.replace(/[_-]+/g, ' ').replace(/\b\w/g, char => char.toUpperCase())

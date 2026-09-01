@@ -1,7 +1,10 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const { notifyError } = vi.hoisted(() => ({ notifyError: vi.fn() }))
+const { confirmHandler, notifyError } = vi.hoisted(() => ({
+  confirmHandler: { current: null as null | (() => Promise<void> | void) },
+  notifyError: vi.fn()
+}))
 
 vi.mock('@/store/notifications', () => ({ notifyError }))
 
@@ -29,12 +32,15 @@ vi.mock('@/components/assistant-ui/thread/user-message', () => ({
 }))
 
 vi.mock('@/components/ui/confirm-dialog', () => ({
-  ConfirmDialog: ({ onConfirm, open }: { onConfirm: () => Promise<void> | void; open: boolean }) =>
-    open ? (
+  ConfirmDialog: ({ onConfirm, open }: { onConfirm: () => Promise<void> | void; open: boolean }) => {
+    confirmHandler.current = onConfirm
+
+    return open ? (
       <button onClick={() => void onConfirm()} type="button">
         confirm restore
       </button>
     ) : null
+  }
 }))
 
 vi.mock('@/components/assistant-ui/chat-empty-slot', () => ({ ChatEmptySlot: () => null }))
@@ -54,6 +60,7 @@ import { Thread } from '.'
 afterEach(() => {
   cleanup()
   notifyError.mockReset()
+  confirmHandler.current = null
 })
 
 describe('Thread restore errors', () => {
@@ -70,5 +77,24 @@ describe('Thread restore errors', () => {
     fireEvent.click(screen.getByRole('button', { name: 'confirm restore' }))
 
     await waitFor(() => expect(notifyError).toHaveBeenCalledWith(expect.any(Error), '恢复失败'))
+  })
+
+  it('localizes the unavailable restore callback error', () => {
+    const view = render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Thread onRestoreToMessage={() => undefined} />
+      </I18nProvider>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'request restore' }))
+
+    view.rerender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Thread />
+      </I18nProvider>
+    )
+
+    expect(confirmHandler.current).not.toBeNull()
+    expect(() => confirmHandler.current?.()).toThrow('恢复失败')
   })
 })

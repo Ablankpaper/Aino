@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { useI18n } from '@/i18n'
 import { $gateway } from '@/store/gateway'
 
 import { useBillingApi } from './api'
@@ -27,6 +28,7 @@ interface StepUpVerificationPayload {
 
 export function useStepUpFlow() {
   const api = useBillingApi()
+  const { t } = useI18n()
   const gateway = useStore($gateway)
   const queryClient = useQueryClient()
   const offRef = useRef<(() => void) | null>(null)
@@ -121,8 +123,8 @@ export function useStepUpFlow() {
     if (!result.data.granted) {
       setMessage({
         kind: 'error',
-        text: 'Verification finished without allowing Remote Spending for this terminal.',
-        title: 'Verification was not approved'
+        text: t.billing.stepUp.verificationNotApprovedMessage,
+        title: t.billing.stepUp.verificationNotApprovedTitle
       })
 
       return
@@ -134,10 +136,10 @@ export function useStepUpFlow() {
     ])
     setMessage({
       kind: 'success',
-      text: 'Remote Spending is allowed for this terminal.',
-      title: 'Verification complete'
+      text: t.billing.stepUp.verificationCompleteMessage,
+      title: t.billing.stepUp.verificationCompleteTitle
     })
-  }, [api, gateway, queryClient, unsubscribe])
+  }, [api, gateway, queryClient, t, unsubscribe])
 
   return { dismiss, message, openVerification, phase, start, verification }
 }

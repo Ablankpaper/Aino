@@ -310,8 +310,8 @@ export function AccentPickerTrigger() {
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="inline-flex h-full items-center gap-1.5 px-1.5 text-[0.6875rem] text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground"
           aria-label={k.triggerTitle}
+          className="inline-flex h-full items-center gap-1.5 px-1.5 text-[0.6875rem] text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground"
           title={k.triggerTitle}
           type="button"
         >

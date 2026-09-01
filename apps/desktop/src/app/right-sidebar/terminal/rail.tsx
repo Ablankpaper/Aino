@@ -109,7 +109,11 @@ interface TerminalRailItemProps {
 
 function TerminalRailItem({ active, canCloseOthers, index, term, toggleHint }: TerminalRailItemProps) {
   const { t } = useI18n()
-  const label = `${index + 1}. ${term.title}`
+  // Keep the persisted English value as a stable sentinel for an untouched
+  // tab, but render it in the active locale. Shell-resolved names and titles
+  // entered by the user are real data and must stay unchanged.
+  const title = term.auto && term.title === 'Terminal' ? t.rightSidebar.terminal : term.title
+  const label = `${index + 1}. ${title}`
 
   return (
     <ContextMenu>

@@ -5,7 +5,7 @@ const { usePluginI18n } = vi.hoisted(() => ({ usePluginI18n: vi.fn() }))
 
 vi.mock('@hermes/plugin-sdk', () => ({ usePluginI18n }))
 
-import { KANBAN_LOCALES, laneLabel, type KanbanText, useKanban } from './i18n'
+import { KANBAN_LOCALES, type KanbanText, laneLabel, useKanban } from './i18n'
 
 type Leaf = string | ((...args: never[]) => string)
 

@@ -1,6 +1,9 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n/context'
+import { setRuntimeI18nLocale } from '@/i18n/runtime'
+import { $notifications } from '@/store/notifications'
 import { $previewTabs, closeRightRail } from '@/store/preview'
 import { $connection } from '@/store/session'
 
@@ -8,14 +11,19 @@ import { PreviewStatusRow } from './preview-row'
 
 describe('PreviewStatusRow', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
+    $notifications.set([])
     $connection.set(null)
     closeRightRail()
   })
 
   afterEach(() => {
     cleanup()
+    $notifications.set([])
     $connection.set(null)
     closeRightRail()
+    setRuntimeI18nLocale('en')
+    Reflect.deleteProperty(window, 'hermesDesktop')
     vi.restoreAllMocks()
   })
 
@@ -151,5 +159,36 @@ describe('PreviewStatusRow', () => {
       expect(openPreviewInBrowser).toHaveBeenCalledWith('file:///tmp/staged.html')
     })
     expect($previewTabs.get()).toEqual([])
+  })
+
+  it('localizes fixed browser bridge errors in Simplified Chinese', async () => {
+    setRuntimeI18nLocale('zh')
+    $connection.set({ mode: 'local' } as never)
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        normalizePreviewTarget: vi.fn(async () => ({
+          kind: 'file',
+          label: 'report.pdf',
+          path: '/Users/alice/report.pdf',
+          previewKind: 'binary',
+          source: '/Users/alice/report.pdf',
+          url: 'file:///Users/alice/report.pdf'
+        }))
+      }
+    })
+
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <PreviewStatusRow
+          item={{ cwd: '/Users/alice', id: 'report.pdf', label: 'report.pdf', target: '/Users/alice/report.pdf' }}
+          onDismiss={() => undefined}
+        />
+      </I18nProvider>
+    )
+
+    fireEvent.click(screen.getByText('report.pdf'))
+
+    await waitFor(() => expect($notifications.get()[0]?.message).toBe('桌面桥接不可用'))
   })
 })

@@ -68,6 +68,8 @@ wandb/
 testlogs
 playwright-report/
 test-results/
+# Playwright CLI page snapshots and console logs are local QA output.
+.playwright-cli/
 # Playwright visual regression baselines — cached from main in CI, not committed
 *-snapshots/
 

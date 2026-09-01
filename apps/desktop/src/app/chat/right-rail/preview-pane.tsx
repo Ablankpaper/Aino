@@ -10,6 +10,7 @@ import { openGuestContextMenu } from '@/app/context-menu/store'
 import { PanelEmpty } from '@/app/overlays/panel'
 import { Tip } from '@/components/ui/tooltip'
 import { type Translations, useI18n } from '@/i18n'
+import { localizedPreviewError } from '@/i18n/preview-errors'
 import { isDesktopFsRemoteMode } from '@/lib/desktop-fs'
 import { guardGuestPointers } from '@/lib/guest-pointer-guard'
 import { openPreviewTargetInBrowser, remoteHtmlPreviewDocument } from '@/lib/local-preview'
@@ -1008,7 +1009,9 @@ export function PreviewPane({ embedded = false, onRestartServer, reloadRequest =
                   onClick={event => {
                     if (isRemoteHtmlTarget) {
                       event.preventDefault()
-                      void openPreviewTargetInBrowser(target).catch(error => notifyError(error, t.preview.unavailable))
+                      void openPreviewTargetInBrowser(target).catch(error =>
+                        notifyError(new Error(localizedPreviewError(t, error)), t.preview.unavailable)
+                      )
                     }
                   }}
                   rel="noreferrer"

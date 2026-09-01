@@ -17,9 +17,11 @@ import { createPluginI18n, type PluginI18n } from '@/i18n'
 import { readKey, writeKey } from '@/lib/storage'
 import { dispatchPluginNativeNotification, type PluginNativeNotificationInput } from '@/store/native-notifications'
 
+import type { PluginLocalizedMetadata } from './plugin-metadata'
 import { registry } from './registry'
 import type { Contribution } from './types'
 
+export type { PluginLocalizedCopy, PluginLocalizedMetadata } from './plugin-metadata'
 export type { PluginRestOptions } from '@/hermes'
 export type { HermesOpenTarget } from '@/lib/hermes-open-target'
 export type { PluginNativeNotificationInput, PluginNotificationAction } from '@/store/native-notifications'
@@ -111,6 +113,10 @@ export interface HermesPlugin {
   name?: string
   /** One-liner for the settings inventory (what the plugin adds). */
   description?: string
+  /** Optional display metadata for supported app locales. The canonical
+   *  `name`/`description` above remain the fallback for every locale and for
+   *  older hosts that do not know this field. */
+  localized?: PluginLocalizedMetadata
   /** Registers on load when the user hasn't chosen (default true). Set false
    *  for opt-in plugins: they inventory in Settings ▸ Plugins, off until the
    *  user flips the switch. */

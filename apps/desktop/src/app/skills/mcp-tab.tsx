@@ -32,7 +32,7 @@ import {
   saveMcpServers,
   testMcpServer
 } from '@/hermes'
-import { type Translations, useI18n } from '@/i18n'
+import { translateNow, type Translations, useI18n } from '@/i18n'
 import { compactNumber } from '@/lib/format'
 import { brandFor } from '@/lib/mcp-brands'
 import { estimateServerTokens, serverUsageCount } from '@/lib/mcp-cost'
@@ -63,17 +63,23 @@ const pretty = (value: unknown) => JSON.stringify(value, null, 2)
 const wrapDoc = (entries: McpServers) => pretty({ mcpServers: entries })
 
 /** Accepts `{"mcpServers": {...}}` (ecosystem), a bare name→config map, or throws. */
-function parseServersDoc(raw: string): McpServers {
-  const parsed = JSON.parse(raw) as unknown
+export function parseServersDoc(raw: string): McpServers {
+  let parsed: unknown
+
+  try {
+    parsed = JSON.parse(raw) as unknown
+  } catch {
+    throw new Error(translateNow('settings.mcp.invalidJson'))
+  }
 
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('Expected a JSON object')
+    throw new Error(translateNow('settings.mcp.importExpectedObject'))
   }
 
   const doc = parsed as Record<string, unknown>
 
   if (isServerShape(doc)) {
-    throw new Error('Wrap the server in {"mcpServers": {"name": …}} so it has a name')
+    throw new Error(translateNow('settings.mcp.importServerWrapperRequired'))
   }
 
   const wrapper = doc.mcpServers ?? doc.mcp_servers
@@ -464,7 +470,7 @@ export function McpTab({ gateway, profile }: { gateway: HermesGateway | null; pr
         (entry.command && entry.command === server.command)
     )
 
-    return match?.description ?? null
+    return match ? catalogDescription(match, m.catalogDescriptions) : null
   }
 
   const resetDraft = (entries: McpServers) => {
@@ -1519,6 +1525,13 @@ function CatalogTag({ children }: { children: string }) {
   )
 }
 
+function catalogDescription(
+  entry: Pick<McpCatalogEntry, 'description' | 'name'>,
+  descriptions: Record<string, string>
+): string {
+  return descriptions[entry.name.toLowerCase()] ?? entry.description
+}
+
 // The Nous-approved MCP catalog: one-click installs of curated servers, with an
 // inline prompt for any required credentials (never shows stored values). On
 // install the parent refetches config + catalog and reloads live sessions.
@@ -1629,7 +1642,9 @@ export function McpCatalog({
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 line-clamp-2 text-[0.68rem] text-muted-foreground/70">{entry.description}</p>
+                <p className="mt-0.5 line-clamp-2 text-[0.68rem] text-muted-foreground/70">
+                  {catalogDescription(entry, m.catalogDescriptions)}
+                </p>
                 {envOpenFor === entry.name && entry.required_env.length > 0 && (
                   <div className="mt-2 grid gap-2">
                     {entry.required_env.map(env => (

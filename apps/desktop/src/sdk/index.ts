@@ -704,7 +704,7 @@ export const host = {
     }
 
     if (normalizeProfileKey(targetProfile) === 'default') {
-      throw new Error('The default profile cannot be deleted.')
+      throw new Error(translateNow('profiles.defaultProfileDeleteBlocked'))
     }
 
     // Capture before the delete; re-home after so our write is the last one
@@ -1563,15 +1563,16 @@ export type {
   PluginRestOptions,
   PluginStorage
 } from '@/contrib/plugin'
+export type { PluginLocalizedCopy, PluginLocalizedMetadata } from '@/contrib/plugin'
+
+// -- contracts ----------------------------------------------------------------
+
 /** Mount-scoped contribution: while the rendering component is mounted, its
  *  children render in the target area's slot; unmount disposes it. Use for
  *  page-owned chrome (a page's titlebar control leaves with the page) —
  *  `ctx.register` stays the door for permanent contributions. Namespace the
  *  id with your plugin slug (`kanban:board-switcher`). */
 export { Contribute, type ContributeProps } from '@/contrib/react/contribute'
-
-// -- contracts ----------------------------------------------------------------
-
 export type { Contribution } from '@/contrib/types'
 /** The live gateway instance type — for typing the `gateway` prop `McpTab`
  *  takes; obtain the instance from `host.getGateway()`. */

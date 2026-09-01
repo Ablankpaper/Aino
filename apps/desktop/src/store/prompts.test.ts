@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { getRuntimeI18nLocale, setRuntimeI18nLocale } from '@/i18n/runtime'
+
 import { clearClarifyRequest, setClarifyRequest } from './clarify'
 import {
   $activeSessionAwaitingInput,
@@ -128,6 +130,26 @@ describe('approval prompt store', () => {
       ['approval.pending', { session_id: 's1' }],
       ['approval.received', { request_id: 'r1', session_id: 's1' }]
     ])
+  })
+
+  it('localizes a missing approval description at the UI boundary', async () => {
+    const previousLocale = getRuntimeI18nLocale()
+    setRuntimeI18nLocale('zh')
+
+    try {
+      const gateway = {
+        request: async (method: string) =>
+          method === 'approval.pending'
+            ? { approvals: [{ command: 'rm -rf /tmp/x', request_id: 'r1' }] }
+            : { acknowledged: true }
+      }
+
+      await replayPendingApproval(gateway, 's1')
+
+      expect($approvalRequest.get()?.description).toBe('危险命令')
+    } finally {
+      setRuntimeI18nLocale(previousLocale)
+    }
   })
 })
 

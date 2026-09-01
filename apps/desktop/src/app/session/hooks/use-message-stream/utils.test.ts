@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import type { GatewayEventPayload } from '@/lib/chat-messages'
 
 import {
@@ -83,5 +84,17 @@ describe('delegateTaskPayloads', () => {
     )
 
     expect(spec).toMatchObject({ event_type: 'subagent.complete', status: 'completed' })
+  })
+
+  it('localizes the unnamed delegation fallback', () => {
+    setRuntimeI18nLocale('zh')
+
+    try {
+      const [spec] = delegateTaskPayloads(payload({ name: 'delegate_task', args: {} }), 'running')
+
+      expect(spec?.goal).toBe('已委派任务')
+    } finally {
+      setRuntimeI18nLocale('en')
+    }
   })
 })

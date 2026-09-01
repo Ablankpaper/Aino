@@ -60,3 +60,16 @@ test('quitPromptFor speaks singular for one chat', () => {
   assert.equal(prompt.message, 'Aino is still working on 1 chat.')
   assert.ok(prompt.detail.includes('mid-turn'))
 })
+
+test('quitPromptFor accepts localized copy while preserving dynamic chat titles', () => {
+  const prompt = quitPromptFor({ count: 3, titles: ['修复登录', '发布桌面版'] }, false, {
+    more: count => `• 还有 ${count} 项`,
+    warning: '退出会中断当前回合。',
+    working: count => `Aino 仍在处理 ${count} 个聊天。`
+  })
+
+  assert.ok(prompt)
+  assert.equal(prompt.message, 'Aino 仍在处理 3 个聊天。')
+  assert.ok(prompt.detail.includes('• 修复登录'))
+  assert.ok(prompt.detail.includes('退出会中断当前回合。'))
+})

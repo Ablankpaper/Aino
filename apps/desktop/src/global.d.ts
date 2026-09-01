@@ -491,6 +491,9 @@ declare global {
       cancelBootstrap: () => Promise<{ ok: boolean; cancelled: boolean }>
       onBootstrapEvent: (callback: (payload: DesktopBootstrapEvent) => void) => () => void
       getVersion: () => Promise<DesktopVersionInfo>
+      /** Mirror the renderer language into Electron-owned menus/dialogs. */
+      getLocale?: () => Promise<string>
+      setLocale?: (locale: string) => Promise<{ locale: string }>
       getRemoteDisplayReason?: () => Promise<string | null>
       updates: {
         check: () => Promise<DesktopUpdateStatus>

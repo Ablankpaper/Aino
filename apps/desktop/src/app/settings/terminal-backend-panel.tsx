@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { getTerminalBackends, selectTerminalBackend } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { localizedTerminalBackendMetadata } from '@/i18n/terminal-backends'
 import { AlertTriangle, Check, Loader2, RefreshCw } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
@@ -46,7 +47,7 @@ function StatusPill({ backend }: { backend: TerminalBackendInfo }) {
  * missing rather than blocking, matching the CLI configurator.
  */
 export function TerminalBackendPanel({ onConfiguredChange }: TerminalBackendPanelProps) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const copy = t.settings.toolsets.terminalBackend
   const [data, setData] = useState<TerminalBackendsResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -88,10 +89,12 @@ export function TerminalBackendPanel({ onConfiguredChange }: TerminalBackendPane
             }
           : current
       )
-      notify({ kind: 'success', title: copy.selectedTitle, message: copy.selectedMessage(backend.label) })
+      const displayBackend = localizedTerminalBackendMetadata(locale, backend)
+      notify({ kind: 'success', title: copy.selectedTitle, message: copy.selectedMessage(displayBackend.label) })
       onConfiguredChange?.()
     } catch (err) {
-      notifyError(err, copy.failedSelect(backend.label))
+      const displayBackend = localizedTerminalBackendMetadata(locale, backend)
+      notifyError(err, copy.failedSelect(displayBackend.label))
     } finally {
       setSelecting(null)
     }
@@ -119,9 +122,12 @@ export function TerminalBackendPanel({ onConfiguredChange }: TerminalBackendPane
         </Button>
       </div>
       <div className="grid gap-1">
-        {data.backends.map(backend => (
-          <button
-            aria-pressed={backend.active}
+        {data.backends.map(backend => {
+          const displayBackend = localizedTerminalBackendMetadata(locale, backend)
+
+          return (
+            <button
+              aria-pressed={backend.active}
             className={cn(
               'grid gap-0.5 rounded-lg border px-2.5 py-2 text-left transition',
               backend.active
@@ -133,27 +139,28 @@ export function TerminalBackendPanel({ onConfiguredChange }: TerminalBackendPane
             onClick={() => void handleSelect(backend)}
             type="button"
           >
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium">{backend.label}</span>
-              <StatusPill backend={backend} />
-              {backend.active && (
-                <Pill tone="primary">
-                  <Check className="size-3" />
-                  {copy.inUse}
-                </Pill>
-              )}
-              {selecting === backend.name && <Loader2 className="size-3 animate-spin" />}
-            </span>
-            <span className="text-[0.68rem] text-muted-foreground">{backend.description}</span>
-            {backend.status !== 'ready' && backend.detail && (
-              <span className="flex items-start gap-1 text-[0.68rem] text-amber-600 dark:text-amber-300">
-                <AlertTriangle className="mt-0.5 size-3 shrink-0" />
-                {backend.detail}
-                {backend.active && ` ${copy.needsSetupHint}`}
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-medium">{displayBackend.label}</span>
+                <StatusPill backend={backend} />
+                {backend.active && (
+                  <Pill tone="primary">
+                    <Check className="size-3" />
+                    {copy.inUse}
+                  </Pill>
+                )}
+                {selecting === backend.name && <Loader2 className="size-3 animate-spin" />}
               </span>
-            )}
-          </button>
-        ))}
+              <span className="text-[0.68rem] text-muted-foreground">{displayBackend.description}</span>
+              {backend.status !== 'ready' && displayBackend.detail && (
+                <span className="flex items-start gap-1 text-[0.68rem] text-amber-600 dark:text-amber-300">
+                  <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+                  {displayBackend.detail}
+                  {backend.active && ` ${copy.needsSetupHint}`}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

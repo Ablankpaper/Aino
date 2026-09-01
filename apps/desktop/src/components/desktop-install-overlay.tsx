@@ -59,7 +59,15 @@ interface StageRowProps {
   now: number
 }
 
-function formatStageName(name: string): string {
+function formatStageName(name: string, localizedName?: string, title?: string): string {
+  if (localizedName) {
+    return localizedName
+  }
+
+  if (title) {
+    return title
+  }
+
   // 'system-packages' -> 'System packages'; 'uv' stays 'uv'
   if (name.length <= 3) {
     return name
@@ -143,7 +151,7 @@ function StageRow({ descriptor, result, now }: StageRowProps) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className={cn('truncate text-sm', state === 'running' ? 'font-medium' : 'text-muted-foreground')}>
-            {formatStageName(descriptor.name)}
+            {formatStageName(descriptor.name, copy.stageNames[descriptor.name], descriptor.title)}
           </span>
           {state !== 'running' && <span className="flex size-4 shrink-0 items-center justify-center">{icon}</span>}
         </div>
@@ -568,7 +576,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
               <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
                   {copy.progress(completedCount, totalCount)}
-                  {currentStage && copy.currentStage(formatStageName(currentStage))}
+                  {currentStage && copy.currentStage(formatStageName(currentStage, copy.stageNames[currentStage]))}
                   {currentElapsed && ` (${currentElapsed})`}
                 </span>
                 <span className="tabular-nums">{progressPct}%</span>

@@ -51,7 +51,11 @@ vi.mock('@hermes/plugin-sdk', async () => {
   }
 })
 
-vi.mock('./shared', () => ({ getPluginCtx: () => null, ID: 'hermes-bots' }))
+vi.mock('./shared', () => ({
+  getPluginCtx: () => null,
+  ID: 'hermes-bots',
+  pluginText: (_key: string, fallback: string) => fallback
+}))
 
 /** Gateway rows carry a session id on `last_session` that the plugin's
  *  `SessionPreview` type deliberately does not model; the fixtures keep it so

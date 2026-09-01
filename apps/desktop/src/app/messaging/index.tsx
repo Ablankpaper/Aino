@@ -22,6 +22,7 @@ import {
   updateMessagingPlatform
 } from '@/hermes'
 import { type Translations, useI18n } from '@/i18n'
+import { localizedMessagingPlatformDescription } from '@/i18n/messaging-platforms'
 import { openExternalLink } from '@/lib/external-link'
 import { ExternalLink, Save, Trash2 } from '@/lib/icons'
 import { normalize } from '@/lib/text'
@@ -126,7 +127,7 @@ function fieldCopy(field: MessagingEnvVarInfo, m: Translations['messaging']) {
 }
 
 export function MessagingView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...props }: MessagingViewProps) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const m = t.messaging
   // Shared settings "Applies to" scope, request-shaped (undefined → follow
   // the active profile; the API helpers treat null as "target primary").
@@ -287,11 +288,17 @@ export function MessagingView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
     }
 
     return platforms.filter(platform =>
-      [platform.id, platform.name, platform.description, platform.state]
+      [
+        platform.id,
+        platform.name,
+        platform.description,
+        localizedMessagingPlatformDescription(locale, platform.id, platform.description),
+        platform.state
+      ]
         .filter(Boolean)
         .some(value => String(value).toLowerCase().includes(q))
     )
-  }, [platforms, query])
+  }, [locale, platforms, query])
 
   async function handleToggle(platform: MessagingPlatformInfo, enabled: boolean) {
     setSaving(`enabled:${platform.id}`)
@@ -579,7 +586,7 @@ function PlatformDetail({
   platform: MessagingPlatformInfo
   saving: string | null
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const m = t.messaging
   const [showAdvanced, setShowAdvanced] = useState(false)
 
@@ -601,7 +608,7 @@ function PlatformDetail({
             {!platform.gateway_running && <SetupPill active={false}>{m.gatewayStopped}</SetupPill>}
           </div>
           <p className="mt-1 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
-            {platform.description}
+            {localizedMessagingPlatformDescription(locale, platform.id, platform.description)}
           </p>
           <PlatformHint platform={platform} />
         </div>

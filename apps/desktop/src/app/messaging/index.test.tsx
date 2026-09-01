@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
 import type { MessagingPlatformInfo } from '@/types/hermes'
 
 const getMessagingPlatforms = vi.fn()
@@ -74,19 +75,52 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-async function renderMessaging() {
+async function renderMessaging(locale: 'en' | 'zh' = 'en') {
   const { MessagingView } = await import('./index')
   let result: ReturnType<typeof render>
   await act(async () => {
     result = render(
-      <MemoryRouter>
-        <MessagingView />
-      </MemoryRouter>
+      <I18nProvider configClient={null} initialLocale={locale}>
+        <MemoryRouter>
+          <MessagingView />
+        </MemoryRouter>
+      </I18nProvider>
     )
   })
 
   return result!
 }
+
+describe('MessagingView runtime metadata localization', () => {
+  it('localizes built-in platform descriptions in simplified Chinese', async () => {
+    const englishDescription = 'Run Hermes from Telegram DMs, groups, and topics.'
+    getMessagingPlatforms.mockResolvedValue({
+      platforms: [
+        platform({
+          description: englishDescription,
+          id: 'telegram',
+          name: 'Telegram'
+        })
+      ]
+    })
+
+    await renderMessaging('zh')
+
+    expect(await screen.findByText('在 Telegram 私聊、群组和话题中使用 Hermes。')).toBeTruthy()
+    expect(screen.queryByText(englishDescription)).toBeNull()
+  })
+
+  it('preserves descriptions from unknown plugin platforms', async () => {
+    const pluginDescription = 'A custom relay supplied by your plugin.'
+    getMessagingPlatforms.mockResolvedValue({
+      platforms: [platform({ description: pluginDescription, id: 'custom-relay', name: 'Custom Relay' })]
+    })
+
+    await renderMessaging('zh')
+
+    expect((await screen.findAllByText(pluginDescription)).length).toBeGreaterThan(0)
+  })
+})
 
 describe('MessagingView profile scope', () => {
   it('follows the active profile instead of targeting primary when there is no override', async () => {

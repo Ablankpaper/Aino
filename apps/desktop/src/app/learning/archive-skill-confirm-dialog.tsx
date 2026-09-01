@@ -1,9 +1,7 @@
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { deleteLearningNode, type ProfileScope } from '@/hermes'
-import { type Translations, useI18n } from '@/i18n'
+import { translateNow, type Translations, useI18n } from '@/i18n'
 import { notify } from '@/store/notifications'
-
-export const ARCHIVE_SKILL_DESCRIPTION = 'The skill is archived and can be restored with `hermes curator restore`.'
 
 export function notifySkillArchived(t: Translations): void {
   notify({ kind: 'success', message: t.skills.skillArchivedMessage, title: t.skills.skillArchivedTitle })
@@ -13,7 +11,7 @@ export async function archiveLearningSkill(id: string, profile?: ProfileScope): 
   const res = await deleteLearningNode(id, profile)
 
   if (!res.ok) {
-    throw new Error(res.message || 'Archive failed')
+    throw new Error(res.message || translateNow('desktop.archiveFailed'))
   }
 }
 

@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
 import { $bindings } from '@/store/keybinds'
 
 import { TerminalRail } from './rail'
@@ -45,5 +46,23 @@ describe('TerminalRail', () => {
     fireEvent.click(screen.getByRole('tab', { name: '1. PowerShell' }))
     expect($activeTerminalId.get()).toBe('term-1')
     expect($terminals.get()).toHaveLength(1)
+  })
+
+  it('localizes an untouched automatic terminal title without changing shell names', () => {
+    $terminals.set([
+      { auto: true, cwd: 'C:\\repo', id: 'term-default', kind: 'user', title: 'Terminal' },
+      { auto: true, cwd: 'C:\\repo', id: 'term-shell', kind: 'user', title: 'PowerShell' },
+      { auto: false, cwd: 'C:\\repo', id: 'term-custom', kind: 'user', title: 'Terminal' }
+    ])
+
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <TerminalRail />
+      </I18nProvider>
+    )
+
+    expect(screen.getByRole('tab', { name: '1. 终端' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: '2. PowerShell' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: '3. Terminal' })).toBeTruthy()
   })
 })

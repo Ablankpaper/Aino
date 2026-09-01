@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import type { DesktopUninstallMode, DesktopUninstallSummary } from '@/global'
-import { PRODUCT_NAME } from '@/lib/brand'
 import { useI18n } from '@/i18n'
+import { PRODUCT_NAME } from '@/lib/brand'
 import { AlertTriangle, Loader2, Trash2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
@@ -112,6 +112,7 @@ export function UninstallSection() {
           ? u.liteConsequence(PRODUCT_NAME)
           : u.fullConsequence(PRODUCT_NAME)
   }))
+
   const pendingOption = options.find(opt => opt.mode === pending) ?? null
 
   return (

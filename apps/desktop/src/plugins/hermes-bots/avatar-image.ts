@@ -6,7 +6,7 @@
 
 import { atom, host } from '@hermes/plugin-sdk'
 
-import { getPluginCtx } from './shared'
+import { pluginText } from './shared'
 
 // ── image avatars: upload from device + generate via image.generate ─────────
 
@@ -50,7 +50,7 @@ export function pickImageFromDevice(): Promise<null | string> {
       if (file.size > 15_000_000) {
         host.notify({
           kind: 'error',
-          message: getPluginCtx()?.i18n?.t('avatar.imageTooLarge') ?? 'Image too large (max 15MB).'
+          message: pluginText('avatar.imageTooLarge', 'Image too large (max 15MB).')
         })
 
         return resolve(null)
@@ -115,7 +115,7 @@ export async function generateAvatarImage(
   })
 
   if (!res?.success) {
-    throw new Error(res?.error || 'generation failed')
+    throw new Error(res?.error || pluginText('avatar.generationFailed', 'Avatar generation failed'))
   }
 
   // image_data (data URL) works over local AND remote gateways; the raw

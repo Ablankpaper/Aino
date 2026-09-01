@@ -109,4 +109,21 @@ describe('useMessageStream agent-init error surfacing (#63078)', () => {
 
     expect($notifications.get().find(notification => notification.id?.startsWith('gateway-error:'))?.title).toBe('本轮失败')
   })
+
+  it('localizes the generic in-transcript error when the gateway sends no details', () => {
+    setRuntimeI18nLocale('zh')
+    mountStream()
+
+    act(() =>
+      stream.handleEvent({
+        payload: {},
+        session_id: SID,
+        type: 'error'
+      })
+    )
+
+    expect(stream.state().messages.find(message => message.role === 'assistant' && message.error)?.error).toBe(
+      'Aino 报告了错误'
+    )
+  })
 })

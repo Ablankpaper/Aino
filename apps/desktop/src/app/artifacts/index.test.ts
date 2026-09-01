@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n/runtime'
 import { $connection } from '@/store/session'
 import type { SessionInfo, SessionMessage } from '@/types/hermes'
 
@@ -29,6 +30,21 @@ describe('collectArtifactsForSession', () => {
     vi.unstubAllGlobals()
     vi.clearAllMocks()
     $connection.set(null)
+  })
+
+  it('uses the active locale for an untitled artifact session', () => {
+    setRuntimeI18nLocale('zh')
+
+    const artifacts = collectArtifactsForSession(makeSession({ preview: null, title: null }), [
+      {
+        content: 'Created: /tmp/generated/report.pdf',
+        role: 'assistant',
+        timestamp: 1_781_774_001
+      }
+    ])
+
+    expect(artifacts[0]?.sessionTitle).toBe('无标题会话')
+    setRuntimeI18nLocale('en')
   })
 
   it('indexes plain https links from assistant text', () => {

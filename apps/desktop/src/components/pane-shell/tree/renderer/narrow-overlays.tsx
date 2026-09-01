@@ -25,7 +25,7 @@ import { $hiddenTreePanes, $layoutTree, $narrowViewport } from '../store'
 import { paneChrome } from './track-model'
 
 export function NarrowOverlays() {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const narrow = useStore($narrowViewport)
   const tree = useStore($layoutTree)
   const panes = useContributions('panes')
@@ -180,7 +180,7 @@ export function NarrowOverlays() {
                   }}
                 >
                   <PaneTabLabel>
-                    {localizedPaneTitle(t, pane.id, String(pane.title ?? pane.id), pane.source)}
+                    {localizedPaneTitle(t, pane.id, String(pane.title ?? pane.id), pane.source, locale)}
                   </PaneTabLabel>
                 </PaneTab>
               ))}

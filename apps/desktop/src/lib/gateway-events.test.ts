@@ -1,8 +1,23 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { approvalReplaySessionId, gatewayEventRequiresSessionId, resolveGatewayEventSessionId } from './gateway-events'
+import { setRuntimeI18nLocale } from '@/i18n'
+
+import {
+  approvalReplaySessionId,
+  buildGatewayLogItems,
+  gatewayEventRequiresSessionId,
+  resolveGatewayEventSessionId
+} from './gateway-events'
+
+afterEach(() => setRuntimeI18nLocale('en'))
 
 describe('gateway event routing', () => {
+  it('localizes the empty gateway log state', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(buildGatewayLogItems([])[0]?.label).toBe('暂无最近的网关日志')
+  })
+
   it('rehydrates pending approvals on reconnect ready and resumed session info', () => {
     expect(approvalReplaySessionId('gateway.ready', 'active-1', null)).toBe('active-1')
     expect(approvalReplaySessionId('session.info', 'active-1', 'routed-1')).toBe('routed-1')

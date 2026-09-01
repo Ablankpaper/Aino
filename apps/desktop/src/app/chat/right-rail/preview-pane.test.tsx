@@ -1,6 +1,8 @@
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
+import { $notifications } from '@/store/notifications'
 import { $connection } from '@/store/session'
 
 import { forgetPreviewConsole, previewConsoleState } from './preview-console-store'
@@ -29,11 +31,13 @@ describe('PreviewPane console state', () => {
       window.setTimeout(() => callback(Date.now()), 0)
     )
     vi.stubGlobal('cancelAnimationFrame', (id: number) => window.clearTimeout(id))
+    $notifications.set([])
   })
 
   afterEach(() => {
     cleanup()
     $connection.set(null)
+    $notifications.set([])
     vi.unstubAllGlobals()
   })
 
@@ -373,6 +377,40 @@ describe('PreviewPane console state', () => {
     expect(fireEvent.click(sourceLink!)).toBe(false)
   })
 
+  it('localizes remote HTML browser bridge errors in Simplified Chinese', async () => {
+    const dataUrl = `data:text/html;base64,${btoa('<h1>remote</h1>')}`
+    const target = {
+      dataUrl,
+      kind: 'file' as const,
+      label: 'report.html',
+      path: '/srv/report.html',
+      previewKind: 'html' as const,
+      source: '/srv/report.html',
+      url: 'file:///srv/report.html'
+    }
+
+    vi.stubGlobal('window', { ...window, hermesDesktop: {} })
+
+    let rendered!: ReturnType<typeof render>
+    await act(async () => {
+      rendered = render(
+        <I18nProvider configClient={null} initialLocale="zh">
+          <PreviewPane target={target} />
+        </I18nProvider>
+      )
+    })
+
+    const sourceLink = rendered.getByText('report.html')
+
+    await act(async () => {
+      fireEvent.click(sourceLink)
+    })
+
+    await waitFor(() => expect($notifications.get()[0]?.message).toBe('桌面桥接不可用'), {
+      container: rendered.container
+    })
+  })
+
   it('renders PDF targets in an embedded viewer', async () => {
     const dataUrl = 'data:application/pdf;base64,JVBERi0xLjQ='
     const readFileDataUrl = vi.fn(async () => dataUrl)
@@ -505,6 +543,42 @@ describe('PreviewPane console state', () => {
       container: rendered.container
     })
     expect(rendered.container.querySelector('iframe')).toBeNull()
+    expect(createObjectURL).not.toHaveBeenCalled()
+  })
+
+  it('localizes fixed PDF validation errors in simplified Chinese', async () => {
+    const readFileDataUrl = vi.fn(async () => 'data:text/html;base64,JVBERi0xLjQ=')
+    const { createObjectURL } = stubPdfObjectUrls()
+    $connection.set({ mode: 'local' } as never)
+    vi.stubGlobal('window', {
+      ...window,
+      hermesDesktop: {
+        readFileDataUrl
+      }
+    })
+
+    let rendered!: ReturnType<typeof render>
+    await act(async () => {
+      rendered = render(
+        <I18nProvider configClient={null} initialLocale="zh">
+          <PreviewPane
+            target={{
+              kind: 'file',
+              label: 'spec.pdf',
+              path: '/tmp/spec.pdf',
+              previewKind: 'pdf',
+              source: '/tmp/spec.pdf',
+              url: 'file:///tmp/spec.pdf'
+            }}
+          />
+        </I18nProvider>
+      )
+    })
+
+    await waitFor(() => expect(rendered.container.textContent).toContain('PDF 数据地址类型无效。'), {
+      container: rendered.container
+    })
+    expect(rendered.container.textContent).not.toContain('Invalid PDF data URL type')
     expect(createObjectURL).not.toHaveBeenCalled()
   })
 

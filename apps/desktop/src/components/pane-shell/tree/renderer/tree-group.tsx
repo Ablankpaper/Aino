@@ -97,6 +97,7 @@ function ZoneMenu({
   minimizable = true,
   minimized,
   nodeId,
+  paneTitle,
   stripVisible,
   tabMenuPrefix,
   targetPane
@@ -121,8 +122,10 @@ function ZoneMenu({
    *  and subscribing every zone to it made a sash drag re-render every
    *  mounted pane. */
   targetPane: () => string
+  /** Resolve a pane label using the active locale and contribution metadata. */
+  paneTitle?: (paneId: string, fallback: string) => string
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   // Hiding the strip takes this menu with it, so the row that hides it is the
   // last place to say how to get it back — the status bar's hide row does the
   // same for the same reason.
@@ -177,8 +180,8 @@ function ZoneMenu({
                   icon: tab.hidden ? 'eye' : 'eye-closed',
                   key: `strip-tab-${tab.id}`,
                   label: tab.hidden
-                    ? t.zones.showStripTab(localizedPaneTitle(t, tab.id, tab.title, undefined))
-                    : t.zones.hideStripTab(localizedPaneTitle(t, tab.id, tab.title, undefined)),
+                    ? t.zones.showStripTab(paneTitle?.(tab.id, tab.title) ?? tab.title)
+                    : t.zones.hideStripTab(paneTitle?.(tab.id, tab.title) ?? tab.title),
                   onSelect: () => setStripTabHidden(tab.id, !tab.hidden)
                 })
               )}
@@ -227,7 +230,7 @@ export function TreeGroup({
   parentAxis?: 'column' | 'row'
   railSide?: 'left' | 'right'
 }) {
-  const { t } = useI18n()
+  const { locale, t } = useI18n()
   const ref = useRef<HTMLDivElement>(null)
   const stripRef = useRef<HTMLDivElement>(null)
   // The scrolling tab list inside the header (the strip also holds the
@@ -267,7 +270,7 @@ export function TreeGroup({
   const paneTitle = (id: string) => {
     const pane = paneFor(id)
 
-    return localizedPaneTitle(t, id, String(pane?.title ?? id), pane?.source)
+    return localizedPaneTitle(t, id, String(pane?.title ?? id), pane?.source, locale)
   }
 
   // Unregistered (plugin not loaded), chrome-toggled-off, and narrow-collapsed
@@ -420,7 +423,12 @@ export function TreeGroup({
     nodeId: node.id,
     stripVisible,
     tabMenuPrefix: (kit: MenuKit) => paneChrome(paneFor(targetPane())).tabMenuPrefix?.(kit),
-    targetPane
+    targetPane,
+    paneTitle: (id: string, fallback: string) => {
+      const pane = paneFor(id)
+
+      return localizedPaneTitle(t, id, fallback, pane?.source, locale)
+    }
   }
 
   return (

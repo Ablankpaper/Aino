@@ -8,6 +8,7 @@ import type { CSSProperties } from 'react'
 
 import { writeClipboardText } from '@/components/ui/copy-button'
 import { markRightPanePerf } from '@/debug/right-pane-events'
+import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { isComposerChord } from '@/lib/keybinds/chords'
 import { $previewTarget } from '@/store/preview'
@@ -388,6 +389,7 @@ export function useTerminalSession({
   reviveBuffer,
   onShell
 }: UseTerminalSessionOptions) {
+  const { t } = useI18n()
   // Key off renderedMode (the painted surface type), not resolvedMode (the
   // clicked switch) — a skin can keep a light surface in "dark" mode, and we
   // must match the surface or the ANSI palette inverts against it. themeName
@@ -898,7 +900,9 @@ export function useTerminalSession({
         })
         .catch(error => {
           setStatus('closed')
-          term.write(`Terminal failed to start: ${error instanceof Error ? error.message : String(error)}\r\n`)
+          term.write(
+            `${t.rightSidebar.terminalStartFailed(error instanceof Error ? error.message : String(error))}\r\n`
+          )
         })
 
     // Open + fit + start only once webfonts settle. Fitting with fallback metrics

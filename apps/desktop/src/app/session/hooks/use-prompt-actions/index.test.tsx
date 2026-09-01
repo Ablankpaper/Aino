@@ -735,6 +735,70 @@ describe('usePromptActions /browser', () => {
       '浏览器未连接（请尝试 /browser connect <url>，或在 config.yaml 中设置 browser.cdp_url）'
     )
   })
+
+  it('localizes the unavailable browser URL placeholder without changing the URL label', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'browser.manage') {
+        return { connected: true, url: '' } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/browser status')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain('浏览器已连接：（URL 不可用）')
+  })
+})
+
+describe('usePromptActions /pet', () => {
+  beforeEach(() => {
+    setRuntimeI18nLocale('en')
+    setSessions(() => [sessionInfo()])
+  })
+
+  afterEach(() => {
+    cleanup()
+    setRuntimeI18nLocale('en')
+    vi.restoreAllMocks()
+  })
+
+  it('localizes the /pet scale usage line while keeping command syntax in English', async () => {
+    const seeds: Record<string, unknown>[] = []
+    const requestGateway = vi.fn(async () => ({}) as never)
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/pet scale nope')
+
+    const rendered = renderedSeedTexts(seeds).join('\n')
+    expect(rendered).toContain('用法：/pet scale <factor>（例如：/pet scale 0.5）')
+    expect(rendered).not.toContain('usage:')
+  })
 })
 
 describe('usePromptActions /compress', () => {
@@ -2785,7 +2849,26 @@ describe('usePromptActions restoreToMessage', () => {
     cleanup()
     $busy.set(false)
     $messages.set([])
+    setRuntimeI18nLocale('en')
     vi.restoreAllMocks()
+  })
+
+  it('localizes the missing active-session restore error in Simplified Chinese', async () => {
+    setRuntimeI18nLocale('zh')
+    const requestGateway = vi.fn(async () => ({}) as never)
+    let handle: HarnessHandle | null = null
+
+    await actRender(
+      <Harness
+        activeSessionId={null}
+        onReady={h => (handle = h)}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+      />
+    )
+
+    await expect(handle!.restoreToMessage('u1')).rejects.toThrow('没有可恢复的活动会话。')
+    expect(requestGateway).not.toHaveBeenCalled()
   })
 
   it('rewinds to the target user turn and resubmits its text', async () => {
@@ -5489,6 +5572,7 @@ describe('usePromptActions eager attachment upload (drop-time)', () => {
 
 describe('uploadComposerAttachment remote read failures', () => {
   afterEach(() => {
+    setRuntimeI18nLocale('en')
     vi.restoreAllMocks()
   })
 
@@ -5517,7 +5601,7 @@ describe('uploadComposerAttachment remote read failures', () => {
     expect(requestGateway).not.toHaveBeenCalled()
   })
 
-  it('passes non-cap read errors through unchanged', async () => {
+  it('localizes non-cap read errors instead of exposing raw IPC details', async () => {
     Object.defineProperty(window, 'hermesDesktop', {
       configurable: true,
       value: {
@@ -5532,7 +5616,43 @@ describe('uploadComposerAttachment remote read failures', () => {
         { id: 'file:gone', kind: 'file', label: 'gone.csv', path: '/abs/gone.csv' },
         { remote: true, requestGateway: vi.fn(async () => ({}) as never), sessionId: RUNTIME_SESSION_ID }
       )
-    ).rejects.toThrow('ENOENT: no such file')
+    ).rejects.toThrow('Could not read attachment: gone.csv')
+  })
+
+  it('localizes unreadable attachment errors in Simplified Chinese', async () => {
+    setRuntimeI18nLocale('zh')
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        readFileDataUrl: vi.fn(async () => {
+          throw new Error('ENOENT: no such file')
+        })
+      }
+    })
+
+    await expect(
+      uploadComposerAttachment(
+        { id: 'file:gone', kind: 'file', label: 'gone.csv', path: '/abs/gone.csv' },
+        { remote: true, requestGateway: vi.fn(async () => ({}) as never), sessionId: RUNTIME_SESSION_ID }
+      )
+    ).rejects.toThrow('无法读取附件：gone.csv')
+  })
+
+  it('localizes an attachment rejection without a gateway message in Simplified Chinese', async () => {
+    setRuntimeI18nLocale('zh')
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: { readFileDataUrl: vi.fn(async () => 'data:text/csv;base64,YQ==') }
+    })
+
+    const requestGateway = vi.fn(async () => ({ attached: false, ref_text: '' }) as never)
+
+    await expect(
+      uploadComposerAttachment(
+        { id: 'file:rejected', kind: 'file', label: 'report.txt', path: '/abs/report.txt' },
+        { remote: true, requestGateway, sessionId: RUNTIME_SESSION_ID }
+      )
+    ).rejects.toThrow('无法附加附件：report.txt')
   })
 })
 

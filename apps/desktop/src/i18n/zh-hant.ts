@@ -3,6 +3,9 @@ import { defineFieldCopy } from '@/app/settings/field-copy'
 import { defineLocale } from './define-locale'
 
 export const zhHant = defineLocale({
+  webhooks: {
+    webhookUrl: 'Webhook 網址'
+  },
   common: {
     apply: '套用',
     back: '返回',
@@ -13,6 +16,7 @@ export const zhHant = defineLocale({
     choose: '選擇',
     clear: '清除',
     close: '關閉',
+    actions: '動作',
     collapse: '收合',
     confirm: '確認',
     connect: '連線',
@@ -966,6 +970,8 @@ export const zhHant = defineLocale({
       deepLinkErrorShape: '設定必須是包含字串 `url` 或 `command` 欄位的 JSON 物件。',
       deepLinkErrorUrl: '僅允許 http:// 和 https:// 伺服器網址。',
       deepLinkErrorTooLarge: '設定內容超過 32KB 上限。',
+      importExpectedObject: '應為 JSON 物件。',
+      importServerWrapperRequired: '請將伺服器包裹在 `{"mcpServers": {"name": …}}` 中，以便為其指定名稱。',
       importButton: '匯入',
       importPlaceholder: '貼上 mcp.json 片段、npx/docker 指令、claude mcp add 指令、URL 或 Cursor 連結…',
       importNoMatch: '貼上的文字中未識別到伺服器設定。',
@@ -1526,6 +1532,7 @@ export const zhHant = defineLocale({
     newProfile: '新增設定檔',
     importProfile: '匯入設定檔…',
     exportProfile: '匯出設定檔…',
+    archiveFilter: 'Aino 設定檔',
     imported: '設定檔已匯入',
     exported: '設定檔已匯出',
     failedImport: '匯入設定檔失敗',
@@ -1893,6 +1900,8 @@ export const zhHant = defineLocale({
       copyPath: '複製路徑',
       removeFromSidebar: '從側邊欄移除',
       createFailed: '無法建立專案',
+      unavailableAllProfiles: '檢視所有設定檔時無法使用專案',
+      activeProfileChanged: '連線期間使用中的設定檔已變更',
       staleBackend: '請更新 Hermes 後端以建立專案——目前後端比桌面應用舊（設定 → 更新 → 後端）。',
       deleteConfirm: '這會從 Hermes 中移除已儲存的專案。檔案、git 儲存庫和工作樹維持不變。',
       startWork: '新增工作樹',
@@ -2280,6 +2289,19 @@ export const zhHant = defineLocale({
       skipped: '已略過',
       failed: '失敗'
     },
+    stageNames: {
+      'system-packages': '系統元件',
+      uv: 'uv',
+      python: 'Python 環境',
+      repo: 'Aino 程式碼庫',
+      dependencies: 'Python 相依套件',
+      node: 'Node 執行階段',
+      desktop: '桌面應用程式',
+      handoff: '準備更新',
+      update: '下載最新版本',
+      rebuild: '重新建置桌面應用程式',
+      install: '安裝更新'
+    },
     oneTimeTitle: 'Hermes 需要一次性安裝',
     unsupportedDesc: platform =>
       `${platform} 暫不支援自動首次啟動安裝。請開啟終端機並執行下面的指令，然後重新啟動此應用程式。之後啟動會略過此步驟。`,
@@ -2365,6 +2387,7 @@ export const zhHant = defineLocale({
       gemini: { short: 'Gemini 模型', description: '直接存取 Google Gemini 模型。' },
       xai: { short: 'Grok 模型', description: '直接存取 xAI Grok 模型。' },
       local: {
+        title: '本機 / 自訂端點',
         short: '自託管',
         description: '將 Hermes 指向本機或自託管的 OpenAI 相容端點（vLLM、llama.cpp、Ollama 等）。'
       }
@@ -2597,6 +2620,7 @@ export const zhHant = defineLocale({
     terminalNew: '新增終端機',
     terminalCloseOthers: '關閉其他',
     terminalCloseAll: '全部關閉',
+    terminalStartFailed: error => `終端機啟動失敗：${error}`,
     addToChat: '新增至聊天'
   },
 
@@ -2667,6 +2691,8 @@ export const zhHant = defineLocale({
       restartingTitle: '正在重新啟動預覽伺服器',
       restartingMessage: 'Hermes 正在背景執行。可在預覽主控台查看進度。',
       startRestartFailed: message => `無法啟動伺服器重新啟動：${message}`,
+      restartNoActiveSession: '沒有作用中的工作階段可在背景重新啟動。',
+      restartMissingTaskId: '背景重新啟動未回傳工作任務 ID。',
       restartFailed: '伺服器重新啟動失敗',
       hideConsole: '隱藏預覽主控台',
       showConsole: '顯示預覽主控台',
@@ -3003,6 +3029,7 @@ export const zhHant = defineLocale({
 
   prompts: {
     gatewayDisconnected: 'Hermes 閘道未連線',
+    dangerousCommand: '危險指令',
     sudoSendFailed: '無法傳送 sudo 密碼',
     secretSendFailed: '無法傳送密鑰',
     sudoTitle: '管理員密碼',
@@ -3015,6 +3042,7 @@ export const zhHant = defineLocale({
 
   desktop: {
     audioReadFailed: '無法讀取錄製的音訊',
+    fileDownloadBridgeUnavailable: '桌面檔案下載橋接不可用',
     sessionUnavailable: '工作階段不可用',
     createSessionFailed: '無法建立新工作階段',
     promptFailed: '提示詞傳送失敗',
@@ -3022,6 +3050,8 @@ export const zhHant = defineLocale({
     emptySlashCommand: '空的斜線指令',
     desktopCommands: '桌面端指令',
     skillCommandsAvailable: count => `${count} 個技能指令可用。`,
+    petScaleUsage: '用法：/pet scale <factor>（例如：/pet scale 0.5）',
+    agentReportedError: 'Hermes 回報了錯誤',
     warningLine: message => `警告：${message}`,
     yoloArmed: '此聊天已啟用 YOLO',
     yoloOff: 'YOLO 已關閉',
@@ -3039,6 +3069,9 @@ export const zhHant = defineLocale({
     editFailed: '編輯失敗',
     editTurnUnavailable: '此回合已不在伺服器歷史中（可能已被壓縮移除）。',
     resumeFailed: '繼續失敗',
+    restoreNoActiveSession: '沒有可還原的使用中工作階段。',
+    restoreTargetMissing: '找不到要還原的訊息。',
+    restoreEmptyMessage: '無法還原空白訊息。',
     readOnlyTranscriptTitle: '已以唯讀方式開啟',
     readOnlyTranscriptBody:
       '尚無已連線的後端認領這個較早的對話，因此它以唯讀逐字稿方式開啟。歷史紀錄完好；在有後端認領之前無法傳送訊息。',
@@ -3058,6 +3091,9 @@ export const zhHant = defineLocale({
     deleteFailed: '刪除失敗',
     archived: '已封存',
     archiveFailed: '封存失敗',
+    sessionOwnershipUnavailable: '無法判定工作階段歸屬，已取消操作。',
+    attachmentReadFailed: label => `無法讀取附件：${label}`,
+    attachmentAttachFailed: label => `無法附加附件：${label}`,
     cwdChangeFailed: '工作目錄變更失敗',
     cwdStagedTitle: '工作目錄已暫存',
     cwdStagedMessage: '重新啟動桌面後端後，工作目錄變更才會套用至此作用中工作階段。',

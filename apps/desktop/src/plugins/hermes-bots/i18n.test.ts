@@ -115,6 +115,40 @@ describe('BOTS_LOCALES', () => {
     )
   })
 
+  it('localizes the forever-chat reset guard for Chinese users', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    expect(zhByPath['bot.foreverChatTitle']).toBe('此聊天不会重置')
+    expect(zhByPath['bot.foreverChatMessage']).toBe(
+      '机器人聊天会持续保留上下文，因此将改为压缩当前上下文。若要与此机器人开启临时会话，请使用“会话”模式。'
+    )
+  })
+
+  it('localizes profile-operation and stored-session guards for Chinese users', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    expect(zhByPath['bot.duplicateNameExhausted']).toBe('没有可用的复制名称。')
+    expect(zhByPath['bot.defaultDeleteBlocked']).toBe('默认配置档案不能删除。')
+    expect(zhByPath['bot.remoteDeleteUnsupported']).toBe('当前桌面端暂不支持删除来源限定的配置档案。')
+    expect(zhByPath['bot.storedSessionOpenUnsupported']).toBe('当前桌面版本无法打开已保存的会话。')
+    expect((zhByPath['bot.registryCheckFailed'] as (name: string, detail: string) => string)('研究员', '网关超时')).toBe(
+      '无法检查 研究员 的机器人聊天注册表（网关超时） — 不会启动新聊天'
+    )
+  })
+
+  it('localizes the roster disband confirmation description for Chinese users', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+    const description = zhByPath['group.disbandDescription'] as (group: string) => string
+
+    expect(description('研究组')).toBe('这会从机器人中移除“研究组”并清空共享房间日志。机器人及其各自的聊天会保留。')
+  })
+
+  it('provides localized labels for the Bot Mode palette action', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    expect(zhByPath['bot.newCommand']).toBe('新建机器人…')
+  })
+
   it('keeps interpolator arguments in the translated string', () => {
     const sentinel = 'QUERY_SENTINEL'
     const gateway = 'GATEWAY_SENTINEL'

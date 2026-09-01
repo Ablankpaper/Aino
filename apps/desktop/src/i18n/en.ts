@@ -13,6 +13,7 @@ export const en: Translations = {
     choose: 'Choose',
     clear: 'Clear',
     close: 'Close',
+    actions: 'Actions',
     collapse: 'Collapse',
     confirm: 'Confirm',
     connect: 'Connect',
@@ -85,7 +86,13 @@ export const en: Translations = {
       gatewayConnectionLostDetail:
         'Still retrying in the background. You can keep reading and drafting — open Gateway settings if this persists.',
       gatewaySignInRequired: 'Gateway sign-in required',
-      ipcBridgeUnavailable: 'Desktop IPC bridge is unavailable.'
+      ipcBridgeUnavailable: 'Desktop IPC bridge is unavailable.',
+      backendConnectionTimeout: 'Timed out connecting to Hermes backend',
+      gatewayRevalidationTimeout: 'Timed out revalidating the gateway connection',
+      gatewayReconnectTimeout: 'Timed out reconnecting to Hermes backend',
+      gatewayWsRemintTimeout: 'Timed out re-minting the gateway WebSocket URL',
+      gatewayFallbackTimeout: 'Timed out resolving the fallback gateway connection',
+      gatewayWsMintTimeout: 'Timed out minting the gateway WebSocket URL'
     },
     failure: {
       title: "Hermes couldn't start",
@@ -121,7 +128,15 @@ export const en: Translations = {
       signInFailed: 'Sign-in failed',
       signInToRemoteGateway: 'Sign in to remote gateway',
       signInWithProvider: provider => `Sign in with ${provider}`,
-      identityProvider: 'your identity provider'
+      identityProvider: 'your identity provider',
+      backendStartFailed: (message, profile) =>
+        profile
+          ? `Hermes backend for profile "${profile}" failed to start: ${message}`
+          : `Hermes backend failed to start: ${message}`,
+      backendExitedBeforeReady: (status, suffix, profile) =>
+        profile
+          ? `Hermes backend for profile "${profile}" exited before it became ready (${status})${suffix}`
+          : `Hermes backend exited before it became ready (${status})${suffix}`
     }
   },
 
@@ -162,7 +177,8 @@ export const en: Translations = {
       microphonePermission: 'Microphone permission was denied.',
       openaiRejectedApiKey: 'OpenAI rejected the API key.',
       openaiRejectedApiKeyWithStatus: status => `OpenAI rejected the API key (${status} invalid_api_key).`,
-      openaiTtsNeedsKey: 'OpenAI TTS needs VOICE_TOOLS_OPENAI_KEY or OPENAI_API_KEY.'
+      openaiTtsNeedsKey: 'OpenAI TTS needs VOICE_TOOLS_OPENAI_KEY or OPENAI_API_KEY.',
+      spawnFailed: 'Could not start the background operation.'
     },
     voice: {
       configureSpeechToText: 'Configure speech-to-text to use voice mode.',
@@ -363,7 +379,12 @@ export const en: Translations = {
       openVerification: 'Open verification page',
       dismiss: 'Dismiss',
       waiting: 'Waiting for verification link…',
-      verify: 'Verify to continue'
+      verify: 'Verify to continue',
+      verificationNotApprovedTitle: 'Verification was not approved',
+      verificationNotApprovedMessage:
+        'Verification finished without allowing Remote Spending for this terminal.',
+      verificationCompleteTitle: 'Verification complete',
+      verificationCompleteMessage: 'Remote Spending is allowed for this terminal.'
     },
     refusal: {
       cardConfirmationTitle: 'Card confirmation needed',
@@ -623,7 +644,8 @@ export const en: Translations = {
         resolveFolder: 'Could not resolve the plugins folder',
         openFolder: 'Could not open the plugins folder',
         backendHomeMissing: 'The backend did not report its home directory',
-        unknown: 'unknown error'
+        unknown: 'unknown error',
+        runtimeLoadFailed: origin => `Plugin "${origin}" failed to load`
       },
       kinds: { bundled: 'bundled', disk: 'on disk', runtime: 'runtime' },
       agent: {
@@ -941,7 +963,8 @@ export const en: Translations = {
         exportFailed: slug => `Could not export ${slug}`,
         noneAvailable: 'No pets available to turn on right now.',
         turnOnFailed: 'Could not turn the pet on.',
-        turnOffFailed: 'Could not turn the pet off.'
+        turnOffFailed: 'Could not turn the pet off.',
+        spriteLabel: name => (name ? `${name} pet` : 'pet')
       }
     },
     fieldLabels: FIELD_LABELS,
@@ -1329,6 +1352,29 @@ export const en: Translations = {
       catalogEnvRequired: 'Fill in the required values before installing.',
       oauthTag: 'OAuth',
       apiKeyTag: 'API key',
+      oauthStartFailed: 'OAuth failed to start',
+      oauthAuthorizationUrlMissing: 'OAuth server did not provide an authorization URL',
+      oauthAuthorizationFailed: 'OAuth authorization failed',
+      oauthCancelled: 'OAuth cancelled by user',
+      catalogDescriptions: {
+        airtable: 'Bases, tables, and records from your Airtable workspace.',
+        asana: 'Tasks, projects, and goals from your Asana workspace.',
+        atlassian: 'Jira issues and Confluence pages via Atlassian’s hosted MCP.',
+        datadog: 'Logs, monitors, dashboards, and incidents from Datadog.',
+        figma: 'Design context and Code Connect from Figma files.',
+        hugging_face: 'Models, datasets, Spaces, and papers from the Hugging Face Hub.',
+        intercom: 'Conversations, tickets, and customer data from Intercom.',
+        linear: 'Find, create, and update Linear issues, projects, and comments.',
+        netlify: 'Sites, deploys, and env vars via Netlify’s hosted MCP.',
+        notion: 'Pages and databases from your Notion workspace.',
+        paypal: 'Payments, invoices, and subscriptions via PayPal’s hosted MCP.',
+        sentry: 'Issues, stack traces, and error context from Sentry.',
+        square: 'Catalog, orders, and payments via Square’s hosted MCP.',
+        stripe: 'Payments, customers, and invoices via Stripe’s hosted MCP.',
+        supabase: 'Database, auth, and storage from your Supabase projects.',
+        vercel: 'Deployments, logs, and projects via Vercel’s hosted MCP.',
+        webflow: 'Sites, CMS collections, and pages via Webflow’s hosted MCP.'
+      },
       capabilitySummary: (tools, prompts, resources) =>
         `${[`${tools} tools`, ...(prompts ? [`${prompts} prompts`] : []), ...(resources ? [`${resources} resources`] : [])].join(', ')} enabled`,
       costTokens: tokens => `~${tokens} tok/call`,
@@ -1361,6 +1407,8 @@ export const en: Translations = {
       deepLinkErrorShape: 'The config must be a JSON object with a string `url` or `command` field.',
       deepLinkErrorUrl: 'Only http:// and https:// server URLs are allowed.',
       deepLinkErrorTooLarge: 'The config payload exceeds the 32KB limit.',
+      importExpectedObject: 'Expected a JSON object.',
+      importServerWrapperRequired: 'Wrap the server in `{"mcpServers": {"name": …}}` so it has a name.',
       importButton: 'Import',
       importPlaceholder: 'Paste an mcp.json snippet, npx/docker command, claude mcp add line, URL, or Cursor link…',
       importNoMatch: 'No server config recognized in the pasted text.',
@@ -1884,6 +1932,8 @@ export const en: Translations = {
     subtitle: 'Live subagent activity for the current turn.',
     emptyTitle: 'No live subagents',
     emptyDesc: 'When a turn delegates work, child agents stream their progress here.',
+    defaultGoal: 'Subagent',
+    timedOutAfter: seconds => `Timed out after ${seconds}s`,
     running: 'Running',
     failed: 'Failed',
     done: 'Done',
@@ -2369,6 +2419,7 @@ export const en: Translations = {
     newProfile: 'New profile',
     importProfile: 'Import profile…',
     exportProfile: 'Export profile…',
+    archiveFilter: 'Hermes profile',
     imported: 'Profile imported',
     exported: 'Profile exported',
     failedImport: 'Failed to import profile',
@@ -2498,6 +2549,7 @@ export const en: Translations = {
     close: 'Close cron',
     title: 'Scheduled jobs',
     count: count => `${count} ${count === 1 ? 'job' : 'jobs'}`,
+    jobFallbackTitle: 'Cron job',
     modelImpact: {
       title: 'Scheduled jobs need review',
       message: count =>
@@ -2725,6 +2777,9 @@ export const en: Translations = {
     noArtifactsDesc: 'Generated images and file outputs will appear here as sessions produce them.',
     failedLoad: 'Artifacts failed to load',
     openFailed: 'Open failed',
+    partialLoadMessage: (failed, total) => `Skipped ${failed} of ${total} recent sessions while indexing artifacts.`,
+    safeLoadFailure: count => `${count} session${count === 1 ? '' : 's'} exceeded the safe transcript load limit.`,
+    unreadableFailure: count => `${count} session${count === 1 ? '' : 's'} could not be read.`,
     itemsImage: 'images',
     itemsLink: 'links',
     itemsFile: 'files',
@@ -2774,6 +2829,35 @@ export const en: Translations = {
       messaging: 'Messaging',
       artifacts: 'Artifacts',
       cron: 'Scheduled jobs'
+    },
+    sources: {
+      api_server: 'API server',
+      bluebubbles: 'iMessage',
+      cli: 'CLI',
+      codex: 'Codex',
+      desktop: 'Desktop',
+      discord: 'Discord',
+      dingtalk: 'DingTalk',
+      email: 'Email',
+      feishu: 'Feishu',
+      gateway: 'Gateway',
+      homeassistant: 'Home Assistant',
+      kanban: 'Kanban',
+      local: 'Local',
+      matrix: 'Matrix',
+      mattermost: 'Mattermost',
+      photon: 'Photon',
+      qqbot: 'QQ',
+      signal: 'Signal',
+      slack: 'Slack',
+      sms: 'SMS',
+      telegram: 'Telegram',
+      tui: 'TUI',
+      webhook: 'Webhook',
+      wecom: 'WeCom',
+      weixin: 'WeChat',
+      whatsapp: 'WhatsApp',
+      yuanbao: 'Yuanbao'
     },
     searchAria: 'Search sessions',
     searchPlaceholder: 'Search sessions…',
@@ -2905,6 +2989,8 @@ export const en: Translations = {
       copyPath: 'Copy path',
       removeFromSidebar: 'Hide from sidebar',
       createFailed: 'Could not create project',
+      unavailableAllProfiles: 'Projects are unavailable while viewing all profiles',
+      activeProfileChanged: 'Active Hermes profile changed while connecting',
       staleBackend:
         'Update the Hermes backend to create projects — your backend is older than this desktop app (Settings → Updates → Backend).',
       deleteConfirm: 'This removes the saved project from Hermes. Files, git repos, and worktrees stay untouched.',
@@ -3106,6 +3192,7 @@ export const en: Translations = {
       '/branch': 'Branch the latest message into a new chat',
       '/yolo': 'Toggle YOLO — auto-approve dangerous commands',
       '/wake': 'Control the desktop wake-word listener [on|off|status]',
+      '/indicator': 'Pick the TUI busy-indicator style',
       '/handoff': 'Hand off this session to a messaging platform',
       '/profile': 'Switch the active Hermes profile',
       '/skin': 'Switch desktop theme or cycle to the next one',
@@ -3250,6 +3337,8 @@ export const en: Translations = {
     stop: 'Stop',
     dismiss: 'Dismiss',
     exit: code => `exit ${code}`,
+    backgroundProcess: 'background process',
+    standingGoal: 'Standing goal',
     coding: {
       title: 'Working tree',
       noBranch: 'No branch',
@@ -3402,6 +3491,19 @@ export const en: Translations = {
       skipped: 'Skipped',
       failed: 'Failed'
     },
+    stageNames: {
+      'system-packages': 'System packages',
+      uv: 'uv',
+      python: 'Python environment',
+      repo: 'Hermes repository',
+      dependencies: 'Python dependencies',
+      node: 'Node runtime',
+      desktop: 'Desktop app',
+      handoff: 'Preparing to update',
+      update: 'Downloading the latest version',
+      rebuild: 'Rebuilding the desktop app',
+      install: 'Installing the update'
+    },
     oneTimeTitle: 'Hermes needs a one-time install',
     unsupportedDesc: platform =>
       `Automated first-launch install isn’t available on ${platform} yet. Open Terminal and run the command below, then relaunch this app. Subsequent launches will skip this step.`,
@@ -3505,6 +3607,7 @@ export const en: Translations = {
       gemini: { short: 'Gemini models', description: 'Direct access to Google Gemini models.' },
       xai: { short: 'Grok models', description: 'Direct access to xAI Grok models.' },
       local: {
+        title: 'Local / custom endpoint',
         short: 'self-hosted',
         description: 'Point Hermes at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
       }
@@ -3527,6 +3630,7 @@ export const en: Translations = {
     connectedProvider: provider => `${provider} connected`,
     connectedPicking: provider => `${provider} connected. Picking a default model...`,
     signInFailed: 'Sign-in failed. Try again.',
+    genericApiKeyDescription: provider => `Direct API access to ${provider}.`,
     pickDifferentProvider: 'Pick a different provider',
     signInWith: provider => `Sign in with ${provider}`,
     openedBrowser: provider => `We opened ${provider} in your browser.`,
@@ -3699,6 +3803,7 @@ export const en: Translations = {
       gatewayOffline: 'offline',
       gatewayRestarting: 'restarting…',
       gatewayTitle: 'Gateway',
+      noRecentGatewayLogs: 'No recent gateway log lines',
       customizeTitle: 'Show in status bar',
       hideStatusbar: 'Hide status bar',
       resetStatusbar: 'Reset to defaults',
@@ -3807,6 +3912,7 @@ export const en: Translations = {
     terminalNew: 'New terminal',
     terminalCloseOthers: 'Close others',
     terminalCloseAll: 'Close all',
+    terminalStartFailed: error => `Terminal failed to start: ${error}`,
     addToChat: 'Add to chat'
   },
 
@@ -3837,6 +3943,16 @@ export const en: Translations = {
     truncated: 'Showing first 512 KB.',
     noInlineTitle: 'No inline preview',
     noInlineBody: mimeType => `${mimeType || 'This file type'} can still be attached as context.`,
+    desktopBridgeUnavailable: 'Desktop bridge unavailable',
+    artifactWriteFailed: 'Could not write artifact file',
+    invalidPdfDataUrl: 'Invalid PDF data URL',
+    invalidPdfDataUrlType: 'Invalid PDF data URL type',
+    invalidPdfDataUrlPayload: 'Invalid PDF data URL payload',
+    invalidPdfFileHeader: 'Invalid PDF file header',
+    pdfObjectUrlUnsupported: 'PDF preview requires object URL support',
+    webviewNotReady: 'preview webview is not ready',
+    webviewInputUnavailable: 'preview webview cannot take input events',
+    couldNotOpenTarget: target => `Could not open preview target: ${target}`,
     edit: 'Edit',
     editing: 'Editing',
     unsavedChanges: 'Unsaved changes',
@@ -3911,6 +4027,8 @@ export const en: Translations = {
       restartingTitle: 'Restarting preview server',
       restartingMessage: 'Hermes is working in the background. Watch the preview console for progress.',
       startRestartFailed: message => `Could not start server restart: ${message}`,
+      restartNoActiveSession: 'No active session is available for a background restart.',
+      restartMissingTaskId: 'The background restart did not return a task ID.',
       restartFailed: 'Server restart failed',
       hideConsole: 'Hide preview console',
       showConsole: 'Show preview console',
@@ -4206,6 +4324,8 @@ export const en: Translations = {
       stderr: 'stderr',
       errorDetails: 'Error details',
       snapshotSummary: 'Snapshot summary',
+      delegatedTask: 'Delegated task',
+      taskNumber: index => `Task ${index}`,
       fallbacks: {
         returnedError: 'Tool returned an error.',
         returnedSuccessFalse: 'Tool returned success=false.',
@@ -4215,6 +4335,7 @@ export const en: Translations = {
       cron: {
         noJobs: 'No cron jobs',
         noJobsScheduled: 'No cron jobs scheduled',
+        jobsCount: count => `${count} cron job${count === 1 ? '' : 's'}`,
         schedule: 'Schedule',
         repeat: 'Repeat',
         delivery: 'Delivery',
@@ -4339,6 +4460,7 @@ export const en: Translations = {
 
   prompts: {
     gatewayDisconnected: 'Hermes gateway is not connected',
+    dangerousCommand: 'dangerous command',
     sudoSendFailed: 'Could not send sudo password',
     secretSendFailed: 'Could not send secret',
     sudoTitle: 'Administrator password',
@@ -4364,6 +4486,7 @@ export const en: Translations = {
     fsRenameUnavailable: 'Rename is not available',
     fsDeleteUnavailable: 'Delete is not available',
     audioReadFailed: 'Could not read recorded audio',
+    fileDownloadBridgeUnavailable: 'Desktop file download bridge is unavailable',
     sessionUnavailable: 'Session unavailable',
     gatewayConnectionClosed: 'Hermes gateway connection closed',
     gatewayConnectionFailed: 'Could not connect to Hermes gateway',
@@ -4376,6 +4499,8 @@ export const en: Translations = {
     emptySlashCommand: 'empty slash command',
     desktopCommands: 'Desktop commands',
     skillCommandsAvailable: count => `${count} skill commands available.`,
+    petScaleUsage: 'usage: /pet scale <factor>  (e.g. /pet scale 0.5)',
+    agentReportedError: 'Hermes reported an error',
     warningLine: message => `warning: ${message}`,
     errorLine: message => `error: ${message}`,
     wakeUsage: 'usage: /wake [on|off|status]',
@@ -4410,6 +4535,7 @@ export const en: Translations = {
     browserConnected: 'Browser connected to live Chromium-family browser via CDP',
     browserEndpoint: url => `Endpoint: ${url}`,
     browserNextCall: 'next browser tool call will use this CDP endpoint',
+    browserUrlUnavailable: '(url unavailable)',
     compressing: focusTopic => (focusTopic ? `compressing context for: ${focusTopic}` : 'compressing context...'),
     compressedMessages: count => `compressed ${count} messages`,
     nothingToCompress: 'nothing to compress',
@@ -4454,6 +4580,9 @@ export const en: Translations = {
     editFailed: 'Edit failed',
     editTurnUnavailable: 'This turn is no longer in server history (it may have been compressed away).',
     resumeFailed: 'Resume failed',
+    restoreNoActiveSession: 'No active session to restore.',
+    restoreTargetMissing: 'Could not find the message to restore.',
+    restoreEmptyMessage: 'Cannot restore an empty message.',
     readOnlyTranscriptTitle: 'Opened read-only',
     readOnlyTranscriptBody:
       'No connected backend claims this older chat yet, so it opened as a read-only transcript. Its history is intact; sending is disabled until a backend claims it.',
@@ -4475,6 +4604,8 @@ export const en: Translations = {
     gatewayReconnectUnavailable: 'Gateway reconnect is unavailable',
     remoteAttachTooLarge: (label, maxMb) =>
       `${label} is too large to upload to the remote gateway${maxMb ? ` (max ${maxMb} MB)` : ''}.`,
+    attachmentReadFailed: label => `Could not read attachment: ${label}`,
+    attachmentAttachFailed: label => `Could not attach attachment: ${label}`,
     skinCommand: {
       noThemes: 'No desktop themes are available.',
       switched: label => `Desktop theme switched to ${label}.`,
@@ -4504,6 +4635,7 @@ export const en: Translations = {
     deleteFailed: 'Delete failed',
     archived: 'Archived',
     archiveFailed: 'Archive failed',
+    sessionOwnershipUnavailable: 'Session ownership could not be resolved.',
     cwdChangeFailed: 'Working directory change failed',
     cwdStagedTitle: 'Working directory staged',
     cwdStagedMessage: 'Restart the desktop backend to apply cwd changes to this active session.',
@@ -4516,6 +4648,7 @@ export const en: Translations = {
     restartToUseSaveImage: 'Restart Hermes Desktop to use Save Image.',
     restartToSaveImages: 'Restart Hermes Desktop to save images',
     imageDownloadFailed: 'Image download failed',
+    imageFetchFailed: status => `Could not fetch image: ${status}`,
     openImage: 'Open image',
     downloadImage: 'Download image',
     savingImage: 'Saving image',
@@ -4601,6 +4734,7 @@ export const en: Translations = {
     boundaryTitle: 'Something broke in the interface',
     boundaryDesc: 'The view hit an unexpected error. Your chats and settings are safe.',
     contribFailedToRender: id => `“${id}” failed to render`,
+    contribFailedToRenderDetail: (id, error) => `“${id}” failed to render: ${error}`,
     logUnavailable: error => `Log unavailable: ${error}`,
     reloadWindow: 'Reload window',
     openLogs: 'Open logs'
@@ -4665,7 +4799,8 @@ export const en: Translations = {
       zoomIn: 'Zoom in',
       copy: 'Copy',
       copied: 'Copied',
-      close: 'Close'
+      close: 'Close',
+      openPullRequest: number => `Open pull request #${number}`
     },
     messages: {
       embedLoad: label => `Load ${label}`,

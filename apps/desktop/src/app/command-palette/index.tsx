@@ -20,7 +20,7 @@ import { KbdCombo } from '@/components/ui/kbd'
 import { getHermesConfigRecord, listAllProfileSessions } from '@/hermes'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n'
-import { localizedPaletteLabel } from '@/i18n/contributions'
+import { localizedPaletteDetail, localizedPaletteLabel } from '@/i18n/contributions'
 import { sessionTitle } from '@/lib/chat-runtime'
 import {
   Activity,
@@ -878,7 +878,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
                 action: item.action,
                 // Read on mount and after every select (the deps below), so a
                 // row that reports state can't show the state it just left.
-                detail: item.detail?.(),
+                detail: localizedPaletteDetail(t, item.detail?.()),
                 detailVariant: item.detailVariant,
                 icon: item.icon ?? Zap,
                 id: item.key,

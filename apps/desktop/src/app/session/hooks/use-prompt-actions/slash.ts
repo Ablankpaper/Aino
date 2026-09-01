@@ -930,7 +930,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
             if (!rawValue || Number.isNaN(value)) {
               const resolved = await withSlashOutput(ctx)
-              resolved?.render('usage: /pet scale <factor>  (e.g. /pet scale 0.5)')
+              resolved?.render(copy.petScaleUsage)
 
               return
             }
@@ -990,9 +990,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
             if (cmdAction === 'status') {
               renderSlashOutput(
-                result?.connected
-                  ? copy.browserStatusConnected(result.url || '(url unavailable)')
-                  : copy.browserNotConnected
+                result?.connected ? copy.browserStatusConnected(result.url || copy.browserUrlUnavailable) : copy.browserNotConnected
               )
 
               return
@@ -1006,7 +1004,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
             if (result?.connected) {
               renderSlashOutput(copy.browserConnected)
-              renderSlashOutput(copy.browserEndpoint(result.url || '(url unavailable)'))
+              renderSlashOutput(copy.browserEndpoint(result.url || copy.browserUrlUnavailable))
               renderSlashOutput(copy.browserNextCall)
             }
           } catch (err) {

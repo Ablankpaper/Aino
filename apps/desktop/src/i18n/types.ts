@@ -61,6 +61,7 @@ export interface Translations {
     choose: string
     clear: string
     close: string
+    actions: string
     collapse: string
     confirm: string
     connect: string
@@ -133,6 +134,12 @@ export interface Translations {
       gatewayConnectionLostDetail: string
       gatewaySignInRequired: string
       ipcBridgeUnavailable: string
+      backendConnectionTimeout: string
+      gatewayRevalidationTimeout: string
+      gatewayReconnectTimeout: string
+      gatewayWsRemintTimeout: string
+      gatewayFallbackTimeout: string
+      gatewayWsMintTimeout: string
     }
     failure: {
       title: string
@@ -164,6 +171,9 @@ export interface Translations {
       signInToRemoteGateway: string
       signInWithProvider: (provider: string) => string
       identityProvider: string
+      /** Fixed Electron boot prefixes with backend diagnostics appended. */
+      backendStartFailed: (message: string, profile?: string) => string
+      backendExitedBeforeReady: (status: string, suffix: string, profile?: string) => string
     }
   }
 
@@ -203,6 +213,7 @@ export interface Translations {
       openaiRejectedApiKey: string
       openaiRejectedApiKeyWithStatus: (status: string) => string
       openaiTtsNeedsKey: string
+      spawnFailed: string
     }
     voice: {
       configureSpeechToText: string
@@ -398,6 +409,10 @@ export interface Translations {
       dismiss: string
       waiting: string
       verify: string
+      verificationNotApprovedTitle: string
+      verificationNotApprovedMessage: string
+      verificationCompleteTitle: string
+      verificationCompleteMessage: string
     }
     refusal: {
       cardConfirmationTitle: string
@@ -555,6 +570,7 @@ export interface Translations {
         openFolder: string
         backendHomeMissing: string
         unknown: string
+        runtimeLoadFailed: (origin: string) => string
       }
       kinds: { bundled: string; disk: string; runtime: string }
       agent: {
@@ -767,6 +783,7 @@ export interface Translations {
         noneAvailable: string
         turnOnFailed: string
         turnOffFailed: string
+        spriteLabel: (name: string) => string
       }
     }
     fieldLabels: Record<string, string>
@@ -1128,6 +1145,13 @@ export interface Translations {
       catalogEnvRequired: string
       oauthTag: string
       apiKeyTag: string
+      oauthStartFailed: string
+      oauthAuthorizationUrlMissing: string
+      oauthAuthorizationFailed: string
+      oauthCancelled: string
+      /** Localized copy for bundled MCP catalog manifests. Unknown or
+       * user-provided entries intentionally fall back to backend text. */
+      catalogDescriptions: Record<string, string>
       capabilitySummary: (tools: number, prompts: number, resources: number) => string
       costTokens: (tokens: string) => string
       usage30d: (uses: string) => string
@@ -1157,6 +1181,8 @@ export interface Translations {
       deepLinkErrorShape: string
       deepLinkErrorUrl: string
       deepLinkErrorTooLarge: string
+      importExpectedObject: string
+      importServerWrapperRequired: string
       importButton: string
       importPlaceholder: string
       importNoMatch: string
@@ -1621,6 +1647,8 @@ export interface Translations {
     subtitle: string
     emptyTitle: string
     emptyDesc: string
+    defaultGoal: string
+    timedOutAfter: (seconds: number | string) => string
     running: string
     failed: string
     done: string
@@ -1986,6 +2014,7 @@ export interface Translations {
      *  which stand alone. Per-profile menus use the bare `exportMenu`. */
     importProfile: string
     exportProfile: string
+    archiveFilter: string
     exportMenu: string
     imported: string
     exported: string
@@ -2111,6 +2140,7 @@ export interface Translations {
     close: string
     title: string
     count: (count: number) => string
+    jobFallbackTitle: string
     modelImpact: {
       title: string
       message: (count: number) => string
@@ -2240,6 +2270,9 @@ export interface Translations {
     noArtifactsDesc: string
     failedLoad: string
     openFailed: string
+    partialLoadMessage: (failed: number, total: number) => string
+    safeLoadFailure: (count: number) => string
+    unreadableFailure: (count: number) => string
     itemsImage: string
     itemsLink: string
     itemsFile: string
@@ -2284,6 +2317,8 @@ export interface Translations {
 
   sidebar: {
     nav: Record<string, string>
+    /** Display names for built-in session sources (platform ids remain stable). */
+    sources: Record<string, string>
     searchAria: string
     searchPlaceholder: string
     clearSearch: string
@@ -2341,6 +2376,8 @@ export interface Translations {
       copyPath: string
       removeFromSidebar: string
       createFailed: string
+      unavailableAllProfiles: string
+      activeProfileChanged: string
       staleBackend: string
       deleteConfirm: string
       startWork: string
@@ -2618,6 +2655,8 @@ export interface Translations {
     stop: string
     dismiss: string
     exit: (code: number) => string
+    backgroundProcess: string
+    standingGoal: string
     coding: {
       title: string
       noBranch: string
@@ -2747,6 +2786,7 @@ export interface Translations {
 
   install: {
     stageStates: Record<string, string>
+    stageNames: Record<string, string>
     oneTimeTitle: string
     unsupportedDesc: (platform: string) => string
     installCommand: string
@@ -2824,7 +2864,7 @@ export interface Translations {
     featuredPitch: string
     fireworksPitch: string
     openRouterPitch: string
-    apiKeyOptions: Record<string, { short: string; description: string }>
+    apiKeyOptions: Record<string, { short: string; description: string; title?: string }>
     backToSignIn: string
     getKey: string
     replaceCurrent: string
@@ -2839,6 +2879,7 @@ export interface Translations {
     connectedProvider: (provider: string) => string
     connectedPicking: (provider: string) => string
     signInFailed: string
+    genericApiKeyDescription: (provider: string) => string
     pickDifferentProvider: string
     signInWith: (provider: string) => string
     openedBrowser: (provider: string) => string
@@ -2996,6 +3037,7 @@ export interface Translations {
       gatewayOffline: string
       gatewayRestarting: string
       gatewayTitle: string
+      noRecentGatewayLogs: string
       customizeTitle: string
       hideStatusbar: string
       resetStatusbar: string
@@ -3092,6 +3134,7 @@ export interface Translations {
     terminalNew: string
     terminalCloseOthers: string
     terminalCloseAll: string
+    terminalStartFailed: (error: string) => string
     addToChat: string
   }
 
@@ -3122,6 +3165,16 @@ export interface Translations {
     truncated: string
     noInlineTitle: string
     noInlineBody: (mimeType: string) => string
+    desktopBridgeUnavailable: string
+    artifactWriteFailed: string
+    invalidPdfDataUrl: string
+    invalidPdfDataUrlType: string
+    invalidPdfDataUrlPayload: string
+    invalidPdfFileHeader: string
+    pdfObjectUrlUnsupported: string
+    webviewNotReady: string
+    webviewInputUnavailable: string
+    couldNotOpenTarget: (target: string) => string
     edit: string
     editing: string
     unsavedChanges: string
@@ -3191,6 +3244,8 @@ export interface Translations {
       restartingTitle: string
       restartingMessage: string
       startRestartFailed: (message: string) => string
+      restartNoActiveSession: string
+      restartMissingTaskId: string
       restartFailed: string
       hideConsole: string
       showConsole: string
@@ -3480,6 +3535,8 @@ export interface Translations {
       stderr: string
       errorDetails: string
       snapshotSummary: string
+      delegatedTask: string
+      taskNumber: (index: number) => string
       fallbacks: {
         returnedError: string
         returnedSuccessFalse: string
@@ -3489,6 +3546,7 @@ export interface Translations {
       cron: {
         noJobs: string
         noJobsScheduled: string
+        jobsCount: (count: number) => string
         schedule: string
         repeat: string
         delivery: string
@@ -3576,6 +3634,7 @@ export interface Translations {
 
   prompts: {
     gatewayDisconnected: string
+    dangerousCommand: string
     sudoSendFailed: string
     secretSendFailed: string
     sudoTitle: string
@@ -3601,6 +3660,7 @@ export interface Translations {
     fsRenameUnavailable: string
     fsDeleteUnavailable: string
     audioReadFailed: string
+    fileDownloadBridgeUnavailable: string
     sessionUnavailable: string
     gatewayConnectionClosed: string
     gatewayConnectionFailed: string
@@ -3612,6 +3672,7 @@ export interface Translations {
     emptySlashCommand: string
     desktopCommands: string
     skillCommandsAvailable: (count: number) => string
+    agentReportedError: string
     warningLine: (message: string) => string
     errorLine: (message: string) => string
     wakeUsage: string
@@ -3644,6 +3705,8 @@ export interface Translations {
     browserConnected: string
     browserEndpoint: (url: string) => string
     browserNextCall: string
+    browserUrlUnavailable: string
+    petScaleUsage: string
     compressing: (focusTopic: string) => string
     compressedMessages: (count: number) => string
     nothingToCompress: string
@@ -3685,6 +3748,9 @@ export interface Translations {
     editFailed: string
     editTurnUnavailable: string
     resumeFailed: string
+    restoreNoActiveSession: string
+    restoreTargetMissing: string
+    restoreEmptyMessage: string
     readOnlyTranscriptTitle: string
     readOnlyTranscriptBody: string
     readOnlyTranscriptSendBlocked: string
@@ -3703,6 +3769,8 @@ export interface Translations {
     stopProcessFailed: string
     gatewayReconnectUnavailable: string
     remoteAttachTooLarge: (label: string, maxMb?: number) => string
+    attachmentReadFailed: (label: string) => string
+    attachmentAttachFailed: (label: string) => string
     skinCommand: {
       noThemes: string
       switched: (label: string) => string
@@ -3732,6 +3800,7 @@ export interface Translations {
     deleteFailed: string
     archived: string
     archiveFailed: string
+    sessionOwnershipUnavailable: string
     cwdChangeFailed: string
     cwdStagedTitle: string
     cwdStagedMessage: string
@@ -3744,6 +3813,7 @@ export interface Translations {
     restartToUseSaveImage: string
     restartToSaveImages: string
     imageDownloadFailed: string
+    imageFetchFailed: (status: string) => string
     openImage: string
     downloadImage: string
     savingImage: string
@@ -3789,6 +3859,7 @@ export interface Translations {
     boundaryTitle: string
     boundaryDesc: string
     contribFailedToRender: (id: string) => string
+    contribFailedToRenderDetail: (id: string, error: string) => string
     logUnavailable: (error: string) => string
     reloadWindow: string
     openLogs: string
@@ -3832,6 +3903,7 @@ export interface Translations {
       copy: string
       copied: string
       close: string
+      openPullRequest: (number: number) => string
     }
     messages: {
       embedLoad: (label: string) => string

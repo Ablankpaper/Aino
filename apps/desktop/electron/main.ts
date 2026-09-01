@@ -257,6 +257,7 @@ import {
   resolveOauthRestAuth,
   resolveReadinessProbeAuth
 } from './native-auth-decisions'
+import { DEFAULT_NATIVE_LOCALE, type NativeLocale, nativeLocaleCopy, normalizeNativeLocale } from './native-locale'
 import {
   nativeRefreshUrl,
   type NativeTokenSet,
@@ -1386,6 +1387,32 @@ function registerMediaProtocol() {
 }
 
 let mainWindow = null
+// Native menus and OS dialogs live outside the renderer's React tree. Keep a
+// validated process-level locale for those surfaces and let every renderer
+// update it through the narrow locale IPC bridge. The renderer remains the
+// source of truth for the visible app; this is only the main-process mirror.
+let nativeLocale: NativeLocale = DEFAULT_NATIVE_LOCALE
+
+function setNativeLocale(value: unknown, { rebuild = true } = {}) {
+  const next = normalizeNativeLocale(value)
+
+  if (next === nativeLocale) {
+    return nativeLocale
+  }
+
+  nativeLocale = next
+
+  if (rebuild && IS_MAC && app.isReady()) {
+    Menu.setApplicationMenu(buildApplicationMenu())
+  }
+
+  return nativeLocale
+}
+
+function nativeCopy() {
+  return nativeLocaleCopy(nativeLocale)
+}
+
 const backendConnectionState = createBackendConnectionState<ReturnType<typeof spawn>, any>()
 const remoteLiveness = new RemoteLivenessTracker()
 const remoteRevalidation = new RemoteRevalidationCoordinator()
@@ -1501,7 +1528,7 @@ let bootProgressState = {
   error: null,
   fakeMode: BOOT_FAKE_MODE,
   isCloudBackendDown: false,
-  message: `Waiting to start ${PRODUCT_NAME} backend`,
+  message: nativeLocaleCopy(DEFAULT_NATIVE_LOCALE).bootProgress.waitingToStartBackend(APP_NAME),
   phase: 'idle',
   progress: 0,
   retryable: false,
@@ -2004,7 +2031,7 @@ function getFirstRunSetupGate() {
         updateBootProgress(
           {
             error: null,
-            message: `Still waiting for first-run setup choice after ${Math.round(stuckAfterMs / 1000)} seconds`,
+            message: nativeCopy().bootProgress.waitingForSetupAfterSeconds(Math.round(stuckAfterMs / 1000)),
             phase: 'bootstrap.choice',
             progress: 12,
             running: true
@@ -2029,7 +2056,7 @@ async function waitForFirstRunSetupChoice(backend) {
   updateBootProgress(
     {
       error: null,
-      message: 'Waiting for first-run setup choice',
+      message: nativeCopy().bootProgress.waitingForSetup,
       phase: 'bootstrap.choice',
       progress: 12,
       running: true
@@ -2174,7 +2201,7 @@ async function waitForUpdateToFinish() {
 
       await advanceBootProgress(
         'backend.update-wait',
-        `An update is finishing — ${PRODUCT_NAME} will start automatically when it completes…`,
+        nativeCopy().bootProgress.updateFinishing(APP_NAME),
         12
       )
     },
@@ -2198,8 +2225,8 @@ async function waitForUpdateToFinish() {
       rememberLog(`[updates] detached update finished with manual action (branch ${result.branch}): ${result.message}`)
       dialog.showMessageBox({
         type: 'warning',
-        title: `${APP_NAME} update`,
-        message: 'The update finished, but needs one more step',
+        title: nativeCopy().updateTitle(APP_NAME),
+        message: nativeCopy().updateNeedsStep,
         detail: result.message
       })
     } else if (result && result.ok) {
@@ -2207,7 +2234,7 @@ async function waitForUpdateToFinish() {
     } else if (result) {
       rememberLog(`[updates] detached update FAILED (exit ${result.exitCode}): ${result.message}`)
       dialog.showErrorBox(
-        `${APP_NAME} update did not finish`,
+        nativeCopy().updateFailedTitle(APP_NAME),
         `${result.message}\n\nDetails: ${path.join(HERMES_HOME, 'logs', 'desktop-update-handoff.log')}`
       )
     }
@@ -4819,7 +4846,7 @@ function resolveHermesBackend(backendArgs) {
 
 async function ensureRuntime(backend) {
   if (!backend.bootstrap) {
-    await advanceBootProgress('runtime.external', `Using ${backend.label}`, 32)
+    await advanceBootProgress('runtime.external', nativeCopy().bootProgress.usingBackend(backend.label), 32)
 
     return backend
   }
@@ -4978,7 +5005,7 @@ async function ensureRuntime(backend) {
   backend.label = `${PRODUCT_NAME} at ${ACTIVE_HERMES_ROOT} (venv: ${VENV_ROOT})`
   updateBootProgress({
     phase: 'runtime.ready',
-    message: `${PRODUCT_NAME} runtime is ready`,
+    message: nativeCopy().bootProgress.runtimeReady(APP_NAME),
     progress: 82,
     running: true,
     error: null
@@ -5843,11 +5870,11 @@ async function saveImageFromUrl(rawUrl) {
   }
 
   const result = await dialog.showSaveDialog(mainWindow, {
-    title: 'Save Image',
+    title: nativeCopy().saveImage,
     defaultPath: downloadsDir ? path.join(downloadsDir, fallbackName) : fallbackName,
     filters: [
-      { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'] },
-      { name: 'All Files', extensions: ['*'] }
+      { name: nativeCopy().images, extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'] },
+      { name: nativeCopy().allFiles, extensions: ['*'] }
     ]
   })
 
@@ -6501,10 +6528,11 @@ function sendWindowStateChanged(nextIsFullscreen?: boolean, target = mainWindow)
 }
 
 function buildApplicationMenu() {
+  const copy = nativeCopy()
   const template = []
 
   const checkForUpdatesItem = {
-    label: 'Check for Updates…',
+    label: copy.checkForUpdates,
     click: () => sendOpenUpdatesRequested()
   }
 
@@ -6512,31 +6540,31 @@ function buildApplicationMenu() {
     template.push({
       label: APP_NAME,
       submenu: [
-        { label: `About ${APP_NAME}`, click: () => showAboutPanelFresh() },
+        { label: copy.about(APP_NAME), click: () => showAboutPanelFresh() },
         checkForUpdatesItem,
         { type: 'separator' },
-        { role: 'services' },
+        { label: copy.services, role: 'services' },
         { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
+        { label: copy.hide(APP_NAME), role: 'hide' },
+        { label: copy.hideOthers, role: 'hideOthers' },
+        { label: copy.unhide, role: 'unhide' },
         { type: 'separator' },
-        { role: 'quit' }
+        { label: copy.quit(APP_NAME), role: 'quit' }
       ]
     })
   }
 
   template.push({
-    label: 'File',
+    label: copy.file,
     submenu: [
       // No accelerator: ⌘⇧N is a rebindable renderer keybind (session.newWindow);
       // a menu accelerator would fight the rebind panel and (on macOS) be
       // swallowed before the renderer sees it. Here purely for discoverability.
-      { click: () => createInstanceWindow(), label: 'New Window' },
+      { click: () => createInstanceWindow(), label: copy.newWindow },
       // Same no-accelerator rationale: ⌘O is the rebindable renderer keybind
       // (workspace.openFolder). Clicking runs the same open-folder-as-project
       // flow through the renderer.
-      { click: () => sendOpenFolderRequested(), label: 'Open Folder…' },
+      { click: () => sendOpenFolderRequested(), label: copy.openFolder },
       { type: 'separator' },
       IS_MAC
         ? {
@@ -6547,32 +6575,32 @@ function buildApplicationMenu() {
             // renderer's close-active-tab. Clicking the item still closes the tab
             // (or window) via the same request.
             click: () => sendClosePreviewRequested(),
-            label: 'Close'
+            label: copy.close
           }
-        : { role: 'quit' }
+        : { label: copy.quit(APP_NAME), role: 'quit' }
     ]
   })
   template.push({
-    label: 'Edit',
+    label: copy.edit,
     submenu: [
-      { role: 'undo' },
-      { role: 'redo' },
+      { label: copy.undo, role: 'undo' },
+      { label: copy.redo, role: 'redo' },
       { type: 'separator' },
-      { role: 'cut' },
-      { role: 'copy' },
-      { role: 'paste' },
+      { label: copy.cut, role: 'cut' },
+      { label: copy.copy, role: 'copy' },
+      { label: copy.paste, role: 'paste' },
       // ⌘⇧V is only wired up by this item existing: an accelerator with no menu
       // entry is never translated into an editor command, so the chord was a
       // no-op in every input in the app. The composer inserts plain text on
       // every paste anyway, so this is the same result as ⌘V there — it's the
       // terminal, preview, and other editable surfaces that need the strip.
-      { role: 'pasteAndMatchStyle' },
-      { role: 'delete' },
-      { role: 'selectAll' }
+      { label: copy.pasteAndMatchStyle, role: 'pasteAndMatchStyle' },
+      { label: copy.delete, role: 'delete' },
+      { label: copy.selectAll, role: 'selectAll' }
     ]
   })
   template.push({
-    label: 'View',
+    label: copy.view,
     submenu: [
       // Not `role: 'reload'`: that hard-reloads the RENDERER (every pane, the
       // whole shell) and a focused in-app browser needs ⌘R to mean "reload
@@ -6582,23 +6610,23 @@ function buildApplicationMenu() {
       // No accelerator: ⌘R is claimed in `installPreviewShortcut`, which works
       // on every platform (this menu exists only on macOS). Declaring it here
       // too would fire the item and the input hook for one keypress.
-      { click: () => sendPreviewNavCommand('reload'), label: 'Reload' },
-      { role: 'forceReload' },
+      { click: () => sendPreviewNavCommand('reload'), label: copy.reload },
+      { label: copy.forceReload, role: 'forceReload' },
       {
-        label: 'Toggle Developer Tools',
+        label: copy.toggleDeveloperTools,
         accelerator: process.platform === 'darwin' ? 'Alt+Cmd+I' : 'Ctrl+Shift+I',
         click: (_menuItem, browserWindow) => toggleDevTools(browserWindow || mainWindow)
       },
       { type: 'separator' },
       {
-        label: 'Actual Size',
+        label: copy.actualSize,
         accelerator: 'CommandOrControl+0',
         click: () => {
           setAndPersistZoomLevel(mainWindow, DEFAULT_ZOOM_LEVEL)
         }
       },
       {
-        label: 'Zoom In',
+        label: copy.zoomIn,
         accelerator: 'CommandOrControl+Plus',
         click: () => {
           if (mainWindow && !mainWindow.isDestroyed()) {
@@ -6607,7 +6635,7 @@ function buildApplicationMenu() {
         }
       },
       {
-        label: 'Zoom Out',
+        label: copy.zoomOut,
         accelerator: 'CommandOrControl+-',
         click: () => {
           if (mainWindow && !mainWindow.isDestroyed()) {
@@ -6616,17 +6644,24 @@ function buildApplicationMenu() {
         }
       },
       { type: 'separator' },
-      { role: 'togglefullscreen' }
+      { label: copy.toggleFullscreen, role: 'togglefullscreen' }
     ]
   })
   template.push({
-    label: 'Window',
+    label: copy.window,
     submenu: IS_MAC
-      ? [{ role: 'minimize' }, { role: 'zoom' }, { role: 'front' }]
-      : [{ role: 'minimize' }, { role: 'close' }]
+      ? [
+          { label: copy.minimize, role: 'minimize' },
+          { label: copy.zoom, role: 'zoom' },
+          { label: copy.front, role: 'front' }
+        ]
+      : [
+          { label: copy.minimize, role: 'minimize' },
+          { label: copy.close, role: 'close' }
+        ]
   })
   template.push({
-    label: 'Help',
+    label: copy.help,
     role: 'help',
     submenu: [checkForUpdatesItem]
   })
@@ -6914,6 +6949,7 @@ function isMediaCapturePermission(permission, details) {
 // Downloads directory and guarantee a MIME-derived extension.
 function installDownloadHandling() {
   session.defaultSession.on('will-download', (_event, item) => {
+    const copy = nativeCopy()
     const suggested = item.getFilename() || 'download'
     const hasExtension = Boolean(path.extname(suggested))
     const extension = hasExtension ? '' : extensionForMimeType(item.getMimeType())
@@ -6921,13 +6957,13 @@ function installDownloadHandling() {
 
     try {
       item.setSaveDialogOptions({
-        title: 'Save File',
+        title: copy.saveFile,
         defaultPath: path.join(app.getPath('downloads'), filename),
         filters:
           extension || /^image\//i.test(item.getMimeType() || '')
             ? [
-                { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'] },
-                { name: 'All Files', extensions: ['*'] }
+                { name: copy.images, extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'] },
+                { name: copy.allFiles, extensions: ['*'] }
               ]
             : undefined
       })
@@ -7280,7 +7316,7 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
       win = new BrowserWindow({
         width: 520,
         height: 720,
-        title: silent ? 'Connecting to Nous Cloud agent…' : `Sign in to ${APP_NAME} gateway`,
+        title: silent ? nativeCopy().connectingCloudAgent : nativeCopy().signInGateway(APP_NAME),
         autoHideMenuBar: true,
         // Silent cascade: start HIDDEN. The auto-SSO 302 chain completes in
         // well under a second, so the window normally never needs to show. We
@@ -7709,7 +7745,7 @@ async function finalizeGatewayDownload(res, statusCode, headers, ctx: any = {}) 
 
   const result = await dialog.showSaveDialog(mainWindow, {
     defaultPath: filename,
-    title: 'Save File'
+    title: nativeCopy().saveFile
   })
 
   if (result.canceled || !result.filePath) {
@@ -7866,7 +7902,7 @@ async function saveGatewayFileViaDataUrl(
 
   const result = await dialog.showSaveDialog(mainWindow, {
     defaultPath: filename,
-    title: 'Save File'
+    title: nativeCopy().saveFile
   })
 
   if (result.canceled || !result.filePath) {
@@ -8158,7 +8194,7 @@ function renewPortalAccessSilently() {
           width: 520,
           height: 720,
           show: false,
-          title: 'Renewing Nous Cloud session…',
+          title: nativeCopy().renewingCloudSession,
           autoHideMenuBar: true,
           webPreferences: {
             contextIsolation: true,
@@ -8263,7 +8299,7 @@ function openPortalLoginWindow() {
       win = new BrowserWindow({
         width: 520,
         height: 720,
-        title: 'Sign in to Nous Cloud',
+        title: nativeCopy().signInCloud,
         autoHideMenuBar: true,
         webPreferences: {
           contextIsolation: true,
@@ -10825,7 +10861,7 @@ function resetBootProgressForReconnect() {
   updateBootProgress(
     {
       error: null,
-      message: 'Restarting desktop connection',
+      message: nativeCopy().bootProgress.restartingConnection,
       phase: 'backend.resolve',
       progress: 4,
       running: true
@@ -12290,7 +12326,7 @@ async function startHermes() {
   // E2E: simulate a boot failure without breaking the real backend. The boot
   // progresses a few steps, then fails with the given error message.
   if (BOOT_FAKE_ERROR) {
-    await advanceBootProgress('backend.resolve', `Resolving ${PRODUCT_NAME} backend`, 8)
+    await advanceBootProgress('backend.resolve', nativeCopy().bootProgress.resolvingBackend(APP_NAME), 8)
     const error = new Error(BOOT_FAKE_ERROR) as any
     error.isBootstrapFailure = true
     bootstrapFailure = error
@@ -12326,7 +12362,7 @@ async function startHermes() {
 
       await advanceBootProgress(
         'backend.remote',
-        `Connecting to remote ${PRODUCT_NAME} backend at ${remote.baseUrl}`,
+        nativeCopy().bootProgress.connectingRemoteBackend(APP_NAME, remote.baseUrl),
         24
       )
       await waitForHermes(remote.baseUrl, remote.token, undefined, remote.authMode, remote.headers)
@@ -12339,7 +12375,7 @@ async function startHermes() {
 
       updateBootProgress({
         phase: 'backend.ready',
-        message: `Remote ${PRODUCT_NAME} backend is ready`,
+        message: nativeCopy().bootProgress.remoteBackendReady(APP_NAME),
         progress: 94,
         running: true,
         error: null
@@ -12348,7 +12384,7 @@ async function startHermes() {
       return createPrimaryRemoteConnection(remote, hermesLog.slice(-80), getWindowState())
     }
 
-    await advanceBootProgress('backend.resolve', `Resolving ${PRODUCT_NAME} backend`, 8)
+    await advanceBootProgress('backend.resolve', nativeCopy().bootProgress.resolvingBackend(APP_NAME), 8)
     // Resolve for the desktop's primary profile so a per-profile remote
     // override on the active profile is honored (falls back to env / global).
 
@@ -12385,7 +12421,7 @@ async function startHermes() {
       connectRemote,
       ensureLocalRuntime: ensureRuntime,
       prepareLocalBackend: async () => {
-        await advanceBootProgress('backend.runtime', `Resolving ${PRODUCT_NAME} runtime`, 28)
+        await advanceBootProgress('backend.runtime', nativeCopy().bootProgress.resolvingRuntime(APP_NAME), 28)
 
         return resolveHermesBackend(backendArgs)
       },
@@ -12422,7 +12458,11 @@ async function startHermes() {
     const webDist = resolveWebDist()
     const readyFile = backend.readyFile ? makeDashboardReadyFile() : null
 
-    await advanceBootProgress('backend.spawn', `Starting ${PRODUCT_NAME} backend via ${backend.label}`, 84)
+    await advanceBootProgress(
+      'backend.spawn',
+      nativeCopy().bootProgress.startingBackendVia(APP_NAME, backend.label),
+      84
+    )
     rememberLog(`Starting ${PRODUCT_NAME} backend via ${backend.label}`)
 
     const profile = primaryProfileKey()
@@ -12553,7 +12593,7 @@ async function startHermes() {
       }
     })
 
-    await advanceBootProgress('backend.port', `Waiting for ${PRODUCT_NAME} backend to launch`, 86)
+    await advanceBootProgress('backend.port', nativeCopy().bootProgress.waitingBackendLaunch(APP_NAME), 86)
 
     // Discover the ephemeral port the child bound to
     const port = await Promise.race([
@@ -12569,7 +12609,7 @@ async function startHermes() {
     }
 
     const baseUrl = `http://127.0.0.1:${port}`
-    await advanceBootProgress('backend.wait', `Waiting for ${PRODUCT_NAME} backend to become ready`, 90)
+    await advanceBootProgress('backend.wait', nativeCopy().bootProgress.waitingBackendReady(APP_NAME), 90)
     await Promise.race([waitForHermes(baseUrl, token), backendStartFailed])
     backendReady = true
     backendStartFailure = null
@@ -12591,7 +12631,7 @@ async function startHermes() {
 
     updateBootProgress({
       phase: 'backend.ready',
-      message: `${PRODUCT_NAME} backend is ready. Finalizing desktop startup`,
+      message: nativeCopy().bootProgress.backendReadyFinalizing(APP_NAME),
       progress: 94,
       running: true,
       error: null
@@ -14121,10 +14161,12 @@ function createWindow() {
             `${details?.errorCode === undefined ? '' : ` code=${String(details.errorCode)}`}`
         )
         void loadRendererLoadErrorPage(mainWindow, {
+          appName: APP_NAME,
           errorCode: details?.errorCode,
           url: details?.url,
-          errorDescription: 'The desktop renderer failed to load repeatedly after the update.',
+          errorDescription: nativeCopy().rendererLoadError.repeatedFailureDescription,
           repairHint: 'hermes desktop --force-build',
+          locale: nativeLocale,
           reloadUrl: DEV_SERVER || pathToFileURL(resolveRendererIndex()).toString()
         })
       }
@@ -14157,10 +14199,12 @@ function createWindow() {
         `(${tornAssets.length} missing asset(s)); loading visible repair page instead of a white screen`
     )
     void loadRendererLoadErrorPage(mainWindow, {
+      appName: APP_NAME,
       errorCode: 'ERR_FILE_NOT_FOUND',
-      errorDescription: `The desktop renderer bundle is incomplete after the last update (${tornAssets.length} missing file(s)).`,
+      errorDescription: nativeCopy().rendererLoadError.incompleteDescription(tornAssets.length),
       missingAssets: tornAssets,
       repairHint: 'hermes desktop --force-build',
+      locale: nativeLocale,
       reloadUrl: pathToFileURL(rendererIndex).toString()
     })
   } else {
@@ -16287,7 +16331,7 @@ ipcMain.handle('hermes:selectPaths', async (_event, options: any = {}) => {
   }
 
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: options?.title || 'Add context',
+    title: options?.title || nativeCopy().addContext,
     defaultPath: resolvedDefaultPath,
     properties: properties as any,
     filters: Array.isArray(options?.filters) ? options.filters : undefined
@@ -16310,7 +16354,7 @@ ipcMain.handle('hermes:writeClipboard', (_event, text) => {
 // elsewhere (the backend, for profile archives); this only picks the path.
 ipcMain.handle('hermes:selectSavePath', async (_event, options: any = {}) => {
   const result = await dialog.showSaveDialog(mainWindow, {
-    title: options?.title || 'Save',
+    title: options?.title || nativeCopy().save,
     defaultPath: options?.defaultPath ? String(options.defaultPath) : undefined,
     filters: Array.isArray(options?.filters) ? options.filters : undefined
   })
@@ -16793,7 +16837,7 @@ ipcMain.handle('hermes:setting:defaultProjectDir:set', async (_event, dir) => {
 
 ipcMain.handle('hermes:setting:defaultProjectDir:pick', async () => {
   const result = await dialog.showOpenDialog({
-    title: 'Choose default project directory',
+    title: nativeCopy().chooseDefaultProjectDirectory,
     properties: ['openDirectory', 'createDirectory'],
     defaultPath: readDefaultProjectDir() || app.getPath('home')
   })
@@ -16893,6 +16937,12 @@ ipcMain.handle('hermes:updates:branch:set', async (_event, name) => {
 
   return { branch }
 })
+
+// The renderer owns the persisted display language. Electron mirrors that
+// choice here for menus and native dialogs, which are outside React's i18n
+// tree. Unknown values intentionally fall back to English at this boundary.
+ipcMain.handle('hermes:locale:get', () => nativeLocale)
+ipcMain.handle('hermes:locale:set', (_event, value) => ({ locale: setNativeLocale(value) }))
 
 // Resolve the canonical Hermes version (the one `release.py` bumps in
 // hermes_cli/__init__.py + pyproject.toml) so the desktop About panel shows the
@@ -17373,6 +17423,15 @@ app.whenReady().then(() => {
   // connection resolution.
   migrateLegacyEncryptedSecretsOnce()
 
+  // Use the host OS locale for the first native-menu paint. The renderer then
+  // sends the persisted `display.language` as soon as its config loads, so a
+  // user-selected language wins without making the main process parse YAML.
+  try {
+    setNativeLocale(app.getLocale(), { rebuild: false })
+  } catch {
+    // Older Electron/test hosts may not expose getLocale before ready.
+  }
+
   if (IS_MAC) {
     Menu.setApplicationMenu(buildApplicationMenu())
   } else {
@@ -17469,7 +17528,14 @@ function heldQuitForActiveWork(event: Electron.Event): boolean {
     return false
   }
 
-  const prompt = quitPromptFor(mergeActiveWork(activeWorkByWebContents.values()), isQuittingForHandoff)
+  const copy = nativeCopy()
+
+  const prompt = quitPromptFor(mergeActiveWork(activeWorkByWebContents.values()), isQuittingForHandoff, {
+    more: copy.quitMore,
+    warning: copy.quitWarning,
+    working: count => copy.quitWorking(APP_NAME, count)
+  })
+
   const parent = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
 
   if (!prompt || !parent || parent.isDestroyed()) {
@@ -17481,7 +17547,7 @@ function heldQuitForActiveWork(event: Electron.Event): boolean {
 
   void dialog
     .showMessageBox(parent, {
-      buttons: ['Keep Running', 'Quit Anyway'],
+      buttons: [copy.quitKeepRunning, copy.quitAnyway],
       cancelId: 0,
       defaultId: 0,
       detail: prompt.detail,

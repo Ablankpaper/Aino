@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
+import { localizedPreviewError } from '@/i18n/preview-errors'
 import { isDesktopFsRemoteMode } from '@/lib/desktop-fs'
 import { normalizeOrLocalPreviewTarget, openPreviewTargetInBrowser } from '@/lib/local-preview'
 import { cn } from '@/lib/utils'
@@ -52,7 +53,7 @@ export const PreviewStatusRow = memo(function PreviewStatusRow({ item, onDismiss
     try {
       openPreview(await resolveTarget(), 'tool-result')
     } catch (error) {
-      notifyError(error, t.preview.unavailable)
+      notifyError(new Error(localizedPreviewError(t, error)), t.preview.unavailable)
     } finally {
       setOpening(false)
     }
@@ -76,7 +77,7 @@ export const PreviewStatusRow = memo(function PreviewStatusRow({ item, onDismiss
 
       await openPreviewTargetInBrowser(target)
     } catch (error) {
-      notifyError(error, t.preview.unavailable)
+      notifyError(new Error(localizedPreviewError(t, error)), t.preview.unavailable)
     }
   }
 

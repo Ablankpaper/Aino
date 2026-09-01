@@ -11,8 +11,8 @@ import {
   submitOAuthCode,
   validateProviderCredential
 } from '@/hermes'
-import { PRODUCT_NAME } from '@/lib/brand'
 import { translateNow } from '@/i18n'
+import { PRODUCT_NAME } from '@/lib/brand'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { evaluateRuntimeReadiness, type RuntimeReadinessResult } from '@/lib/runtime-readiness'
 import { setMainModelAssignment } from '@/store/cron-model-impact'
@@ -889,7 +889,9 @@ export async function saveOnboardingLocalEndpoint(baseUrl: string, apiKey: strin
       return { ok: false, message: detail || translateNow('onboarding.savedEndpointUnreachable', url) }
     }
 
-    notifyReady('Local / custom endpoint')
+    // Keep the provider id/endpoint mechanics in English, but localize the
+    // descriptive label shown in the completion toast for the active UI locale.
+    notifyReady(translateNow('onboarding.apiKeyOptions.local.title'))
     completeDesktopOnboarding()
     ctx.onCompleted?.()
 

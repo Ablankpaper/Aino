@@ -68,6 +68,24 @@ test('error page renders without any details', () => {
   assert.match(html, /Reload/)
 })
 
+test('error page localizes visible recovery copy without translating commands', () => {
+  const html = buildRendererLoadErrorPage({
+    appName: 'Aino',
+    locale: 'zh',
+    missingAssets: ['assets/app.js'],
+    repairHint: 'hermes desktop --force-build'
+  })
+
+  assert.match(html, /<html lang="zh">/)
+  assert.match(html, /Aino 无法启动桌面界面/)
+  assert.match(html, /桌面渲染器加载失败。/)
+  assert.match(html, /渲染器包缺少 1 个模块文件/)
+  assert.match(html, /修复方式/)
+  assert.match(html, /重新加载/)
+  assert.match(html, /hermes desktop --force-build/)
+  assert.doesNotMatch(html, /The desktop renderer failed to load|Repair with|>Reload</)
+})
+
 test('loadRendererLoadErrorPage loads a data: URL and swallows loadURL rejections', async () => {
   const loads: string[] = []
 

@@ -6,7 +6,7 @@ import { Codicon } from '@/components/ui/codicon'
 import { RowButton } from '@/components/ui/row-button'
 import { SearchField } from '@/components/ui/search-field'
 import { Tip } from '@/components/ui/tooltip'
-import { translateNow } from '@/i18n'
+import { translateNow, useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 import { OVERLAY_TOP_CLEARANCE, OverlayView } from './overlay-view'
@@ -255,15 +255,18 @@ function renderPanelMenuItems(items: PanelMenuItem[]) {
 // (size-5 ghost trigger + kebab-vertical codicon + w-40 content). Hidden until
 // the row is hovered/focused (or the menu is open). Returns null with no items
 // (e.g. the default profile, which can't be renamed/deleted).
-export function PanelRowMenu({ items, label = 'Actions' }: { items: PanelMenuItem[]; label?: string }) {
+export function PanelRowMenu({ items, label }: { items: PanelMenuItem[]; label?: string }) {
+  const { t } = useI18n()
+  const resolvedLabel = label ?? t.common.actions
+
   if (items.length === 0) {
     return null
   }
 
   return (
-    <ActionsMenu ariaLabel={label} contentClassName="w-40" items={renderPanelMenuItems(items)}>
+    <ActionsMenu ariaLabel={resolvedLabel} contentClassName="w-40" items={renderPanelMenuItems(items)}>
       <Button
-        aria-label={label}
+        aria-label={resolvedLabel}
         className="size-5 rounded-[4px] bg-transparent text-(--ui-text-tertiary) opacity-0 transition-colors duration-100 hover:bg-(--ui-control-active-background) hover:text-foreground focus-visible:opacity-100 focus-visible:ring-0 group-hover/row:opacity-100 data-[state=open]:bg-(--ui-control-active-background) data-[state=open]:text-foreground data-[state=open]:opacity-100 [&_svg]:size-3.5!"
         size="icon"
         variant="ghost"

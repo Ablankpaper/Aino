@@ -13,7 +13,7 @@ import {
   getLatestSessionMessages,
   setSessionArchived
 } from '@/hermes'
-import { useI18n } from '@/i18n'
+import { translateNow, useI18n } from '@/i18n'
 import {
   type ChatMessage,
   preserveLocalAssistantErrors,
@@ -297,7 +297,7 @@ function restorePendingApproval(response: SessionResumeResponse, sessionId: stri
     allowPermanent: pending.allow_permanent !== false,
     choices: pending.choices,
     command: pending.command ?? '',
-    description: pending.description ?? 'dangerous command',
+    description: pending.description ?? translateNow('prompts.dangerousCommand'),
     requestId: typeof pending.request_id === 'string' ? pending.request_id : undefined,
     sessionId,
     smartDenied: pending.smart_denied === true
@@ -2207,7 +2207,7 @@ export function useSessionActions({
         !profile?.trim() &&
         $profiles.get().filter(item => item.name.trim()).length > 1
       ) {
-        notifyError(new Error('Session ownership could not be resolved'), copy.deleteFailed)
+        notifyError(new Error(copy.sessionOwnershipUnavailable), copy.deleteFailed)
 
         return
       }
@@ -2343,7 +2343,7 @@ export function useSessionActions({
         !profile?.trim() &&
         $profiles.get().filter(item => item.name.trim()).length > 1
       ) {
-        notifyError(new Error('Session ownership could not be resolved'), copy.archiveFailed)
+        notifyError(new Error(copy.sessionOwnershipUnavailable), copy.archiveFailed)
 
         return
       }
