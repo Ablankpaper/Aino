@@ -379,6 +379,29 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
     expect($desktopBoot.get().error).toBe('连接 Aino 后端超时')
   })
 
+  it('keeps initial boot alive while a cold local backend is still announcing its port', async () => {
+    const desktop = fakeDesktop()
+    const pendingConnection = deferred<typeof primaryConn>()
+    desktop.getConnection = vi.fn(() => pendingConnection.promise)
+    ;(window as { hermesDesktop?: unknown }).hermesDesktop = desktop
+
+    render(<Harness />)
+    await flushAsync()
+
+    // A slow cold start can spend the full 90s port-announcement window plus
+    // most of the 45s health budget before the main process publishes its
+    // descriptor. The renderer must not fail that healthy startup early.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(140_000)
+    })
+
+    expect($desktopBoot.get().error).toBeNull()
+
+    pendingConnection.resolve(primaryConn)
+    await flushAsync()
+    expect($gatewayState.get()).toBe('open')
+  })
+
   it('localizes the missing desktop bridge failure shown during startup', async () => {
     setRuntimeI18nLocale('zh')
     delete (window as { hermesDesktop?: unknown }).hermesDesktop
@@ -1252,11 +1275,11 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
 
     expect($desktopBoot.get().error).toBeNull()
 
-    // Advance past the shared backend-boot budget (45s) — the
+    // Advance past the shared backend-boot budget — the
     // stalled await must reject on its own so boot()'s catch runs instead of
     // waiting indefinitely on main.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(45_000)
+      await vi.advanceTimersByTimeAsync(BACKEND_BOOT_WAIT_TIMEOUT_MS)
     })
 
     expect($desktopBoot.get().error).toBeTruthy()
@@ -1290,11 +1313,11 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
 
     expect($gatewaySwitching.get()).toBe(true)
 
-    // Advance past the shared backend-boot budget (45s) — the
+    // Advance past the shared backend-boot budget — the
     // stalled await must reject so the `finally` clears $gatewaySwitching
     // instead of latching the switch UI frozen forever.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(45_000)
+      await vi.advanceTimersByTimeAsync(BACKEND_BOOT_WAIT_TIMEOUT_MS)
     })
 
     expect($gatewaySwitching.get()).toBe(false)
