@@ -273,7 +273,7 @@ export function endTranslucencyPeek(): void {
  * unmount: a pointer held on the slider when the overlay closes (Escape
  * mid-drag) never delivers its pointerup to the unmounted element, and a
  * counter stuck above zero would leave the peek attribute on <html> —
- * rendering the NEXT settings overlay ghosted at 8% opacity. Outstanding
+ * rendering the NEXT Settings workspace ghosted at 8% opacity. Outstanding
  * pulse timers still fire endTranslucencyPeek later; the zero floor makes
  * them no-ops.
  */

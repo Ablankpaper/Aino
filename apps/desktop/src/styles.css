@@ -707,17 +707,18 @@
      together without relayout. Asymmetric easing: quick reveal while the
      hand is on the control, unhurried return.
 
-     Both the peek and its return are scoped to a settings overlay that has
+     Both the peek and its return are scoped to the Settings workspace that has
      ARMED the interaction ([data-translucency-peek-scope], set by the
-     appearance row). An unscoped `[data-overlay-surface] { transition:
-     opacity … }` would tax every overlay in the app — command center, cron,
-     agents, model picker — with a 420ms opacity transition for the life of
-     the process, to serve one slider. */
-  :root [data-overlay-surface]:has([data-translucency-peek-scope]) {
+     appearance row). The overlay selector remains for compatibility with old
+     settings surfaces; the page selector is the live Desktop route. An
+     unscoped transition would tax every surface in the app for the life of the
+     process, just to serve one slider. */
+  :root :is([data-settings-workspace], [data-overlay-surface]):has([data-translucency-peek-scope]) {
     transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  :root[data-hermes-translucency-peek] [data-overlay-surface]:has([data-translucency-peek-scope]) {
+  :root[data-hermes-translucency-peek]
+    :is([data-settings-workspace], [data-overlay-surface]):has([data-translucency-peek-scope]) {
     opacity: 0.08;
     transition: opacity 160ms cubic-bezier(0.32, 0.72, 0, 1);
   }

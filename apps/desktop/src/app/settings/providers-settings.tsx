@@ -408,7 +408,7 @@ export function ProvidersSettings({
       return
     }
 
-    // Leave the settings overlay so the terminal pane (chat-only) is visible.
+    // Leave the Settings workspace so the terminal pane (chat-only) is visible.
     onClose()
     runInTerminal(command)
     notify({

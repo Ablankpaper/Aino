@@ -195,7 +195,7 @@ export function PetGenerateContent() {
     status === 'hatching' ? copy.spawning : status === 'preview' || status === 'adopting' ? copy.hatched : copy.title
 
   // Send the user to set up a key without closing — the overlay yields to the
-  // settings route (useRouteOverlayActive) and reappears + re-checks on return.
+  // Settings workspace (useRouteOverlayActive) and reappears + re-checks on return.
   const setupImageGen = () => navigate(`${SETTINGS_ROUTE}?tab=providers`)
 
   // Prompt input only belongs on the describe/draft screens (and never when

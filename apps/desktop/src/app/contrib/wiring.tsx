@@ -4,7 +4,7 @@
  * gateway boot -> sessions list -> click-to-resume -> live transcript ->
  * composer send, plus the real terminal.
  *
- * The wired nodes (sidebar / chat routes / terminal) are exposed through
+ * The wired nodes (sidebar / chat routes / settings / terminal) are exposed through
  * context; registered panes render `<WiredPane part="…"/>` to consume them.
  */
 
@@ -155,8 +155,8 @@ import { ChatRoutesSurface, SidebarSurface, StatusbarSurface, TerminalSurface } 
 import type { WiringActions, WiringApi } from './types'
 
 // Overlay views the controller mounts over the shell — lazy, load on demand.
-// The workspace-route full-page views (skills/messaging/artifacts) are the
-// ChatRoutesSurface's and live in ./surfaces.
+// The workspace-route full-page views (including the Settings workspace) are
+// exposed through the wiring context and placed by the shell.
 const AgentsView = lazy(async () => ({ default: (await import('../agents')).AgentsView }))
 const CommandCenterView = lazy(async () => ({ default: (await import('../command-center')).CommandCenterView }))
 const CronView = lazy(async () => ({ default: (await import('../cron')).CronView }))
@@ -165,7 +165,7 @@ const ProfilesView = lazy(async () => ({ default: (await import('../profiles')).
 const SettingsView = lazy(async () => ({ default: (await import('../settings')).SettingsView }))
 const StarmapView = lazy(async () => ({ default: (await import('../starmap')).StarmapView }))
 
-// Surfaces (the four wired panes), the render context + WiredPane, and the
+// Surfaces (the five wired panes), the render context + WiredPane, and the
 // WiringActions/WiringApi contracts all live in sibling modules — this file is
 // the controller that assembles them.
 export { WiredPane } from './context'
@@ -267,7 +267,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     openStarmap,
     profilesOpen,
     resetOverlayReturnRoute,
-    settingsOpen,
     starmapOpen,
     toggleCommandCenter,
     webhooksOpen
@@ -345,6 +344,21 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   })
 
   const openProviderSettings = useCallback(() => navigate(`${SETTINGS_ROUTE}?tab=providers`), [navigate])
+
+  const handleConfigSaved = useCallback(() => {
+    void refreshHermesConfig()
+    void refreshCurrentModel()
+    void queryClient.invalidateQueries({ queryKey: ['model-options'] })
+  }, [queryClient, refreshCurrentModel, refreshHermesConfig])
+
+  const handleMainModelChanged = useCallback(
+    (provider: string, model: string) => {
+      applySavedMainModel(provider, model)
+      void refreshCurrentModel()
+      void queryClient.invalidateQueries({ queryKey: ['model-options'] })
+    },
+    [applySavedMainModel, queryClient, refreshCurrentModel]
+  )
 
   // Palette "Keyboard shortcuts" entry dispatches a custom event (contributions
   // don't have router access); listen and navigate to the settings keybinds tab.
@@ -1065,14 +1079,32 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     [actions, voiceMaxRecordingSeconds]
   )
 
+  // Settings is a route-owned page, not a pane in the tiling tree. Keep its
+  // node separate so the shell can show it full-window while the chat/terminal
+  // tree stays mounted (and therefore preserves scroll, PTYs, and tab state).
+  const settingsNode = useMemo(
+    () => (
+      <Suspense fallback={null}>
+        <SettingsView
+          gateway={gateway}
+          onClose={closeOverlayToPreviousRoute}
+          onConfigSaved={handleConfigSaved}
+          onMainModelChanged={handleMainModelChanged}
+        />
+      </Suspense>
+    ),
+    [closeOverlayToPreviousRoute, gateway, handleConfigSaved, handleMainModelChanged]
+  )
+
   const api = useMemo<WiringApi>(
     () => ({
       chatRoutes: chatRoutesNode,
       sidebar: sidebarNode,
+      settings: settingsNode,
       statusbar: statusbarNode,
       terminal: terminalNode
     }),
-    [chatRoutesNode, sidebarNode, statusbarNode, terminalNode]
+    [chatRoutesNode, settingsNode, sidebarNode, statusbarNode, terminalNode]
   )
 
   // The REAL titlebar tool clusters (sidebar/flip toggles, haptics, keybinds,
@@ -1171,25 +1203,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
       <McpInstallDeepLinkDialog />
       <RemoteFolderPicker />
       <FindBar />
-
-      {settingsOpen && (
-        <Suspense fallback={null}>
-          <SettingsView
-            gateway={gateway}
-            onClose={closeOverlayToPreviousRoute}
-            onConfigSaved={() => {
-              void refreshHermesConfig()
-              void refreshCurrentModel()
-              void queryClient.invalidateQueries({ queryKey: ['model-options'] })
-            }}
-            onMainModelChanged={(provider, model) => {
-              applySavedMainModel(provider, model)
-              void refreshCurrentModel()
-              void queryClient.invalidateQueries({ queryKey: ['model-options'] })
-            }}
-          />
-        </Suspense>
-      )}
 
       {commandCenterOpen && (
         <Suspense fallback={null}>

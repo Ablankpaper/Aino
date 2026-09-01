@@ -38,9 +38,11 @@ const SETTLE_SPREAD_MS = 5 * 60_000
 const TYPING_GRACE_MS = 5_000
 
 /** Anything on screen a tip would be talking over. `.driver-popover` is the
- *  tour: two accent-lit bubbles at once is one too many. */
+ *  tour: two accent-lit bubbles at once is one too many. The Settings workspace
+ *  is included because it is route-owned but intentionally not a modal overlay.
+ */
 const BLOCKING_SURFACES =
-  '[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"],[data-overlay-surface],.driver-popover'
+  '[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"],[data-overlay-surface],[data-settings-workspace],.driver-popover'
 
 function appIsQuiet(lastTypedAt: number): boolean {
   if (document.visibilityState !== 'visible' || !document.hasFocus()) {

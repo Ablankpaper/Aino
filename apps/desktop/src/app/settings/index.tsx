@@ -2,16 +2,19 @@ import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 
+import { Button } from '@/components/ui/button'
 import { codiconIcon } from '@/components/ui/codicon'
 import { KbdCombo } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
 import { getHermesConfigDefaults, getHermesConfigRecord, saveHermesConfig } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { ESCAPE_PRIORITY, isTopEscapeLayer, pushEscapeLayer } from '@/lib/escape-layers'
 import { triggerHaptic } from '@/lib/haptics'
 import {
   Archive,
   BarChart3,
   Bell,
+  ChevronLeft,
   Download,
   Globe,
   Info,
@@ -36,7 +39,6 @@ import { notifyError } from '@/store/notifications'
 import { useRouteEnumParam } from '../hooks/use-route-enum-param'
 import { OverlayIconButton } from '../overlays/overlay-chrome'
 import { OverlayMain, OverlayNav, type OverlayNavGroup, OverlaySplitLayout } from '../overlays/overlay-split-layout'
-import { OverlayView } from '../overlays/overlay-view'
 import { SKILLS_ROUTE } from '../routes'
 
 import { AboutSettings } from './about-settings'
@@ -73,6 +75,29 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
   const { t } = useI18n()
   const navigate = useNavigate()
   const { hash, pathname, search } = useLocation()
+
+  // Settings is a page surface rather than an OverlayView, so own the Escape
+  // layer here. Nested dialogs still claim the higher-priority layer first.
+  useEffect(() => {
+    const releaseLayer = pushEscapeLayer(ESCAPE_PRIORITY.overlay)
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || !isTopEscapeLayer(ESCAPE_PRIORITY.overlay)) {
+        return
+      }
+
+      event.preventDefault()
+      triggerHaptic('close')
+      onClose()
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      releaseLayer()
+    }
+  }, [onClose])
 
   // MCP moved out of Settings into Capabilities (/skills?tab=mcp). Keep old
   // `/settings?tab=mcp` deep links working — `useRouteEnumParam` would silently
@@ -409,13 +434,45 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
     )
 
   return (
-    <OverlayView closeLabel={t.settings.closeSettings} edgeBadge={searchPill} onClose={onClose}>
-      <OverlaySplitLayout>
-        <OverlayNav footer={navFooter} groups={navGroups} />
+    <section
+      aria-label={t.commandCenter.settings}
+      className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-(--ui-chat-surface-background)"
+      data-settings-workspace=""
+    >
+      <header
+        className="grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-(--ui-stroke-tertiary) bg-(--ui-sidebar-surface-background) px-3"
+        data-settings-header=""
+      >
+        <div className="flex min-w-0 items-center">
+          <Button
+            aria-label={t.settings.closeSettings}
+            className="gap-1.5 text-(--ui-text-secondary) hover:text-foreground"
+            onClick={() => {
+              triggerHaptic('close')
+              onClose()
+            }}
+            size="sm"
+            variant="ghost"
+          >
+            <ChevronLeft className="size-4" />
+            <span>{t.commandCenter.back}</span>
+          </Button>
+          <h1 className="ml-2 truncate text-sm font-semibold text-foreground">{t.commandCenter.settings}</h1>
+        </div>
+        <div className="flex min-w-0 items-center justify-center">{searchPill}</div>
+        <div />
+      </header>
 
-        <OverlayMain className="px-0 pb-0">{activeSettingsContent}</OverlayMain>
-      </OverlaySplitLayout>
-    </OverlayView>
+      <div className="min-h-0 flex-1">
+        <OverlaySplitLayout>
+          <OverlayNav footer={navFooter} fullPage groups={navGroups} />
+
+          <OverlayMain className="px-0 pb-0" fullPage>
+            {activeSettingsContent}
+          </OverlayMain>
+        </OverlaySplitLayout>
+      </div>
+    </section>
   )
 }
 

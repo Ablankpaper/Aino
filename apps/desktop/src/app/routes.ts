@@ -120,20 +120,30 @@ export interface SidebarNavContribution {
 }
 
 // Views that render as a full-screen modal card (OverlayView) over the shell.
-// While one is open the app's titlebar control clusters must hide so they don't
-// bleed over the overlay (they sit at a higher z-index than the overlay card).
+// Settings is intentionally not in this set: it is a durable workspace page
+// rendered below the native titlebar, while the remaining route overlays keep
+// their modal-card behavior.
 export const OVERLAY_VIEWS: ReadonlySet<AppView> = new Set([
   'agents',
   'command-center',
   'cron',
   'profiles',
-  'settings',
   'starmap',
   'webhooks'
 ])
 
 export function isOverlayView(view: AppView): boolean {
   return OVERLAY_VIEWS.has(view)
+}
+
+/**
+ * Route-owned surfaces that take control of the window while open. Settings is
+ * a full-page workspace rather than an OverlayView, but it still needs the
+ * same keyboard and popup gates as a modal route so hidden chat controls cannot
+ * claim focus or paint over it.
+ */
+export function isRouteBlockingSurface(view: AppView): boolean {
+  return view === 'settings' || isOverlayView(view)
 }
 
 /** The pathname of a router target. Every classifier below reasons about a
@@ -170,8 +180,8 @@ export function routeSessionId(pathname: string): string | null {
  * id over a store selection that can be momentarily null/stale mid-switch
  * (#59305). A genuine new-chat route always wins with `null`, never falling
  * back to a leftover selection from the chat just left. A non-chat route
- * (settings, an overlay) has no session opinion, so the store selection passes
- * through unchanged.
+ * (Settings or a modal overlay) has no session opinion, so the store selection
+ * passes through unchanged.
  */
 export function primaryRouteSelectedSessionId(pathname: string, storeSelectedSessionId: string | null): string | null {
   if (isNewChatRoute(pathname)) {
@@ -199,20 +209,20 @@ export function appViewForPath(pathname: string): AppView {
   return APP_VIEW_BY_PATH.get(path) ?? 'chat'
 }
 
-/** Does `to` land on a full page rendered INSIDE the workspace pane
- *  (skills/messaging/artifacts/contributed routes)? Overlays don't count —
- *  they float over whatever the workspace is already showing. */
-function isWorkspacePageRoute(to: string): boolean {
+/** Does `to` land on a full page rendered by the workspace shell
+ *  (settings/skills/messaging/artifacts/contributed routes)? Modal overlays
+ *  don't count — they float over whatever the workspace is already showing. */
+export function isWorkspacePageRoute(to: string): boolean {
   const view = appViewForPath(to)
 
   return view !== 'chat' && !isOverlayView(view)
 }
 
-/** True while the workspace pane shows a FULL PAGE (skills/messaging/
+/** True while the workspace pane shows a FULL PAGE (settings/skills/messaging/
  *  artifacts/plugin routes) instead of the chat. Published by the wiring
  *  (which owns the router location); the workspace pane contribution mirrors
- *  it as `headerVeto` so the zone tab bar stands down on pages. Overlays
- *  (settings/…) don't count — the chat stays beneath them. */
+ *  it as `headerVeto` so the zone tab bar stands down on pages. Modal overlays
+ *  don't count — they float above the workspace. */
 export const $workspaceIsPage = atom(false)
 
 function revealWorkspacePane(): void {

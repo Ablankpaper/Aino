@@ -38,10 +38,11 @@ const ENTER_ACTIVATES = [
   '[role="treeitem"]'
 ].join(',')
 
-// Overlays that cover the whole window (portaled to the body, or the overlay
-// shell itself) — one anywhere means the composer is behind it.
+// Surfaces that cover the whole window (portaled to the body, a modal overlay,
+// or the full-page Settings shell) — one anywhere means the composer is behind
+// it.
 const BLOCKING_OVERLAY =
-  '[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"],[data-radix-popper-content-wrapper],[data-overlay-surface]'
+  '[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"],[data-radix-popper-content-wrapper],[data-overlay-surface],[data-settings-workspace]'
 
 // Blockers that live INSIDE a chat surface. Inactive tabs stay mounted, so this
 // one has to be visible-scoped: a clarify card waiting in a background thread

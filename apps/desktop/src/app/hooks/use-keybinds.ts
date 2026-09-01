@@ -5,7 +5,7 @@ import { closeActiveTab } from '@/app/chat/close-tab'
 import { hudTargetSessionId } from '@/app/hud/handoff'
 import { setTerminalTakeover } from '@/app/right-sidebar/store'
 import { closeActiveTerminal, createTerminal, cycleTerminal } from '@/app/right-sidebar/terminal/terminals'
-import { appViewForPath, isOverlayView } from '@/app/routes'
+import { appViewForPath, isRouteBlockingSurface } from '@/app/routes'
 import {
   activateTreeTabSlot,
   cycleTreeTabInFocusedZone,
@@ -194,7 +194,7 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
     },
     'composer.voice': requestVoiceToggle,
 
-    // On the Settings overlay, ⌘K scopes to settings search; the second press
+    // On the Settings workspace, ⌘K scopes to settings search; the second press
     // (or Esc) still closes as usual via toggle.
     'nav.commandPalette': () => {
       if (!$commandPaletteOpen.get() && appViewForPath(location.pathname) === 'settings') {
@@ -278,7 +278,7 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
     'view.findInPage': () => {
       // Suppress on overlay routes so it doesn't collide with overlay-specific
       // search surfaces (e.g. Settings search bar).
-      if (!isOverlayView(appViewForPath(location.pathname))) {
+      if (!isRouteBlockingSurface(appViewForPath(location.pathname))) {
         openFindBar()
       }
     },

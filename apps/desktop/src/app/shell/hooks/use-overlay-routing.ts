@@ -28,16 +28,19 @@ export function useOverlayRouting() {
   const chatOpen = currentView === 'chat'
   const overlayOpen = isOverlayView(currentView)
 
-  // Overlay routes (settings/command-center/agents) stash the underlying path
-  // so closing them returns there instead of bouncing to /.
+  // Route-owned surfaces (settings/command-center/agents) stash the underlying
+  // path so closing them returns there instead of bouncing to /.
   const returnPathRef = useRef(NEW_CHAT_ROUTE)
 
   // eslint-disable-next-line no-restricted-syntax -- legitimate non-atom ref write (see eslint rule comment)
   useEffect(() => {
-    if (!overlayOpen) {
+    // Settings is a full-page workspace, not an OverlayView, but it still owns
+    // a return affordance. Do not replace the chat/page we came from while the
+    // settings route is active, otherwise Back would navigate to /settings.
+    if (!settingsOpen && !overlayOpen) {
       returnPathRef.current = `${location.pathname}${location.search}${location.hash}`
     }
-  }, [location.hash, location.pathname, location.search, overlayOpen])
+  }, [location.hash, location.pathname, location.search, overlayOpen, settingsOpen])
 
   const commandCenterInitialSection = useMemo<CommandCenterSection | undefined>(
     () => SECTIONS.find(value => value === new URLSearchParams(location.search).get('section')),

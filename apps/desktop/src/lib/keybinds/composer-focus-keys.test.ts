@@ -80,6 +80,14 @@ describe('composerFocusBlockedBySurface', () => {
     expect(composerFocusBlockedBySurface()).toBe(true)
   })
 
+  it('blocks while the full-page Settings workspace is open', () => {
+    const settings = document.createElement('section')
+    settings.setAttribute('data-settings-workspace', '')
+    document.body.append(settings)
+
+    expect(composerFocusBlockedBySurface()).toBe(true)
+  })
+
   it('ignores a clarify card — it yields only its own keys, per-key', () => {
     const card = document.createElement('div')
     card.setAttribute('data-clarify-choices', '2')

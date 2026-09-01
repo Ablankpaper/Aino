@@ -371,7 +371,7 @@ describe('useDesktopIntegrations', () => {
       expect(navigate).toHaveBeenCalledWith('/skills', { replace: true })
     })
 
-    it('does NOT restore overlay routes (settings/command-center)', () => {
+    it('does NOT restore route-owned surfaces (settings/command-center)', () => {
       window.localStorage.setItem('hermes.desktop.lastRoute.profile.default', '/settings')
 
       render({ profileReady: true, sessions: [] })

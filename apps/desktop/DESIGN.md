@@ -47,12 +47,13 @@ one-off at the call site.
 
 - **Chat is the home surface.** The transcript and composer stay primary; tools,
   previews, files, review, and terminal complement the conversation.
-- **Pages are durable destinations.** Chat, Skills, Messaging, and Artifacts
-  remain in shell chrome. Do not hide a distinct product noun inside an
-  unrelated page.
-- **Route overlays are short tasks.** Settings, Command Center, Cron, Profiles,
-  Agents, and Starmap render as `OverlayView` cards and return to the previous
-  route on close. Model/session pickers and dialogs layer above the current
+- **Pages are durable destinations.** Chat, Settings, Skills, Messaging, and
+  Artifacts remain in shell chrome. Do not hide a distinct product noun inside
+  an unrelated page.
+- **Route overlays are short tasks.** Command Center, Cron, Profiles, Agents,
+  and Starmap render as `OverlayView` cards and return to the previous route on
+  close. Settings is a full-page workspace with its own navigation and return
+  affordance. Model/session pickers and dialogs layer above the current
   surface; they are not navigation stacks.
 - **Panes are working context.** Preview, files, review, and terminal remain
   attached to the current task. Their state survives temporary hiding and chat

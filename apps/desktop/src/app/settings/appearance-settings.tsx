@@ -370,9 +370,9 @@ export function AppearanceSettings() {
   const activeProfileKey = normalizeProfileKey(useStore($activeGatewayProfile))
   const a = t.settings.appearance
 
-  // A pointer held on the intensity slider when this overlay closes (Escape
+  // A pointer held on the intensity slider when this workspace closes (Escape
   // mid-drag) never delivers its pointerup here, which would strand the peek
-  // counter above zero and ghost the NEXT settings overlay. Unmount drops
+  // counter above zero and ghost the NEXT Settings workspace. Unmount drops
   // every outstanding hold.
   useEffect(() => resetTranslucencyPeek, [])
 

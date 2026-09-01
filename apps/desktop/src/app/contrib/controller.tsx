@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
 import { atom, computed } from 'nanostores'
 import type { CSSProperties, ReactElement, PointerEvent as ReactPointerEvent } from 'react'
+import { useLocation } from 'react-router'
 
 import { SessionDraftTitle } from '@/app/chat/session-draft-title'
 import { SessionStatusDot } from '@/app/chat/session-status-dot'
@@ -87,7 +88,7 @@ import {
 import { AppContextMenu } from '../context-menu/app-context-menu'
 import { HudShell } from '../hud/hud-shell'
 import { $terminalTakeover, setTerminalTakeover } from '../right-sidebar/store'
-import { $workspaceIsPage } from '../routes'
+import { $workspaceIsPage, appViewForPath } from '../routes'
 
 import { FilesPane, LogsPane, ReviewPaneContent } from './panes'
 import { ContribWiring, WiredPane } from './wiring'
@@ -813,6 +814,8 @@ function TitlebarSlot({ area, className, style }: TitlebarSlotProps) {
 export function ContribController() {
   const sidebarOpen = useStore($sidebarOpen)
   const statusbarVisible = useStore($statusbarVisible)
+  const location = useLocation()
+  const settingsPage = appViewForPath(location.pathname) === 'settings'
 
   // HUD mode is the SAME app with its frame removed: the wiring (gateway,
   // sessions, streams, submit) mounts identically, and only the shell around
@@ -845,7 +848,7 @@ export function ContribController() {
       <ContribWiring>
         <AppContextMenu />
         <div
-          className="flex h-screen min-h-0 w-screen flex-col bg-(--ui-bg-chrome) text-(--ui-text-primary)"
+          className="relative flex h-screen min-h-0 w-screen flex-col bg-(--ui-bg-chrome) text-(--ui-text-primary)"
           // Window-glass hook: this div and the sidebar-wrapper above it are
           // the app shell's two full-window opaque painters; the
           // [data-hermes-glass] rules in styles.css clear them so the tint
@@ -904,16 +907,34 @@ export function ContribController() {
             />
           </div>
 
-          <LayoutTreeRoot />
+          {/* Keep the tiling tree mounted while Settings owns the foreground.
+              Visibility preserves terminal/session lifecycles and restores the
+              user's layout instantly when they return to chat. */}
+          <div
+            aria-hidden={settingsPage}
+            className={
+              settingsPage
+                ? 'pointer-events-none invisible absolute inset-0 flex min-h-0 min-w-0'
+                : 'relative flex min-h-0 min-w-0 flex-1'
+            }
+          >
+            <LayoutTreeRoot />
+          </div>
+
+          {settingsPage && (
+            <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+              <WiredPane part="settings" />
+            </div>
+          )}
 
           {/* "Close running tab?" — the busy/input-blocked tile close gate. */}
-          <SessionTileCloseConfirm />
+          {!settingsPage && <SessionTileCloseConfirm />}
 
           {/* The REAL statusbar (model pill, command center, agents, …) with
               statusBar.left/right contributions merged in. Unmounted — not
               just hidden — while toggled off, so its 15s status poll and the
               per-turn readouts stop with it. */}
-          {statusbarVisible && <WiredPane part="statusbar" />}
+          {statusbarVisible && !settingsPage && <WiredPane part="statusbar" />}
         </div>
       </ContribWiring>
     </SidebarProvider>

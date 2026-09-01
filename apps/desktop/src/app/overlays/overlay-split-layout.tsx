@@ -21,11 +21,16 @@ interface OverlaySplitLayoutProps {
 interface OverlaySidebarProps {
   children: ReactNode
   className?: string
+  /** Settings uses the same nav primitive in a page surface, where there is
+   *  no floating close button to clear. */
+  fullPage?: boolean
 }
 
 interface OverlayMainProps {
   children: ReactNode
   className?: string
+  /** Remove overlay-only titlebar clearance and width clamping. */
+  fullPage?: boolean
 }
 
 interface OverlayNavItemProps {
@@ -57,19 +62,18 @@ export function OverlaySplitLayout({ children, className }: OverlaySplitLayoutPr
   )
 }
 
-export function OverlaySidebar({ children, className }: OverlaySidebarProps) {
+export function OverlaySidebar({ children, className, fullPage = false }: OverlaySidebarProps) {
   return (
     <aside
       className={cn(
-        // The left links sit beside (not under) the floating close button, so
-        // they ride up via the shorter shared OVERLAY_TOP_CLEARANCE (same line
-        // as a Panel header) instead of main's taller X-clearance. The bg still
-        // fills from the card's top edge, so there's no gap above the sidebar.
+        // The left links sit beside (not under) the floating close button on
+        // overlays. A full-page surface already has its own in-flow header, so
+        // it starts with a normal page gutter instead.
         'flex min-h-0 flex-col gap-0.5 overflow-y-auto bg-(--ui-sidebar-surface-background) px-2.5 pb-3',
-        OVERLAY_TOP_CLEARANCE,
+        fullPage ? 'pt-3' : OVERLAY_TOP_CLEARANCE,
         className
       )}
-      // Every overlay's left nav (settings, cron, profiles, agents) answers to
+      // Every route-owned surface's left nav (Settings, cron, profiles, agents) answers to
       // one name, so a tour can point at "the nav" without knowing which
       // overlay is open. See lib/tour.
       data-tour="overlay-nav"
@@ -79,19 +83,17 @@ export function OverlaySidebar({ children, className }: OverlaySidebarProps) {
   )
 }
 
-export function OverlayMain({ children, className }: OverlayMainProps) {
+export function OverlayMain({ children, className, fullPage = false }: OverlayMainProps) {
   return (
     <main
       className={cn(
-        // Main sits UNDER the floating close button (top-right), so it keeps the
-        // taller top pad to clear the X — unlike the sidebar / Panel header,
-        // which sit to its left and ride up via OVERLAY_TOP_CLEARANCE. All four
-        // paddings are 1/3 tighter than the raw values (×2/3): the wide/narrow
-        // top clearance, the bottom gutter, and the horizontal clamp gutter
-        // (inlined from PAGE_INSET_X so only overlay panes tighten, not the
-        // shared page gutter). Narrow top drops toward the OverlayNav bar.
-        'mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-transparent pb-2 pt-[calc((var(--titlebar-height)/2+1rem)*2/3)] max-[47.5rem]:pt-[calc(0.5rem*2/3)] px-[clamp(0.8333rem,2.6667vw,2.6667rem)]',
-        PAGE_MAX_W,
+        // Overlay content clears the floating close button and is width-clamped
+        // for a focused reading column. Full-page settings has an in-flow
+        // header and should use the whole workspace width instead.
+        fullPage
+          ? 'flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-transparent px-6 pb-4 pt-4 max-[47.5rem]:px-3 max-[47.5rem]:pb-3'
+          : 'mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-transparent pb-2 pt-[calc((var(--titlebar-height)/2+1rem)*2/3)] max-[47.5rem]:pt-[calc(0.5rem*2/3)] px-[clamp(0.8333rem,2.6667vw,2.6667rem)]',
+        !fullPage && PAGE_MAX_W,
         className
       )}
     >
@@ -162,10 +164,18 @@ export interface OverlayNavGroup extends OverlayNavLink {
 // dropdown in PageSearchShell), so every OverlaySplitLayout pane degrades the
 // same way instead of stacking its whole sidebar. Drop it in as the first
 // child of an OverlaySplitLayout, before OverlayMain.
-export function OverlayNav({ footer, groups }: { footer?: ReactNode; groups: OverlayNavGroup[] }) {
+export function OverlayNav({
+  footer,
+  fullPage = false,
+  groups
+}: {
+  footer?: ReactNode
+  fullPage?: boolean
+  groups: OverlayNavGroup[]
+}) {
   return (
     <>
-      <OverlaySidebar className={RAIL_HIDDEN}>
+      <OverlaySidebar className={RAIL_HIDDEN} fullPage={fullPage}>
         {groups.map(group => (
           <Fragment key={group.id}>
             {group.gapBefore && <div aria-hidden className="h-2" />}
@@ -196,14 +206,13 @@ export function OverlayNav({ footer, groups }: { footer?: ReactNode; groups: Ove
         {footer && <div className="mt-auto flex items-center gap-1 pt-2">{footer}</div>}
       </OverlaySidebar>
 
-      {/* Narrow: ride the OverlayView titlebar strip so the dropdown shares the
-          close button's row instead of taking its own. The bar is
-          pointer-events-none (children opt back in) so the floating X underneath
-          stays clickable; pr clears it, no-drag beats the strip's drag region,
-          and the height matches the strip so the trigger lines up with the X. */}
+      {/* Narrow overlays ride the OverlayView titlebar strip. A full-page
+          surface owns an in-flow header, so its dropdown gets a regular row. */}
       <div
         className={cn(
-          'pointer-events-none relative z-20 h-[calc(var(--titlebar-height)+0.1875rem)] items-center justify-between gap-2 pl-3 pr-12',
+          fullPage
+            ? 'relative z-20 h-10 items-center justify-between gap-2 border-b border-(--ui-stroke-tertiary) bg-(--ui-sidebar-surface-background) px-3'
+            : 'pointer-events-none relative z-20 h-[calc(var(--titlebar-height)+0.1875rem)] items-center justify-between gap-2 pl-3 pr-12',
           BAR_HIDDEN
         )}
       >

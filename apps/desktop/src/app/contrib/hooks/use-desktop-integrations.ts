@@ -29,7 +29,7 @@ import { isBrowserWindow, isHudWindow, isSecondaryWindow } from '@/store/windows
 import type { SessionInfo } from '@/types/hermes'
 
 import { requestComposerFocus, requestComposerInsert } from '../../chat/composer/focus'
-import { appViewForPath, isOverlayView, NEW_CHAT_ROUTE, routeSessionId, sessionRoute } from '../../routes'
+import { appViewForPath, isRouteBlockingSurface, NEW_CHAT_ROUTE, routeSessionId, sessionRoute } from '../../routes'
 
 type RememberedSession = Pick<SessionInfo, '_lineage_root_id' | 'id' | 'profile'>
 
@@ -110,7 +110,7 @@ export function useDesktopIntegrations({
         const last = getRememberedSessionId(activeProfile)
 
         const restorableNonSessionRoute =
-          !!route && route !== NEW_CHAT_ROUTE && !routeSession && !isOverlayView(appViewForPath(route))
+          !!route && route !== NEW_CHAT_ROUTE && !routeSession && !isRouteBlockingSurface(appViewForPath(route))
 
         // Boot adoption can publish renderer.ready before its async session
         // refresh completes. Keep the restore latch open until ownership can be
@@ -125,7 +125,7 @@ export function useDesktopIntegrations({
         if (
           route &&
           route !== NEW_CHAT_ROUTE &&
-          !isOverlayView(appViewForPath(route)) &&
+          !isRouteBlockingSurface(appViewForPath(route)) &&
           (!routeSession || sessionBelongsToProfile(sessions, routeSession, activeProfile))
         ) {
           navigate(route, { replace: true })
@@ -154,13 +154,13 @@ export function useDesktopIntegrations({
     }
 
     // Remember the open chat (session id for notifications/resume) AND the last
-    // non-overlay route (a page like /skills, or a session route) per profile.
+    // non-surface route (a page like /skills, or a session route) per profile.
     // Session-shaped routes require an explicit matching owner; unresolved and
     // wrong-profile rows must not replace known-safe navigation.
     if (routedSessionId && sessionBelongsToProfile(sessions, routedSessionId, activeProfile)) {
       setRememberedSessionId(routedSessionId, activeProfile)
       setRememberedRoute(locationPathname, activeProfile)
-    } else if (!routedSessionId && !isOverlayView(appViewForPath(locationPathname))) {
+    } else if (!routedSessionId && !isRouteBlockingSurface(appViewForPath(locationPathname))) {
       setRememberedRoute(locationPathname, activeProfile)
     }
   }, [activeProfile, locationPathname, navigate, profileReady, routedSessionId, sessions])

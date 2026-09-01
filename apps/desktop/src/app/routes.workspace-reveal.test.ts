@@ -138,8 +138,6 @@ describe('syncWorkspaceRoute', () => {
   it.each([
     ['a session route', sessionRoute('sess-a')],
     ['the new-chat route', NEW_CHAT_ROUTE],
-    ['an overlay', SETTINGS_ROUTE],
-    ['an overlay with a query', `${SETTINGS_ROUTE}?tab=keys`],
     ['another overlay', CRON_ROUTE],
     ['yet another overlay', AGENTS_ROUTE]
   ])('leaves the tab alone on %s', (_label, to) => {
@@ -147,6 +145,13 @@ describe('syncWorkspaceRoute', () => {
 
     expect($workspaceIsPage.get()).toBe(false)
     expect(revealTreePane).not.toHaveBeenCalled()
+  })
+
+  it.each([SETTINGS_ROUTE, `${SETTINGS_ROUTE}?tab=keys`])('fronts the Settings workspace on %s', to => {
+    syncWorkspaceRoute(to)
+
+    expect($workspaceIsPage.get()).toBe(true)
+    expect(fronted()).toBe(true)
   })
 })
 
@@ -177,13 +182,19 @@ describe('navigateToWorkspacePage', () => {
     expect(navigate).toHaveBeenCalledWith(ARTIFACTS_ROUTE, { replace: true })
   })
 
-  it('navigates without fronting for chat and overlay targets', () => {
+  it('navigates without fronting for chat and modal overlay targets', () => {
     const navigate = vi.fn()
 
     navigateToWorkspacePage(navigate, sessionRoute('sess-a'))
-    navigateToWorkspacePage(navigate, SETTINGS_ROUTE)
+    navigateToWorkspacePage(navigate, CRON_ROUTE)
 
     expect(navigate).toHaveBeenCalledTimes(2)
     expect(revealTreePane).not.toHaveBeenCalled()
+  })
+
+  it('fronts the full-page Settings workspace', () => {
+    navigateToWorkspacePage(vi.fn(), SETTINGS_ROUTE)
+
+    expect(fronted()).toBe(true)
   })
 })

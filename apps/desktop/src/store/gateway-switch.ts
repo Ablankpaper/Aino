@@ -172,8 +172,9 @@ export function recoverActiveSourceAfterFailedGatewaySwitch(token: GatewaySwitch
  * invalidated separately; the live session list is this path.
  *
  * Does NOT call requestFreshSession() — that navigates to NEW_CHAT and would
- * close route overlays (Settings). Clear chat state in place; leave the URL
- * alone so the user stays where they were (e.g. mid-Gateway settings).
+ * close route-owned surfaces (including Settings). Clear chat state in place;
+ * leave the URL alone so the user stays where they were (e.g. mid-Gateway
+ * settings).
  */
 export function wipeSessionListsForGatewaySwitch(): void {
   // The next backend is a different runtime — don't carry the old one's

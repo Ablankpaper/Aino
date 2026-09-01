@@ -25,7 +25,7 @@ import {
 } from '@/store/layout'
 import { $unreadSessionCount } from '@/store/session-dot-state'
 
-import { appViewForPath, isOverlayView } from '../routes'
+import { appViewForPath, isRouteBlockingSurface } from '../routes'
 
 import {
   TITLEBAR_ICON_BADGE_SCALE,
@@ -257,11 +257,11 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
     }
   ]
 
-  // While a full-screen overlay (settings, command center, …) is open it should
-  // visually own the window. These control clusters are `fixed` at a higher
-  // z-index than the overlay card, so they'd otherwise bleed over it — hide them
-  // and let the overlay's own chrome (close button, drag region) take over.
-  if (isOverlayView(appViewForPath(location.pathname))) {
+  // While a route-owned surface (the full-page Settings workspace or a modal
+  // route such as Command Center) owns the window, these fixed control clusters
+  // must stand down so they cannot bleed over the surface. Native traffic lights
+  // and the surface's own navigation remain available.
+  if (isRouteBlockingSurface(appViewForPath(location.pathname))) {
     return null
   }
 

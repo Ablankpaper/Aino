@@ -1264,7 +1264,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
     [baseGroups, branchGroup, searchGroups]
   )
 
-  // Settings-scoped page (⌘K on the Settings overlay, or its search pill):
+  // Settings-scoped page (⌘K on the Settings workspace, or its search pill):
   // the same catalog as root, minus everything that isn't settings. Pages
   // always list; the granular entries surface on type, same contract as the
   // root.
@@ -1418,8 +1418,8 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
         placeholder: t.commandCenter.installTheme.placeholder,
         groups: []
       },
-      // Settings-scoped search (⌘K while the Settings overlay is up, or the
-      // search pill beside its close button).
+      // Settings-scoped search (⌘K while the Settings workspace is open, or the
+      // search pill beside its back button).
       settings: {
         title: t.commandCenter.nav.settings.title,
         placeholder: t.settings.search.placeholder,
