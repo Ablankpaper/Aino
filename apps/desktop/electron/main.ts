@@ -12149,7 +12149,11 @@ async function spawnPoolBackend(profile, entry, opts: { forceLocal?: boolean; po
 
   // Discover the ephemeral port the child bound to
   const port = await Promise.race([
-    waitForDashboardPortAnnouncement(child, { describeOutputTail: () => outputTail.describe(), readyFile }),
+    waitForDashboardPortAnnouncement(child, {
+      describeOutputTail: () => outputTail.describe(),
+      initialOutput: outputTail.text(),
+      readyFile
+    }),
     startFailed
   ])
 
@@ -12599,6 +12603,7 @@ async function startHermes() {
     const port = await Promise.race([
       waitForDashboardPortAnnouncement(hermesProcess, {
         describeOutputTail: () => primaryOutputTail.describe(),
+        initialOutput: primaryOutputTail.text(),
         readyFile
       }),
       backendStartFailed

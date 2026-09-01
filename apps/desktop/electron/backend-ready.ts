@@ -18,6 +18,12 @@ const DEFAULT_PORT_ANNOUNCE_TIMEOUT_MS = 90_000
 // (the historical default) so a malformed override can't reintroduce the loop.
 const MIN_PORT_ANNOUNCE_TIMEOUT_MS = 45_000
 
+function announcedPort(text: unknown): number | null {
+  const match = String(text ?? '').match(_READY_RE)
+
+  return match ? parseInt(match[1], 10) : null
+}
+
 /**
  * Resolve the port-announcement deadline. Honors the
  * HERMES_DESKTOP_PORT_ANNOUNCE_TIMEOUT_MS env override (for users on slow
@@ -51,7 +57,12 @@ function resolvePortAnnounceTimeoutMs(env = process.env) {
  * on every terminal path — resolve, reject, or timeout — so repeated
  * backend spawns don't leak listener slots on the child.
  */
-function waitForDashboardPort(child, timeoutMs = resolvePortAnnounceTimeoutMs(), describeOutputTail = () => '') {
+function waitForDashboardPort(
+  child,
+  timeoutMs = resolvePortAnnounceTimeoutMs(),
+  describeOutputTail = () => '',
+  initialOutput = ''
+) {
   return new Promise((resolve, reject) => {
     let buf = ''
     let done = false
@@ -75,11 +86,11 @@ function waitForDashboardPort(child, timeoutMs = resolvePortAnnounceTimeoutMs(),
       while ((nl = buf.indexOf('\n')) !== -1) {
         const line = buf.slice(0, nl)
         buf = buf.slice(nl + 1)
-        const m = line.match(_READY_RE)
+        const port = announcedPort(line)
 
-        if (m) {
+        if (port !== null) {
           cleanup()
-          resolve(parseInt(m[1], 10))
+          resolve(port)
 
           return
         }
@@ -104,6 +115,13 @@ function waitForDashboardPort(child, timeoutMs = resolvePortAnnounceTimeoutMs(),
     child.stdout.on('data', onData)
     child.on('exit', onExit)
     child.on('error', onError)
+
+    const port = announcedPort(initialOutput)
+
+    if (port !== null) {
+      cleanup()
+      resolve(port)
+    }
   })
 }
 
@@ -190,6 +208,8 @@ function waitForDashboardPortAnnouncement(
     /** Returns a formatted stdout/stderr tail suffix for exit errors (#93608). */
     describeOutputTail?: () => string
     readyFile?: fs.PathOrFileDescriptor | null
+    /** Output captured before the readiness watcher was attached. */
+    initialOutput?: string
     timeoutMs?: number
   } = {}
 ) {
@@ -200,7 +220,7 @@ function waitForDashboardPortAnnouncement(
     return waitForDashboardReadyFile(options.readyFile, child, timeoutMs, describeOutputTail)
   }
 
-  return waitForDashboardPort(child, timeoutMs, describeOutputTail)
+  return waitForDashboardPort(child, timeoutMs, describeOutputTail, options.initialOutput)
 }
 
 export {

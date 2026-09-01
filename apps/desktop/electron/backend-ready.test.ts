@@ -107,6 +107,19 @@ test('parses the port even when the line arrives split across chunks', async () 
   assert.equal(await p, 8080)
 })
 
+test('resolves from a READY line buffered before the watcher attaches', async () => {
+  const child = makeFakeChild()
+  const bufferedOutput = 'booting\nHERMES_BACKEND_READY port=4242\n'
+
+  assert.equal(
+    await waitForDashboardPortAnnouncement(child, {
+      initialOutput: bufferedOutput,
+      timeoutMs: 20
+    }),
+    4242
+  )
+})
+
 test('rejects when the child exits before announcing', async () => {
   const child = makeFakeChild()
   const p = waitForDashboardPort(child, 1000)
