@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ErrorBoundary, RootErrorBoundary } from './error-boundary'
 
 const CURRENT_LOOKUP_ERROR = new Error('useClientLookup: Index 6 out of bounds (length: 2)')
+const CURRENT_COMPOSITION_ERROR = new Error("Cannot read properties of null (reading 'getSnapshot')")
 const RELOAD_WINDOW = { name: 'Reload window', role: 'button' } as const
 
 function makeBomb(box: { error: Error | null }) {
@@ -216,5 +217,38 @@ describe('ErrorBoundary assistant-ui lookup recovery', () => {
 
     expect(screen.getByRole(RELOAD_WINDOW.role, { name: RELOAD_WINDOW.name })).toBeTruthy()
     expect(recoveryWarningCount(warnSpy.mock.calls)).toBe(0)
+  })
+})
+
+describe('ErrorBoundary renderer composition recovery', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  it('rebuilds the root composition after a transient getSnapshot failure', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const box: { error: Error | null } = { error: CURRENT_COMPOSITION_ERROR }
+    const Bomb = makeBomb(box)
+
+    render(
+      <RootErrorBoundary>
+        <Bomb />
+      </RootErrorBoundary>
+    )
+
+    box.error = null
+    act(() => vi.runOnlyPendingTimers())
+
+    expect(screen.getByText('recovered')).toBeTruthy()
+    expect(
+      warnSpy.mock.calls.some(call => String(call[0]).includes('auto-recovering from renderer composition'))
+    ).toBe(true)
   })
 })

@@ -24,10 +24,16 @@ interface ErrorBoundaryState {
 // the root. Retry only that exact transient error class, never arbitrary render
 // failures, and cap retries so a persistent failure still exposes the fallback.
 const ASSISTANT_UI_LOOKUP_ERROR = /(useClientLookup|tapClient(Lookup|Resource)).*out of bounds/
+// A development refresh can leave a long-lived root with a stale external
+// store hook slot after a custom hook changes shape. React then reports this
+// otherwise opaque getSnapshot failure. Rebuilding the root is safe for this
+// bounded, transient class and restores the live chat/HUD surfaces.
+const RENDERER_COMPOSITION_ERROR = /Cannot read properties of (?:null|undefined) \(reading ['"]getSnapshot['"]\)/
 const MAX_AUTO_RECOVERIES = 3
 const AUTO_RECOVERY_WINDOW_MS = 5_000
 
 const isTransientAssistantUiLookupError = (error: Error): boolean => ASSISTANT_UI_LOOKUP_ERROR.test(error.message)
+const isTransientRendererCompositionError = (error: Error): boolean => RENDERER_COMPOSITION_ERROR.test(error.message)
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { error: null }
@@ -70,8 +76,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     this.props.onError?.(error, info)
 
-    if (this.props.label === 'root' && isTransientAssistantUiLookupError(error) && this.takeAutoRecoveryAttempt()) {
-      console.warn(`${tag} auto-recovering from assistant-ui lookup render race`, error.message)
+    const recoveryReason = isTransientAssistantUiLookupError(error)
+      ? 'assistant-ui lookup render race'
+      : isTransientRendererCompositionError(error)
+        ? 'renderer composition'
+        : null
+
+    if (this.props.label === 'root' && recoveryReason && this.takeAutoRecoveryAttempt()) {
+      console.warn(`${tag} auto-recovering from ${recoveryReason}`, error.message)
       this.autoRecoveryPending = true
       this.scheduleAutoRecovery()
     }
