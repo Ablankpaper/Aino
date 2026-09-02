@@ -2,7 +2,7 @@ import { atom, computed, type ReadableAtom, type WritableAtom } from 'nanostores
 
 import { SIDEBAR_COLLAPSE_MEDIA_QUERY } from '@/app/layout-constants'
 import { PANE_TOGGLE_REVEAL_EVENT } from '@/components/pane-shell'
-import { isPaneVisible, revealTreePane } from '@/components/pane-shell/tree/store'
+import { isPaneVisible, isTreeSideVisible, revealTreePane } from '@/components/pane-shell/tree/store'
 import { matchesQuery } from '@/hooks/use-media-query'
 import { connectionScopedAtom } from '@/lib/connection-scoped'
 import { type Codec, Codecs, persistentAtom } from '@/lib/persisted'
@@ -56,6 +56,7 @@ const PANES_FLIPPED_STORAGE_KEY = 'hermes.desktop.panesFlipped'
 const RIGHT_RAIL_ACTIVE_TAB_STORAGE_KEY = 'hermes.desktop.rightRailActiveTab'
 
 export const CHAT_SIDEBAR_PANE_ID = 'chat-sidebar'
+export const SESSIONS_PANE_ID = 'sessions'
 export const FILE_BROWSER_PANE_ID = 'file-browser'
 /** The file tree's id in the LAYOUT TREE — distinct from the pane-state id
  *  above, which keys its open/width record. Toggles need both. */
@@ -496,12 +497,31 @@ function revealNarrowPane(id: string, mode: 'close' | 'open' | 'toggle'): boolea
 
 export function setSidebarOpen(open: boolean) {
   setPaneOpen(CHAT_SIDEBAR_PANE_ID, open)
-  revealNarrowPane(CHAT_SIDEBAR_PANE_ID, open ? 'open' : 'close')
+  const handledNarrow = revealNarrowPane(CHAT_SIDEBAR_PANE_ID, open ? 'open' : 'close')
+
+  // `open:true` only expands the semantic side column. A user can separately
+  // minimize the sessions zone to its 28px rail, leaving the persisted pane
+  // flag true while no sidebar content is visible. Explicit open intent must
+  // repair both layers so search/pane-focus/titlebar actions always reveal the
+  // full sessions workspace. Narrow layouts use their overlay path instead.
+  if (open && !handledNarrow) {
+    revealTreePane(SESSIONS_PANE_ID)
+  }
 }
 
 export function toggleSidebarOpen() {
-  if (!revealNarrowPane(CHAT_SIDEBAR_PANE_ID, 'toggle')) {
-    togglePane(CHAT_SIDEBAR_PANE_ID)
+  if (revealNarrowPane(CHAT_SIDEBAR_PANE_ID, 'toggle')) {
+    return
+  }
+
+  // Toggle from what is genuinely on screen, not from the legacy pane flag.
+  // This is the sidebar twin of toggleFileBrowserOpen below: a minimized zone
+  // can keep `$sidebarOpen === true`, and flipping that boolean merely cycles
+  // between a hidden column and the same 28px rail.
+  if (isTreeSideVisible('left')) {
+    setSidebarOpen(false)
+  } else {
+    setSidebarOpen(true)
   }
 }
 

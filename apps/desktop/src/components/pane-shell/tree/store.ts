@@ -8,7 +8,7 @@ import { atom, computed, type ReadableAtom } from 'nanostores'
 
 import { SIDEBAR_COLLAPSE_MEDIA_QUERY } from '@/app/layout-constants'
 import { setPluginEnabled } from '@/contrib/plugins-store'
-import { registry } from '@/contrib/registry'
+import { $registryVersion, registry } from '@/contrib/registry'
 import { translateNow } from '@/i18n'
 import { readJson, readKey, writeJson, writeKey } from '@/lib/storage'
 import { notify } from '@/store/notifications'
@@ -1723,6 +1723,29 @@ export function isPaneVisible(paneId: string): boolean {
   return Boolean(group && !group.minimized && group.active === paneId)
 }
 
+/** Whether a semantic side column is fully on screen (rather than hidden or
+ *  reduced to a minimized 28px rail). This deliberately checks every pane in
+ *  the side, not only `sessions`: Bot Mode can hold the active tab in the same
+ *  left-hand zone and the titlebar toggle must still read that column as open. */
+export function isTreeSideVisible(side: TreeSide): boolean {
+  if ($collapsedTreeSides.get().has(side)) {
+    return false
+  }
+
+  const row = rootRow()
+
+  if (!row) {
+    return false
+  }
+
+  const panes = registry.getArea('panes')
+  const paneFor = (id: string) => panes.find(pane => pane.id === id)
+
+  return row.children.some(
+    child => rootChildSide(child, paneFor) === side && allPaneIds(child).some(paneId => isPaneVisible(paneId))
+  )
+}
+
 const paneVisibleCache = new Map<string, ReadableAtom<boolean>>()
 
 /** Reactive `isPaneVisible` for chrome that renders an on/off affordance
@@ -1734,6 +1757,23 @@ export function $paneVisible(paneId: string): ReadableAtom<boolean> {
   if (!cached) {
     cached = computed([$layoutTree, $dismissedPanes, $hiddenTreePanes], () => isPaneVisible(paneId))
     paneVisibleCache.set(paneId, cached)
+  }
+
+  return cached
+}
+
+const treeSideVisibleCache = new Map<TreeSide, ReadableAtom<boolean>>()
+
+/** Reactive side-column visibility for chrome labels and pressed state. */
+export function $treeSideVisible(side: TreeSide): ReadableAtom<boolean> {
+  let cached = treeSideVisibleCache.get(side)
+
+  if (!cached) {
+    cached = computed(
+      [$layoutTree, $collapsedTreeSides, $dismissedPanes, $hiddenTreePanes, $registryVersion],
+      () => isTreeSideVisible(side)
+    )
+    treeSideVisibleCache.set(side, cached)
   }
 
   return cached

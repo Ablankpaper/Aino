@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router'
 
 import { hudTargetSessionId } from '@/app/hud/handoff'
 import { toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
-import { resetLayoutTree } from '@/components/pane-shell/tree/store'
+import { $narrowViewport, $treeSideVisible, resetLayoutTree } from '@/components/pane-shell/tree/store'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
@@ -136,6 +136,8 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   const modHeld = useModifierHeld()
   const hapticsMuted = useStore($hapticsMuted)
   const fileBrowserOpen = useStore($fileBrowserOpen)
+  const leftSideVisible = useStore($treeSideVisible('left'))
+  const narrowViewport = useStore($narrowViewport)
   const panesFlipped = useStore($panesFlipped)
   const sidebarOpen = useStore($sidebarOpen)
   const unreadCount = useStore($unreadSessionCount)
@@ -159,7 +161,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   // stay correct through flips and rearranges. $sidebarOpen ≙ left side,
   // $fileBrowserOpen ≙ right side. Never an active highlight — plain
   // show/hide affordances.
-  const leftEdge = { open: sidebarOpen, toggle: toggleSidebarOpen }
+  const leftEdge = { open: narrowViewport ? sidebarOpen : leftSideVisible, toggle: toggleSidebarOpen }
   const rightEdge = { open: fileBrowserOpen, toggle: toggleFileBrowserOpen }
   const leftLabel = leftEdge.open ? t.titlebar.hideSidebar : t.titlebar.showSidebar
   const rightLabel = rightEdge.open ? t.titlebar.hideRightSidebar : t.titlebar.showRightSidebar

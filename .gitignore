@@ -215,3 +215,7 @@ native/fts5_cjk/*.so
 # by accident via 3a69e34702, removed in the #72002 salvage).
 .lazy-refresh-incomplete
 .skills_prompt_snapshot.json
+
+# Qoder IDE workspace data — locally generated repowiki docs (1k+ files),
+# never committed.
+.qoder/
