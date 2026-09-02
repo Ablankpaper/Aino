@@ -383,6 +383,7 @@ import {
 import { waitForUpdateClearance } from './update-gate'
 import { readLiveUpdateMarker, updateHandoffConflict, writeUpdateMarker } from './update-marker'
 import { isOfficialSshRemote, OFFICIAL_REPO_HTTPS_URL } from './update-remote'
+import { parseHermesVersion, resolveUpdateRoot as resolveUpdateRootFromCandidates } from './update-root'
 import {
   collectRelaunchArgs,
   observeUpdaterHandoff,
@@ -2853,13 +2854,21 @@ function writeZoomState(zoomLevel) {
 // Dev → SOURCE_REPO_ROOT. Packaged/CLI install → ACTIVE_HERMES_ROOT.
 // HERMES_DESKTOP_HERMES_ROOT always wins so devs can pin a worktree.
 function resolveUpdateRoot() {
-  const candidates = [
-    process.env.HERMES_DESKTOP_HERMES_ROOT && path.resolve(process.env.HERMES_DESKTOP_HERMES_ROOT),
-    !IS_PACKAGED && isHermesSourceRoot(SOURCE_REPO_ROOT) ? SOURCE_REPO_ROOT : null,
-    isHermesSourceRoot(ACTIVE_HERMES_ROOT) ? ACTIVE_HERMES_ROOT : null
-  ].filter(Boolean)
-
-  return candidates.find(c => directoryExists(path.join(c, '.git'))) || candidates[0] || ACTIVE_HERMES_ROOT
+  // `HERMES_DESKTOP_IS_PACKAGED` is baked into production bundles so an
+  // unpackaged `electron .` run exercises packaged resource paths. It must not
+  // hide the source checkout from update/version discovery: `app.isPackaged`
+  // is the authoritative signal for whether this process is inside an
+  // installed app bundle.
+  return resolveUpdateRootFromCandidates({
+    activeHermesRoot: ACTIVE_HERMES_ROOT,
+    actualPackaged: app.isPackaged,
+    isGitCheckout: root => directoryExists(path.join(root, '.git')),
+    isSourceRoot: isHermesSourceRoot,
+    overrideRoot: process.env.HERMES_DESKTOP_HERMES_ROOT
+      ? path.resolve(process.env.HERMES_DESKTOP_HERMES_ROOT)
+      : null,
+    sourceRepoRoot: SOURCE_REPO_ROOT
+  })
 }
 
 function runGit(args, options: any = {}): Promise<{ code: number; stdout: string; stderr: string }> {
@@ -16962,10 +16971,10 @@ function resolveHermesVersion() {
 
     if (fileExists(initPath)) {
       const raw = fs.readFileSync(initPath, 'utf8')
-      const match = raw.match(/__version__\s*=\s*["']([^"']+)["']/)
+      const version = parseHermesVersion(raw)
 
-      if (match) {
-        return match[1]
+      if (version) {
+        return version
       }
     }
   } catch {
