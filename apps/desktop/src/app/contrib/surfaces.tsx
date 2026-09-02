@@ -70,13 +70,11 @@ export const TerminalSurface = memo(function TerminalSurface() {
 export const StatusbarSurface = memo(function StatusbarSurface({
   actions,
   agentsOpen,
-  chatOpen,
-  commandCenterOpen
+  chatOpen
 }: {
   actions: WiringActions
   agentsOpen: boolean
   chatOpen: boolean
-  commandCenterOpen: boolean
 }) {
   const activeConnectionId = useStore($activeConnectionId)
   const activeGatewayProfile = useStore($activeGatewayProfile)
@@ -90,17 +88,13 @@ export const StatusbarSurface = memo(function StatusbarSurface({
   const { leftStatusbarItems, statusbarItems } = useStatusbarItems({
     agentsOpen,
     chatOpen,
-    commandCenterOpen,
     extraLeftItems,
     extraRightItems,
     freshDraftReady,
     gatewayState,
-    inferenceStatus,
     openAgents: actions.openAgents,
-    openCommandCenterSection: actions.openCommandCenterSection,
     requestGateway: actions.requestGateway,
-    statusSnapshot,
-    toggleCommandCenter: actions.toggleCommandCenter
+    statusSnapshot
   })
 
   return <StatusbarControls items={statusbarItems} leftItems={leftStatusbarItems} />

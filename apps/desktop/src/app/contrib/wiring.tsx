@@ -1061,15 +1061,8 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   const terminalNode = useMemo(() => <TerminalSurface />, [])
 
   const statusbarNode = useMemo(
-    () => (
-      <StatusbarSurface
-        actions={actions}
-        agentsOpen={agentsOpen}
-        chatOpen={chatOpen}
-        commandCenterOpen={commandCenterOpen}
-      />
-    ),
-    [actions, agentsOpen, chatOpen, commandCenterOpen]
+    () => <StatusbarSurface actions={actions} agentsOpen={agentsOpen} chatOpen={chatOpen} />,
+    [actions, agentsOpen, chatOpen]
   )
 
   // The voice cap changes only on config load; the gateway instance + all
@@ -1090,10 +1083,21 @@ export function ContribWiring({ children }: { children: ReactNode }) {
           onClose={closeOverlayToPreviousRoute}
           onConfigSaved={handleConfigSaved}
           onMainModelChanged={handleMainModelChanged}
+          onOpenCommandCenter={toggleCommandCenter}
+          onOpenCommandCenterSection={openCommandCenterSection}
+          requestGateway={requestGateway}
         />
       </Suspense>
     ),
-    [closeOverlayToPreviousRoute, gateway, handleConfigSaved, handleMainModelChanged]
+    [
+      closeOverlayToPreviousRoute,
+      gateway,
+      handleConfigSaved,
+      handleMainModelChanged,
+      openCommandCenterSection,
+      requestGateway,
+      toggleCommandCenter
+    ]
   )
 
   const api = useMemo<WiringApi>(

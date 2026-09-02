@@ -53,6 +53,7 @@ import { NotificationsSettings } from './notifications-settings'
 import { PluginsSettings } from './plugins-settings'
 import { PROVIDER_VIEWS, ProvidersSettings, type ProviderView } from './providers-settings'
 import { SessionsSettings } from './sessions-settings'
+import { SettingsSystemControls } from './system-status-controls'
 import type { SettingsPageProps, SettingsView as SettingsViewId } from './types'
 
 const SETTINGS_VIEWS: readonly SettingsViewId[] = [
@@ -71,7 +72,14 @@ const SETTINGS_VIEWS: readonly SettingsViewId[] = [
   'about'
 ]
 
-export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: SettingsPageProps) {
+export function SettingsView({
+  onClose,
+  onConfigSaved,
+  onMainModelChanged,
+  onOpenCommandCenter,
+  onOpenCommandCenterSection,
+  requestGateway
+}: SettingsPageProps) {
   const { t } = useI18n()
   const navigate = useNavigate()
   const { hash, pathname, search } = useLocation()
@@ -365,34 +373,41 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
   )
 
   const navFooter = (
-    <>
-      <Tip label={t.settings.exportConfig}>
-        <OverlayIconButton onClick={() => void exportConfig()}>
-          <Download />
-        </OverlayIconButton>
-      </Tip>
-      <Tip label={t.settings.importConfig}>
-        <OverlayIconButton
-          onClick={() => {
-            triggerHaptic('open')
-            importInputRef.current?.click()
-          }}
-        >
-          <Upload />
-        </OverlayIconButton>
-      </Tip>
-      <Tip label={t.settings.resetToDefaults}>
-        <OverlayIconButton
-          className="hover:text-destructive"
-          onClick={() => {
-            triggerHaptic('warning')
-            void resetConfig()
-          }}
-        >
-          <RefreshCw />
-        </OverlayIconButton>
-      </Tip>
-    </>
+    <div className="flex w-full flex-col gap-1 border-t border-(--ui-stroke-tertiary) pt-2 max-[47.5rem]:w-auto max-[47.5rem]:flex-row max-[47.5rem]:border-0 max-[47.5rem]:pt-0">
+      <SettingsSystemControls
+        onOpenCommandCenter={onOpenCommandCenter}
+        onOpenCommandCenterSection={onOpenCommandCenterSection}
+        requestGateway={requestGateway}
+      />
+      <div className="flex items-center gap-1">
+        <Tip label={t.settings.exportConfig}>
+          <OverlayIconButton onClick={() => void exportConfig()}>
+            <Download />
+          </OverlayIconButton>
+        </Tip>
+        <Tip label={t.settings.importConfig}>
+          <OverlayIconButton
+            onClick={() => {
+              triggerHaptic('open')
+              importInputRef.current?.click()
+            }}
+          >
+            <Upload />
+          </OverlayIconButton>
+        </Tip>
+        <Tip label={t.settings.resetToDefaults}>
+          <OverlayIconButton
+            className="hover:text-destructive"
+            onClick={() => {
+              triggerHaptic('warning')
+              void resetConfig()
+            }}
+          >
+            <RefreshCw />
+          </OverlayIconButton>
+        </Tip>
+      </div>
+    </div>
   )
 
   const activeSettingsContent =

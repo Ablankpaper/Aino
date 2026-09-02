@@ -31,6 +31,10 @@ export function useOverlayRouting() {
   // Route-owned surfaces (settings/command-center/agents) stash the underlying
   // path so closing them returns there instead of bouncing to /.
   const returnPathRef = useRef(NEW_CHAT_ROUTE)
+  // Keep the last non-route-owned destination separately. Settings can launch
+  // the command center; after that overlay closes, Settings must still be able
+  // to use its own Back button to leave for the original chat/page.
+  const nonRouteReturnPathRef = useRef(NEW_CHAT_ROUTE)
 
   // eslint-disable-next-line no-restricted-syntax -- legitimate non-atom ref write (see eslint rule comment)
   useEffect(() => {
@@ -38,7 +42,9 @@ export function useOverlayRouting() {
     // a return affordance. Do not replace the chat/page we came from while the
     // settings route is active, otherwise Back would navigate to /settings.
     if (!settingsOpen && !overlayOpen) {
-      returnPathRef.current = `${location.pathname}${location.search}${location.hash}`
+      const currentPath = `${location.pathname}${location.search}${location.hash}`
+      returnPathRef.current = currentPath
+      nonRouteReturnPathRef.current = currentPath
     }
   }, [location.hash, location.pathname, location.search, overlayOpen, settingsOpen])
 
@@ -47,9 +53,23 @@ export function useOverlayRouting() {
     [location.search]
   )
 
+  // Settings is a route-owned page that can launch the command center. Capture
+  // that page before navigating so closing the command center returns to the
+  // same settings tab instead of the chat route that originally opened it.
+  const rememberSettingsReturnPath = useCallback(() => {
+    if (!settingsOpen) {
+      return
+    }
+
+    returnPathRef.current = `${location.pathname}${location.search}${location.hash}`
+  }, [location.hash, location.pathname, location.search, settingsOpen])
+
   const openCommandCenterSection = useCallback(
-    (section: CommandCenterSection) => navigate(`${COMMAND_CENTER_ROUTE}?section=${section}`),
-    [navigate]
+    (section: CommandCenterSection) => {
+      rememberSettingsReturnPath()
+      navigate(`${COMMAND_CENTER_ROUTE}?section=${section}`)
+    },
+    [navigate, rememberSettingsReturnPath]
   )
 
   const resetOverlayReturnRoute = useCallback(() => {
@@ -57,7 +77,19 @@ export function useOverlayRouting() {
   }, [])
 
   const closeOverlayToPreviousRoute = useCallback(
-    () => navigate(returnPathRef.current || NEW_CHAT_ROUTE, { replace: true }),
+    () => {
+      const target = returnPathRef.current || NEW_CHAT_ROUTE
+
+      // A command-center launch from Settings temporarily changes the shared
+      // return target to `/settings`. Restore the outer chat/page target as
+      // soon as that overlay closes, otherwise Settings' own Back control
+      // would navigate to itself forever.
+      if (appViewForPath(target) === 'settings') {
+        returnPathRef.current = nonRouteReturnPathRef.current || NEW_CHAT_ROUTE
+      }
+
+      navigate(target, { replace: true })
+    },
     [navigate]
   )
 
@@ -65,9 +97,10 @@ export function useOverlayRouting() {
     if (commandCenterOpen) {
       closeOverlayToPreviousRoute()
     } else {
+      rememberSettingsReturnPath()
       navigate(COMMAND_CENTER_ROUTE)
     }
-  }, [closeOverlayToPreviousRoute, commandCenterOpen, navigate])
+  }, [closeOverlayToPreviousRoute, commandCenterOpen, navigate, rememberSettingsReturnPath])
 
   const openAgents = useCallback(() => navigate(AGENTS_ROUTE), [navigate])
   const openStarmap = useCallback(() => navigate(STARMAP_ROUTE), [navigate])
