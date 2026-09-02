@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Optional
 
 from hermes_cli.config import get_hermes_home
+from hermes_cli.desktop_identity import DESKTOP_APP_ID, DESKTOP_PRODUCT_NAME
 from hermes_constants import get_default_hermes_root, venv_python_path
 
 logger = logging.getLogger(__name__)
@@ -9116,11 +9117,11 @@ def _cmd_update_impl(args, gateway_mode: bool):
         if sys.platform == "darwin" and had_desktop_app_before_update:
             print()
             print(
-                "  ℹ macOS: if Hermes re-prompts for permissions you already "
+                f"  ℹ macOS: if {DESKTOP_PRODUCT_NAME} re-prompts for permissions you already "
                 "granted (toggle shows ON), the stored grant is stale — run "
-                "`tccutil reset ScreenCapture com.nousresearch.hermes` (repeat "
+                f"`tccutil reset ScreenCapture {DESKTOP_APP_ID}` (repeat "
                 "per affected service), toggle it ON in System Settings, then "
-                "fully quit & relaunch once."
+                f"fully quit & relaunch {DESKTOP_PRODUCT_NAME} once."
             )
 
         # macOS TCC interpreter anchor (#95596): dylib-complete re-land.

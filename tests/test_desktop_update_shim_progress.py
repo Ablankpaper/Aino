@@ -61,6 +61,10 @@ def progress(tmp_path):
                 with urlopen(f"http://127.0.0.1:{port}/progress", timeout=5) as r:
                     return json.loads(r.read())
 
+            def page(self) -> str:
+                with urlopen(f"http://127.0.0.1:{port}/", timeout=5) as r:
+                    return r.read().decode("utf-8")
+
         yield Progress()
     finally:
         proc.kill()
@@ -90,7 +94,7 @@ def test_every_state_carries_a_clock(progress):
         ("running", ""),
         ("running", "Installing the new app"),
         ("done", ""),
-        ("manual", "Reopen Hermes to finish."),
+        ("manual", "Reopen Aino to finish."),
         ("error", "Update failed."),
     ]:
         progress.publish(state, message)
@@ -99,6 +103,16 @@ def test_every_state_carries_a_clock(progress):
         assert served["status"] == state
         assert served["message"] == message
         assert served["elapsed_seconds"] >= 0
+
+
+def test_update_page_uses_aino_product_name(progress):
+    page = progress.page()
+
+    assert "<title>Aino</title>" in page
+    assert "Updating Aino" in page
+    assert "Aino will open once done." in page
+    assert "Opening Aino" in page
+    assert "Reopen Aino to finish." in page
 
 
 def test_unreadable_status_still_serves_a_running_state(progress):

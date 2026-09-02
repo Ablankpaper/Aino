@@ -45,7 +45,7 @@ def test_prewarm_guard_is_once_per_process():
     _reset_guard()
 
 
-def test_prewarm_warms_the_active_custom_endpoint_for_the_next_open(monkeypatch):
+def test_prewarm_warms_the_active_custom_endpoint_for_the_next_open(monkeypatch, tmp_path):
     """End-to-end regression for #72762: the active custom endpoint must be
     warm by the time the user opens ``/model``, not just first-class
     ``PROVIDER_REGISTRY`` providers.
@@ -74,6 +74,13 @@ def test_prewarm_warms_the_active_custom_endpoint_for_the_next_open(monkeypatch)
     import hermes_cli.models as models_mod
 
     _reset_guard()
+    # ``list_authenticated_providers`` intentionally discovers credentials in
+    # user-owned files (for example ``~/.codex/auth.json``).  This regression
+    # test is about the custom endpoint/cache contract, not whichever external
+    # providers happen to be configured on the developer's workstation. Keep
+    # the test hermetic without changing the suite-wide HOME policy used by
+    # subprocess/integration tests.
+    monkeypatch.setenv("HOME", str(tmp_path))
 
     base_url = "https://api.example-gateway.test/v1"
     ctx = inventory_mod.ConfigContext(
@@ -138,5 +145,3 @@ def test_prewarm_warms_the_active_custom_endpoint_for_the_next_open(monkeypatch)
     assert row2["models"] == ["gateway-model-a", "gateway-model-b"]
 
     _reset_guard()
-
-

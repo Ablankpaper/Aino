@@ -2,7 +2,7 @@
   "name": "hermes",
   "productName": "Aino",
   "private": true,
-  "version": "0.17.0",
+  "version": "0.21.0",
   "description": "Aino desktop workspace built on the Hermes Agent runtime.",
   "author": "Ablankpaper",
   "repository": {

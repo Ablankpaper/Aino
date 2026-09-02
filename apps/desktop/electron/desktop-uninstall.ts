@@ -28,6 +28,8 @@
 
 import path from 'node:path'
 
+import { LEGACY_PRODUCT_NAME, PRODUCT_NAME } from './product-identity'
+
 const UNINSTALL_MODES = ['gui', 'lite', 'full']
 
 /**
@@ -59,8 +61,8 @@ function modeRemovesUserData(mode) {
  * Resolve the on-disk app bundle/dir to remove for the running desktop app,
  * given the path to the running executable (`process.execPath`) and platform.
  *
- *   macOS:   …/Hermes.app/Contents/MacOS/Hermes  → …/Hermes.app
- *   Windows: …\Hermes\Hermes.exe                 → …\Hermes  (install dir)
+ *   macOS:   …/Aino.app/Contents/MacOS/Aino  → …/Aino.app
+ *   Windows: …\Aino\Aino.exe                 → …\Aino  (install dir)
  *   Linux:   AppImage → the APPIMAGE env path; unpacked → the *-unpacked dir
  *
  * Returns null when we can't confidently identify a removable bundle (e.g.
@@ -92,10 +94,18 @@ function resolveRemovableAppPath(execPath, platform, env: any = {}) {
   }
 
   if (platform === 'win32') {
-    // NSIS per-user installs Hermes.exe directly in the install dir.
+    // NSIS per-user installs Aino.exe directly in the install dir. Keep the
+    // old Hermes directory (and its alternate name) as migration fallbacks.
     const dir = p.dirname(exe)
 
-    if (/[\\/]Hermes$/i.test(dir) || /[\\/]hermes-desktop$/i.test(dir)) {
+    const name = p.basename(dir).toLowerCase()
+    const removableNames = new Set([
+      PRODUCT_NAME.toLowerCase(),
+      LEGACY_PRODUCT_NAME.toLowerCase(),
+      `${PRODUCT_NAME.toLowerCase()}-desktop`,
+      `${LEGACY_PRODUCT_NAME.toLowerCase()}-desktop`
+    ])
+    if (removableNames.has(name)) {
       return dir
     }
 

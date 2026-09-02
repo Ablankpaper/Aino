@@ -9,6 +9,7 @@ import sys
 import subprocess
 import shutil
 import importlib.util
+import re
 from pathlib import Path
 
 from hermes_cli.config import (
@@ -36,6 +37,12 @@ from hermes_cli.models import _HERMES_USER_AGENT
 from hermes_cli.vercel_auth import describe_vercel_auth
 from hermes_constants import OPENROUTER_MODELS_URL
 from utils import base_url_host_matches
+from hermes_cli.desktop_identity import (
+    DESKTOP_APP_ID,
+    DESKTOP_PRODUCT_NAME,
+    LEGACY_DESKTOP_APP_ID,
+    LEGACY_DESKTOP_PRODUCT_NAME,
+)
 
 
 _PROVIDER_ENV_HINTS = (
@@ -1060,8 +1067,9 @@ def check_macos_tcc_grants() -> None:
     keeps the System Settings toggle ON while macOS re-prompts on every
     capture (issue #86385).
 
-    Post-#73681 builds pin ``designated => identifier "com.nousresearch.hermes"``
-    (no cdhash), so new grants survive rebuilds — but grants made to older
+    Post-#73681 builds pin an identifier-based designated requirement (Aino's
+    current id is ``com.ablankpaper.aino``; old Hermes bundles retain their
+    legacy id), so new grants survive rebuilds — but grants made to older
     binaries remain stale until re-granted once. The stale state is not
     directly readable (TCC.db needs Full Disk Access), so this check reports
     the DR class and, when the DR is stable, prints the exact one-time repair.
@@ -1106,11 +1114,12 @@ def check_macos_tcc_grants() -> None:
             "(identifier-pinned DR; grants survive rebuilds — for the strongest "
             "anchor, see `hermes desktop --setup-tcc-identity`)",
         )
+    tcc_identifier = _macos_tcc_identifier(app, dr)
     check_info(
         "If macOS still re-prompts for permissions (toggle shows ON): the stored "
-        "grant is stale — run `tccutil reset ScreenCapture com.nousresearch.hermes` "
+        f"grant is stale — run `tccutil reset ScreenCapture {tcc_identifier}` "
         "(repeat per affected service), toggle it ON in System Settings, then "
-        "fully quit & relaunch Hermes once."
+        f"fully quit & relaunch {DESKTOP_PRODUCT_NAME} once."
     )
 
 
@@ -1118,20 +1127,49 @@ def _desktop_app_bundle() -> Path | None:
     """Locate the locally-built desktop app bundle, if any.
 
     Mirrors the install layout the self-updater produces
-    (``apps/desktop/release/mac-<arch>/Hermes.app``) — the only layout whose
+    (``apps/desktop/release/mac-<arch>/Aino.app``) — the only layout whose
     ad-hoc re-signed bundle can invalidate TCC grants. When multiple arch
     trees coexist (stale cross-build), the newest wins, matching
-    ``_desktop_packaged_executable``'s selection. ``/Applications/Hermes.app``
-    is deliberately not probed: it is the separately-signed Hermes-Setup
-    launcher (``com.nousresearch.hermes.setup``, certificate-anchored), whose
-    grants are stable by construction and unaffected by rebuilds.
+    ``_desktop_packaged_executable``'s selection. Installed application
+    bundles are deliberately not probed: they are separately signed and
+    unaffected by the local rebuild path.
     """
     root = Path(__file__).resolve().parents[1]
     release_dir = root / "apps" / "desktop" / "release"
-    candidates = [p for p in release_dir.glob("mac*/Hermes.app") if p.is_dir()]
-    if not candidates:
-        return None
-    return max(candidates, key=lambda p: p.stat().st_mtime)
+    return _select_desktop_app_bundle(release_dir)
+
+
+def _select_desktop_app_bundle(release_dir: Path) -> Path | None:
+    """Select a local desktop bundle with Aino-first migration precedence.
+
+    A stale Hermes tree can have a newer mtime than the current Aino build;
+    identity precedence must therefore be resolved before the newest-build
+    tie-breaker. Hermes is retained only as an explicit old-install fallback.
+    """
+    for product_name in (DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME):
+        candidates = [
+            p
+            for p in release_dir.glob(f"mac*/{product_name}.app")
+            if p.is_dir()
+        ]
+        if candidates:
+            return max(candidates, key=lambda p: p.stat().st_mtime)
+    return None
+
+
+def _macos_tcc_identifier(app: Path, designated_requirement: str) -> str:
+    """Return a safe bundle id for the one-time TCC reset guidance.
+
+    Prefer the identifier macOS reported, but only accept the two identities
+    owned by this project. If stripped/older ``codesign`` output omits it,
+    infer the migration generation from the bundle name.
+    """
+    match = re.search(r'identifier\s+"([^"]+)"', designated_requirement or "")
+    if match and match.group(1) in {DESKTOP_APP_ID, LEGACY_DESKTOP_APP_ID}:
+        return match.group(1)
+    if app.name.casefold() == f"{LEGACY_DESKTOP_PRODUCT_NAME}.app".casefold():
+        return LEGACY_DESKTOP_APP_ID
+    return DESKTOP_APP_ID
 
 
 def _macos_desktop_dr(app: Path) -> str | None:
@@ -1227,8 +1265,8 @@ def check_macos_full_disk_access() -> None:
         "Privacy & Security → Full Disk Access — or run:\n"
         "      open \"x-apple.systempreferences:com.apple.preference"
         ".security?Privacy_AllFiles\"\n"
-        "    then enable your terminal (and Hermes.app if you use Desktop), "
-        "and restart them once. With Hermes' stable signing identities the "
+        f"    then enable your terminal (and {DESKTOP_PRODUCT_NAME}.app if you use Desktop), "
+        f"and restart them once. With {DESKTOP_PRODUCT_NAME}'s stable signing identities the "
         "grant survives every update."
     )
 

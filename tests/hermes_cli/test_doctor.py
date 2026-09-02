@@ -1541,6 +1541,54 @@ class TestMacOSTCCGrants:
         doctor_mod.check_macos_tcc_grants()
         assert capsys.readouterr().out == ""
 
+    def test_desktop_bundle_selection_prefers_aino_and_falls_back_to_hermes(self, tmp_path):
+        """A branded build wins even when an older Hermes bundle is newer."""
+        release = tmp_path / "apps" / "desktop" / "release"
+        aino = release / "mac-arm64" / "Aino.app"
+        legacy = release / "mac" / "Hermes.app"
+        aino.mkdir(parents=True)
+        legacy.mkdir(parents=True)
+        # Make the legacy tree look newer: precedence must be by identity,
+        # not by mtime, or an old install can mask the branded build.
+        import os
+
+        os.utime(legacy, (aino.stat().st_mtime + 10, aino.stat().st_mtime + 10))
+
+        assert doctor_mod._select_desktop_app_bundle(release) == aino
+        aino.rmdir()
+        assert doctor_mod._select_desktop_app_bundle(release) == legacy
+
+    def test_aino_tcc_guidance_uses_aino_bundle_identifier(self, monkeypatch, capsys, tmp_path):
+        """Aino bundles must get an Aino reset command, not the upstream id."""
+        monkeypatch.setattr(doctor_mod.sys, "platform", "darwin")
+        app = tmp_path / "Aino.app"
+        monkeypatch.setattr(doctor_mod, "_desktop_app_bundle", lambda: app)
+        monkeypatch.setattr(
+            doctor_mod,
+            "_macos_desktop_dr",
+            lambda _app: 'designated => identifier "com.ablankpaper.aino"',
+        )
+
+        doctor_mod.check_macos_tcc_grants()
+        out = capsys.readouterr().out
+        assert "tccutil reset ScreenCapture com.ablankpaper.aino" in out
+        assert "tccutil reset ScreenCapture com.nousresearch.hermes" not in out
+
+    def test_legacy_hermes_tcc_guidance_keeps_legacy_identifier(self, monkeypatch, capsys, tmp_path):
+        """An old Hermes bundle remains repairable during migration."""
+        monkeypatch.setattr(doctor_mod.sys, "platform", "darwin")
+        app = tmp_path / "Hermes.app"
+        monkeypatch.setattr(doctor_mod, "_desktop_app_bundle", lambda: app)
+        monkeypatch.setattr(
+            doctor_mod,
+            "_macos_desktop_dr",
+            lambda _app: 'designated => identifier "com.nousresearch.hermes"',
+        )
+
+        doctor_mod.check_macos_tcc_grants()
+        out = capsys.readouterr().out
+        assert "tccutil reset ScreenCapture com.nousresearch.hermes" in out
+
     def test_warns_on_cdhash_pinned_dr(self, monkeypatch, capsys, tmp_path):
         """Pre-#73681 builds have a cdhash-pinned DR → warn that grants reset."""
         monkeypatch.setattr(doctor_mod.sys, "platform", "darwin")

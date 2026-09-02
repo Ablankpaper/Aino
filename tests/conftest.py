@@ -464,6 +464,28 @@ def _hermetic_environment(tmp_path, monkeypatch):
         if _looks_like_credential(name):
             monkeypatch.delenv(name, raising=False)
 
+    # On macOS, urllib/httpx fall back to the host's System Configuration
+    # proxy even after the canonical runner starts from ``env -i``. Make the
+    # loopback hosts used by in-process fixtures explicit no-proxy targets;
+    # a non-matching ``NO_PROXY`` value does *not* disable that OS fallback.
+    # This still allows tests to opt into an explicit HTTP(S)_PROXY value for
+    # external hosts, while preventing local fixtures and connect-time SSRF
+    # checks from silently talking to the developer's proxy.
+    if sys.platform == "darwin" and not (
+        os.environ.get("NO_PROXY") or os.environ.get("no_proxy")
+    ):
+        monkeypatch.setenv("NO_PROXY", "127.0.0.1,localhost,::1")
+
+    # Keep real-git integration fixtures on their in-process/local remotes even
+    # when the developer has http.proxy/https.proxy in ~/.gitconfig. Preserve
+    # every other global Git setting (notably user identity) and override only
+    # these two keys for subprocesses spawned by a test.
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "2")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "http.proxy")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "")
+    monkeypatch.setenv("GIT_CONFIG_KEY_1", "https.proxy")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_1", "")
+
     # 2. Blank behavioral HERMES_* vars that could change test semantics.
     for name in _HERMES_BEHAVIORAL_VARS:
         monkeypatch.delenv(name, raising=False)

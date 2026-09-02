@@ -1,6 +1,8 @@
 {
   "productName": "Aino",
   "agentName": "Aino Agent",
+  "companyName": "Ablankpaper",
+  "legalCopyright": "Copyright (c) 2026 Ablankpaper",
   "appId": "com.ablankpaper.aino",
   "homeDirName": "aino",
   "primaryProtocol": "aino",

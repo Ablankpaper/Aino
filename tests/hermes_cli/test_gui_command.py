@@ -72,7 +72,7 @@ def _make_desktop_tree(tmp_path: Path) -> Path:
     return root
 
 
-def _make_packaged_executable(root: Path, monkeypatch) -> Path:
+def _make_packaged_executable(root: Path, monkeypatch, product_name: str = "Aino") -> Path:
     """Create the packaged-app path layout electron-builder emits on THIS host.
 
     The layout is keyed off the real ``sys.platform`` rather than a caller-
@@ -87,16 +87,32 @@ def _make_packaged_executable(root: Path, monkeypatch) -> Path:
     """
     desktop_dir = root / "apps" / "desktop"
     if sys.platform == "darwin":
-        exe = desktop_dir / "release" / "mac-arm64" / "Hermes.app" / "Contents" / "MacOS" / "Hermes"
+        exe = desktop_dir / "release" / "mac-arm64" / f"{product_name}.app" / "Contents" / "MacOS" / product_name
     elif sys.platform == "win32":
-        exe = desktop_dir / "release" / "win-unpacked" / "Hermes.exe"
+        exe = desktop_dir / "release" / "win-unpacked" / f"{product_name}.exe"
     else:
-        exe = desktop_dir / "release" / "linux-unpacked" / "hermes"
+        exe = desktop_dir / "release" / "linux-unpacked" / product_name
     exe.parent.mkdir(parents=True, exist_ok=True)
     exe.write_text("", encoding="utf-8")
     if sys.platform not in ("darwin", "win32"):
         (exe.parent / "chrome-sandbox").write_text("", encoding="utf-8")
     return exe
+
+
+def test_packaged_executable_resolves_aino_artifact_on_this_host(tmp_path, monkeypatch):
+    root = _make_desktop_tree(tmp_path)
+    aino = _make_packaged_executable(root, monkeypatch)
+
+    assert cli_main._desktop_packaged_executable(root / "apps" / "desktop") == aino
+
+
+def test_packaged_executable_prefers_aino_over_legacy_artifact(tmp_path, monkeypatch):
+    root = _make_desktop_tree(tmp_path)
+    aino = _make_packaged_executable(root, monkeypatch)
+    legacy = _make_packaged_executable(root, monkeypatch, "Hermes")
+    legacy.touch()
+
+    assert cli_main._desktop_packaged_executable(root / "apps" / "desktop") == aino
 
 
 def test_gui_installs_packages_and_launches_desktop_app(tmp_path, monkeypatch):

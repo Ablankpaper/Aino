@@ -293,8 +293,11 @@ import {
   defaultAgentHomePath,
   defaultUserDataPath,
   LEGACY_PROTOCOL,
+  legacyAgentHomePath,
+  LEGAL_COPYRIGHT,
   PRIMARY_PROTOCOL,
-  PRODUCT_NAME
+  PRODUCT_NAME,
+  resolveAgentHomePath
 } from './product-identity'
 import {
   assertLocalProfileCanStart,
@@ -790,14 +793,31 @@ function resolveHermesHome() {
   }
 
   if (IS_WINDOWS && process.env.LOCALAPPDATA) {
-    return defaultAgentHomePath({
+    const options = {
       platform: process.platform,
       homeDir: app.getPath('home'),
       localAppData: process.env.LOCALAPPDATA
+    }
+
+    const primary = defaultAgentHomePath(options)
+    const legacy = legacyAgentHomePath(options)
+
+    return resolveAgentHomePath({
+      ...options,
+      primaryExists: directoryExists(primary),
+      legacyRuntimeExists: directoryExists(path.join(legacy, 'hermes-agent'))
     })
   }
 
-  return defaultAgentHomePath({ platform: process.platform, homeDir: app.getPath('home') })
+  const options = { platform: process.platform, homeDir: app.getPath('home') }
+  const primary = defaultAgentHomePath(options)
+  const legacy = legacyAgentHomePath(options)
+
+  return resolveAgentHomePath({
+    ...options,
+    primaryExists: directoryExists(primary),
+    legacyRuntimeExists: directoryExists(path.join(legacy, 'hermes-agent'))
+  })
 }
 
 const HERMES_HOME = resolveHermesHome()
@@ -1320,7 +1340,7 @@ if (IS_WINDOWS) {
 app.setAboutPanelOptions({
   applicationName: APP_NAME,
   applicationVersion: resolveHermesVersion(),
-  copyright: 'Copyright © 2026 Nous Research'
+  copyright: LEGAL_COPYRIGHT
 })
 
 // Custom scheme for streaming audio/video into the renderer. Local paths read
@@ -3670,7 +3690,7 @@ async function releaseBackendLock(updateRoot, tag) {
 //
 // The desktop is a pure consumer: it does NOT git pull / pip install / rebuild
 // itself (the old open-coded git dance lived here and drifted from
-// `hermes update`). Instead we spawn the staged Hermes-Setup binary with
+// `hermes update`). Instead we spawn the staged Aino-Setup binary with
 // --update and quit, so it can run `hermes update` (which refuses while we
 // hold the venv shim) and rebuild the desktop with our exe already gone.
 //
@@ -3702,7 +3722,7 @@ async function applyUpdates(opts: { stopSafeBlockers?: boolean } = {}) {
     if (!updater) {
       // No staged updater binary — this is a CLI-installed user (they ran
       // `hermes desktop`, never the Tauri installer that self-copies
-      // hermes-setup.exe into HERMES_HOME). On Windows the repo hand-off
+      // Aino-Setup.exe into HERMES_HOME). On Windows the repo hand-off
       // script serves them just as well as installer users — it only needs
       // PowerShell and the checkout — so fall through to the normal hand-off
       // when the script exists. Only when the checkout predates the script do
@@ -17008,7 +17028,7 @@ function showAboutPanelFresh() {
       applicationVersion: skew.outOfSync
         ? `${resolveHermesVersion()} — app build out of date, update the desktop app`
         : resolveHermesVersion(),
-      copyright: 'Copyright © 2026 Nous Research'
+      copyright: LEGAL_COPYRIGHT
     })
     app.showAboutPanel()
   })

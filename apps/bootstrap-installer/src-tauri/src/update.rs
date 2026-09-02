@@ -1,6 +1,6 @@
 //! Update orchestration.
 //!
-//! Driven when the installer is launched as `Hermes-Setup.exe --update` (see
+//! Driven when the installer is launched as `Aino-Setup.exe --update` (see
 //! `AppMode` in lib.rs). The desktop app hands off to us — it exits, then we:
 //!
 //!   1. wait for the old Hermes desktop process to fully exit (so both the
@@ -40,6 +40,12 @@ use crate::powershell::{pump_child, DRAIN_GRACE};
 /// venv shim open / dirty precondition" — see _cmd_update_impl in
 /// hermes_cli/main.py (sys.exit(2)). We surface a targeted message for this.
 const UPDATE_EXIT_CONCURRENT: i32 = 2;
+
+// The updater runs across the Aino rename boundary.  New builds use Aino
+// bundle names; a pre-brand build may still be present in the same release
+// tree while the migration is in progress.  Keep both names in one ordered
+// list so lock probing and rebuild discovery cannot drift apart.
+const DESKTOP_PRODUCT_NAMES: [&str; 2] = ["Aino", "Hermes"];
 
 /// How long to wait for the old desktop process to release files under the
 /// install tree before giving up and letting `hermes update`'s own guard decide.
@@ -794,19 +800,34 @@ fn install_lock_probe_paths(install_root: &Path) -> Vec<PathBuf> {
 
 fn desktop_app_payload_paths(install_root: &Path) -> Vec<PathBuf> {
     let release = install_root.join("apps").join("desktop").join("release");
+    let mut paths = Vec::new();
     if cfg!(target_os = "windows") {
-        vec![
-            release.join("win-unpacked").join("resources").join("app.asar"),
-            release.join("win-arm64-unpacked").join("resources").join("app.asar"),
-        ]
+        for dir in ["win-unpacked", "win-arm64-unpacked", "win-ia32-unpacked"] {
+            paths.push(release.join(dir).join("resources").join("app.asar"));
+        }
     } else if cfg!(target_os = "macos") {
-        vec![
-            release.join("mac").join("Hermes.app").join("Contents").join("Resources").join("app.asar"),
-            release.join("mac-arm64").join("Hermes.app").join("Contents").join("Resources").join("app.asar"),
-        ]
+        for dir in ["mac", "mac-arm64", "mac-x64"] {
+            for product_name in DESKTOP_PRODUCT_NAMES {
+                paths.push(
+                    release
+                        .join(dir)
+                        .join(format!("{product_name}.app"))
+                        .join("Contents")
+                        .join("Resources")
+                        .join("app.asar"),
+                );
+            }
+        }
     } else {
-        vec![release.join("linux-unpacked").join("resources").join("app.asar")]
+        for dir in [
+            "linux-unpacked",
+            "linux-arm64-unpacked",
+            "linux-x64-unpacked",
+        ] {
+            paths.push(release.join(dir).join("resources").join("app.asar"));
+        }
     }
+    paths
 }
 
 fn locked_paths(paths: &[PathBuf]) -> Vec<PathBuf> {
@@ -1129,7 +1150,7 @@ async fn install_macos_app_update(
 
     let rebuilt_app = crate::bootstrap::resolve_hermes_desktop_app(install_root).ok_or_else(|| {
         anyhow!(
-            "desktop rebuild succeeded but no Hermes.app was found under {}",
+            "desktop rebuild succeeded but no Aino/Hermes.app was found under {}",
             install_root.join("apps").join("desktop").join("release").display()
         )
     })?;
@@ -1404,6 +1425,22 @@ mod tests {
             }),
             "packaged app.asar must be probed so repair/re-clone waits for the old desktop to exit"
         );
+
+        #[cfg(target_os = "macos")]
+        {
+            assert!(
+                probes.iter().any(|p| {
+                    p.ends_with(Path::new("Aino.app/Contents/Resources/app.asar"))
+                }),
+                "the current Aino macOS bundle must be part of the lock probe"
+            );
+            assert!(
+                probes.iter().any(|p| {
+                    p.ends_with(Path::new("Hermes.app/Contents/Resources/app.asar"))
+                }),
+                "the legacy Hermes macOS bundle remains a migration fallback"
+            );
+        }
     }
 
     #[test]

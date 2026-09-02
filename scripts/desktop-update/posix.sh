@@ -174,7 +174,7 @@ find_browser() {
   # No Microsoft Edge and no Brave, on purpose. Edge's OS-level
   # Microsoft-account integration signs a fresh throwaway profile into the
   # user's MSA and renders its own "syncing your data" notification — MSA
-  # email included — inside this window that is titled "Hermes" (#88410).
+  # email included — inside this window that is titled "Aino" (#88410).
   # Brave paints its own P3A privacy-notice bar over the progress page in
   # the same window — cramped to unreadability at the shim's small size
   # (#88682). The throwaway --user-data-dir below cannot block either; the
@@ -307,11 +307,20 @@ stop_ui() { # error/manual outcomes keep the window up briefly so a watching
 # Outcomes mirror decideRelaunchOutcome: relaunch | skew | manual.
 GATE="" GATE_MSG=""
 linux_gate() {
-  local unpacked="$INSTALL_ROOT/apps/desktop/release/linux-unpacked" sb arg
-  case "$RELAUNCH_TARGET" in
-    "$unpacked"/*) ;;
-    *) GATE=skew GATE_MSG="Backend updated, but the desktop app package (AppImage/deb/rpm) was not changed. Update or reinstall it to match."; return ;;
-  esac
+  local release="$INSTALL_ROOT/apps/desktop/release" unpacked="" sb arg candidate
+  # electron-builder may emit linux-unpacked or an architecture-qualified
+  # sibling (for example linux-arm64-unpacked). Resolve the directory from
+  # the actual relaunch target instead of assuming the legacy name; this keeps
+  # Aino builds launchable while retaining old Hermes trees during migration.
+  for candidate in "$release"/*-unpacked; do
+    [ -d "$candidate" ] || continue
+    case "$RELAUNCH_TARGET" in
+      "$candidate"/*) unpacked="$candidate"; break ;;
+    esac
+  done
+  if [ -z "$unpacked" ] || [ ! -f "$RELAUNCH_TARGET" ]; then
+    GATE=skew GATE_MSG="Backend updated, but the desktop app package (AppImage/deb/rpm) was not changed. Update or reinstall it to match."; return
+  fi
 
   sb="$unpacked/chrome-sandbox"
   if [ ! -e "$sb" ]; then GATE=relaunch; return; fi
@@ -328,6 +337,8 @@ linux_gate() {
 
 mac_swap() {
   local rebuilt="" c
+  # Aino artifacts are authoritative. Legacy Hermes bundles remain a final
+  # migration fallback for users upgrading an older pre-brand installation.
   for c in "$INSTALL_ROOT/apps/desktop/release/mac-arm64/Aino.app" \
            "$INSTALL_ROOT/apps/desktop/release/mac/Aino.app" \
            "$INSTALL_ROOT/apps/desktop/release/mac-arm64/Hermes.app" \
@@ -499,7 +510,7 @@ fi
 # teardown, while retaining the same marker/result protocol.
 if [ "$HANDOFF_DAEMONIZED" -ne 1 ]; then
   # This launcher is disposable. In particular it must not run finish() on
-  # EXIT: that would publish a false failure and relaunch Hermes while the
+  # EXIT: that would publish a false failure and relaunch Aino while the
   # re-parented orchestrator is only just starting.
   trap - EXIT HUP INT QUIT TERM
   # --daemonized must precede ORIGINAL_ARGS, not follow it: ORIGINAL_ARGS may
@@ -564,7 +575,7 @@ sleep 1
 start_ui
 
 HERMES_BIN="$INSTALL_ROOT/venv/bin/hermes"
-[ -x "$HERMES_BIN" ] || { FINAL_CODE=3 FINAL_MSG="Update aborted: $HERMES_BIN is missing. The install needs repair (run the Hermes installer or hermes doctor)."; log "$FINAL_MSG"; exit 3; }
+[ -x "$HERMES_BIN" ] || { FINAL_CODE=3 FINAL_MSG="Update aborted: $HERMES_BIN is missing. The install needs repair (run the Aino installer or hermes doctor)."; log "$FINAL_MSG"; exit 3; }
 
 # Run FROM the install root: `hermes update` resolves the tree it mutates
 # from the working directory, and we inherit the Desktop's cwd (which can be
@@ -580,7 +591,7 @@ export PYTHONUNBUFFERED=1
 # --keep-stash: never re-apply local source edits after the update (they stay
 # parked in git stash). Probe --help first: older installed backends don't
 # know the flag and argparse would abort with exit 2, which collides with the
-# "close all Hermes windows" sentinel.
+# "close all Aino windows" sentinel.
 KEEP_STASH=""
 if "$HERMES_BIN" update --help 2>/dev/null | grep -q -- '--keep-stash'; then
   KEEP_STASH="--keep-stash"
@@ -595,7 +606,7 @@ log "hermes update exit code: $CODE"
 
 if [ "$CODE" -ne 0 ] && [ "$CODE" -ne 2 ]; then
   # Retry once: update-boundary class (fresh code on disk, stale in memory).
-  # Exit 2 ("close all Hermes windows") is not retryable.
+  # Exit 2 ("close all Aino windows") is not retryable.
   #
   # A parked-branch SKIP (checkout on a feature branch with unmerged
   # commits) is also deterministic — the retry would hit the exact same

@@ -160,6 +160,7 @@ class TestFamilyRouting:
             return FakeHandle()
         fake.submit = _submit  # type: ignore
         monkeypatch.setitem(sys.modules, "fal_client", fake)
+        monkeypatch.setattr("tools.lazy_deps.ensure", lambda *_args, **_kwargs: None)
 
         # Reset the lazy global so it picks up our stub
         from plugins.video_gen import fal as fal_plugin
@@ -530,6 +531,7 @@ class TestUpscalePass:
             return FakeHandle(endpoint)
         fake.submit = _submit  # type: ignore
         monkeypatch.setitem(sys.modules, "fal_client", fake)
+        monkeypatch.setattr("tools.lazy_deps.ensure", lambda *_args, **_kwargs: None)
 
         from plugins.video_gen import fal as fal_plugin
         fal_plugin._fal_client = None

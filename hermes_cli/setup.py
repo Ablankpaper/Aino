@@ -28,6 +28,7 @@ from hermes_cli.curses_ui import MenuNavigationEvent, MenuNavigationStart
 from hermes_cli.nous_subscription import get_nous_subscription_features
 from tools.tool_backend_helpers import managed_nous_tools_enabled
 from hermes_constants import get_optional_skills_dir
+from hermes_cli.desktop_identity import DESKTOP_PRODUCT_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -3452,10 +3453,10 @@ def _print_macos_fda_tip() -> None:
     print()
     print_info("  macOS tip: silence ALL folder permission prompts with one switch —")
     print_info("  System Settings → Privacy & Security → Full Disk Access → enable")
-    print_info("  your terminal (and Hermes.app if you use Desktop), or run:")
+    print_info(f"  your terminal (and {DESKTOP_PRODUCT_NAME}.app if you use Desktop), or run:")
     print_info("    open \"x-apple.systempreferences:com.apple.preference"
                ".security?Privacy_AllFiles\"")
-    print_info("  The grant is permanent — it survives every Hermes update.")
+    print_info(f"  The grant is permanent — it survives every {DESKTOP_PRODUCT_NAME} update.")
 
 
 def _blank_slate_minimal_toolsets(config: dict):

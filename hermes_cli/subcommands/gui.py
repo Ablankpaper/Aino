@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Callable
 
+from hermes_cli.desktop_identity import DESKTOP_PRODUCT_NAME
+
 
 def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
     """Attach the ``gui`` subcommand to ``subparsers``."""
@@ -17,7 +19,7 @@ def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
         aliases=["gui"],
         help="Build and launch the native desktop app",
         description=(
-            "Launch the Hermes Electron desktop app. By default this installs "
+            f"Launch the {DESKTOP_PRODUCT_NAME} Electron desktop app. By default this installs "
             "workspace Node dependencies, builds the current OS's unpacked "
             "Electron app, then launches that packaged artifact."
         ),
@@ -74,7 +76,7 @@ def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
     )
     gui_parser.add_argument(
         "--identity",
-        default="Hermes Local Signing",
-        help="Certificate name to create/use for --setup-tcc-identity (default: Hermes Local Signing)",
+        default="Aino Local Signing",
+        help="Certificate name to create/use for --setup-tcc-identity (default: Aino Local Signing)",
     )
     gui_parser.set_defaults(func=cmd_gui)

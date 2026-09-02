@@ -94,9 +94,12 @@ def server_base():
 @pytest.fixture()
 def client():
     # Generous read timeout so the bounding is provably done by our helper,
-    # not by httpx's own timeout.
+    # not by httpx's own timeout. This is an in-process loopback fixture, so it
+    # must not inherit a macOS/system HTTP proxy and accidentally test that
+    # proxy's response instead of the local server.
     c = httpx.Client(
-        timeout=httpx.Timeout(connect=5.0, read=45.0, write=5.0, pool=5.0)
+        timeout=httpx.Timeout(connect=5.0, read=45.0, write=5.0, pool=5.0),
+        trust_env=False,
     )
     try:
         yield c

@@ -23,7 +23,7 @@ export interface UpdateScriptHandoff {
 /**
  * Repo-owned Windows update hand-off (frozen-binary escape hatch).
  *
- * The staged Tauri `hermes-setup.exe` has no self-update path, so every
+ * The staged Tauri `Aino-Setup.exe` has no self-update path, so every
  * updater-side fix only reaches users when a new binary is built, signed and
  * published — which historically lags main by months and strands users on
  * long-fixed bugs (cache resolver #67369, marker self-adopt #74782; the
@@ -195,6 +195,14 @@ export interface ResolveStagedUpdaterBinaryDeps {
 }
 
 /**
+ * Names used for the staged setup helper, in migration order. New installers
+ * write `Aino-Setup.exe`; the two Hermes spellings cover binaries staged by
+ * pre-brand installers (Windows paths are case-insensitive, but both spellings
+ * are retained because old tooling and tests also run on case-sensitive hosts).
+ */
+export const STAGED_UPDATER_FILENAMES = ['Aino-Setup.exe', 'Hermes-Setup.exe', 'hermes-setup.exe'] as const
+
+/**
  * Staged installers older than this have no self-PID exclusion in
  * `UpdateMarkerGuard::acquire` and will refuse an update whose marker was
  * pre-written on their behalf.
@@ -225,7 +233,7 @@ function stagedFileMtimeMs(candidate: string): number | null {
  * Decide which staged installer binary — if any — may be handed an update.
  *
  * The Tauri installer self-copies into HERMES_HOME on *every* platform
- * (`hermes-setup.exe` on Windows, `hermes-setup` elsewhere — see
+ * (`Aino-Setup.exe` on Windows, `Aino-Setup` elsewhere — see
  * apps/bootstrap-installer `paths::installer_dest` and
  * `bootstrap::copy_self_to_hermes_home`), so finding that binary on macOS or
  * Linux is expected, not leftover junk.
@@ -255,9 +263,16 @@ export function resolveStagedUpdaterBinary(
   }
 
   const fileExists = deps.fileExists ?? stagedFileExists
-  const candidate = path.join(hermesHome, 'hermes-setup.exe')
 
-  return fileExists(candidate) ? candidate : null
+  for (const filename of STAGED_UPDATER_FILENAMES) {
+    const candidate = path.join(hermesHome, filename)
+
+    if (fileExists(candidate)) {
+      return candidate
+    }
+  }
+
+  return null
 }
 
 /**

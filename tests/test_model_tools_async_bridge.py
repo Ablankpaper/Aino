@@ -359,6 +359,7 @@ class TestVisionDispatchLoopSafety:
         from tools.registry import registry
 
         fake_response = _mock_vision_response()
+        image_path = _write_fake_image(tmp_path / "cat.jpg")
 
         with (
             patch(
@@ -367,23 +368,13 @@ class TestVisionDispatchLoopSafety:
                 return_value=fake_response,
             ),
             patch(
-                "tools.vision_tools._download_image",
-                new_callable=AsyncMock,
-                side_effect=lambda url, dest, **kw: _write_fake_image(dest),
-            ),
-            patch(
-                "tools.vision_tools._validate_image_url_async",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-            patch(
                 "tools.vision_tools._image_to_base64_data_url",
                 return_value="data:image/jpeg;base64,abc",
             ),
         ):
             result_json = registry.dispatch(
                 "vision_analyze",
-                {"image_url": "https://example.com/cat.png", "question": "What is this?"},
+                {"image_url": str(image_path), "question": "What is this?"},
             )
 
         result = json.loads(result_json)
@@ -404,6 +395,7 @@ class TestVisionDispatchLoopSafety:
         from tools.registry import registry
 
         fake_response = _mock_vision_response()
+        image_path = _write_fake_image(tmp_path / "cat.jpg")
 
         with (
             patch(
@@ -412,21 +404,11 @@ class TestVisionDispatchLoopSafety:
                 return_value=fake_response,
             ),
             patch(
-                "tools.vision_tools._download_image",
-                new_callable=AsyncMock,
-                side_effect=lambda url, dest, **kw: _write_fake_image(dest),
-            ),
-            patch(
-                "tools.vision_tools._validate_image_url_async",
-                new_callable=AsyncMock,
-                return_value=True,
-            ),
-            patch(
                 "tools.vision_tools._image_to_base64_data_url",
                 return_value="data:image/jpeg;base64,abc",
             ),
         ):
-            args = {"image_url": "https://example.com/cat.png", "question": "Describe"}
+            args = {"image_url": str(image_path), "question": "Describe"}
 
             r1 = json.loads(registry.dispatch("vision_analyze", args))
             loop_after_first = _get_tool_loop()

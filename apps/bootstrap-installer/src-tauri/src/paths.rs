@@ -1,27 +1,61 @@
 //! Filesystem paths + logging setup.
 //!
-//! Mirrors `hermes_constants.get_hermes_home()` from the Python CLI:
-//!   Windows: %LOCALAPPDATA%\hermes
-//!   macOS:   ~/.hermes
-//!   Linux:   ~/.hermes  (override via $HERMES_HOME)
+//! Resolves the data root used by the Aino desktop installer.
 //!
-//! NOTE (macOS): Python's get_hermes_home(), scripts/install.sh, and the
-//! Electron desktop's resolveHermesHome() ALL use ~/.hermes on macOS — there
-//! is no ~/Library/Application Support branch anywhere else. An earlier
-//! version of this file used Application Support, which drifted from every
-//! other component: the installer wrote the install to one dir and the
-//! desktop looked for it in another, so first launch never found the backend.
+//! The Python CLI keeps its historical `~/.hermes` / `%LOCALAPPDATA%\\hermes`
+//! defaults for command-line compatibility. The branded desktop uses its own
+//! Aino root (`~/.aino` / `%LOCALAPPDATA%\\aino`) so a fresh desktop install
+//! does not silently share state with a separate Hermes installation. The
+//! installer passes the resolved root to `install.sh`/`install.ps1` explicitly,
+//! keeping the Rust and script sides on one path.
 //!
-//! IMPORTANT: this must match exactly. Drift here means install.ps1
-//! writes to one place and the installer reads from another, breaking
-//! the bootstrap-complete check.
+//! An existing Hermes *runtime* root is a deliberately narrow migration
+//! fallback: it is selected only when the new Aino root does not exist. A
+//! random `~/.hermes` directory created for CLI-only config is not enough to
+//! redirect a fresh Aino install. An explicit `HERMES_HOME` always wins.
 
 use std::path::{Path, PathBuf};
 #[cfg(target_os = "macos")]
 use std::process::Command;
 use tracing_appender::non_blocking::WorkerGuard;
 
-/// Returns the canonical Hermes home directory, respecting $HERMES_HOME if set.
+const AINO_HOME_DIR_NAME: &str = "aino";
+const LEGACY_HOME_DIR_NAME: &str = "hermes";
+
+/// Select the primary path unless it has not been created yet and a legacy
+/// path is present. Kept pure so the migration precedence is easy to test.
+fn select_home(primary: PathBuf, legacy: PathBuf, primary_exists: bool, legacy_exists: bool) -> PathBuf {
+    if !primary_exists && legacy_exists {
+        legacy
+    } else {
+        primary
+    }
+}
+
+fn default_home_paths() -> (PathBuf, PathBuf) {
+    #[cfg(target_os = "windows")]
+    {
+        let base = dirs::data_local_dir().unwrap_or_else(|| {
+            dirs::home_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("AppData")
+                .join("Local")
+        });
+        return (
+            base.join(AINO_HOME_DIR_NAME),
+            base.join(LEGACY_HOME_DIR_NAME),
+        );
+    }
+
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    (
+        home.join(format!(".{AINO_HOME_DIR_NAME}")),
+        home.join(format!(".{LEGACY_HOME_DIR_NAME}")),
+    )
+}
+
+/// Returns the canonical Aino desktop home directory, respecting
+/// `HERMES_HOME` if set and falling back to an existing legacy Hermes root.
 pub fn hermes_home() -> PathBuf {
     if let Ok(override_path) = std::env::var("HERMES_HOME") {
         if !override_path.trim().is_empty() {
@@ -29,23 +63,14 @@ pub fn hermes_home() -> PathBuf {
         }
     }
 
-    #[cfg(target_os = "windows")]
-    {
-        // %LOCALAPPDATA%\hermes — matches scripts/install.ps1's $HermesHome.
-        if let Some(local_app_data) = dirs::data_local_dir() {
-            return local_app_data.join("hermes");
-        }
-    }
-
-    // macOS + Linux + fallback: ~/.hermes (matches Python get_hermes_home(),
-    // install.sh, and the Electron desktop's resolveHermesHome()).
-    if let Some(home) = dirs::home_dir() {
-        return home.join(".hermes");
-    }
-
-    // Last resort — current dir, almost certainly wrong but at least
-    // doesn't panic.
-    PathBuf::from(".hermes")
+    let (primary, legacy) = default_home_paths();
+    let primary_exists = primary.exists();
+    // Only a real checkout is a migration target. This keeps a user who has
+    // merely run the Hermes CLI (and therefore has a config directory) on the
+    // isolated Aino root while still upgrading an existing desktop/runtime
+    // installation in place.
+    let legacy_exists = legacy.join("hermes-agent").is_dir();
+    select_home(primary, legacy, primary_exists, legacy_exists)
 }
 
 pub fn log_dir() -> PathBuf {
@@ -66,13 +91,13 @@ pub fn bootstrap_cache_dir() -> PathBuf {
 /// HERMES_HOME so it survives repo checkout deletion (unlike anything under
 /// hermes-agent/).
 ///
-/// On Windows this is `%LOCALAPPDATA%\hermes\hermes-setup.exe`; on other
+/// On Windows this is `%LOCALAPPDATA%\\aino\\Aino-Setup.exe`; on other
 /// platforms the extension differs but the directory is the same.
 pub fn installer_dest() -> PathBuf {
     let name = if cfg!(target_os = "windows") {
-        "hermes-setup.exe"
+        "Aino-Setup.exe"
     } else {
-        "hermes-setup"
+        "Aino-Setup"
     };
     hermes_home().join(name)
 }
@@ -172,7 +197,7 @@ pub fn init_logging() -> Option<WorkerGuard> {
     if let Err(err) = std::fs::create_dir_all(&dir) {
         // No log dir → log to stderr only. Don't panic; the installer
         // should still be usable on an exotic filesystem.
-        eprintln!("[hermes-setup] could not create log dir {dir:?}: {err}");
+        eprintln!("[aino-setup] could not create log dir {dir:?}: {err}");
         return None;
     }
 
@@ -213,4 +238,56 @@ pub fn open_log_dir(app: tauri::AppHandle) -> Result<(), String> {
     app.opener()
         .open_path(path.to_string_lossy(), None::<&str>)
         .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn migration_prefers_aino_when_both_roots_exist() {
+        let selected = select_home(
+            PathBuf::from("/Users/demo/.aino"),
+            PathBuf::from("/Users/demo/.hermes"),
+            true,
+            true,
+        );
+        assert_eq!(selected, PathBuf::from("/Users/demo/.aino"));
+    }
+
+    #[test]
+    fn migration_uses_legacy_only_when_aino_is_absent() {
+        let selected = select_home(
+            PathBuf::from("/Users/demo/.aino"),
+            PathBuf::from("/Users/demo/.hermes"),
+            false,
+            true,
+        );
+        assert_eq!(selected, PathBuf::from("/Users/demo/.hermes"));
+    }
+
+    #[test]
+    fn migration_defaults_to_aino_when_neither_root_exists() {
+        let selected = select_home(
+            PathBuf::from("/Users/demo/.aino"),
+            PathBuf::from("/Users/demo/.hermes"),
+            false,
+            false,
+        );
+        assert_eq!(selected, PathBuf::from("/Users/demo/.aino"));
+    }
+
+    #[test]
+    fn installer_destination_uses_aino_setup_name() {
+        assert_eq!(
+            installer_dest()
+                .file_name()
+                .and_then(|name| name.to_str()),
+            Some(if cfg!(target_os = "windows") {
+                "Aino-Setup.exe"
+            } else {
+                "Aino-Setup"
+            })
+        );
+    }
 }

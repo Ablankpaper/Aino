@@ -3063,7 +3063,9 @@ class TestInboundMediaAuthorizationGate:
     async def test_live_media_redacts_long_path_before_bounding(self, tmp_path):
         parent = tmp_path
         private_parts = []
-        for index in range(6):
+        # Five 160-byte components still force the error past its output bound,
+        # while keeping the fixture below macOS's shorter total path limit.
+        for index in range(5):
             part = f"private-{index}-" + ("x" * 150)
             private_parts.append(part)
             parent = parent / part

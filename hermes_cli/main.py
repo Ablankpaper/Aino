@@ -845,6 +845,7 @@ import time as _time
 from datetime import datetime
 
 from hermes_cli import __version__, __release_date__
+from hermes_cli.desktop_identity import DESKTOP_APP_ID
 
 # Provider model-selection wizard flows extracted to hermes_cli/model_setup_flows.py
 # (god-file decomposition Phase 2). Re-imported here so select_provider_and_model and
@@ -6857,7 +6858,7 @@ def _renderer_bundle_dir(desktop_dir: Path, *, source_mode: bool) -> Optional[Pa
     if executable is None:
         return None
 
-    # macOS: …/Hermes.app/Contents/MacOS/Hermes → …/Contents/Resources
+    # macOS: …/Aino.app/Contents/MacOS/Aino → …/Contents/Resources
     resources = (
         executable.parent.parent / "Resources"
         if sys.platform == "darwin"
@@ -6968,31 +6969,54 @@ def _write_desktop_build_stamp(project_root: Path, *, source_mode: bool) -> None
 
 
 def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
-    """Return the current platform's unpacked Electron app executable."""
+    """Return the current platform's unpacked Electron app executable.
+
+    Aino artifacts are authoritative. The legacy Hermes names remain a
+    migration fallback for existing pre-brand installations, but must never
+    outrank an Aino build merely because the old file has a newer mtime.
+    """
     release_dir = desktop_dir / "release"
     if sys.platform == "darwin":
-        candidates = list(release_dir.glob("mac*/Hermes.app/Contents/MacOS/Hermes"))
+        primary_candidates = list(
+            release_dir.glob("mac*/Aino.app/Contents/MacOS/Aino")
+        )
+        legacy_candidates = list(
+            release_dir.glob("mac*/Hermes.app/Contents/MacOS/Hermes")
+        )
     elif sys.platform == "win32":
-        candidates = [
+        primary_candidates = [
+            release_dir / "win-unpacked" / "Aino.exe",
+            release_dir / "win-ia32-unpacked" / "Aino.exe",
+            release_dir / "win-arm64-unpacked" / "Aino.exe",
+        ]
+        legacy_candidates = [
             release_dir / "win-unpacked" / "Hermes.exe",
             release_dir / "win-ia32-unpacked" / "Hermes.exe",
             release_dir / "win-arm64-unpacked" / "Hermes.exe",
         ]
     else:
-        candidates = [
+        primary_candidates = [
+            release_dir / "linux-unpacked" / "Aino",
+            release_dir / "linux-unpacked" / "aino",
+            release_dir / "linux-arm64-unpacked" / "Aino",
+            release_dir / "linux-arm64-unpacked" / "aino",
+        ]
+        legacy_candidates = [
             release_dir / "linux-unpacked" / "hermes",
             release_dir / "linux-unpacked" / "Hermes",
             release_dir / "linux-arm64-unpacked" / "hermes",
             release_dir / "linux-arm64-unpacked" / "Hermes",
         ]
 
-    existing = [p for p in candidates if p.exists()]
+    existing = [p for p in primary_candidates if p.exists()]
+    if not existing:
+        existing = [p for p in legacy_candidates if p.exists()]
     if not existing:
         return None
     if sys.platform == "win32" and len(existing) > 1:
         # Multiple unpacked trees can coexist (e.g. a stale win-arm64-unpacked
         # left behind by a cross-arch experiment next to the real win-unpacked).
-        # Picking purely by mtime can then hand a wrong-architecture Hermes.exe
+        # Picking purely by mtime can then hand a wrong-architecture Aino.exe
         # to the launcher, which Windows rejects with "This app can't run on
         # your computer" (#69179). Prefer candidates whose PE machine field
         # matches the host; fall back to mtime when none can be parsed.
@@ -7007,14 +7031,14 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
 #
 # The desktop self-update chain (Desktop → hermes-setup --update →
 # `hermes update` → `hermes desktop --build-only` → relaunch) rebuilds
-# Hermes.exe on the end user's machine and used to verify only that the file
+# Aino.exe on the end user's machine and used to verify only that the file
 # EXISTS before declaring success. A corrupt cached Electron zip whose
 # extraction produced a truncated electron.exe, an interrupted rcedit resource
 # rewrite, a disk-full pack, or a wrong-arch unpacked tree therefore shipped a
 # broken binary that Windows refuses to load ("This app can't run on your
 # computer" / 此应用无法在你的电脑上运行). These helpers parse the PE header —
 # no signature infrastructure required — so a structurally broken or
-# wrong-architecture Hermes.exe is caught BEFORE the updater replaces the
+# wrong-architecture Aino.exe is caught BEFORE the updater replaces the
 # working app, and the previous build can be restored from the .bak tree that
 # apps/desktop/scripts/before-pack.mjs now preserves.
 
@@ -7314,7 +7338,8 @@ def _ensure_desktop_exe_launchable(
     if error is None:
         return packaged_executable, False
 
-    print(f"✗ The built Hermes.exe failed its integrity check: {error}")
+    exe_name = packaged_executable.name
+    print(f"✗ The built {exe_name} failed its integrity check: {error}")
     print(f"    at: {packaged_executable}")
 
     # Self-heal setup for the retry: drop the (likely corrupt) cached Electron
@@ -7328,13 +7353,13 @@ def _ensure_desktop_exe_launchable(
 
     restored = _rollback_desktop_from_backup(packaged_executable)
     if restored is not None:
-        print("  ↩ Update aborted — restored the previous working Hermes.exe from backup.")
+        print(f"  ↩ Update aborted — restored the previous working {exe_name} from backup.")
         print("    Your existing version was kept and still works. Run `hermes desktop`")
         print("    (or the in-app update) again to retry with a fresh Electron download.")
         return restored, True
 
     print("  ✗ No usable backup was found to restore.")
-    print("    Run `hermes desktop --force-build` to rebuild, or re-run the Hermes")
+    print("    Run `hermes desktop --force-build` to rebuild, or re-run the Aino")
     print("    installer to repair the install.")
     return None, False
 
@@ -7918,8 +7943,8 @@ def _macos_codesigning_identity_valid(security: str, identity: str) -> bool:
     return f'"{identity}"' in (result.stdout or "")
 
 
-def _desktop_macos_setup_tcc_identity(identity: str = "Hermes Local Signing") -> bool:
-    """Create/import a self-signed code-signing cert and configure Hermes to use it.
+def _desktop_macos_setup_tcc_identity(identity: str = "Aino Local Signing") -> bool:
+    """Create/import a self-signed code-signing cert and configure Aino to use it.
 
     One-shot setup for ``hermes desktop --setup-tcc-identity``. Creates a
     self-signed "Code Signing" certificate in the login keychain (the same
@@ -8058,7 +8083,7 @@ def _desktop_macos_setup_tcc_identity(identity: str = "Hermes Local Signing") ->
         )
         return False
 
-    # Point Hermes at the identity (config.yaml, not .env — it's not a secret).
+    # Point the Aino desktop at the identity (config.yaml, not .env — it's not a secret).
     try:
         from hermes_cli.config import set_config_value
 
@@ -8083,7 +8108,7 @@ def _desktop_macos_setup_tcc_identity(identity: str = "Hermes Local Signing") ->
     print(
         "\n  Note: macOS will re-prompt for permissions ONE final time (the identity "
         "changed). Grant them and they persist from then on. If a permission gets "
-        "stuck, reset it with:  tccutil reset All com.nousresearch.hermes"
+        f"stuck, reset it with:  tccutil reset All {DESKTOP_APP_ID}"
     )
     return True
 
@@ -8379,7 +8404,7 @@ def cmd_gui(args: argparse.Namespace):
     # macOS-only one-shot: create a self-signed code-signing identity so TCC
     # grants survive rebuilds, then exit without building/launching.
     if getattr(args, "setup_tcc_identity", False):
-        identity = getattr(args, "identity", None) or "Hermes Local Signing"
+        identity = getattr(args, "identity", None) or "Aino Local Signing"
         ok = _desktop_macos_setup_tcc_identity(identity)
         sys.exit(0 if ok else 1)
 

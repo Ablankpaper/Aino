@@ -4,19 +4,25 @@ import { test } from 'vitest'
 
 import {
   APP_ID,
+  COMPANY_NAME,
   defaultAgentHomePath,
   defaultUserDataPath,
   HOME_DIR_NAME,
   LEGACY_PROTOCOL,
+  legacyAgentHomePath,
+  LEGAL_COPYRIGHT,
   PRIMARY_PROTOCOL,
   PRODUCT_NAME,
-  REPOSITORY_SSH_URL
+  REPOSITORY_SSH_URL,
+  resolveAgentHomePath
 } from './product-identity'
 
 test('Aino product identity is stable across desktop entry points', () => {
   assert.equal(PRODUCT_NAME, 'Aino')
   assert.equal(APP_ID, 'com.ablankpaper.aino')
   assert.equal(HOME_DIR_NAME, 'aino')
+  assert.equal(COMPANY_NAME, 'Ablankpaper')
+  assert.equal(LEGAL_COPYRIGHT, 'Copyright (c) 2026 Ablankpaper')
   assert.equal(PRIMARY_PROTOCOL, 'aino')
   assert.equal(REPOSITORY_SSH_URL, 'git@github.com:Ablankpaper/Aino.git')
 })
@@ -46,5 +52,50 @@ test('default Electron userData is product-scoped', () => {
   assert.equal(
     defaultUserDataPath('/Users/demo/Library/Application Support'),
     '/Users/demo/Library/Application Support/Aino'
+  )
+})
+
+test('home resolver keeps Aino isolated when only legacy CLI config exists', () => {
+  assert.equal(
+    resolveAgentHomePath({
+      platform: 'darwin',
+      homeDir: '/Users/demo',
+      primaryExists: false,
+      legacyRuntimeExists: false
+    }),
+    '/Users/demo/.aino'
+  )
+})
+
+test('home resolver adopts a legacy runtime only before Aino is created', () => {
+  const options = {
+    platform: 'darwin',
+    homeDir: '/Users/demo',
+    primaryExists: false,
+    legacyRuntimeExists: true
+  }
+
+  assert.equal(resolveAgentHomePath(options), '/Users/demo/.hermes')
+  assert.equal(resolveAgentHomePath({ ...options, primaryExists: true }), '/Users/demo/.aino')
+})
+
+test('legacy home resolver uses the Windows LOCALAPPDATA layout', () => {
+  assert.equal(
+    legacyAgentHomePath({
+      platform: 'win32',
+      homeDir: 'C:\\Users\\demo',
+      localAppData: 'C:\\Users\\demo\\AppData\\Local'
+    }),
+    'C:\\Users\\demo\\AppData\\Local\\hermes'
+  )
+  assert.equal(
+    resolveAgentHomePath({
+      platform: 'win32',
+      homeDir: 'C:\\Users\\demo',
+      localAppData: 'C:\\Users\\demo\\AppData\\Local',
+      primaryExists: false,
+      legacyRuntimeExists: true
+    }),
+    'C:\\Users\\demo\\AppData\\Local\\hermes'
   )
 })

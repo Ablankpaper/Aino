@@ -159,7 +159,7 @@ def test_modal_setup_persists_direct_mode_when_user_chooses_their_own_account(tm
             resolve_managed_tool_gateway=lambda vendor: None,
         ),
     )
-    monkeypatch.setitem(sys.modules, "swe_rex", object())
+    monkeypatch.setitem(sys.modules, "modal", types.ModuleType("modal"))
 
     from hermes_cli.setup import setup_terminal_backend
 

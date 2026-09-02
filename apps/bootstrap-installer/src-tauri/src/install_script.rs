@@ -6,18 +6,25 @@
 //!   2. Bundled fallback: if the installer was bundled with a script (e.g.
 //!      tauri's `resource` mechanism), serve from there. Not used today.
 //!   3. Network: download from GitHub raw at a pinned commit or branch.
-//!      Commit pins are immutable; branch pins are HEAD-tracking.
+//!      Commit pins are immutable; branch pins are HEAD-tracking. Aino is the
+//!      primary repository; the upstream Hermes repository is a bounded
+//!      compatibility fallback for older refs/installers.
 //!
 //! Mirrors `apps/desktop/electron/bootstrap-runner.ts`'s `resolveInstallScript`,
 //! but the dev-checkout resolution is driven by an env var rather than the
-//! Electron app's APP_ROOT/../.. trick, because Hermes-Setup.exe is meant
+//! Electron app's APP_ROOT/../.. trick, because Aino-Setup.exe is meant
 //! to live OUTSIDE any repo checkout.
 
 use anyhow::{anyhow, Context, Result};
+use std::env;
 use std::path::{Path, PathBuf};
 use tokio::io::AsyncWriteExt;
 
 use crate::paths;
+
+const AINO_RAW_REPOSITORY_BASE: &str = "https://raw.githubusercontent.com/Ablankpaper/Aino";
+const LEGACY_RAW_REPOSITORY_BASE: &str =
+    "https://raw.githubusercontent.com/NousResearch/hermes-agent";
 
 /// Identity of the install.ps1 we'll execute. Used by both the manifest
 /// fetch and the per-stage runs.
@@ -95,7 +102,7 @@ pub(crate) fn cache_plan(immutable: bool, cached_exists: bool) -> CachePlan {
 
 /// Resolves the install script to use for this run.
 ///
-/// `pin` is the commit-or-branch from either Hermes-Setup's build-time
+/// `pin` is the commit-or-branch from either Aino Setup's build-time
 /// constant (compiled into the installer) or a runtime override.
 pub async fn resolve(
     kind: ScriptKind,
@@ -313,6 +320,54 @@ fn upgrade_cached_script(kind: ScriptKind, cached: &Path, emit_log: &impl Fn(&st
     }
 }
 
+/// Convert a GitHub repository URL to its raw-content base URL. This accepts
+/// the HTTPS and SSH forms already used by the installer environment and keeps
+/// arbitrary values from becoming request targets.
+fn github_raw_base(repository: &str) -> Option<String> {
+    let value = repository.trim().trim_end_matches('/');
+    let repo_path = value
+        .strip_prefix("https://github.com/")
+        .or_else(|| value.strip_prefix("http://github.com/"))
+        .or_else(|| value.strip_prefix("git@github.com:"))?;
+    let repo_path = repo_path.strip_suffix(".git").unwrap_or(repo_path);
+    let mut parts = repo_path.split('/');
+    let owner = parts.next()?.trim();
+    let name = parts.next()?.trim();
+    if owner.is_empty()
+        || name.is_empty()
+        || parts.next().is_some()
+        || !owner
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+        || !name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+    {
+        return None;
+    }
+    Some(format!("https://raw.githubusercontent.com/{owner}/{name}"))
+}
+
+/// Return the ordered raw-content repositories used for bootstrap scripts.
+/// An explicit repository environment value is an internal desktop override;
+/// Aino remains the default, and the upstream URL is the final migration rung.
+fn repository_raw_bases(override_repository: Option<&str>) -> Vec<String> {
+    let mut bases = Vec::new();
+    if let Some(value) = override_repository.and_then(github_raw_base) {
+        bases.push(value);
+    }
+    for base in [AINO_RAW_REPOSITORY_BASE, LEGACY_RAW_REPOSITORY_BASE] {
+        if !bases.iter().any(|existing| existing == base) {
+            bases.push(base.to_string());
+        }
+    }
+    bases
+}
+
+fn configured_repository_raw_bases() -> Vec<String> {
+    repository_raw_bases(env::var("HERMES_INSTALL_REPOSITORY_URL").ok().as_deref())
+}
+
 /// Downloads to `dest_path` via reqwest with rustls. Atomically renames
 /// `dest_path.tmp` → `dest_path` so partial writes don't poison the cache.
 ///
@@ -323,12 +378,24 @@ fn upgrade_cached_script(kind: ScriptKind, cached: &Path, emit_log: &impl Fn(&st
 /// packets) never errors — the whole bootstrap would hang here instead of
 /// falling back to the cached script.
 async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Result<()> {
-    let url = format!(
-        "https://raw.githubusercontent.com/NousResearch/hermes-agent/{}/scripts/{}",
-        commit_or_ref,
-        kind.filename()
-    );
+    let mut failures = Vec::new();
+    for base in configured_repository_raw_bases() {
+        let url = format!("{base}/{}/scripts/{}", commit_or_ref, kind.filename());
+        match download_from_url(kind, &url, dest_path).await {
+            Ok(()) => return Ok(()),
+            Err(err) => failures.push(format!("{base}: {err:#}")),
+        }
+    }
 
+    Err(anyhow!(
+        "failed to download {} for {} from all configured repositories: {}",
+        kind.filename(),
+        truncate_ref(commit_or_ref),
+        failures.join("; ")
+    ))
+}
+
+async fn download_from_url(kind: ScriptKind, url: &str, dest_path: &Path) -> Result<()> {
     if let Some(parent) = dest_path.parent() {
         std::fs::create_dir_all(parent).with_context(|| {
             format!("creating bootstrap-cache parent dir {}", parent.display())
@@ -348,8 +415,8 @@ async fn download(kind: ScriptKind, commit_or_ref: &str, dest_path: &Path) -> Re
         .timeout(std::time::Duration::from_secs(60))
         .build()
         .context("building download client")?
-        .get(&url)
-        .header("User-Agent", "hermes-setup/0.0.1")
+        .get(url)
+        .header("User-Agent", "aino-setup/0.0.1")
         .send()
         .await
         .with_context(|| format!("GET {url}"))?;
@@ -409,6 +476,48 @@ mod tests {
         assert_eq!(sanitize_ref("bb/gui"), "bb_gui");
         assert_eq!(sanitize_ref("main"), "main");
         assert_eq!(sanitize_ref("release/1.2.3"), "release_1.2.3");
+    }
+
+    #[test]
+    fn repository_bases_are_aino_first_with_upstream_fallback() {
+        assert_eq!(
+            repository_raw_bases(None),
+            vec![
+                AINO_RAW_REPOSITORY_BASE.to_string(),
+                LEGACY_RAW_REPOSITORY_BASE.to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn repository_override_is_normalized_and_deduplicated() {
+        assert_eq!(
+            repository_raw_bases(Some("https://github.com/Ablankpaper/Aino.git/")),
+            vec![
+                AINO_RAW_REPOSITORY_BASE.to_string(),
+                LEGACY_RAW_REPOSITORY_BASE.to_string()
+            ]
+        );
+        assert_eq!(
+            repository_raw_bases(Some("git@github.com:example/agent.git")),
+            vec![
+                "https://raw.githubusercontent.com/example/agent".to_string(),
+                AINO_RAW_REPOSITORY_BASE.to_string(),
+                LEGACY_RAW_REPOSITORY_BASE.to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn repository_override_rejects_non_github_values() {
+        assert_eq!(
+            repository_raw_bases(Some("https://evil.example/owner/repo")),
+            vec![
+                AINO_RAW_REPOSITORY_BASE.to_string(),
+                LEGACY_RAW_REPOSITORY_BASE.to_string()
+            ]
+        );
+        assert_eq!(github_raw_base("https://github.com/owner/repo/extra"), None);
     }
 
     #[test]

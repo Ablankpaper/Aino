@@ -13,7 +13,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 from zoneinfo import ZoneInfo
 
@@ -58,6 +58,17 @@ def _clean_env(tmp_path, monkeypatch):
     # Patch the actual API and keep all legacy profile writes in tmp_path.
     isolated_home = tmp_path / "user-home"
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: isolated_home))
+
+    class FakeNotFoundException(Exception):
+        def __init__(self, *args, reason="", **_kwargs):
+            super().__init__(reason, *args)
+
+    api_package = ModuleType("hindsight_client_api")
+    api_package.__path__ = []  # type: ignore[attr-defined]
+    exceptions = ModuleType("hindsight_client_api.exceptions")
+    exceptions.NotFoundException = FakeNotFoundException
+    monkeypatch.setitem(sys.modules, "hindsight_client_api", api_package)
+    monkeypatch.setitem(sys.modules, "hindsight_client_api.exceptions", exceptions)
 
 
 def _make_mock_client():
@@ -354,6 +365,7 @@ class TestConfig:
 
         monkeypatch.setitem(sys.modules, "hindsight", SimpleNamespace(HindsightEmbedded=FakeHindsightEmbedded))
         monkeypatch.setattr("plugins.memory.hindsight._check_local_runtime", lambda: (True, ""))
+        monkeypatch.setattr("tools.lazy_deps.ensure", lambda *_args, **_kwargs: None)
 
         p = HindsightMemoryProvider()
         p._mode = "local_embedded"

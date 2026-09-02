@@ -2,7 +2,8 @@
 #
 # WHY THIS EXISTS (the frozen-binary problem): the Desktop's Update button
 # used to hand off exclusively to the staged Tauri binary
-# (%HERMES_HOME%\hermes-setup.exe). That binary has no self-update path --
+# (%HERMES_HOME%\Aino-Setup.exe; legacy Hermes-Setup.exe is still accepted).
+# That binary has no self-update path --
 # copy_self_to_hermes_home deliberately no-ops during --update -- so every
 # updater-side fix (cache refresh #67369, marker self-adopt #74782, straggler
 # handling) only reaches users when a new installer is built, signed, and
@@ -22,7 +23,7 @@
 #     -InstallRoot <path>   repo checkout (HERMES_HOME\hermes-agent)
 #     -Branch <ref>         branch to update against
 #     -DesktopPid <pid>     the Electron main process to wait out
-#     [-RelaunchExe <path>] Hermes.exe to start when done (omit = no relaunch)
+#     [-RelaunchExe <path>] Aino.exe to start when done (omit = no relaunch)
 #     [-NoUi]               headless (tests); default shows a progress window
 #     [-NoMarkerCleanup]    leave .hermes-update-in-progress in place (tests)
 #
@@ -64,7 +65,7 @@ $ErrorActionPreference = "Continue"
 # WinForms window comes up backgrounded unless we explicitly claim focus --
 # and after the update we must hand focus TO the relaunched Desktop (a
 # WMI-spawned process starts unfocused). AllowSetForegroundWindow lets us
-# pass our foreground right on to the new Hermes.exe pid.
+# pass our foreground right on to the new Aino.exe pid.
 try {
     Add-Type -Namespace HermesHandoff -Name Win32 -MemberDefinition @'
 [DllImport("user32.dll")] public static extern bool SetForegroundWindow(System.IntPtr hWnd);
@@ -86,7 +87,7 @@ $LogDir = Join-Path $HermesHome "logs"
 $LogPath = Join-Path $LogDir "desktop-update-handoff.log"
 $ResultPath = Join-Path $HermesHome ".hermes-update-result.json"
 $script:Ui = $null
-$script:UiStage = "Hermes will open once done."   # until the first gate; matches ui.html
+$script:UiStage = "Aino will open once done."   # until the first gate; matches ui.html
 $script:UiStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 function Write-HandoffLog([string]$Message) {
@@ -543,20 +544,50 @@ function Start-DesktopRelaunch {
     # finally block downgrades the on-screen/on-disk outcome when it didn't
     # — the sibling truth contract to posix.sh's launch acceptance.
     if (-not $RelaunchExe) { return $false }
+    # electron-builder replaces win-unpacked in place. During a migration an
+    # older build may have launched us as Hermes.exe while the rebuild writes
+    # Aino.exe. Resolve the branded sibling first in that case, while keeping
+    # both names as bounded compatibility fallbacks for interrupted updates.
+    $requestedRelaunchExe = $RelaunchExe
+    $relaunchDir = Split-Path -Parent $requestedRelaunchExe
+    $legacyRelaunchExe = Join-Path $relaunchDir 'Hermes.exe'
+    $ainoRelaunchExe = Join-Path $relaunchDir 'Aino.exe'
+    $requestedLeaf = [System.IO.Path]::GetFileName($requestedRelaunchExe)
+    if ($requestedLeaf -ieq 'Hermes.exe') {
+        $relaunchCandidates = @($ainoRelaunchExe, $requestedRelaunchExe)
+    } elseif ($requestedLeaf -ieq 'Aino.exe') {
+        $relaunchCandidates = @($requestedRelaunchExe, $legacyRelaunchExe)
+    } else {
+        $relaunchCandidates = @($requestedRelaunchExe)
+    }
+    $relaunchCandidates = @($relaunchCandidates | Select-Object -Unique)
+
     # electron-builder replaces win-unpacked in place. After a successful
-    # update it can remove the old Hermes.exe before writing the replacement,
+    # update it can remove the old executable before writing the replacement,
     # so a one-shot existence check races the rebuild and strands the user.
     $relaunchDeadline = (Get-Date).AddSeconds(120)
-    while (-not (Test-Path -LiteralPath $RelaunchExe)) {
+    $selectedRelaunchExe = $null
+    while (-not $selectedRelaunchExe) {
+        foreach ($candidate in $relaunchCandidates) {
+            if (Test-Path -LiteralPath $candidate) {
+                $selectedRelaunchExe = $candidate
+                break
+            }
+        }
+        if ($selectedRelaunchExe) { break }
         if ((Get-Date) -ge $relaunchDeadline) {
-            Write-HandoffLog "WARNING: desktop relaunch executable did not reappear within 120s: $RelaunchExe"
+            Write-HandoffLog "WARNING: desktop relaunch executable did not reappear within 120s: $($relaunchCandidates -join ', ')"
             return $false
         }
         Start-Sleep -Milliseconds 500
         if ($script:Ui) { [System.Windows.Forms.Application]::DoEvents() }
     }
+    if ($selectedRelaunchExe -ne $requestedRelaunchExe) {
+        Write-HandoffLog "using migration relaunch executable: $selectedRelaunchExe (requested $requestedRelaunchExe)"
+    }
+    $RelaunchExe = $selectedRelaunchExe
     Write-HandoffLog "relaunching desktop: $RelaunchExe"
-    # DO NOT spawn Hermes.exe as our child: Electron/Chromium calls
+    # DO NOT spawn Aino.exe as our child: Electron/Chromium calls
     # AttachConsole(ATTACH_PARENT_PROCESS) at boot, so a Desktop launched
     # directly from this console PowerShell latches onto OUR console --
     # the console window then outlives the script (it can't close while
@@ -622,7 +653,7 @@ function Start-DesktopRelaunch {
         # window can't close while the app lives. Explorer re-parents the
         # target exactly like a normal shell launch, giving the same
         # no-console detachment WMI would have. Explorer returns no pid, so
-        # verify by watching for a fresh Hermes process.
+        # verify by watching for a fresh Aino process.
         try {
             $exeName = [System.IO.Path]::GetFileNameWithoutExtension($RelaunchExe)
             $before = @(Get-Process -Name $exeName -ErrorAction SilentlyContinue | ForEach-Object { $_.Id })
@@ -1427,7 +1458,7 @@ try {
             # Something still maps the venv. --force-ing past it guarantees a
             # half-updated venv (the exact 2026-08-09 Access-denied brick).
             $finalCode = 5
-            $finalMsg = "Update aborted: another process is still holding the Hermes install open (venv\Scripts\hermes.exe locked after 20s). Nothing was changed. Close other Hermes windows/terminals and try again."
+            $finalMsg = "Update aborted: another process is still holding the Aino install open (venv\Scripts\hermes.exe locked after 20s). Nothing was changed. Close other Aino windows/terminals and try again."
             Write-HandoffLog $finalMsg
             exit $finalCode
         }
@@ -1461,7 +1492,7 @@ try {
     # When the rename loses that race there is no recovery: `uv pip install -e .`
     # exits 2 and the ZIP fallback repeats the identical sequence, so the desktop
     # build stage is never reached and apps/desktop/release is left missing -- an
-    # install whose Start Menu shortcut points at a Hermes.exe that no longer
+    # install whose Start Menu shortcut points at an Aino.exe that no longer
     # exists. (A reboot-deferred rename was the old last resort here; it needed
     # elevation a Desktop-driven update does not have, and freed nothing for the
     # install already in flight.)
@@ -1474,7 +1505,7 @@ try {
     $pythonExe = Join-Path $InstallRoot "venv\Scripts\python.exe"
     if (-not (Test-Path -LiteralPath $pythonExe)) {
         $finalCode = 3
-        $finalMsg = "Update aborted: $pythonExe is missing. The install needs repair (run the Hermes installer or `hermes doctor`)."
+        $finalMsg = "Update aborted: $pythonExe is missing. The install needs repair (run the Aino installer or `hermes doctor`)."
         Write-HandoffLog $finalMsg
         exit $finalCode
     }
@@ -1482,7 +1513,7 @@ try {
     # --keep-stash: never re-apply local source edits after the update (they
     # stay parked in git stash). Probe --help first: the flag ships with newer
     # backends and an unknown flag would abort argparse with exit 2, which
-    # collides with the "close all Hermes windows" sentinel.
+    # collides with the "close all Aino windows" sentinel.
     try {
         $updateHelp = & $pythonExe -m hermes_cli.main update --help 2>$null | Out-String
         if ($updateHelp -match "--keep-stash") {
@@ -1552,7 +1583,7 @@ try {
     #   1. durable result + marker removal (the relaunched Desktop consumes
     #      the result on boot and must not park on our marker);
     #   2. attempt the relaunch and require ACCEPTANCE;
-    #   3. only then the terminal UI state — done means "Hermes is back",
+    #   3. only then the terminal UI state — done means "Aino is back",
     #      manual means "it is not, reopen it", error is error (and still
     #      tries to bring the app back after showing itself).
     if (-not $script:TreeSafeToFinalize) {

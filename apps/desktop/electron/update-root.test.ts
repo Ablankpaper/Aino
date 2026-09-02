@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -6,6 +7,8 @@ import path from 'node:path'
 import { test } from 'vitest'
 
 import { parseHermesVersion, resolveUpdateRoot } from './update-root'
+
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..')
 
 function makeCheckout(name: string) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), `aino-update-root-${name}-`))
@@ -70,4 +73,21 @@ test('runtime version parsing reads the canonical Hermes declaration', () => {
   )
   assert.equal(parseHermesVersion('__version__ = \'0.20.6\'\n'), '0.20.6')
   assert.equal(parseHermesVersion('# no version here\n'), null)
+})
+
+test('desktop packaging metadata follows the Hermes runtime version', () => {
+  const python = process.env.PYTHON ?? 'python3'
+  const runtimeVersion = execFileSync(
+    python,
+    ['-c', 'import hermes_cli; print(hermes_cli.__version__)'],
+    { cwd: REPO_ROOT, encoding: 'utf8' }
+  ).trim()
+  const desktopPackage = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'apps', 'desktop', 'package.json'), 'utf8'))
+
+  assert.ok(runtimeVersion, 'hermes_cli must expose __version__ at runtime')
+  assert.equal(
+    desktopPackage.version,
+    runtimeVersion,
+    'Electron app.getVersion() and packaged artifact metadata must stay aligned with the Agent runtime.'
+  )
 })

@@ -13,6 +13,7 @@ import {
   resolveUpdateScriptHandoff,
   sandboxFallbackFromEnv,
   spawnUpdaterProcess,
+  STAGED_UPDATER_FILENAMES,
   stagedUpdaterSupportsPrewrittenMarker,
   wrapHandoffForDetachedConsole
 } from './updater-process'
@@ -56,18 +57,65 @@ test('stagedUpdaterSupportsPrewrittenMarker treats an unreadable mtime as unsupp
   )
 })
 
-test('resolveStagedUpdaterBinary still returns a stale staged updater on Windows', () => {
+test('resolveStagedUpdaterBinary returns the new Aino setup helper on Windows', () => {
   // Staleness gates only the marker PRE-WRITE, never the hand-off itself:
   // the stale binary is the only updater these users have, and it works fine
   // once it is allowed to write its own claim.
   assert.equal(
-    resolveStagedUpdaterBinary('C:\\Hermes', {
+    resolveStagedUpdaterBinary('C:\\Aino', {
       fileExists: () => true,
       isWindows: true,
       stagedMtimeMs: () => MARKER_SELF_ADOPT_EPOCH_MS - 60 * DAY_MS
     }),
-    path.join('C:\\Hermes', 'hermes-setup.exe')
+    path.join('C:\\Aino', 'Aino-Setup.exe')
   )
+})
+
+test('resolveStagedUpdaterBinary prefers Aino over both legacy Hermes names', () => {
+  const home = 'C:\\Users\\demo\\AppData\\Local\\aino'
+  const probes: string[] = []
+
+  const resolved = resolveStagedUpdaterBinary(home, {
+    isWindows: true,
+    fileExists: candidate => {
+      probes.push(candidate)
+
+      return candidate.endsWith('Aino-Setup.exe') || candidate.endsWith('hermes-setup.exe')
+    }
+  })
+
+  assert.equal(resolved, path.join(home, 'Aino-Setup.exe'))
+  assert.deepEqual(probes, [path.join(home, 'Aino-Setup.exe')])
+})
+
+test('resolveStagedUpdaterBinary falls back to Hermes-Setup.exe for pre-brand installs', () => {
+  const home = 'C:\\Users\\demo\\AppData\\Local\\hermes'
+  const staged = path.join(home, 'Hermes-Setup.exe')
+  const probes: string[] = []
+
+  const resolved = resolveStagedUpdaterBinary(home, {
+    isWindows: true,
+    fileExists: candidate => {
+      probes.push(candidate)
+
+      return candidate === staged
+    }
+  })
+
+  assert.equal(resolved, staged)
+  assert.deepEqual(probes, STAGED_UPDATER_FILENAMES.map(name => path.join(home, name)).slice(0, 2))
+})
+
+test('resolveStagedUpdaterBinary falls back to lowercase hermes-setup.exe', () => {
+  const home = 'C:\\Users\\demo\\AppData\\Local\\hermes'
+  const staged = path.join(home, 'hermes-setup.exe')
+
+  const resolved = resolveStagedUpdaterBinary(home, {
+    isWindows: true,
+    fileExists: candidate => candidate === staged
+  })
+
+  assert.equal(resolved, staged)
 })
 
 test('spawnUpdaterProcess hides the updater console and detaches the child on Windows', () => {
@@ -126,7 +174,7 @@ test('spawnUpdaterProcess preserves updater options off Windows', () => {
   assert.deepEqual(capturedOptions, { detached: true, stdio: 'ignore' })
 })
 
-test('resolveStagedUpdaterBinary hands Windows the staged installer it finds', () => {
+test('resolveStagedUpdaterBinary reaches the lowercase legacy staged installer', () => {
   const home = 'C:\\Users\\hermes\\AppData\\Local\\hermes'
   const staged = path.join(home, 'hermes-setup.exe')
   const probed: string[] = []
@@ -141,7 +189,11 @@ test('resolveStagedUpdaterBinary hands Windows the staged installer it finds', (
   })
 
   assert.equal(resolved, staged)
-  assert.deepEqual(probed, [staged])
+  assert.deepEqual(probed, [
+    path.join(home, 'Aino-Setup.exe'),
+    path.join(home, 'Hermes-Setup.exe'),
+    staged
+  ])
 })
 
 test('resolveStagedUpdaterBinary returns null off Windows even when hermes-setup is staged (#74836)', () => {

@@ -38,6 +38,10 @@ def _patch_agent_bootstrap(monkeypatch):
         ],
     )
     monkeypatch.setattr(run_agent, "check_toolset_requirements", lambda: {})
+    monkeypatch.setattr(
+        "agent.model_metadata._fetch_codex_oauth_context_lengths_with_source",
+        lambda _token: ({}, False),
+    )
 
 
 def _build_agent(monkeypatch):

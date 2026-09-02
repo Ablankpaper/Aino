@@ -107,7 +107,7 @@ function execProbeSync(
       throw err
     }
 
-    // One cold-cache / AV miss should not force hermes-setup --update (#61764).
+    // One cold-cache / AV miss should not force Aino-Setup --update (#61764).
     execFileSync(command, args, options)
   }
 }
