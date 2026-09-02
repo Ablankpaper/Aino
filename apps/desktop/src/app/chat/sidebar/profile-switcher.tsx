@@ -68,7 +68,6 @@ import { notify, notifyError } from '@/store/notifications'
 import {
   $activeGatewayProfile,
   $profileColors,
-  $profileCreateRequest,
   $profileOrder,
   $profiles,
   $profileScope,
@@ -132,7 +131,7 @@ const stepThroughCells: Modifier = ({ containerNodeRect, draggingNodeRect, trans
   return { ...transform, x: Math.min(maxX, Math.max(minX, snapped)), y: 0 }
 }
 
-// Arc-Spaces-style profile rail at the sidebar foot: a default↔all toggle pinned
+// Arc-Spaces-style profile rail at the Settings navigation foot: a default↔all toggle pinned
 // left, the colored named profiles scrolling between, and Manage pinned right.
 // The active profile pops in its own color — the "where am I" cue.
 //
@@ -336,21 +335,6 @@ export function ProfileRail() {
   useEffect(() => {
     void refreshProfileRemoteOverrides(profileNamesKey ? profileNamesKey.split('\u0000') : [])
   }, [profileNamesKey])
-
-  // Open the create dialog when the `profile.create` hotkey fires (the dialog
-  // state lives here, so the global keybind bumps a request atom we watch).
-  const createRequest = useStore($profileCreateRequest)
-  const lastCreateRef = useRef(createRequest)
-
-  // eslint-disable-next-line no-restricted-syntax -- legitimate non-atom ref write (see eslint rule comment)
-  useEffect(() => {
-    if (createRequest === lastCreateRef.current) {
-      return
-    }
-
-    lastCreateRef.current = createRequest
-    setCreateOpen(true)
-  }, [createRequest])
 
   // The sortable strip of the active gateway's named profiles (unchanged
   // from the single-gateway rail; fleet mode only decides where it sits).

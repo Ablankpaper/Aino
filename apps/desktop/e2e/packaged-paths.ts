@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import identity from '../brand.json'
+import identity from '../brand.json' with { type: 'json' }
 
 export interface PackagedBinaryPathOptions {
   platform?: string

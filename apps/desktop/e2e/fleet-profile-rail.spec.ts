@@ -1,5 +1,5 @@
 /**
- * E2E: the fleet profile rail with two registered gateways.
+ * E2E: the Settings-hosted fleet profile rail with two registered gateways.
  *
  * "This device" is the Electron-managed local backend (mock inference). The
  * second gateway, "Homelab", is a REAL second `hermes serve` this spec spawns
@@ -202,9 +202,22 @@ async function capture(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: path.join(dir, `${name}.png`) })
 }
 
-const rail = (page: Page) => page.locator('[data-slot="profile-rail"]')
+// OverlayNav keeps both its wide rail and narrow dropdown mounted so the
+// responsive CSS can swap them without remounting the page. Scope assertions
+// to the painted rail; the hidden counterpart is not an additional user
+// surface.
+const rail = (page: Page) => page.locator('[data-slot="profile-rail"]:visible')
+
 const gatewayGroup = (page: Page, id: string) => rail(page).locator(`[data-slot="profile-rail-gateway"][data-connection-id="${id}"]`)
-const activeGatewayLabel = (page: Page) => page.getByRole('button', { name: /^Registered gateways: / })
+
+const activeGatewayGroup = (page: Page) => rail(page).locator('[data-slot="profile-rail-gateway"][data-active="true"]')
+
+async function gotoRoute(page: Page, route: string): Promise<void> {
+  await page.evaluate(target => {
+    window.location.hash = target
+  }, route)
+  await page.waitForFunction(target => window.location.hash === `#${target}`, route)
+}
 
 async function groupOrder(page: Page): Promise<Array<[string, boolean]>> {
   return rail(page).locator('[data-slot="profile-rail-gateway"]').evaluateAll(nodes =>
@@ -237,10 +250,10 @@ test.describe('fleet profile rail — two registered gateways', () => {
 
     ;({ app, page } = await launchDesktop(buildAppEnv(sandbox)))
     await waitForAppReady({ app, page } as MockBackendFixture, 120_000)
-    // Let boot settle fully (the gateway health item reports "ready" once the
-    // primary socket is open) so the boot-time launch-mode restore has run
-    // before any click — the rail must then hold whatever the user picks.
-    await expect(page.locator('[data-slot="statusbar"]').getByText('ready', { exact: true })).toBeVisible({ timeout: 120_000 })
+    // `waitForAppReady` waits for the composer and for all boot overlays to
+    // clear. The gateway-health statusbar item was intentionally moved into
+    // Settings, so there is no longer a stable `ready` label in the bar to
+    // use as a second boot gate.
     await page.waitForTimeout(2_000)
   })
 
@@ -252,8 +265,18 @@ test.describe('fleet profile rail — two registered gateways', () => {
   })
 
   test('lays both gateways on one strip, active gateway in its registry slot', async () => {
-    // The statusbar readout names the gateway the workspace is on.
-    await expect(activeGatewayLabel(page)).toHaveAttribute('aria-label', 'Registered gateways: This device', { timeout: 60_000 })
+    // Profile and gateway configuration no longer occupies the chat sidebar.
+    // The same live rail belongs to Settings, where its full behavior remains
+    // available instead of being duplicated by a second set of controls.
+    await gotoRoute(page, '/')
+    await expect(rail(page)).toHaveCount(0)
+    await gotoRoute(page, '/settings?tab=about')
+    const settingsNav = page.locator('[data-settings-workspace] [data-tour="overlay-nav"]')
+    await expect(settingsNav).toBeVisible()
+    await expect(settingsNav.locator('[data-slot="profile-rail"]')).toBeVisible()
+    await expect(activeGatewayGroup(page)).toHaveAttribute('aria-label', 'Profiles on This device', {
+      timeout: 60_000
+    })
 
     // The remote gateway's group appears once the roster has enumerated it.
     const homelab = gatewayGroup(page, REMOTE_ID)
@@ -291,8 +314,17 @@ test.describe('fleet profile rail — two registered gateways', () => {
     test.setTimeout(180_000)
     await gatewayGroup(page, REMOTE_ID).getByRole('button', { name: `inbox · ${REMOTE_LABEL}` }).click()
 
-    // The workspace follows the agent: statusbar readout flips to Homelab…
-    await expect(activeGatewayLabel(page)).toHaveAttribute('aria-label', `Registered gateways: ${REMOTE_LABEL}`, { timeout: 120_000 })
+    // A source switch intentionally starts a fresh chat, so the route leaves
+    // Settings. Confirm the active source through the statusbar switcher,
+    // then return to Settings to inspect the rail there.
+    await expect(page.locator('[data-slot="connection-switcher"]')).toContainText(REMOTE_LABEL, {
+      timeout: 120_000
+    })
+    await gotoRoute(page, '/settings?tab=about')
+    await expect(rail(page)).toHaveCount(1)
+    await expect(activeGatewayGroup(page)).toHaveAttribute('aria-label', `Profiles on ${REMOTE_LABEL}`, {
+      timeout: 60_000
+    })
 
     // …Homelab's group is now the active one, on the clicked profile…
     const homelab = gatewayGroup(page, REMOTE_ID)
@@ -346,7 +378,12 @@ test.describe('fleet profile rail — two registered gateways', () => {
     test.setTimeout(180_000)
     await gatewayGroup(page, 'local').getByRole('button', { name: 'research · This device' }).click()
 
-    await expect(activeGatewayLabel(page)).toHaveAttribute('aria-label', 'Registered gateways: This device', { timeout: 120_000 })
+    await expect(page.locator('[data-slot="connection-switcher"]')).toContainText('This device', { timeout: 120_000 })
+    await gotoRoute(page, '/settings?tab=about')
+    await expect(rail(page)).toHaveCount(1)
+    await expect(activeGatewayGroup(page)).toHaveAttribute('aria-label', 'Profiles on This device', {
+      timeout: 60_000
+    })
     const local = gatewayGroup(page, 'local')
     await expect(local).toHaveAttribute('data-active', 'true', { timeout: 30_000 })
     await expect(local.getByRole('button', { name: 'research', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 })
