@@ -56,6 +56,7 @@ import { PROVIDER_VIEWS, ProvidersSettings, type ProviderView } from './provider
 import { SessionsSettings } from './sessions-settings'
 import { SettingsSystemControls } from './system-status-controls'
 import type { SettingsPageProps, SettingsView as SettingsViewId } from './types'
+import { SettingsVersionControl } from './version-control'
 
 const SETTINGS_VIEWS: readonly SettingsViewId[] = [
   ...SECTIONS.map(s => `config:${s.id}` as SettingsViewId),
@@ -386,6 +387,7 @@ export function SettingsView({
         onOpenCommandCenterSection={onOpenCommandCenterSection}
         requestGateway={requestGateway}
       />
+      <SettingsVersionControl onOpenAbout={() => setActiveView('about')} />
       <div className="flex items-center gap-1">
         <Tip label={t.settings.exportConfig}>
           <OverlayIconButton onClick={() => void exportConfig()}>
