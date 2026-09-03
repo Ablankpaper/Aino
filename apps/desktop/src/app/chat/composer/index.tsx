@@ -91,6 +91,7 @@ export function ChatBar({
   cwd,
   disabled,
   focusKey,
+  homeLayout = false,
   gateway,
   maxRecordingSeconds = 120,
   queueSessionKey,
@@ -390,7 +391,7 @@ export function ChatBar({
 
   // Resting / reconnecting / starting placeholder text, re-rolled only on a real
   // conversation change.
-  const placeholder = useComposerPlaceholder({ disabled, reconnecting, sessionId })
+  const placeholder = useComposerPlaceholder({ disabled, homeLayout, reconnecting, sessionId })
 
   // Trigger / completion engine: @// detection, the adapter-driven item list,
   // popover selection, and chip insertion. The keydown nav block below consumes
@@ -1235,6 +1236,7 @@ export function ChatBar({
               hudNativeDrag && 'hud-native-drag pt-4 [-webkit-app-region:drag]'
             )}
             data-drag-active={dragActive ? '' : undefined}
+            data-home-layout={homeLayout ? '' : undefined}
             data-hud-grabbing={hudGrabbing ? '' : undefined}
             data-popped-out={poppedOut ? '' : undefined}
             data-slot="composer-root"

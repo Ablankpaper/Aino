@@ -47,6 +47,30 @@ export const zh: Translations = {
     off: '关'
   },
 
+  home: {
+    subtitle: '丢一个文件路径、堆栈跟踪或粗略想法。我会调查、建议下一步，并保持操作可逆。',
+    placeholder: '随便问点什么',
+    workspace: '在工作区中工作',
+    actions: {
+      analyze: { label: '分析文档', description: '上传文件进行分析' },
+      review: {
+        label: '审查代码',
+        description: '查找问题并优化',
+        prompt: '请审查当前代码，找出问题并给出可执行的优化建议。'
+      },
+      research: {
+        label: '研究主题',
+        description: '深入研究任何主题',
+        prompt: '请深入研究这个主题，并整理出关键结论与可靠来源。'
+      },
+      report: {
+        label: '生成报告',
+        description: '创建结构化报告',
+        prompt: '请根据当前上下文生成一份结构化报告。'
+      }
+    }
+  },
+
   fileMenu: {
     revealFinder: '在访达中显示',
     revealExplorer: '在文件资源管理器中显示',

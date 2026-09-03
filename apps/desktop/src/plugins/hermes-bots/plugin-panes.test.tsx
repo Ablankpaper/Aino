@@ -172,6 +172,9 @@ describe('the Bots pane dock', () => {
     const data = harness.find('pane')!.data!
 
     expect(data.dock).toEqual({ enforce: true, pane: 'sessions', pos: 'center' })
+    // The two tabs share one fixed zone, so Bots must not widen the 237px
+    // sessions pane when it is registered into that stack.
+    expect(data.width).toBe('237px')
     // A 'bottom' split was the old workaround for the lone-pane auto-hide trap.
     expect((data.dock as { pos: string }).pos).not.toBe('bottom')
     // No heal token: the invariant runs at every adoption, unconditionally.

@@ -47,6 +47,31 @@ export const en: Translations = {
     off: 'Off'
   },
 
+  home: {
+    subtitle:
+      'Drop a file path, stack trace, or rough idea. I’ll investigate, suggest next steps, and keep actions reversible.',
+    placeholder: 'Ask anything',
+    workspace: 'Work in a project',
+    actions: {
+      analyze: { label: 'Analyze document', description: 'Upload a file for analysis' },
+      review: {
+        label: 'Review code',
+        description: 'Find issues and improve',
+        prompt: 'Review the current code, identify issues, and suggest actionable improvements.'
+      },
+      research: {
+        label: 'Research topic',
+        description: 'Explore any topic in depth',
+        prompt: 'Research this topic in depth and summarize key findings with reliable sources.'
+      },
+      report: {
+        label: 'Generate report',
+        description: 'Create a structured report',
+        prompt: 'Create a structured report based on the current context.'
+      }
+    }
+  },
+
   fileMenu: {
     revealFinder: 'Reveal in Finder',
     revealExplorer: 'Reveal in File Explorer',

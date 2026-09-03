@@ -7,6 +7,7 @@ import { pickPlaceholder } from '../composer-utils'
 
 interface UseComposerPlaceholderOptions {
   disabled: boolean
+  homeLayout?: boolean
   reconnecting: boolean
   sessionId: null | string | undefined
 }
@@ -20,7 +21,12 @@ interface UseComposerPlaceholderOptions {
  * keep its initial English copy. While the transport is down, it swaps to a
  * reconnecting / starting message instead.
  */
-export function useComposerPlaceholder({ disabled, reconnecting, sessionId }: UseComposerPlaceholderOptions): string {
+export function useComposerPlaceholder({
+  disabled,
+  homeLayout = false,
+  reconnecting,
+  sessionId
+}: UseComposerPlaceholderOptions): string {
   const { locale, t } = useI18n()
   const newSessionPlaceholders = t.composer.newSessionPlaceholders
   const followUpPlaceholders = t.composer.followUpPlaceholders
@@ -71,5 +77,7 @@ export function useComposerPlaceholder({ disabled, reconnecting, sessionId }: Us
     ? reconnecting
       ? t.composer.placeholderReconnecting
       : t.composer.placeholderStarting
-    : restingPlaceholder
+    : homeLayout
+      ? t.home.placeholder
+      : restingPlaceholder
 }

@@ -33,6 +33,7 @@ import { $pinnedSessionIds } from '@/store/layout'
 import { $petActive } from '@/store/pet'
 import { $petOverlayActive } from '@/store/pet-overlay'
 import { $activeGatewayProfile, $gatewaySwapTarget, $hydrationSyncProfile, $profiles } from '@/store/profile'
+import { openFolderAsProject } from '@/store/projects'
 import {
   $connection,
   $contextSuggestions,
@@ -537,6 +538,29 @@ const ChatViewContent = memo(function ChatViewContent({
   const showChatBar = !loadingSession && !resumeExhausted && !isWatchWindow()
   const threadKey = selectedSessionId || activeSessionId || (isRoutedSessionView ? location.pathname : 'new')
 
+  // The landing surface owns presentation only. These callbacks deliberately
+  // route into the existing composer/project actions so quick actions never
+  // create a second send or workspace implementation.
+  const onHomeInsertPrompt = useCallback(
+    (text: string) => requestComposerInsert(text, { mode: 'block', target: composerScope.target }),
+    [composerScope.target]
+  )
+  const onHomeSelectWorkspace = useCallback(() => void openFolderAsProject(), [])
+  const introProps = useMemo(
+    () =>
+      showIntro
+        ? {
+            home: true,
+            onInsertPrompt: onHomeInsertPrompt,
+            onPickFiles,
+            onSelectWorkspace: onHomeSelectWorkspace,
+            personality: introPersonality,
+            seed: introSeed
+          }
+        : undefined,
+    [introPersonality, introSeed, onHomeInsertPrompt, onHomeSelectWorkspace, onPickFiles, showIntro]
+  )
+
   const modelOptionsQuery = useQuery<ModelOptionsResponse>({
     queryKey: modelOptionsQueryKey(activeGatewayProfile, activeSessionId),
     queryFn: () => requestModelOptions({ gateway: gateway || undefined, sessionId: activeSessionId }),
@@ -629,6 +653,7 @@ const ChatViewContent = memo(function ChatViewContent({
       data-chat-unfocused={surfaceFocused ? undefined : ''}
       data-composer-surface-id={composerSurfaceId}
       data-composer-target={composerScope.target}
+      data-home-layout={showIntro && showChatBar ? '' : undefined}
       data-session-anchor={sessionAnchor}
     >
       <Backdrop />
@@ -666,7 +691,7 @@ const ChatViewContent = memo(function ChatViewContent({
             clampToComposer={showChatBar}
             cwd={currentCwd}
             gateway={gateway}
-            intro={showIntro ? { personality: introPersonality, seed: introSeed } : undefined}
+            intro={introProps}
             loading={threadLoading}
             onBranchInNewChat={onBranchInNewChat}
             onCancel={haltRun}
@@ -690,7 +715,7 @@ const ChatViewContent = memo(function ChatViewContent({
               </ErrorState>
             </div>
           )}
-          {showChatBar && <ScrollToBottomButton />}
+          {showChatBar && !showIntro && <ScrollToBottomButton />}
           {/* Vibe hearts rise from the composer only when no pet is out (else
               they play on the pet). Fired by the core `reaction` event. */}
           {!petPresent && (
@@ -727,6 +752,7 @@ const ChatViewContent = memo(function ChatViewContent({
               disabled={!gatewayOpen}
               focusKey={activeSessionId}
               gateway={gateway}
+              homeLayout={showIntro}
               maxRecordingSeconds={maxVoiceRecordingSeconds}
               onAddContextRef={onAddContextRef}
               onAddUrl={onAddUrl}

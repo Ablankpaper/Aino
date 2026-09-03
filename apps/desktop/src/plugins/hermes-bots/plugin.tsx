@@ -404,7 +404,10 @@ export default {
       // zone's tab strip, so the pane stays reachable while collapsed.
       data: {
         placement: 'left',
-        width: '260px',
+        // Match the sessions pane that this tab center-stacks into. A fixed
+        // zone uses its widest tenant, so 260px here widened the whole Aino
+        // sidebar beyond the 237px content width (245px with its divider).
+        width: '237px',
         collapsible: true,
         hideOnly: true,
         dock: {

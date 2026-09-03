@@ -95,6 +95,19 @@ export interface Translations {
     off: string
   }
 
+  /** Empty-chat landing surface copy and quick actions. */
+  home: {
+    subtitle: string
+    placeholder: string
+    workspace: string
+    actions: {
+      analyze: { label: string; description: string; prompt?: string }
+      review: { label: string; description: string; prompt?: string }
+      research: { label: string; description: string; prompt?: string }
+      report: { label: string; description: string; prompt?: string }
+    }
+  }
+
   fileMenu: {
     revealFinder: string
     revealExplorer: string

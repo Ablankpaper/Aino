@@ -10,7 +10,8 @@ const { i18nState } = vi.hoisted(() => ({
         placeholderReconnecting: 'Reconnecting',
         placeholderStarting: 'Starting',
         followUpPlaceholders: ['English follow-up']
-      }
+      },
+      home: { placeholder: 'Ask anything' }
     }
   }
 }))
@@ -37,7 +38,8 @@ beforeEach(() => {
       placeholderReconnecting: 'Reconnecting',
       placeholderStarting: 'Starting',
       followUpPlaceholders: ['English follow-up']
-    }
+    },
+    home: { placeholder: 'Ask anything' }
   }
 })
 
@@ -62,10 +64,24 @@ describe('useComposerPlaceholder', () => {
         placeholderReconnecting: '正在重新连接',
         placeholderStarting: '正在启动',
         followUpPlaceholders: ['中文后续消息']
-      }
+      },
+      home: { placeholder: '随便问点什么' }
     }
     view.rerender()
 
     expect(view.result.current).toBe('中文起始语')
+  })
+
+  it('uses the stable landing placeholder when the home layout is active', () => {
+    const view = renderHook(() =>
+      useComposerPlaceholder({
+        disabled: false,
+        homeLayout: true,
+        reconnecting: false,
+        sessionId: null
+      })
+    )
+
+    expect(view.result.current).toBe('Ask anything')
   })
 })

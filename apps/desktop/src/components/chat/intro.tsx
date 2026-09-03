@@ -1,8 +1,11 @@
 import { useState } from 'react'
 
+import { Button } from '@/components/ui/button'
 import { type Locale, useI18n } from '@/i18n'
 import { AGENT_NAME, PRODUCT_NAME } from '@/lib/brand'
+import { BarChart3, ChevronDown, Code, FileText, FolderOpen, type IconComponent, Search } from '@/lib/icons'
 import { capitalize, normalize } from '@/lib/text'
+import { cn } from '@/lib/utils'
 
 import introCopyJsonl from './intro-copy.jsonl?raw'
 import introCopyZhJsonl from './intro-copy.zh.jsonl?raw'
@@ -18,6 +21,11 @@ type IntroCopyRecord = IntroCopy & {
 }
 
 export type IntroProps = {
+  /** Render the Figma-aligned landing surface (the default for new chats). */
+  home?: boolean
+  onInsertPrompt?: (text: string) => void
+  onPickFiles?: () => void
+  onSelectWorkspace?: () => void
   personality?: string
   seed?: number
 }
@@ -214,10 +222,101 @@ function resolveCopy(personality: string | undefined, seed: number | undefined, 
   return pickCopy(copies, seed) || (locale === 'zh' ? FALLBACK_COPY_ZH[0] : FALLBACK_COPY[0])
 }
 
-export function Intro({ personality, seed }: IntroProps) {
-  const { locale } = useI18n()
+export function Intro({ home, onInsertPrompt, onPickFiles, onSelectWorkspace, personality, seed }: IntroProps) {
+  const { locale, t } = useI18n()
   const [mountSeed] = useState(() => Math.floor(Math.random() * 100000))
   const copy = resolveCopy(personality, mountSeed + (seed ?? 0), locale)
+  const showHome = home ?? Boolean(onInsertPrompt || onPickFiles || onSelectWorkspace)
+
+  if (showHome) {
+    const homeCopy = t.home
+    const actions: Array<{
+      description: string
+      icon: IconComponent
+      key: keyof typeof homeCopy.actions
+      onClick: () => void
+      title: string
+    }> = [
+      {
+        description: homeCopy.actions.analyze.description,
+        icon: FileText,
+        key: 'analyze',
+        onClick: () => onPickFiles?.(),
+        title: homeCopy.actions.analyze.label
+      },
+      {
+        description: homeCopy.actions.review.description,
+        icon: Code,
+        key: 'review',
+        onClick: () => homeCopy.actions.review.prompt && onInsertPrompt?.(homeCopy.actions.review.prompt),
+        title: homeCopy.actions.review.label
+      },
+      {
+        description: homeCopy.actions.research.description,
+        icon: Search,
+        key: 'research',
+        onClick: () => homeCopy.actions.research.prompt && onInsertPrompt?.(homeCopy.actions.research.prompt),
+        title: homeCopy.actions.research.label
+      },
+      {
+        description: homeCopy.actions.report.description,
+        icon: BarChart3,
+        key: 'report',
+        onClick: () => homeCopy.actions.report.prompt && onInsertPrompt?.(homeCopy.actions.report.prompt),
+        title: homeCopy.actions.report.label
+      }
+    ]
+
+    return (
+      <section className="aino-home-layout" data-home-layout="" data-slot="aui_intro">
+        <div className="aino-home-content">
+          <h1 className="aino-home-title">{WORDMARK}</h1>
+          <p className="aino-home-subtitle">{homeCopy.subtitle}</p>
+
+          {/* The real composer is positioned over this reserved slot by ChatView.
+              Keeping the slot in the intro preserves one source of truth for all
+              composer behavior while matching the landing-page rhythm. */}
+          <div aria-hidden="true" className="aino-home-composer-slot" />
+
+          <Button
+            aria-label={homeCopy.workspace}
+            className="aino-home-workspace"
+            onClick={() => onSelectWorkspace?.()}
+            size="default"
+            type="button"
+            variant="ghost"
+          >
+            <FolderOpen aria-hidden="true" />
+            <span>{homeCopy.workspace}</span>
+            <ChevronDown aria-hidden="true" className="aino-home-workspace-chevron" />
+          </Button>
+
+          <div className="aino-home-actions" role="group">
+            {actions.map(action => {
+              const Icon = action.icon
+
+              return (
+                <Button
+                  aria-label={action.title}
+                  className={cn('aino-home-action', `aino-home-action-${action.key}`)}
+                  key={action.key}
+                  onClick={action.onClick}
+                  type="button"
+                  variant="outline"
+                >
+                  <Icon aria-hidden="true" className="aino-home-action-icon" />
+                  <span className="aino-home-action-copy">
+                    <span className="aino-home-action-title">{action.title}</span>
+                    <span className="aino-home-action-description">{action.description}</span>
+                  </span>
+                </Button>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <div

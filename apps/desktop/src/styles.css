@@ -1606,6 +1606,224 @@ body.guest-pointer-lock :is(webview, iframe) {
   max-width: var(--composer-width);
 }
 
+/* ── Aino landing surface ────────────────────────────────────────────────
+   The empty chat keeps the real Thread + ChatBar mounted. This surface only
+   supplies the landing copy and quick-action affordances; the composer itself
+   is repositioned below so every send/attachment/voice path remains the same
+   implementation as a normal chat. */
+.aino-home-layout {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  text-align: center;
+}
+
+.aino-home-content {
+  display: flex;
+  width: min(780px, 100%);
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(clamp(-3.5rem, -6.2vh, -1.5rem));
+}
+
+.aino-home-title {
+  margin: 0;
+  color: var(--ui-text-primary);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.25rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.aino-home-subtitle {
+  max-width: 100%;
+  margin: 0.625rem 0 0;
+  color: var(--ui-text-tertiary);
+  font-size: 0.8125rem;
+  line-height: 1.625;
+  white-space: nowrap;
+}
+
+/* Mirrors the Figma placeholder under the heading. The actual ChatBar is
+   absolutely docked over this slot by the home-layout selectors below. */
+.aino-home-composer-slot {
+  width: 100%;
+  height: 8.28125rem;
+  flex: 0 0 8.28125rem;
+  margin-top: 2.0625rem;
+}
+
+.aino-home-workspace {
+  width: 100%;
+  min-height: 3.125rem;
+  height: 3.125rem;
+  justify-content: flex-start;
+  gap: 0.375rem;
+  margin-top: -0.75rem;
+  padding: 0.625rem 1rem;
+  border: 0;
+  border-radius: 1rem;
+  color: var(--ui-text-secondary);
+  background: color-mix(in srgb, var(--ui-base) 6%, transparent);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  text-align: start;
+}
+
+.aino-home-workspace:hover,
+.aino-home-workspace:focus-visible {
+  color: var(--ui-text-primary);
+  background: var(--ui-control-hover-background);
+}
+
+.aino-home-workspace svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: 0 0 auto;
+}
+
+.aino-home-workspace-chevron {
+  width: 0.6875rem !important;
+  height: 0.6875rem !important;
+  margin-left: 0.125rem;
+  opacity: 0.7;
+}
+
+.aino-home-actions {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+.aino-home-action {
+  min-width: 0;
+  min-height: 4.078125rem;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--ui-base) 6%, transparent);
+  border-radius: 0.75rem;
+  color: var(--ui-text-primary);
+  background: transparent;
+  box-shadow: none;
+  text-align: start;
+}
+
+.aino-home-action:hover,
+.aino-home-action:focus-visible {
+  border-color: var(--ui-stroke-secondary);
+  background: var(--ui-control-hover-background);
+  color: var(--ui-text-primary);
+}
+
+.aino-home-action-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  color: var(--ui-text-tertiary);
+}
+
+.aino-home-action-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.aino-home-action-title,
+.aino-home-action-description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aino-home-action-title {
+  color: var(--ui-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.aino-home-action-description {
+  color: var(--ui-text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+/* On the landing page the composer is the same live component, simply moved
+   into the visual slot from the design. Keep the selector scoped to the main
+   chat surface so HUD, pop-out, tiles, and regular sessions are untouched. */
+[data-chat-surface][data-home-layout] {
+  --composer-width: 780px;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='aui_thread-content'] {
+  padding-inline: 0;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-dock'] {
+  top: clamp(16rem, 32.8vh, 20rem);
+  bottom: auto;
+  width: calc(min(var(--composer-width), calc(100% - 2rem)) + 10px);
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-surface'] {
+  height: 8.28125rem;
+  min-height: 8.28125rem;
+  border-radius: 1rem;
+  background: var(--dt-card);
+  border-color: color-mix(in srgb, var(--ui-base) 10%, transparent) !important;
+  box-shadow: var(--shadow-nous);
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-fade'] {
+  min-height: 0;
+  padding: 1rem 1.25rem 0.75rem;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-rich-input'] {
+  min-height: 3.5rem;
+  padding-top: 0.125rem;
+  font-size: 0.875rem;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-surface'] > [data-slot='coding-status-row'] {
+  display: none;
+}
+
+@media (max-width: 56rem) {
+  .aino-home-subtitle {
+    white-space: normal;
+  }
+
+  .aino-home-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 38rem) {
+  .aino-home-content {
+    width: min(100%, calc(100vw - 2rem));
+  }
+
+  .aino-home-title {
+    font-size: 2.25rem;
+  }
+
+  .aino-home-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 [data-slot='aui_intro'] p:last-child {
   max-width: 34rem;
   margin-inline: auto;
