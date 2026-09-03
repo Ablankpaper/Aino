@@ -1739,7 +1739,7 @@ export const zh: Translations = {
         'Arcee AI': 'Arcee 托管的小型和中型模型。',
         'GMI Cloud': 'GMI Cloud GPU 与模型服务。',
         'Azure Foundry': 'Azure AI Foundry 自定义端点。',
-        'AWS Bedrock': '使用 AWS 配置档案和区域进行认证。'
+        'AWS Bedrock': '使用 AWS 配置文件和区域进行认证。'
       },
       loading: '正在加载提供方...'
     },

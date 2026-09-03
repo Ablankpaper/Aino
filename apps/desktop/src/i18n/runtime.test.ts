@@ -102,6 +102,7 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('settings.customEndpoints.emptyTitle')).toBe('暂无自定义端点')
     expect(translateNow('settings.customEndpoints.emptyDescription')).toBe('在下方添加一个 OpenAI 兼容端点。')
     expect(translateNow('settings.providers.descriptions.DeepSeek')).toBe('DeepSeek 直连接口（V3.x、R1）。')
+    expect(translateNow('settings.providers.descriptions.AWS Bedrock')).toBe('使用 AWS 配置文件和区域进行认证。')
     expect(translateNow('settings.computerUse.ready')).toBe('已就绪')
     expect(translateNow('settings.uninstall.dangerZone')).toBe('危险区域')
     expect(translateNow('settings.appearance.themeSearchPlaceholder')).toBe('搜索你的主题或 VS Code Marketplace…')
