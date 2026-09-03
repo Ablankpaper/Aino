@@ -111,7 +111,7 @@ def test_simplified_chinese_uses_consistent_agent_terminology():
     assert i18n.t("gateway.stop.stopped_pending", lang="zh") == "⚡ 已停止。智能体尚未启动 — 你可以继续此会话。"
     assert i18n.t("gateway.personality.cleared", lang="zh") == "🎭 已清除人格 — 使用基础智能体行为。\n_（在下一条消息时生效）_"
     assert i18n.t("gateway.usage.detailed_after_first", lang="zh") == "_（首次智能体响应后可查看详细使用情况）_"
-    assert i18n.t("gateway.profile.header", lang="zh", profile="工作") == "👤 **配置档案：** `工作`"
+    assert i18n.t("gateway.profile.header", lang="zh", profile="工作") == "👤 **工作区：** `工作`"
 
 
 def test_simplified_chinese_localizes_telegram_topic_guidance():

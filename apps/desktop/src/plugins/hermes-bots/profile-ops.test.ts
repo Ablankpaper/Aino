@@ -184,21 +184,21 @@ describe('duplicating a bot', () => {
   it('localizes the default-profile deletion guard', async () => {
     pluginCtx.current = {
       i18n: {
-        t: key => (key === 'bot.defaultDeleteBlocked' ? '默认配置档案不能删除。' : key)
+        t: key => (key === 'bot.defaultDeleteBlocked' ? '默认工作区不能删除。' : key)
       }
     }
 
-    await expect(deleteBot({ name: 'default' } as RosterRow)).rejects.toThrow('默认配置档案不能删除。')
+    await expect(deleteBot({ name: 'default' } as RosterRow)).rejects.toThrow('默认工作区不能删除。')
   })
 
   it('localizes the legacy profile-delete fallback when the gateway gives no detail', async () => {
     pluginCtx.current = {
       i18n: {
-        t: (key, name) => (key === 'bot.deleteFailed' ? `无法删除配置档案“${String(name)}”。` : key)
+        t: (key, name) => (key === 'bot.deleteFailed' ? `无法删除工作区“${String(name)}”。` : key)
       }
     }
     hostMock.request.mockResolvedValue({ code: 1 })
 
-    await expect(deleteBot({ name: 'researcher' } as RosterRow)).rejects.toThrow('无法删除配置档案“researcher”。')
+    await expect(deleteBot({ name: 'researcher' } as RosterRow)).rejects.toThrow('无法删除工作区“researcher”。')
   })
 })

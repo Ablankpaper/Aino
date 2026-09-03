@@ -128,8 +128,8 @@ describe('BOTS_LOCALES', () => {
     const zhByPath = Object.fromEntries(leafEntries(zh))
 
     expect(zhByPath['bot.duplicateNameExhausted']).toBe('没有可用的复制名称。')
-    expect(zhByPath['bot.defaultDeleteBlocked']).toBe('默认配置档案不能删除。')
-    expect(zhByPath['bot.remoteDeleteUnsupported']).toBe('当前桌面端暂不支持删除来源限定的配置档案。')
+    expect(zhByPath['bot.defaultDeleteBlocked']).toBe('默认工作区不能删除。')
+    expect(zhByPath['bot.remoteDeleteUnsupported']).toBe('当前桌面端暂不支持删除来源限定的工作区。')
     expect(zhByPath['bot.storedSessionOpenUnsupported']).toBe('当前桌面版本无法打开已保存的会话。')
     expect((zhByPath['bot.registryCheckFailed'] as (name: string, detail: string) => string)('研究员', '网关超时')).toBe(
       '无法检查 研究员 的机器人聊天注册表（网关超时） — 不会启动新聊天'

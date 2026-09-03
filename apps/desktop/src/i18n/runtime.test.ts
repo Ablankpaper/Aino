@@ -118,7 +118,7 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('settings.connections.localLabel')).toBe('此设备')
     expect(translateNow('rightSidebar.terminalStartFailed', 'PTY 不可用')).toBe('终端启动失败：PTY 不可用')
     expect(translateNow('settings.managedUpdates.scopeNotRestored', '工作', '连接失败')).toBe(
-      '配置档案“工作”未恢复：连接失败'
+      '工作区“工作”未恢复：连接失败'
     )
     expect(translateNow('settings.providers.removeKeyManaged', 'OpenAI')).toBe(
       'OpenAI 由 API 密钥配置。请从 API 密钥中移除。'
@@ -129,8 +129,8 @@ describe('desktop i18n runtime translator', () => {
   it('localizes gateway setup terminology while preserving technical values', () => {
     setRuntimeI18nLocale('zh')
 
-    expect(translateNow('settings.managedUpdates.scopesRestored', '工作、个人')).toBe('已恢复的配置档案：工作、个人')
-    expect(translateNow('settings.managedUpdates.progress')).toBe('正在排空会话、更新远端安装并恢复配置档案…')
+    expect(translateNow('settings.managedUpdates.scopesRestored', '工作、个人')).toBe('已恢复的工作区：工作、个人')
+    expect(translateNow('settings.managedUpdates.progress')).toBe('正在排空会话、更新远端安装并恢复工作区…')
     expect(translateNow('settings.gateway.remoteUrlDesc')).toBe(
       '远程仪表盘后端的基础 URL。支持路径前缀，例如 /hermes。'
     )
@@ -154,7 +154,7 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('settings.gateway.sshErrUpdateRequired')).toBe(
       '使用桌面端 SSH 连接前，请更新远程主机上的 Aino。'
     )
-    expect(translateNow('settings.profileScope.editsProfile', '工作')).toBe('此页面的更改将应用于“工作”配置档案。')
+    expect(translateNow('settings.profileScope.editsProfile', '工作')).toBe('此页面的更改将应用于工作区“工作”。')
   })
 
   it('localizes high-frequency English terminology in Simplified Chinese copy', () => {
@@ -165,10 +165,10 @@ describe('desktop i18n runtime translator', () => {
       '此 URL 使用了不安全的本地协议。生产环境请优先使用 https:// 或 git@。'
     )
     expect(translateNow('settings.appearance.themeProfileNote', '工作')).toBe(
-      '已为「工作」配置档案保存——每个配置档案保留各自的主题。'
+      '已为工作区「工作」保存主题——每个工作区保留各自的主题。'
     )
     expect(translateNow('settings.about.bundleOutOfSyncDesc')).toContain('机器人模式')
-    expect(translateNow('settings.managedUpdates.intro')).toContain('每个配置档案')
+    expect(translateNow('settings.managedUpdates.intro')).toContain('每个工作区')
     expect(translateNow('settings.mcp.reloadedMessage')).toBe('新的工具结构定义将在后续回合生效。')
     expect(translateNow('settings.sessions.defaultDirDesc')).toBe(
       '新会话默认从此文件夹开始，除非你选择其他目录。留空则使用你的主目录。'
@@ -217,7 +217,7 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('desktop.slashUnavailable.sessionPicker', '/resume')).toBe(
       '/resume 使用桌面会话选择器，而不是斜杠命令。'
     )
-    expect(translateNow('tips.items.profiles.title')).toBe('配置档案彼此独立')
+    expect(translateNow('tips.items.profiles.title')).toBe('工作区彼此独立')
   })
 
   it('localizes the built-in indicator command description', () => {
@@ -282,22 +282,22 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('ui.actions.labels.tokens')).toBe('词元数')
   })
 
-  it('uses the same 配置档案 term for profile navigation and status copy', () => {
+  it('uses the same 工作区 term for profile navigation and status copy', () => {
     setRuntimeI18nLocale('zh')
 
-    expect(translateNow('keybinds.categories.profiles')).toBe('配置档案')
+    expect(translateNow('keybinds.categories.profiles')).toBe('工作区')
 
     const keybindActions = TRANSLATIONS.zh.keybinds.actions
 
-    expect(keybindActions['nav.profiles']).toBe('打开配置档案')
-    expect(keybindActions['profile.default']).toBe('切换到默认配置档案')
-    expect(keybindActions['profile.switch.3']).toBe('切换到配置档案 3')
-    expect(keybindActions['profile.next']).toBe('下一个配置档案')
-    expect(keybindActions['profile.toggleAll']).toBe('切换全部配置档案视图')
-    expect(keybindActions['profile.create']).toBe('创建配置档案')
-    expect(translateNow('commandCenter.contributedActions.exportProfile')).toBe('导出配置档案…')
-    expect(translateNow('commandCenter.contributedActions.importProfile')).toBe('导入配置档案…')
-    expect(translateNow('sidebar.row.ownedByProfile', '工作')).toBe('配置档案：工作')
+    expect(keybindActions['nav.profiles']).toBe('打开工作区')
+    expect(keybindActions['profile.default']).toBe('切换到默认工作区')
+    expect(keybindActions['profile.switch.3']).toBe('切换到工作区 3')
+    expect(keybindActions['profile.next']).toBe('下一个工作区')
+    expect(keybindActions['profile.toggleAll']).toBe('切换全部工作区视图')
+    expect(keybindActions['profile.create']).toBe('创建工作区')
+    expect(translateNow('commandCenter.contributedActions.exportProfile')).toBe('导出工作区…')
+    expect(translateNow('commandCenter.contributedActions.importProfile')).toBe('导入工作区…')
+    expect(translateNow('sidebar.row.ownedByProfile', '工作')).toBe('工作区：工作')
   })
 
   it('translates clear Chinese equivalents while keeping configuration identifiers', () => {

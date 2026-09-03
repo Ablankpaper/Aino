@@ -26,7 +26,7 @@
  * Locales follow kanban: `en` / `ja` / `zh` / `zh-hant`. Arabic falls through
  * the resolution chain (active locale → this plugin's `en` → the key) the
  * same way a missing string in any locale does. Nouns match core: ボット /
- * 机器人 / 機器人, プロファイル / 配置档案 / 設定檔, ゲートウェイ / 网关 / 閘道.
+ * 机器人 / 機器人, プロファイル / 工作区 / 設定檔, ゲートウェイ / 网关 / 閘道.
  */
 
 import { type PluginLocaleBundles, type PluginTranslate, usePluginI18n } from '@hermes/plugin-sdk'
@@ -1387,8 +1387,8 @@ const zh: BotsMessages = {
     openChatToSeeIt: '打开聊天查看。',
     staleWaiting: '等待网关重新连接…',
     gatewayError: '网关错误',
-    deleteDescription: (name, path) => `将永久删除机器人 ${name} 及其 Hermes 配置档案（${path}）。此操作无法撤销。`,
-    deletedProfile: name => `已删除配置档案 ${name}`,
+    deleteDescription: (name, path) => `将永久删除机器人 ${name} 及其 Hermes 工作区（${path}）。此操作无法撤销。`,
+    deletedProfile: name => `已删除工作区 ${name}`,
     deletedGroup: name => `已删除群组“${name}”`,
     deleting: '删除中…',
     deleted: '已删除',
@@ -1421,7 +1421,7 @@ const zh: BotsMessages = {
   bot: {
     newTitle: '新建机器人',
     newCommand: '新建机器人…',
-    editTitle: '编辑配置档案',
+    editTitle: '编辑工作区',
     editMenu: '编辑…',
     helpPromptPlaceholder: '这个机器人应该帮你做什么？',
     descriptionHint: '留空则根据机器人的名称和描述生成。',
@@ -1430,13 +1430,13 @@ const zh: BotsMessages = {
     duplicate: '复制',
     duplicateFailed: '复制失败',
     duplicateNameExhausted: '没有可用的复制名称。',
-    deleteTitle: '删除机器人和配置档案？',
-    deleteFailed: name => `无法删除配置档案“${name}”。`,
-    defaultDeleteBlocked: '默认配置档案不能删除。',
-    remoteDeleteUnsupported: '当前桌面端暂不支持删除来源限定的配置档案。',
+    deleteTitle: '删除机器人和工作区？',
+    deleteFailed: name => `无法删除工作区“${name}”。`,
+    defaultDeleteBlocked: '默认工作区不能删除。',
+    remoteDeleteUnsupported: '当前桌面端暂不支持删除来源限定的工作区。',
     removeFromAllGroups: '从所有群组中移除',
     createFirstHint: '打开机器人面板，点击“新建机器人”。',
-    createFailed: '暂时无法创建配置档案',
+    createFailed: '暂时无法创建工作区',
     advanced: '高级',
     advancedHint: '高级 — 模型、技能、工具集、SOUL.md',
     advancedFailed: '高级配置失败',
@@ -1468,7 +1468,7 @@ const zh: BotsMessages = {
     storedSessionOpenUnsupported: '当前桌面版本无法打开已保存的会话。',
     registryCheckFailed: (name, detail) =>
       `无法检查 ${name} 的机器人聊天注册表${detail ? `（${detail}）` : ''} — 不会启动新聊天`,
-    attentionProviderAuth: '请重新登录此配置档案',
+    attentionProviderAuth: '请重新登录此工作区',
     attentionQuota: '配额或余额已用尽',
     attentionMissingConfig: '提供方未配置 — 请运行 hermes model',
     attentionBlocked: '机器人已被阻止 — 查看它的最后一条消息',
@@ -1491,7 +1491,7 @@ const zh: BotsMessages = {
     sectionsFailed: sections => `部分区域失败：${sections}`,
     updated: name => `已更新 ${name}`,
     draftDiscarded: name => `已放弃草稿机器人“${name}”`,
-    draftCleanupFailed: name => `无法清理草稿配置档案“${name}”`,
+    draftCleanupFailed: name => `无法清理草稿工作区“${name}”`,
     nameTaken: slug => `名为“${slug}”的智能体已存在。`,
     nameTakenOn: (slug, target) => `${target} 上已存在名为“${slug}”的智能体。`,
     general: '常规',
@@ -1499,24 +1499,24 @@ const zh: BotsMessages = {
     skills: '技能',
     tools: '工具',
     mcp: 'MCP',
-    cloneFromProfile: '从配置档案克隆',
-    cloneFromRemote: target => `从配置档案克隆（位于 ${target}）`,
-    freshProfile: '全新配置档案（包含内置技能）',
-    inheritedModel: '继承启动配置档案',
+    cloneFromProfile: '从工作区克隆',
+    cloneFromRemote: target => `从工作区克隆（位于 ${target}）`,
+    freshProfile: '全新工作区（包含内置技能）',
+    inheritedModel: '继承启动工作区',
     soulLabel: 'SOUL.md（可选 — 替换自动生成的人格）',
-    shareAuth: '与主配置档案共享密钥和账户',
+    shareAuth: '与主工作区共享密钥和账户',
     shareAuthDescription:
       '订阅、OAuth 登录和 API 密钥保持共享（不会复制），因此令牌刷新不会互相失效。取消勾选可创建隔离的快照副本。',
     noSkills: '创建空配置（跳过内置技能）',
     capabilitiesNameTaken: '该名称已被占用 — 请先换一个名称再配置能力。',
-    capabilitiesNameHint: '请先填写机器人名称 — 打开此标签页时会创建草稿配置档案（取消时会放弃）。',
+    capabilitiesNameHint: '请先填写机器人名称 — 打开此标签页时会创建草稿工作区（取消时会放弃）。',
     skillsUnsupported: '技能需要更新版本的 Hermes Desktop。',
     catalogUnsupported: '能力目录需要更新版本的网关（更新 Hermes 后请重启网关）。',
     emptySkills: '已勾选“创建空配置” — 不会安装内置技能。',
     catalogFrom: source => `目录来源：${source} — 创建后未勾选的技能会被禁用。`,
     toolsetHint: '全部（或全部不选）会保留默认工具集行为。',
     mcpHint:
-      '已配置的服务器会从主配置档案复制；目录条目是内置 MCP 菜单。需要 API 密钥的条目会先进入设置流程（凭据遵循共享密钥设置）。',
+      '已配置的服务器会从主工作区复制；目录条目是内置 MCP 菜单。需要 API 密钥的条目会先进入设置流程（凭据遵循共享密钥设置）。',
     catalogInstalled: '目录 · 已安装',
     catalog: '目录',
     createAction: '创建机器人',
@@ -1658,7 +1658,7 @@ const zh: BotsMessages = {
     respond: '响应',
     answer: '回答',
     newDescription: max =>
-      `请选择 2–${max} 个机器人。本地成员关系会同步到各自的机器人配置档案；跨机器成员会限定在此房间内。`,
+      `请选择 2–${max} 个机器人。本地成员关系会同步到各自的机器人工作区；跨机器成员会限定在此房间内。`,
     createAndJoin: '创建并加入',
     newGroupPlaceholder: '新建群组…',
     groupNameExample: '群组名称（例如：Research）',
@@ -1697,7 +1697,7 @@ const zh: BotsMessages = {
     signIn: '登录…',
     setUp: '设置…',
     completeSignIn: '请在浏览器中完成登录…',
-    noTargetProfile: '没有目标配置档案',
+    noTargetProfile: '没有目标工作区',
     couldNotAddServer: '无法添加服务器',
     failedToSet: key => `无法设置 ${key}`,
     configured: name => `已配置 ${name}`,
@@ -1718,13 +1718,13 @@ const zh: BotsMessages = {
     modelCustomPlaceholder: '例如：antigravity/gemini-3.6-flash-high',
     gatewayDefault: '网关默认值',
     backToDropdowns: '← 返回下拉选项',
-    inheritLaunch: '继承（启动配置档案）',
+    inheritLaunch: '继承（启动工作区）',
     enterManually: '✏️ 手动输入…',
     modelNamePlaceholder: '例如：模型名称'
   },
   cron: {
     filterHint:
-      '此配置档案中有定时任务，但没有一个标记给这个机器人。将任务命名为“[bot:<名称>] …”即可显示在这里，也可以在下方的 Cron 中查看。',
+      '此工作区中有定时任务，但没有一个标记给这个机器人。将任务命名为“[bot:<名称>] …”即可显示在这里，也可以在下方的 Cron 中查看。',
     needsRosterFirst: '这个机器人需要先出现在名册中。',
     staleNotice: '无法刷新定时任务。显示的是上一次获取的列表。',
     readFailure: '列表可能仍然存在 — 这是一次读取失败，不是删除。',

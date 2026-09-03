@@ -522,7 +522,7 @@ describe('connection-aware plugin host APIs', () => {
         profile: 'worker',
         targetProfile: 'default'
       })
-    ).rejects.toThrow('无法删除默认配置档案。')
+    ).rejects.toThrow('无法删除默认工作区。')
 
     expect(deleteProfile).not.toHaveBeenCalled()
   })

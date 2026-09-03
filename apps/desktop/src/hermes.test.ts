@@ -514,8 +514,8 @@ describe('Hermes REST helpers', () => {
   it('localizes profile validation failures for the active locale', async () => {
     setRuntimeI18nLocale('zh')
 
-    await expect(deleteProfile('')).rejects.toThrow('需要配置档案名称')
-    await expect(deleteProfile('default')).rejects.toThrow('无法删除默认配置档案。')
+    await expect(deleteProfile('')).rejects.toThrow('需要工作区名称')
+    await expect(deleteProfile('default')).rejects.toThrow('无法删除默认工作区。')
 
     setRuntimeI18nLocale('en')
 

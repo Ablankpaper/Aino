@@ -61,7 +61,7 @@ describe('selectProfile', () => {
 
     selectProfile('ops')
 
-    await vi.waitFor(() => expect(notifyError).toHaveBeenCalledWith(expect.any(Error), '切换配置档案“ops”失败'))
+    await vi.waitFor(() => expect(notifyError).toHaveBeenCalledWith(expect.any(Error), '切换工作区“ops”失败'))
   })
 
   it('activates the pick on the live registry source, not the primary', async () => {

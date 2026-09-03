@@ -139,7 +139,7 @@ describe('exportProfileBundle', () => {
 
     expect(selectSavePath).toHaveBeenCalledWith(
       expect.objectContaining({
-        filters: [{ extensions: ['tar.gz', 'tgz'], name: 'Aino 配置档案' }]
+        filters: [{ extensions: ['tar.gz', 'tgz'], name: 'Aino 工作区' }]
       })
     )
   })
