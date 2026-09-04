@@ -1,7 +1,14 @@
 import { useStore } from '@nanostores/react'
 
+import composerAutoSpeakIcon from '@/assets/aino-home/composer-autospeak.svg'
+import composerDictationIcon from '@/assets/aino-home/composer-dictation.svg'
+import composerSendIcon from '@/assets/aino-home/composer-send.svg'
+import composerVoiceIcon from '@/assets/aino-home/composer-voice.svg'
+import composerWakeIcon from '@/assets/aino-home/composer-wake.svg'
+import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
+import { Switch } from '@/components/ui/switch'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
@@ -41,6 +48,7 @@ export function ComposerControls({
   disabled,
   foldVoice = false,
   hasComposerPayload,
+  homeLayout = false,
   minimal = false,
   state,
   voiceStatus,
@@ -57,6 +65,7 @@ export function ComposerControls({
   disabled: boolean
   foldVoice?: boolean
   hasComposerPayload: boolean
+  homeLayout?: boolean
   minimal?: boolean
   state: ChatBarState
   voiceStatus: VoiceStatus
@@ -85,18 +94,33 @@ export function ComposerControls({
   // else, which is the one thing that must survive every width.
   const foldedVoice = hudMode || foldVoice
 
-  const voiceControls = foldedVoice ? (
-    <VoiceMenu
-      autoSpeak={autoSpeak}
-      disabled={disabled}
-      onDictate={onDictate}
-      onStartConversation={conversation.onStart}
-      onToggleAutoSpeak={onToggleAutoSpeak}
-      state={state}
-      voiceStatus={voiceStatus}
-    />
+  const modelPill = (
+    <ModelPill compact={compactModelPill} disabled={disabled} landing={homeLayout} model={state.model} />
+  )
+
+  const secondaryControls = foldedVoice ? (
+    <>
+      {modelPill}
+      <VoiceMenu
+        autoSpeak={autoSpeak}
+        disabled={disabled}
+        onDictate={onDictate}
+        onStartConversation={conversation.onStart}
+        onToggleAutoSpeak={onToggleAutoSpeak}
+        state={state}
+        voiceStatus={voiceStatus}
+      />
+    </>
+  ) : homeLayout ? (
+    <>
+      <WakeWordButton disabled={disabled} landing />
+      {modelPill}
+      <AutoSpeakButton active={autoSpeak} disabled={disabled} landing onToggle={onToggleAutoSpeak} />
+      <DictationButton disabled={disabled} landing onToggle={onDictate} state={state.voice} status={voiceStatus} />
+    </>
   ) : (
     <>
+      {modelPill}
       <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
       <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
       <WakeWordButton disabled={disabled} />
@@ -105,12 +129,7 @@ export function ComposerControls({
 
   return (
     <div className="ml-auto flex min-w-0 shrink items-center gap-(--composer-control-gap)">
-      {minimal ? null : (
-        <>
-          <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
-          {voiceControls}
-        </>
-      )}
+      {minimal ? null : secondaryControls}
       {showQueueButton ? (
         <Tip label={<TipKeybindLabel actionId="composer.queue" text={c.queueMessage} />}>
           <Button
@@ -127,21 +146,40 @@ export function ComposerControls({
         </Tip>
       ) : null}
       {showVoicePrimary ? (
-        <Tip label={c.startVoice}>
-          <Button
-            aria-label={c.startVoice}
-            className={PRIMARY_ICON_BTN}
-            disabled={disabled}
-            onClick={() => {
-              triggerHaptic('open')
-              conversation.onStart()
-            }}
-            size="icon"
-            type="button"
-          >
-            <AudioLines className={iconSize.sm} />
-          </Button>
-        </Tip>
+        <>
+          <Tip label={c.startVoice}>
+            <Button
+              aria-label={c.startVoice}
+              className={PRIMARY_ICON_BTN}
+              disabled={disabled}
+              onClick={() => {
+                triggerHaptic('open')
+                conversation.onStart()
+              }}
+              size="icon"
+              type="button"
+            >
+              {homeLayout ? (
+                <AinoDesignIcon className="size-3" src={composerVoiceIcon} />
+              ) : (
+                <AudioLines className={iconSize.sm} />
+              )}
+            </Button>
+          </Tip>
+          {homeLayout && (
+            <Tip label={<TipKeybindLabel actionId="composer.send" text={c.send} />}>
+              <Button
+                aria-label={c.send}
+                className={PRIMARY_ICON_BTN}
+                data-home-disabled-send=""
+                disabled
+                type="submit"
+              >
+                <AinoDesignIcon className="size-3" src={composerSendIcon} />
+              </Button>
+            </Tip>
+          )}
+        </>
       ) : (
         <Tip
           label={
@@ -160,6 +198,8 @@ export function ComposerControls({
           >
             {showStop ? (
               <span className="block size-2.5 rounded-[0.1875rem] bg-current" />
+            ) : homeLayout ? (
+              <AinoDesignIcon className="size-3" src={composerSendIcon} />
             ) : (
               <Codicon name="arrow-up" size="0.875rem" />
             )}
@@ -324,7 +364,17 @@ function ConversationIndicator({
 // Pure-TTS toggle: type normally, but have every assistant reply read aloud —
 // no dictation, no full conversation loop. Filled/accent when on, mirroring the
 // muted-mic pressed state above. Driven by (and persisted to) `voice.auto_tts`.
-function AutoSpeakButton({ active, disabled, onToggle }: { active: boolean; disabled: boolean; onToggle: () => void }) {
+function AutoSpeakButton({
+  active,
+  disabled,
+  landing = false,
+  onToggle
+}: {
+  active: boolean
+  disabled: boolean
+  landing?: boolean
+  onToggle: () => void
+}) {
   const { t } = useI18n()
   const c = t.composer
   const label = active ? c.stopSpeakingReplies : c.speakReplies
@@ -335,6 +385,7 @@ function AutoSpeakButton({ active, disabled, onToggle }: { active: boolean; disa
         aria-label={label}
         aria-pressed={active}
         className={cn(GHOST_ICON_BTN, 'p-0', active && ACTIVE_ICON_BTN)}
+        data-slot={landing ? 'home-auto-speak' : undefined}
         disabled={disabled}
         onClick={() => {
           triggerHaptic(active ? 'close' : 'open')
@@ -344,7 +395,13 @@ function AutoSpeakButton({ active, disabled, onToggle }: { active: boolean; disa
         type="button"
         variant="ghost"
       >
-        {active ? <Volume2 className={iconSize.sm} /> : <VolumeX className={iconSize.sm} />}
+        {active ? (
+          <Volume2 className={iconSize.sm} />
+        ) : landing ? (
+          <AinoDesignIcon className="size-4" src={composerAutoSpeakIcon} />
+        ) : (
+          <VolumeX className={iconSize.sm} />
+        )}
       </Button>
     </Tip>
   )
@@ -359,7 +416,15 @@ function AutoSpeakButton({ active, disabled, onToggle }: { active: boolean; disa
 // the mic — the one time wake genuinely must not listen). Backend refusals
 // ({started:false, reason}) keep the toggle off and put the reason/hint in
 // the tooltip.
-function WakeWordButton({ disabled, pausedForVoice = false }: { disabled: boolean; pausedForVoice?: boolean }) {
+function WakeWordButton({
+  disabled,
+  landing = false,
+  pausedForVoice = false
+}: {
+  disabled: boolean
+  landing?: boolean
+  pausedForVoice?: boolean
+}) {
   const { t } = useI18n()
   const c = t.composer
   const wake = useStore($wakeWord)
@@ -373,6 +438,27 @@ function WakeWordButton({ disabled, pausedForVoice = false }: { disabled: boolea
       : c.wakeWordOff(phrase)
 
   const tooltip = !pausedForVoice && wake.notice ? `${label} — ${wake.notice}` : label
+
+  if (landing) {
+    return (
+      <div className="flex shrink-0 items-center gap-1.5 text-(--aino-landing-placeholder)" data-slot="home-wake-word">
+        <AinoDesignIcon className="size-4" src={composerWakeIcon} />
+        <Tip label={tooltip}>
+          <span className="flex">
+            <Switch
+              aria-label={label}
+              checked={wake.listening}
+              disabled={disabled || wake.pending}
+              onCheckedChange={checked => {
+                triggerHaptic(checked ? 'open' : 'close')
+                void toggleWakeWord()
+              }}
+            />
+          </span>
+        </Tip>
+      </div>
+    )
+  }
 
   return (
     <Tip label={tooltip}>
@@ -397,11 +483,13 @@ function WakeWordButton({ disabled, pausedForVoice = false }: { disabled: boolea
 
 function DictationButton({
   disabled,
+  landing = false,
   state,
   status,
   onToggle
 }: {
   disabled: boolean
+  landing?: boolean
   state: ChatBarState['voice']
   status: VoiceStatus
   onToggle: () => void
@@ -426,6 +514,7 @@ function DictationButton({
           status === 'transcribing' && 'bg-primary/10 text-primary'
         )}
         data-active={active}
+        data-slot={landing ? 'home-dictation' : undefined}
         disabled={disabled || !state.enabled || status === 'transcribing'}
         onClick={() => {
           triggerHaptic(active ? 'close' : 'open')
@@ -439,6 +528,8 @@ function DictationButton({
           <Square className={cn('fill-current', iconSize.xs)} />
         ) : status === 'transcribing' ? (
           <Loader2 className={cn('animate-spin', iconSize.sm)} />
+        ) : landing ? (
+          <AinoDesignIcon className="size-4" src={composerDictationIcon} />
         ) : (
           <Codicon name="mic" size="0.875rem" />
         )}

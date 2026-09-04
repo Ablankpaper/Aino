@@ -27,6 +27,41 @@ test.afterAll(async () => {
 })
 
 test.describe('chat interaction with mock backend', () => {
+  test('aligns the live composer with its home layout slot', async () => {
+    const page = fixture!.page
+    const surface = page.locator('[data-chat-surface][data-home-layout]').first()
+    const composer = surface.locator('[data-slot="composer-surface"]')
+
+    await expect(surface).toBeVisible()
+    await expect(composer).toBeVisible()
+
+    const metrics = await surface.evaluate(node => {
+      const dock = node.querySelector<HTMLElement>('[data-slot="composer-dock"]')
+      const slot = node.querySelector<HTMLElement>('.aino-home-composer-slot')
+
+      if (!dock || !slot) {
+        throw new Error('Home layout did not render its composer dock and reserved slot')
+      }
+
+      const dockRect = dock.getBoundingClientRect()
+      const slotRect = slot.getBoundingClientRect()
+      const hitTarget = document.elementFromPoint(dockRect.left + dockRect.width / 2, dockRect.top + dockRect.height / 2)
+
+      return {
+        leftDelta: Math.abs(dockRect.left + 5 - slotRect.left),
+        pointerInteractive: Boolean(hitTarget && dock.contains(hitTarget)),
+        topDelta: Math.abs(dockRect.top - slotRect.top),
+        visibleSurfaceWidth: dockRect.width - 10,
+        slotWidth: slotRect.width
+      }
+    })
+
+    expect(metrics.topDelta, JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+    expect(metrics.leftDelta, JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+    expect(Math.abs(metrics.visibleSurfaceWidth - metrics.slotWidth), JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+    expect(metrics.pointerInteractive, JSON.stringify(metrics)).toBe(true)
+  })
+
   test('send a message and receive a response', async () => {
     const page = fixture!.page
 
@@ -82,11 +117,102 @@ test.describe('chat interaction with mock backend', () => {
     )
   })
 
+  test('keeps the composer docked and uses the focused conversation layout after send', async () => {
+    const page = fixture!.page
+    const surface = page.locator('[data-chat-surface]').first()
+    const composer = surface.locator('[data-slot="composer-surface"]')
+    const userBubble = surface.locator('[data-slot="aui_user-bubble-actions"] button').first()
+    const assistantContent = surface.locator('[data-slot="aui_assistant-message-content"]').first()
+    const userActionRow = surface.locator('[data-slot="aui_user-actions-row"]').first()
+
+    await expect(surface).toHaveAttribute('data-conversation-layout', '')
+    await expect(composer).toBeVisible()
+    await expect(userBubble).toBeVisible()
+    await expect(assistantContent).toBeVisible()
+    await expect(userActionRow).toBeVisible()
+    await expect(userActionRow.getByRole('button', { name: 'Copy' })).toBeVisible()
+    await expect(userActionRow.getByRole('button', { name: 'Edit message' })).toBeVisible()
+    await expect(userActionRow.getByRole('button', { name: 'Restore checkpoint' })).toBeVisible()
+
+    const metrics = await surface.evaluate(node => {
+      const composerNode = node.querySelector<HTMLElement>('[data-slot="composer-surface"]')
+      const composerBounds = node.querySelector<HTMLElement>('[data-slot="composer-bounds"]')
+      const composerDock = node.querySelector<HTMLElement>('[data-slot="composer-dock"]')
+      const userNode = node.querySelector<HTMLElement>('[data-slot="aui_user-bubble-actions"] button')
+      const userBubbleNode = node.querySelector<HTMLElement>('[data-slot="aui_user-bubble"]')
+      const userActionsNode = node.querySelector<HTMLElement>('[data-slot="aui_user-actions-row"]')
+      const assistantNode = node.querySelector<HTMLElement>('[data-slot="aui_assistant-message-content"]')
+      const firstAssistantAction = node.querySelector<HTMLElement>('[data-slot="aui_msg-actions"] button')
+
+      if (
+        !composerNode ||
+        !composerBounds ||
+        !composerDock ||
+        !userNode ||
+        !userBubbleNode ||
+        !userActionsNode ||
+        !assistantNode ||
+        !firstAssistantAction
+      ) {
+        throw new Error('Conversation layout did not render its composer and message surfaces')
+      }
+
+      const surfaceRect = node.getBoundingClientRect()
+      const boundsRect = composerBounds.getBoundingClientRect()
+      const dockRect = composerDock.getBoundingClientRect()
+      const composerRect = composerNode.getBoundingClientRect()
+      const userRect = userNode.getBoundingClientRect()
+      const userBubbleRect = userBubbleNode.getBoundingClientRect()
+      const userActionsRect = userActionsNode.getBoundingClientRect()
+      const assistantRect = assistantNode.getBoundingClientRect()
+      const actionRect = firstAssistantAction.getBoundingClientRect()
+      const composerHitTarget = document.elementFromPoint(
+        composerRect.left + composerRect.width / 2,
+        composerRect.top + composerRect.height / 2
+      )
+
+      return {
+        actionLeft: actionRect.left,
+        assistantLeft: assistantRect.left,
+        boundsBottom: boundsRect.bottom,
+        composerBottomGap: surfaceRect.bottom - composerRect.bottom,
+        composerCenterDelta: Math.abs(
+          composerRect.left + composerRect.width / 2 - (surfaceRect.left + surfaceRect.width / 2)
+        ),
+        composerLeft: composerRect.left,
+        composerReceivesPointer: Boolean(composerHitTarget && composerNode.contains(composerHitTarget)),
+        composerWidth: composerRect.width,
+        dockPosition: getComputedStyle(composerDock).position,
+        dockTop: dockRect.top,
+        surfaceWidth: surfaceRect.width,
+        userActionsBelowBubble: userActionsRect.top >= userBubbleRect.bottom,
+        userActionsRightGap: Math.abs(userActionsRect.right - userBubbleRect.right),
+        userRightGap: composerRect.right - userRect.right,
+        userWidth: userRect.width
+      }
+    })
+
+    expect(metrics.composerBottomGap, JSON.stringify(metrics)).toBeGreaterThanOrEqual(0)
+    expect(metrics.composerBottomGap, JSON.stringify(metrics)).toBeLessThanOrEqual(32)
+    expect(metrics.composerCenterDelta, JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+    expect(metrics.composerReceivesPointer, JSON.stringify(metrics)).toBe(true)
+    expect(metrics.dockPosition, JSON.stringify(metrics)).toBe('relative')
+    expect(Math.abs(metrics.boundsBottom - metrics.dockTop), JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+    expect(metrics.composerWidth, JSON.stringify(metrics)).toBeLessThanOrEqual(800)
+    expect(metrics.composerWidth, JSON.stringify(metrics)).toBeLessThan(metrics.surfaceWidth - 64)
+    expect(metrics.userWidth, JSON.stringify(metrics)).toBeLessThan(metrics.composerWidth * 0.8)
+    expect(Math.abs(metrics.userRightGap), JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+    expect(metrics.userActionsBelowBubble, JSON.stringify(metrics)).toBe(true)
+    expect(metrics.userActionsRightGap, JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+    expect(Math.abs(metrics.assistantLeft - metrics.composerLeft), JSON.stringify(metrics)).toBeLessThanOrEqual(24)
+    expect(Math.abs(metrics.actionLeft - metrics.assistantLeft), JSON.stringify(metrics)).toBeLessThanOrEqual(24)
+  })
+
   test('screenshot of chat with messages', async () => {
     await expectVisualSnapshot(fixture!.page, { name: 'chat-with-messages', app: fixture!.app })
   })
 
-  test('offers stop, steer, and queue actions while busy', async ({}, testInfo) => {
+  test('offers stop, send-to-steer, and queue actions while busy', async ({}, testInfo) => {
     const page = fixture!.page
     const composer = page.locator('[contenteditable="true"]').first()
     const primary = page.locator('[data-slot="composer-root"] button[type="submit"]')
@@ -106,7 +232,10 @@ test.describe('chat interaction with mock backend', () => {
 
     await composer.click()
     await composer.type('please answer tersely')
-    await expect(primary).toHaveAttribute('aria-label', /Steer/)
+    // A mid-turn correction intentionally keeps the familiar Send label and
+    // arrow; submitDraft routes that payload through the steer path. Queue is
+    // the adjacent secondary action.
+    await expect(primary).toHaveAttribute('aria-label', 'Send')
     await expect(dictation).toBeVisible()
     await expect(speakReplies).toBeVisible()
     await expect(queue).toBeVisible()
@@ -119,11 +248,9 @@ test.describe('chat interaction with mock backend', () => {
     )
     expect(controlLabels.indexOf('Voice dictation')).toBeLessThan(speakRepliesIndex)
     expect(speakRepliesIndex).toBeLessThan(controlLabels.indexOf('Queue message'))
-    expect(controlLabels.indexOf('Queue message')).toBeLessThan(
-      controlLabels.findIndex(label => label?.startsWith('Steer'))
-    )
-    await page.screenshot({ path: testInfo.outputPath('busy-composer-steer.png') })
-    await expect(primary.locator('svg.tabler-icon-steering-wheel')).toBeVisible()
+    expect(controlLabels.indexOf('Queue message')).toBeLessThan(controlLabels.lastIndexOf('Send'))
+    await page.screenshot({ path: testInfo.outputPath('busy-composer-send-to-steer.png') })
+    await expect(primary.locator('.codicon-arrow-up')).toBeVisible()
 
     await queue.click()
     await expect(primary).toHaveAttribute('aria-label', 'Stop')

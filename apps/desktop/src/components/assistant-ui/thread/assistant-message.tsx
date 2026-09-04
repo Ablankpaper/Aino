@@ -604,7 +604,10 @@ const AssistantActionBar: FC<MessageActionProps & { durationS?: number }> = ({
   )
 
   return (
-    <div className="relative flex w-full shrink-0 items-center justify-end gap-1.5">
+    <div
+      className="relative flex w-full shrink-0 items-center justify-end gap-1.5"
+      data-slot="aui_assistant-actions-row"
+    >
       {durationS !== undefined && (
         <span
           className="mr-auto select-none px-0.5 text-[0.6875rem] leading-5 tabular-nums text-muted-foreground"
@@ -733,7 +736,10 @@ const ReadAloudButton: FC<{ getText: () => string; messageId: string }> = ({ get
 
 const AssistantFooter: FC<MessageActionProps & { durationS?: number }> = ({ durationS, ...props }) => {
   return (
-    <div className="flex min-h-6 flex-col items-end gap-1 pr-(--message-text-indent) pl-(--message-text-indent)">
+    <div
+      className="flex min-h-6 flex-col items-end gap-1 pr-(--message-text-indent) pl-(--message-text-indent)"
+      data-slot="aui_assistant-footer"
+    >
       <BranchPickerPrimitive.Root
         className="inline-flex h-6 items-center gap-1 text-xs text-muted-foreground"
         hideWhenSingleBranch

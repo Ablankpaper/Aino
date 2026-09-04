@@ -99,6 +99,7 @@ for call-site shadow or border inventions.
 | `--ui-widget-surface-background` | fill for inline chat widgets (`WIDGET_SHELL_CLASS`) |
 | `--chrome-action-hover` | hover fill for quiet controls |
 | `--theme-primary`, `--ui-accent` | brand/accent |
+| `--aino-landing-*`, `--shadow-aino-landing-composer` | Figma-authored Aino home/sidebar palette and composer elevation; light values mirror the approved frame, dark values fall back to theme tokens |
 
 Never hardcode `border-gray-*`, `bg-white`, `text-black`, etc. The white tile in
 `BrandMark` is the one sanctioned literal (the mark needs a fixed backdrop).

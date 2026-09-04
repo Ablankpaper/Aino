@@ -6,11 +6,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router'
 
 import { PlatformAvatar } from '@/app/messaging/platform-icon'
+import navArtifactsIcon from '@/assets/aino-home/nav-artifacts.svg'
+import navCronIcon from '@/assets/aino-home/nav-cron.svg'
+import navMessagingIcon from '@/assets/aino-home/nav-messaging.svg'
+import navNewSessionIcon from '@/assets/aino-home/nav-new-session.svg'
+import navSkillsIcon from '@/assets/aino-home/nav-skills.svg'
+import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
-import { KbdGroup } from '@/components/ui/kbd'
 import { SearchField } from '@/components/ui/search-field'
 import {
   Sidebar,
@@ -25,6 +30,7 @@ import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
 import { useContributions } from '@/contrib/react/use-contributions'
 import { searchSessions, type SessionInfo, type SessionSearchResult } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { Settings2 } from '@/lib/icons'
 import { comboTokens } from '@/lib/keybinds/combo'
 import { resolveProfileColor } from '@/lib/profile-color'
 import { sessionMatchesSearch } from '@/lib/session-search'
@@ -74,6 +80,7 @@ import {
 } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
 import {
+  $activeProfile,
   $newChatProfile,
   $profileColors,
   $profiles,
@@ -81,6 +88,7 @@ import {
   ALL_PROFILES,
   messagingTotalsKey,
   normalizeProfileKey,
+  profileLabel,
   sidebarProfileForScope
 } from '@/store/profile'
 import {
@@ -138,6 +146,7 @@ import {
   ARTIFACTS_ROUTE,
   CRON_ROUTE,
   MESSAGING_ROUTE,
+  SETTINGS_ROUTE,
   SIDEBAR_NAV_AREA,
   type SidebarNavContribution,
   SKILLS_ROUTE
@@ -169,7 +178,12 @@ import {
   useRepoWorktreeMap
 } from './projects'
 import { WorktreeDialog } from './projects/worktree-dialog'
-import { SidebarBlankState, SidebarPinnedEmptyState, SidebarSessionSkeletons } from './section-states'
+import {
+  SidebarBlankState,
+  SidebarIdentityFooter,
+  SidebarPinnedEmptyState,
+  SidebarSessionSkeletons
+} from './section-states'
 import { buildSessionByAnyId, resolvePinnedSessions } from './session-index'
 import { SidebarSessionsSection, VIRTUALIZE_THRESHOLD } from './sessions-section'
 import { CONTEXT_SPLIT_KIT, SplitSubmenu } from './split-submenu'
@@ -189,35 +203,35 @@ const SIDEBAR_NAV: SidebarNavItem[] = [
   {
     id: 'new-session',
     label: '',
-    icon: props => <Codicon name="robot" {...props} />,
+    icon: props => <AinoDesignIcon src={navNewSessionIcon} {...props} />,
     action: 'new-session',
     keybindActionId: 'session.new'
   },
   {
     id: 'skills',
     label: '',
-    icon: props => <Codicon name="symbol-misc" {...props} />,
+    icon: props => <AinoDesignIcon src={navSkillsIcon} {...props} />,
     route: SKILLS_ROUTE,
     keybindActionId: 'nav.skills'
   },
   {
     id: 'messaging',
     label: '',
-    icon: props => <Codicon name="comment" {...props} />,
+    icon: props => <AinoDesignIcon src={navMessagingIcon} {...props} />,
     route: MESSAGING_ROUTE,
     keybindActionId: 'nav.messaging'
   },
   {
     id: 'artifacts',
     label: '',
-    icon: props => <Codicon name="files" {...props} />,
+    icon: props => <AinoDesignIcon src={navArtifactsIcon} {...props} />,
     route: ARTIFACTS_ROUTE,
     keybindActionId: 'nav.artifacts'
   },
   {
     id: 'cron',
     label: '',
-    icon: props => <Codicon name="watch" {...props} />,
+    icon: props => <AinoDesignIcon src={navCronIcon} {...props} />,
     route: CRON_ROUTE,
     keybindActionId: 'nav.cron'
   }
@@ -387,9 +401,12 @@ export function ChatSidebar({
   const sessionProfilesTruncated = useStore($sessionProfilesTruncated)
   const unreadCount = useStore($unreadFinishedSessionIds).length
   const profiles = useStore($profiles)
+  const activeProfileName = useStore($activeProfile)
   const profileColors = useStore($profileColors)
   const profileScope = useStore($profileScope)
   const activeConnectionId = useStore($activeConnectionId)
+  const currentProfile = profiles.find(profile => normalizeProfileKey(profile.name) === normalizeProfileKey(activeProfileName))
+  const identityLabel = currentProfile ? profileLabel(currentProfile) : activeProfileName
 
   // Toggle the persisted read-state watermark from a row menu. The row's own
   // `unread` prop mirrors what the dot paints; flip it and let the backend
@@ -1467,10 +1484,10 @@ export function ChatSidebar({
       data-tip-region=""
       data-tour="sessions-sidebar"
     >
-      <SidebarContent className="gap-0 overflow-hidden bg-transparent px-2.5">
-        <SidebarGroup className="shrink-0 p-0 pb-2 pt-[calc(var(--titlebar-height)+0.375rem)]">
+      <SidebarContent className="gap-0 overflow-hidden bg-transparent px-2">
+        <SidebarGroup className="shrink-0 p-0 pt-2">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-px">
+            <SidebarMenu className="gap-0">
               {[...SIDEBAR_NAV, ...contributedNav].map(item => {
                 const isInteractive = Boolean(item.action) || Boolean(item.route)
 
@@ -1495,9 +1512,9 @@ export function ChatSidebar({
                       // resolved region has been observed to swallow clicks on the
                       // top rows. Same carve-out as USER_BUBBLE_BASE_CLASS in
                       // thread.tsx.
-                      'flex h-7 w-full justify-start gap-2 rounded-md border border-transparent px-2 text-left text-[0.8125rem] font-medium text-(--ui-text-secondary) transition-colors duration-100 ease-out [-webkit-app-region:no-drag] hover:bg-(--ui-control-hover-background) hover:text-foreground hover:transition-none',
+                      'flex h-[38px] w-full justify-start gap-2.5 rounded-[8px] border-0 px-3 py-2 text-left text-[0.8125rem] leading-[19.5px] font-normal text-(--aino-landing-nav-text) transition-colors duration-100 ease-out [-webkit-app-region:no-drag] hover:bg-(--ui-control-hover-background) hover:text-foreground hover:transition-none',
                       active &&
-                        'border-(--ui-stroke-tertiary) bg-(--ui-control-active-background) text-foreground shadow-none hover:border-(--ui-stroke-tertiary)!',
+                        'bg-(--ui-control-active-background) text-foreground shadow-[inset_0_0_0_1px_var(--ui-stroke-tertiary)]',
                       !isInteractive &&
                         'cursor-default hover:border-transparent hover:bg-transparent hover:text-inherit'
                     )}
@@ -1526,7 +1543,12 @@ export function ChatSidebar({
                     }
                     type="button"
                   >
-                    <item.icon className="size-4 shrink-0 text-[color-mix(in_srgb,currentColor_72%,transparent)]" />
+                    <span
+                      className="grid size-[22px] shrink-0 place-items-center rounded-[6px] bg-(--aino-landing-control)"
+                      data-slot="sidebar-nav-icon"
+                    >
+                      <item.icon className="size-[13px] text-(--aino-landing-icon)" />
+                    </span>
                     {/* Shrink-to-fit, not flex-1: the label carries the row's
                         `data-tour` handle, and anything anchored to it should
                         land at the end of the WORD, not out at the sidebar's
@@ -1540,11 +1562,15 @@ export function ChatSidebar({
                       {s.nav[item.id] ?? item.label}
                     </span>
                     {isNewSession && (
-                      <KbdGroup
-                        className={cn('ml-auto opacity-55', newSessionKbdFlash && 'opacity-100!')}
-                        keys={newSessionKbd}
-                        size="sm"
-                      />
+                      <span
+                        aria-label={newSessionKbd.join(' ')}
+                        className={cn(
+                          'ml-auto text-[0.6875rem] font-normal text-(--ui-text-quaternary) opacity-55',
+                          newSessionKbdFlash && 'opacity-100!'
+                        )}
+                      >
+                        {newSessionKbd.join(' ')}
+                      </span>
                     )}
                   </SidebarMenuButton>
                 )
@@ -1901,6 +1927,18 @@ export function ChatSidebar({
 
         {!showSessionSections && <SidebarBlankState onNewProject={openProjectCreate} />}
       </SidebarContent>
+      <SidebarIdentityFooter
+        label={identityLabel}
+        onOpenSettings={() =>
+          onNavigate({
+            id: 'settings',
+            icon: Settings2,
+            label: t.titlebar.openSettings,
+            route: SETTINGS_ROUTE
+          })
+        }
+        settingsLabel={t.titlebar.openSettings}
+      />
       <ProjectDialog />
       {/* One mount for the whole app. The header of WorktreeDialog tells why. */}
       <WorktreeDialog />

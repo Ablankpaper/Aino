@@ -1,9 +1,15 @@
 import { useState } from 'react'
 
+import actionAnalyzeIcon from '@/assets/aino-home/action-analyze.svg'
+import actionCodeReviewIcon from '@/assets/aino-home/action-code-review.svg'
+import actionReportIcon from '@/assets/aino-home/action-report.svg'
+import actionResearchIcon from '@/assets/aino-home/action-research.svg'
+import workspaceChevronIcon from '@/assets/aino-home/workspace-chevron.svg'
+import workspaceFolderIcon from '@/assets/aino-home/workspace-folder.svg'
+import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { Button } from '@/components/ui/button'
 import { type Locale, useI18n } from '@/i18n'
 import { AGENT_NAME, PRODUCT_NAME } from '@/lib/brand'
-import { BarChart3, ChevronDown, Code, FileText, FolderOpen, type IconComponent, Search } from '@/lib/icons'
 import { capitalize, normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
 
@@ -230,37 +236,38 @@ export function Intro({ home, onInsertPrompt, onPickFiles, onSelectWorkspace, pe
 
   if (showHome) {
     const homeCopy = t.home
+
     const actions: Array<{
       description: string
-      icon: IconComponent
+      iconSrc: string
       key: keyof typeof homeCopy.actions
       onClick: () => void
       title: string
     }> = [
       {
         description: homeCopy.actions.analyze.description,
-        icon: FileText,
+        iconSrc: actionAnalyzeIcon,
         key: 'analyze',
         onClick: () => onPickFiles?.(),
         title: homeCopy.actions.analyze.label
       },
       {
         description: homeCopy.actions.review.description,
-        icon: Code,
+        iconSrc: actionCodeReviewIcon,
         key: 'review',
         onClick: () => homeCopy.actions.review.prompt && onInsertPrompt?.(homeCopy.actions.review.prompt),
         title: homeCopy.actions.review.label
       },
       {
         description: homeCopy.actions.research.description,
-        icon: Search,
+        iconSrc: actionResearchIcon,
         key: 'research',
         onClick: () => homeCopy.actions.research.prompt && onInsertPrompt?.(homeCopy.actions.research.prompt),
         title: homeCopy.actions.research.label
       },
       {
         description: homeCopy.actions.report.description,
-        icon: BarChart3,
+        iconSrc: actionReportIcon,
         key: 'report',
         onClick: () => homeCopy.actions.report.prompt && onInsertPrompt?.(homeCopy.actions.report.prompt),
         title: homeCopy.actions.report.label
@@ -286,15 +293,13 @@ export function Intro({ home, onInsertPrompt, onPickFiles, onSelectWorkspace, pe
             type="button"
             variant="ghost"
           >
-            <FolderOpen aria-hidden="true" />
+            <AinoDesignIcon className="size-3.5" src={workspaceFolderIcon} />
             <span>{homeCopy.workspace}</span>
-            <ChevronDown aria-hidden="true" className="aino-home-workspace-chevron" />
+            <AinoDesignIcon className="aino-home-workspace-chevron" src={workspaceChevronIcon} />
           </Button>
 
           <div className="aino-home-actions" role="group">
             {actions.map(action => {
-              const Icon = action.icon
-
               return (
                 <Button
                   aria-label={action.title}
@@ -304,7 +309,7 @@ export function Intro({ home, onInsertPrompt, onPickFiles, onSelectWorkspace, pe
                   type="button"
                   variant="outline"
                 >
-                  <Icon aria-hidden="true" className="aino-home-action-icon" />
+                  <AinoDesignIcon className="aino-home-action-icon" src={action.iconSrc} />
                   <span className="aino-home-action-copy">
                     <span className="aino-home-action-title">{action.title}</span>
                     <span className="aino-home-action-description">{action.description}</span>

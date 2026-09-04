@@ -712,6 +712,24 @@ describe('assistant-ui streaming renderer', () => {
     )
   })
 
+  it('keeps the thinking divider attached to the header when expanded', () => {
+    const { container } = render(<ReasoningHarness />)
+    const disclosure = container.querySelector('[data-slot="aui_thinking-disclosure"]')
+    const header = container.querySelector('[data-slot="aui_thinking-header"]')
+
+    expect(disclosure?.getAttribute('data-state')).toBe('closed')
+    expect(disclosure?.getAttribute('data-pending')).toBe('false')
+    expect(header).toBeTruthy()
+
+    fireEvent.click(within(disclosure as HTMLElement).getByRole('button'))
+
+    const body = container.querySelector('[data-slot="aui_thinking-body"]')
+
+    expect(disclosure?.getAttribute('data-state')).toBe('open')
+    expect(body).toBeTruthy()
+    expect(header!.compareDocumentPosition(body!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('groups consecutive reasoning parts under one thinking disclosure', () => {
     const { container } = render(<GroupedReasoningHarness />)
 

@@ -919,11 +919,11 @@ const BOOT_FAKE_STEP_MS = (() => {
 // the shipped default the Aino product identity.
 const APP_NAME = process.env.HERMES_DESKTOP_APP_NAME || PRODUCT_NAME
 const HUD_WINDOW_TITLE = `${APP_NAME} HUD`
-const TITLEBAR_HEIGHT = 34
+const TITLEBAR_HEIGHT = 43
 const MACOS_TRAFFIC_LIGHTS_HEIGHT = 14
 
 const WINDOW_BUTTON_POSITION = {
-  x: 24,
+  x: 15,
   y: TITLEBAR_HEIGHT / 2 - MACOS_TRAFFIC_LIGHTS_HEIGHT / 2
 }
 

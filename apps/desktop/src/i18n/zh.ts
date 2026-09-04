@@ -3400,6 +3400,7 @@ export const zh: Translations = {
 
   composer: {
     message: '消息',
+    automaticModel: '自动',
     wakingProfile: profile => `正在唤醒 ${profile}…`,
     placeholderStarting: '正在启动 Hermes…',
     placeholderReconnecting: '正在重新连接 Hermes…',
@@ -4549,7 +4550,7 @@ export const zh: Translations = {
       thinking: '思考中',
       thought: '已思考',
       thoughtBriefly: '思考了片刻',
-      thoughtFor: duration => `思考了 ${duration}`,
+      thoughtFor: duration => `用时 ${duration}`,
       turnDuration: duration => `本轮耗时 ${duration}`,
       today: time => `今天，${time}`,
       yesterday: time => `昨天，${time}`,

@@ -8,11 +8,13 @@ import { MessageTimelineTimestamp } from '@/components/assistant-ui/thread/timel
 import { type RestoreMessageTarget } from '@/components/assistant-ui/thread/types'
 import { useMessageReactions } from '@/components/assistant-ui/thread/use-message-reactions'
 import { UserMessageText } from '@/components/assistant-ui/thread/user-message-text'
+import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
 import { Codicon } from '@/components/ui/codicon'
+import { CopyButton } from '@/components/ui/copy-button'
 import { useResizeObserver } from '@/hooks/use-resize-observer'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
-import { StopFilled } from '@/lib/icons'
+import { Pencil, StopFilled } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { $gateway } from '@/store/gateway'
 import { notifyThreadEditOpen } from '@/store/thread-scroll'
@@ -407,6 +409,14 @@ export const UserMessage: FC<{
   // the live turn before rewinding.
   const showRestore = !readOnly && !showStop && Boolean(onRequestRestoreConfirm) && hasBody
 
+  const requestRestore = () => {
+    triggerHaptic('selection')
+    onRequestRestoreConfirm?.(messageId, {
+      text: messageText,
+      userOrdinal: runtimeUserOrdinal
+    })
+  }
+
   const bubbleClassName = cn(
     USER_BUBBLE_BASE_CLASS,
     'cursor-pointer pr-9 text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground/95 transition-colors',
@@ -438,7 +448,7 @@ export const UserMessage: FC<{
           // scroll away behind the pinned bubble instead of riding along with
           // it. Image refs render as thumbnails, file refs as chips; no border.
           attachmentRefs.length > 0 ? (
-            <div className="flex flex-wrap gap-1 -mt-3 mb-2">
+            <div className="flex flex-wrap gap-1 -mt-3 mb-2" data-slot="aui_user-attachments">
               <DirectiveContent text={attachmentRefs.join(' ')} />
             </div>
           ) : null
@@ -482,6 +492,7 @@ export const UserMessage: FC<{
                   <button
                     aria-expanded={bodyClamped ? expanded : undefined}
                     className={cn(bubbleClassName, !bodyClamped && 'cursor-default')}
+                    data-slot="aui_user-bubble"
                     onClick={() => {
                       // Drag-select ends on mouseup→click; don't collapse the
                       // clamp just because the highlight finished.
@@ -504,8 +515,10 @@ export const UserMessage: FC<{
                   // open the editor and throw the selection away.
                   <ActionBarPrimitive.Edit asChild>
                     <button
-                      aria-label={copy.editMessage}
+                      aria-label={messageText ? `${copy.editMessage}: ${messageText}` : copy.editMessage}
                       className={bubbleClassName}
+                      data-has-corner-action={showStop ? '' : undefined}
+                      data-slot="aui_user-bubble"
                       onClick={event => {
                         if (hasTextSelection()) {
                           event.preventDefault()
@@ -530,7 +543,11 @@ export const UserMessage: FC<{
                   </ActionBarPrimitive.Edit>
                 )}
                 {(showStop || showRestore) && (
-                  <div className="pointer-events-none absolute right-2 bottom-2 z-10 flex items-center justify-center opacity-0 transition-opacity group-hover/user-message:opacity-100 group-focus-within/user-message:opacity-100">
+                  <div
+                    className="pointer-events-none absolute right-2 bottom-2 z-10 flex items-center justify-center opacity-0 transition-opacity group-hover/user-message:opacity-100 group-focus-within/user-message:opacity-100"
+                    data-action={showStop ? 'stop' : 'restore'}
+                    data-slot="aui_user-corner-action"
+                  >
                     {showStop ? (
                       <button
                         aria-label={copy.stop}
@@ -552,11 +569,7 @@ export const UserMessage: FC<{
                         onClick={event => {
                           event.preventDefault()
                           event.stopPropagation()
-                          triggerHaptic('selection')
-                          onRequestRestoreConfirm?.(messageId, {
-                            text: messageText,
-                            userOrdinal: runtimeUserOrdinal
-                          })
+                          requestRestore()
                         }}
                         onPointerDown={event => {
                           event.preventDefault()
@@ -580,7 +593,47 @@ export const UserMessage: FC<{
               onRetract={() => react(null)}
               reactions={shownReactions}
             />
-            <MessageTimelineTimestamp className="self-end pr-1.5" />
+            <div
+              className="aino-user-actions-row min-h-6 w-full items-center justify-end gap-0.5 pt-1"
+              data-slot="aui_user-actions-row"
+            >
+              <MessageTimelineTimestamp className="mr-1" />
+              <CopyButton
+                appearance="icon"
+                buttonSize="icon-xs"
+                label={copy.copy}
+                stopPropagation
+                text={messageText}
+              />
+              {!readOnly && (
+                <ActionBarPrimitive.Edit asChild>
+                  <TooltipIconButton
+                    onClick={() => triggerHaptic('selection')}
+                    onPointerDown={() => notifyThreadEditOpen()}
+                    tooltip={copy.editMessage}
+                  >
+                    <Pencil className="size-3.5" />
+                  </TooltipIconButton>
+                </ActionBarPrimitive.Edit>
+              )}
+              {showRestore && (
+                <TooltipIconButton
+                  onClick={event => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    requestRestore()
+                  }}
+                  onPointerDown={event => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                  }}
+                  tooltip={copy.restoreFromHere}
+                >
+                  <Codicon name="discard" size="0.875rem" />
+                </TooltipIconButton>
+              )}
+            </div>
+            <MessageTimelineTimestamp className="aui-user-legacy-timestamp self-end pr-1.5" />
             <BranchPickerPrimitive.Root
               className={cn(
                 'checkpoint-container flex items-center gap-1 pb-0 pt-1 pl-1.5 text-[0.75rem] leading-none text-(--ui-text-tertiary)',

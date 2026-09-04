@@ -518,7 +518,7 @@
     --chat-min-width: 28rem;
     --titlebar-control-size: 24px;
     --titlebar-control-height: 24px;
-    --titlebar-icon-size: 13.9px;
+    --titlebar-icon-size: 18px;
     --sidebar-content-inline-padding: 1rem;
 
     --sidebar: var(--dt-sidebar-bg);
@@ -1606,6 +1606,181 @@ body.guest-pointer-lock :is(webview, iframe) {
   max-width: var(--composer-width);
 }
 
+:root {
+  --aino-landing-accent: #2b7fff;
+  --aino-landing-control: #f3f4f6;
+  --aino-landing-composer-stroke: #e5e7eb;
+  --aino-landing-icon: #6a7282;
+  --aino-landing-muted: #99a1af;
+  --aino-landing-model-stroke: #e5e7eb;
+  --aino-landing-nav-text: #4a5565;
+  --aino-landing-placeholder: #d1d5dc;
+  --aino-landing-primary: #364153;
+  --aino-landing-secondary: #6a7282;
+  --aino-landing-sidebar: #fafafa;
+  /* The Figma frame renders a slightly darker one-pixel seam than the
+     translucent editor border. Keep this token scoped to the landing rail so
+     the rest of the tree keeps its native edge treatment. */
+  --aino-landing-edge: rgb(215 218 221);
+  --aino-landing-stroke: rgb(229 231 235 / 60%);
+  --aino-landing-switch: #e5e7eb;
+  --aino-landing-surface: #fff;
+  --aino-landing-title: #111;
+  --aino-landing-workspace: #efefef;
+  --shadow-aino-landing-composer: 0 2px 8px rgb(0 0 0 / 8%);
+  --aino-landing-font:
+    'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.dark {
+  --aino-landing-accent: var(--theme-primary);
+  --aino-landing-control: var(--ui-bg-quaternary);
+  --aino-landing-composer-stroke: var(--ui-stroke-secondary);
+  --aino-landing-icon: var(--ui-text-secondary);
+  --aino-landing-muted: var(--ui-text-tertiary);
+  --aino-landing-model-stroke: var(--ui-stroke-secondary);
+  --aino-landing-nav-text: var(--ui-text-secondary);
+  --aino-landing-placeholder: var(--ui-text-quaternary);
+  --aino-landing-primary: var(--ui-text-primary);
+  --aino-landing-secondary: var(--ui-text-secondary);
+  --aino-landing-sidebar: var(--dt-sidebar-bg);
+  --aino-landing-edge: var(--ui-stroke-tertiary);
+  --aino-landing-stroke: var(--ui-stroke-tertiary);
+  --aino-landing-switch: var(--ui-bg-tertiary);
+  --aino-landing-surface: var(--dt-card);
+  --aino-landing-title: var(--ui-text-primary);
+  --aino-landing-workspace: var(--ui-bg-quaternary);
+  --shadow-aino-landing-composer: var(--shadow-nous);
+}
+
+/* The standing Sessions/Bots rail is the Aino primary navigation, not an
+   editor tab strip. Scope the Figma-sized navigation treatment to the strip
+   that owns the sessions tab so preview/terminal tabs keep their compact
+   editor geometry. */
+[data-tree-group]:has([data-tour='sessions-sidebar']),
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) {
+  background: var(--aino-landing-sidebar);
+  font-family: var(--aino-landing-font);
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) {
+  height: 2.625rem;
+  padding-left: 1rem;
+  border-bottom: 1px solid var(--aino-landing-stroke);
+  --pane-tab-active-accent: var(--aino-landing-accent);
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions'])
+  > [role='tablist']
+  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane']) {
+  height: 2.625rem;
+  max-width: none;
+  border-left: 0;
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab='sessions'] {
+  width: 3.5rem;
+  margin-right: 1.25rem;
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab='hermes-bots:pane'] {
+  width: 4.375rem;
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions'])
+  > [role='tablist']
+  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane'])
+  > span:first-child {
+  margin-right: 0;
+  margin-left: 0.25rem;
+  transform: translateY(-1px);
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions'])
+  > [role='tablist']
+  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane'])
+  > span:nth-child(2) {
+  padding-inline: 0.375rem 0.25rem;
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions'])
+  > [role='tablist']
+  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane'])
+  > span:nth-child(2)
+  > span {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: 0;
+  text-transform: none;
+  transform: translateY(-1px);
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions'])
+  > [role='tablist']
+  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane'])[data-active='true'] {
+  color: var(--aino-landing-accent);
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions'])
+  > [role='tablist']
+  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane'])[data-active='false'] {
+  color: var(--aino-landing-muted);
+}
+
+[data-tour='sessions-sidebar'] {
+  border-color: var(--aino-landing-stroke);
+  font-family: var(--aino-landing-font);
+  box-shadow:
+    1px 0 1.5px rgb(0 0 0 / 10%),
+    1px 0 1px rgb(0 0 0 / 10%);
+}
+
+/* The tree neutralizes pane-owned edge borders globally so its sash is the
+   single seam. The approved Aino landing frame intentionally includes that
+   one-pixel sidebar edge in the layout itself; restore it only for this
+   surface, which also gives the sidebar's inner content the Figma 244px track
+   (the outer rail remains 245px). */
+body:has([data-chat-surface][data-home-layout]) [data-tour='sessions-sidebar'] {
+  border-right-width: 1px !important;
+  border-right-style: solid !important;
+  border-right-color: var(--aino-landing-edge) !important;
+}
+
+[data-tour='sessions-sidebar'] [data-slot='sidebar-content'] {
+  background: var(--aino-landing-sidebar);
+}
+
+/* The approved frame splits the native titlebar at the sidebar edge and keeps
+   the main canvas opaque white. Glass remains available everywhere else. */
+[data-contrib-shell]:has([data-chat-surface][data-home-layout]) > [data-slot='app-titlebar'] {
+  background: var(--aino-landing-surface);
+}
+
+[data-contrib-shell]:has([data-chat-surface][data-home-layout]) > [data-slot='app-titlebar']::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0 auto 0 0;
+  width: var(--workspace-left, 245px);
+  border-right: 1px solid var(--aino-landing-stroke);
+  background: var(--aino-landing-sidebar);
+  box-shadow:
+    1px 0 1.5px rgb(0 0 0 / 10%),
+    1px 0 1px rgb(0 0 0 / 10%);
+  content: '';
+  pointer-events: none;
+}
+
+body:has([data-chat-surface][data-home-layout])
+  :is([data-slot='titlebar-window-controls'], [data-slot='titlebar-app-controls'])
+  button {
+  color: var(--aino-landing-muted) !important;
+}
+
+[data-slot='titlebar-window-controls'] > button:nth-child(2) [data-aino-design-icon] {
+  translate: -3px 0;
+}
+
 /* ── Aino landing surface ────────────────────────────────────────────────
    The empty chat keeps the real Thread + ChatBar mounted. This surface only
    supplies the landing copy and quick-action affordances; the composer itself
@@ -1628,26 +1803,33 @@ body.guest-pointer-lock :is(webview, iframe) {
   min-width: 0;
   flex-direction: column;
   align-items: center;
-  transform: translateY(clamp(-3.5rem, -6.2vh, -1.5rem));
+  transform: translateY(clamp(-2.75rem, -5vh, -1rem));
+  font-family: var(--aino-landing-font);
 }
 
 .aino-home-title {
   margin: 0;
-  color: var(--ui-text-primary);
+  color: var(--aino-landing-title);
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(2.25rem, 4vw, 3rem);
+  font-size: 3rem;
   font-weight: 700;
-  line-height: 1.5;
-  letter-spacing: 0.1em;
+  line-height: 4.5rem;
+  /* Georgia's rasterized glyphs need a small optical correction to match the
+     48px/4.8px Figma heading at the renderer's DPR 2. */
+  letter-spacing: 1.8px;
+  transform: translate(0, 1.5px);
   white-space: nowrap;
 }
 
 .aino-home-subtitle {
   max-width: 100%;
   margin: 0.625rem 0 0;
-  color: var(--ui-text-tertiary);
+  color: var(--aino-landing-muted);
   font-size: 0.8125rem;
   line-height: 1.625;
+  /* Preserve the Figma baseline; PingFang's antialiasing sits one CSS pixel
+     higher than the exported frame without this optical nudge. */
+  transform: translateY(1px);
   white-space: nowrap;
 }
 
@@ -1670,8 +1852,8 @@ body.guest-pointer-lock :is(webview, iframe) {
   padding: 0.625rem 1rem;
   border: 0;
   border-radius: 1rem;
-  color: var(--ui-text-secondary);
-  background: color-mix(in srgb, var(--ui-base) 6%, transparent);
+  color: var(--aino-landing-secondary);
+  background: var(--aino-landing-workspace);
   font-size: 0.8125rem;
   font-weight: 400;
   text-align: start;
@@ -1696,6 +1878,13 @@ body.guest-pointer-lock :is(webview, iframe) {
   opacity: 0.7;
 }
 
+/* The source frame reserves the English label's 103px track. Keep that track
+   when the visible copy is localized so the chevron stays on the same grid
+   line without changing the button's hit target or behavior. */
+.aino-home-workspace > span:nth-child(2) {
+  min-width: 103px;
+}
+
 .aino-home-actions {
   display: grid;
   width: 100%;
@@ -1710,9 +1899,9 @@ body.guest-pointer-lock :is(webview, iframe) {
   justify-content: flex-start;
   gap: 0.75rem;
   padding: 0.875rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--ui-base) 6%, transparent);
+  border: 1px solid var(--aino-landing-control);
   border-radius: 0.75rem;
-  color: var(--ui-text-primary);
+  color: var(--aino-landing-primary);
   background: transparent;
   box-shadow: none;
   text-align: start;
@@ -1729,7 +1918,7 @@ body.guest-pointer-lock :is(webview, iframe) {
   width: 1rem;
   height: 1rem;
   flex: 0 0 auto;
-  color: var(--ui-text-tertiary);
+  color: var(--aino-landing-muted);
 }
 
 .aino-home-action-copy {
@@ -1746,14 +1935,14 @@ body.guest-pointer-lock :is(webview, iframe) {
 }
 
 .aino-home-action-title {
-  color: var(--ui-text-primary);
+  color: var(--aino-landing-primary);
   font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.5;
 }
 
 .aino-home-action-description {
-  color: var(--ui-text-tertiary);
+  color: var(--aino-landing-muted);
   font-size: 0.6875rem;
   font-weight: 400;
   line-height: 1.25;
@@ -1764,14 +1953,30 @@ body.guest-pointer-lock :is(webview, iframe) {
    chat surface so HUD, pop-out, tiles, and regular sessions are untouched. */
 [data-chat-surface][data-home-layout] {
   --composer-width: 780px;
+  --composer-control-gap: 0.375rem;
+  --composer-control-primary-size: 1.75rem;
+  --composer-control-size: 1.75rem;
+  background: var(--aino-landing-surface);
+  box-shadow:
+    0 1px 1.5px rgb(0 0 0 / 10%),
+    0 1px 1px rgb(0 0 0 / 10%);
+  font-family: var(--aino-landing-font);
 }
 
 [data-chat-surface][data-home-layout] [data-slot='aui_thread-content'] {
+  /* Keep the flowing landing content on the same 16px inset as the live
+     composer whenever the window is narrower than the 780px design frame. */
+  width: calc(100% - 2rem);
   padding-inline: 0;
 }
 
 [data-chat-surface][data-home-layout] [data-slot='composer-dock'] {
-  top: clamp(16rem, 32.8vh, 20rem);
+  /* Keep the live composer in ordinary absolute layout. CSS anchor positioning
+     leaves this long-lived element in a stale Chromium paint layer when the
+     home screen becomes a conversation, making correct DOM bounds invisible
+     and non-interactive. Responsive offsets below follow the slot without
+     putting the composer itself into that experimental paint path. */
+  top: var(--aino-home-composer-top, clamp(16rem, 34vh, 20rem));
   bottom: auto;
   width: calc(min(var(--composer-width), calc(100% - 2rem)) + 10px);
 }
@@ -1780,24 +1985,398 @@ body.guest-pointer-lock :is(webview, iframe) {
   height: 8.28125rem;
   min-height: 8.28125rem;
   border-radius: 1rem;
-  background: var(--dt-card);
-  border-color: color-mix(in srgb, var(--ui-base) 10%, transparent) !important;
-  box-shadow: var(--shadow-nous);
+  background: var(--aino-landing-surface);
+  border-color: var(--aino-landing-composer-stroke) !important;
+  box-shadow: var(--shadow-aino-landing-composer);
 }
 
 [data-chat-surface][data-home-layout] [data-slot='composer-fade'] {
+  height: 100%;
   min-height: 0;
-  padding: 1rem 1.25rem 0.75rem;
+  gap: 0;
+  grid-row: 1 / -1;
+  padding: 1rem 1rem 0.75rem;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-layout'] {
+  min-height: 0;
+  flex: 1 1 auto;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 1.75rem;
+  grid-template-areas:
+    'input input'
+    'menu controls';
+  column-gap: 0.625rem;
+  row-gap: 0;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-input-cell'] {
+  align-self: stretch;
+  padding-inline: 0.25rem;
+}
+
+/* The rich editor already scrolls itself, but its unbounded wrapper otherwise
+   keeps the editor's 150px max-content height when a long draft is entered.
+   Constrain that wrapper to the first grid row so text stops above the fixed
+   control row instead of painting underneath it. */
+[data-chat-surface][data-home-layout] [data-slot='composer-input-cell'] > div {
+  height: 100%;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-leading-controls'] {
+  align-self: end;
+  transform: none;
+  translate: none;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-leading-controls'] > button {
+  border-radius: 9999px;
+  background: var(--aino-landing-control);
+}
+
+[data-chat-surface][data-home-layout] [data-slot='composer-trailing-controls'] {
+  align-self: end;
+  --composer-control-gap: 0.625rem;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='home-wake-word'] [data-slot='switch'] {
+  width: 2rem;
+  height: 1.125rem;
+  border-color: transparent;
+  background: var(--aino-landing-switch);
+  box-shadow: none;
+}
+
+[data-chat-surface][data-home-layout] [data-slot='home-wake-word'] [data-slot='switch-thumb'] {
+  width: 0.875rem;
+  height: 0.875rem;
+  background: var(--aino-landing-surface);
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 10%),
+    0 1px 2px rgb(0 0 0 / 10%);
+  translate: 1px 0;
+}
+
+[data-chat-surface][data-home-layout] [data-landing-model] {
+  width: 3.5625rem;
+  min-width: 3.5625rem;
+  max-width: 3.5625rem;
+  height: 1.75rem;
+  gap: 0.125rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--aino-landing-model-stroke);
+  border-radius: 0.375rem;
+  color: var(--aino-landing-muted);
+  background: transparent;
+}
+
+[data-chat-surface][data-home-layout] :is([data-slot='home-auto-speak'], [data-slot='home-dictation']) {
+  width: 1.625rem;
+  min-width: 1.625rem;
+  max-width: 1.625rem;
+  margin-inline: -0.3125rem;
+}
+
+[data-chat-surface][data-home-layout]
+  [data-slot='home-wake-word']
+  [data-slot='switch'][data-state='checked']
+  [data-slot='switch-thumb'] {
+  translate: 15px 0;
+}
+
+[data-chat-surface][data-home-layout] [data-home-disabled-send] {
+  color: var(--aino-landing-placeholder) !important;
+  background: var(--aino-landing-control) !important;
+  opacity: 1;
 }
 
 [data-chat-surface][data-home-layout] [data-slot='composer-rich-input'] {
+  color: var(--aino-landing-primary);
+  height: 100%;
   min-height: 3.5rem;
+  padding-left: 0;
   padding-top: 0.125rem;
   font-size: 0.875rem;
 }
 
+[data-chat-surface][data-home-layout] [data-slot='composer-rich-input']:is(:empty, [data-empty])::before {
+  color: var(--aino-landing-placeholder) !important;
+}
+
 [data-chat-surface][data-home-layout] [data-slot='composer-surface'] > [data-slot='coding-status-row'] {
   display: none;
+}
+
+/* ── Focused conversation ────────────────────────────────────────────────
+   Keep the existing Thread, message actions, and live ChatBar intact; this
+   layer changes only their placement and paint after the landing screen has
+   become a conversation. The dock is an in-flow flex child here, so the
+   transcript can never cover or intercept the bottom composer. */
+[data-chat-surface][data-conversation-layout] {
+  --composer-width: 780px;
+  --composer-control-gap: 0.5rem;
+  --composer-control-primary-size: 1.75rem;
+  --composer-control-size: 1.75rem;
+  --composer-row-gap: 0.25rem;
+  --composer-shell-pad-block-end: 1.25rem;
+  --conversation-text-font-size: 0.875rem;
+  --conversation-turn-gap: 1.25rem;
+  --message-text-indent: 0rem;
+  --paragraph-gap: 0.75rem;
+  --sticky-human-top: 2rem;
+  --thread-last-message-clearance: 2rem;
+  --thread-viewport-height: 100%;
+  background: var(--aino-landing-surface);
+  font-family: var(--aino-landing-font);
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-bounds'] {
+  z-index: 0;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_thread-content'] {
+  width: calc(100% - 2rem);
+  padding-top: 3rem;
+  padding-inline: 0;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-dock']:not([data-popped-out]) {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  flex: 0 0 auto;
+  align-self: center;
+  translate: none;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-root']:not([data-popped-out]) {
+  --composer-fill: color-mix(in srgb, var(--dt-card) 96%, var(--ui-chat-surface-background));
+  border-radius: 1.25rem;
+}
+
+[data-chat-surface][data-conversation-layout]
+  [data-slot='composer-root']:not([data-popped-out])
+  > .pointer-events-none {
+  display: none;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-surface'] {
+  min-height: 8.25rem;
+  border-color: var(--aino-landing-composer-stroke) !important;
+  box-shadow:
+    0 10px 30px rgb(15 23 42 / 7%),
+    0 2px 8px rgb(15 23 42 / 6%);
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-fade'] {
+  min-height: 0;
+  height: 100%;
+  gap: 0;
+  padding: 0.875rem 1rem 0.75rem;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-layout'] {
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(3rem, 1fr) 1.75rem;
+  grid-template-areas:
+    'input input'
+    'menu controls';
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-input-cell'],
+[data-chat-surface][data-conversation-layout] [data-slot='composer-input-cell'] > div {
+  height: 100%;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-rich-input'] {
+  width: 100%;
+  height: 100%;
+  min-height: 3rem;
+  padding: 0.125rem 0.25rem;
+  color: var(--aino-landing-primary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-leading-controls'] {
+  align-self: end;
+  translate: none;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-leading-controls'] > button {
+  border-radius: 9999px;
+  background: var(--aino-landing-control);
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='composer-trailing-controls'] {
+  align-self: end;
+}
+
+/* The sticky row remains full-width so checkpoint/edit behaviour is unchanged;
+   only its live message stack shrinks to a right-aligned content bubble. */
+[data-chat-surface][data-conversation-layout] [data-slot='aui_user-message-root'] {
+  align-items: flex-end;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_user-bubble-actions'] {
+  display: flex;
+  width: fit-content;
+  max-width: min(78%, 42rem);
+  align-self: flex-end;
+}
+
+.aino-user-actions-row {
+  display: none;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_user-corner-action'][data-action='restore'],
+[data-chat-surface][data-conversation-layout] .aui-user-legacy-timestamp {
+  display: none;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_user-actions-row'] {
+  display: flex;
+  color: var(--aino-landing-muted);
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_user-actions-row'] [data-slot='timeline-timestamp'] {
+  color: var(--aino-landing-muted);
+  font-size: 0.75rem;
+  line-height: 1.5rem;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_user-actions-row'] button {
+  color: var(--aino-landing-muted);
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_user-bubble'][data-has-corner-action] {
+  padding-right: 2.25rem;
+}
+
+[data-chat-surface][data-conversation-layout] .composer-human-message {
+  border: 0;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--aino-landing-control) 94%, var(--aino-landing-surface));
+  box-shadow: none;
+  padding: 0.75rem 1rem;
+  font-weight: 500;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_user-attachments'] {
+  width: min(78%, 42rem);
+  justify-content: flex-end;
+  align-self: flex-end;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_assistant-message-root'] {
+  overflow: visible;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_assistant-message-content'] {
+  padding-left: 0;
+  line-height: 1.65;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-disclosure'] {
+  margin-bottom: 1rem;
+  padding-bottom: 0;
+  border-bottom: 0;
+  color: var(--aino-landing-secondary);
+  opacity: 1;
+}
+
+/* Thinking follows the same activity treatment as Codex: the disclosure
+   header is a full-width row with one hairline immediately below it. Keep the
+   body outside that header so an expanded reasoning block never moves the
+   divider below the content. */
+[data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-header'] {
+  width: 100%;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid var(--aino-landing-stroke);
+  color: var(--aino-landing-secondary);
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-header'] [data-slot='aui_thinking-label'] {
+  color: var(--aino-landing-secondary);
+  font-size: var(--conversation-text-font-size);
+  font-weight: 500;
+  line-height: 1.5rem;
+}
+
+[data-chat-surface][data-conversation-layout]
+  [data-slot='aui_thinking-header']
+  [data-slot='aui_thinking-label'].shimmer {
+  color: var(--aino-landing-secondary);
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-header'] .codicon {
+  font-size: 0.875rem !important;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-body'] {
+  margin-top: 0.75rem;
+  padding-bottom: 0.25rem;
+  color: var(--aino-landing-primary);
+  font-size: var(--conversation-text-font-size);
+  line-height: var(--dt-line-height);
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-body'] [data-slot='aui_reasoning-text'] {
+  color: var(--aino-landing-primary) !important;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+[data-chat-surface][data-conversation-layout]
+  [data-slot='aui_thinking-body']
+  [data-slot='aui_reasoning-text']
+  :is(p, li, blockquote, h1, h2, h3, h4, h5, h6) {
+  color: inherit;
+  line-height: inherit;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_assistant-footer'] {
+  align-items: flex-start;
+  padding-inline: 0;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_assistant-actions-row'] {
+  justify-content: flex-start;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_turn-duration'] {
+  margin-right: 0;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_msg-actions'] {
+  justify-content: flex-start;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+[data-chat-surface][data-conversation-layout] button[data-slot='aui_msg-reactions']:not([data-reacted]) {
+  opacity: 0.5;
+  pointer-events: auto;
+}
+
+@media (max-width: 52rem) {
+  [data-chat-surface][data-conversation-layout] {
+    --conversation-turn-gap: 1rem;
+    --sticky-human-top: 1rem;
+  }
+
+  [data-chat-surface][data-conversation-layout] [data-slot='aui_thread-content'] {
+    padding-top: 1.75rem;
+  }
+
+  [data-chat-surface][data-conversation-layout] [data-slot='aui_user-bubble-actions'],
+  [data-chat-surface][data-conversation-layout] [data-slot='aui_user-attachments'] {
+    max-width: 88%;
+  }
 }
 
 @media (max-width: 56rem) {
@@ -3173,7 +3752,8 @@ button[data-slot='aui_msg-reactions'] svg {
    Widgets on the shared shell (components/chat/widget-shell.ts →
    `--ui-widget-surface-background`) and any chat-surface card are matched on
    their class, so new ones inherit this without touching the list. */
-[data-hud-shell] [data-slot='composer-bounds']
+[data-hud-shell]
+  [data-slot='composer-bounds']
   :is(
     [data-slot='clarify-inline'],
     [data-slot='tool-block'],

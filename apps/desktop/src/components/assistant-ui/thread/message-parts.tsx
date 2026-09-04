@@ -217,21 +217,27 @@ const ThinkingDisclosure: FC<{
     <div
       className="text-[length:var(--conversation-tool-font-size)] text-(--ui-text-tertiary)"
       data-conversation-scaffold=""
+      data-pending={pending ? 'true' : 'false'}
       data-slot="aui_thinking-disclosure"
+      data-state={open ? 'open' : 'closed'}
       ref={enterRef}
     >
-      <ScaffoldRow
-        onToggle={() => setUserOpen(!open)}
-        open={open}
-        trailing={
-          <span className="flex shrink-0 items-center gap-1.5">
-            <TimelineTimestamp className={SCAFFOLD_META_CLASS} completedAt={completedAt} timestamp={timestamp} />
-            {pending && <ActivityTimerText className={SCAFFOLD_META_CLASS} seconds={elapsed} />}
+      <div data-slot="aui_thinking-header">
+        <ScaffoldRow
+          onToggle={() => setUserOpen(!open)}
+          open={open}
+          trailing={
+            <span className="flex shrink-0 items-center gap-1.5">
+              <TimelineTimestamp className={SCAFFOLD_META_CLASS} completedAt={completedAt} timestamp={timestamp} />
+              {pending && <ActivityTimerText className={SCAFFOLD_META_CLASS} seconds={elapsed} />}
+            </span>
+          }
+        >
+          <span className={cn(SCAFFOLD_LABEL_CLASS, pending && 'shimmer')} data-slot="aui_thinking-label">
+            {thoughtLabel}
           </span>
-        }
-      >
-        <span className={cn(SCAFFOLD_LABEL_CLASS, pending && 'shimmer')}>{thoughtLabel}</span>
-      </ScaffoldRow>
+        </ScaffoldRow>
+      </div>
       {open && (
         <div
           className={cn(

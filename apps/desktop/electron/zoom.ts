@@ -5,8 +5,9 @@
  * Chromium actual-size baseline); Chromium's internal unit is the zoom level,
  * where factor = 1.2 ^ level.
  *
- * Our shipped default is the Appearance 90% preset — tight enough to feel
- * denser than Chromium 100%, and selected in the UI Scale control on first run.
+ * Aino ships at Chromium actual size. Its Figma-authored desktop grid is
+ * measured at 100%, so using that as the baseline keeps fresh installs aligned
+ * with the intended 245px rail and 780px composer.
  */
 
 export const ZOOM_STORAGE_KEY = 'hermes:desktop:zoomLevel'
@@ -18,8 +19,8 @@ const MAX_ZOOM_LEVEL = 9
 /** Half Chromium's default step; matching the shortcuts and View menu. */
 export const ZOOM_STEP = 0.1
 
-/** Appearance 90% preset. Fresh installs + Actual Size / Ctrl+0. */
-export const DEFAULT_ZOOM_LEVEL = Math.log(0.9) / Math.log(ZOOM_FACTOR_BASE)
+/** Chromium actual size. Fresh installs + Actual Size / Ctrl+0. */
+export const DEFAULT_ZOOM_LEVEL = 0
 
 export function clampZoomLevel(value) {
   if (!Number.isFinite(value)) {

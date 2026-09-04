@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   acceptsTriggerCompletion,
+  composerUsesStackedLayout,
   implicitSlashAcceptIndex,
   isPendingDraftPersistCurrent,
   type PendingDraftPersist,
@@ -12,6 +13,17 @@ import {
   slashCommandToken,
   type TriggerAcceptInput
 } from './composer-utils'
+
+describe('composerUsesStackedLayout', () => {
+  it('keeps the Figma home composer on two rows even before the input wraps', () => {
+    expect(composerUsesStackedLayout({ homeLayout: true, measuredStacked: false })).toBe(true)
+  })
+
+  it('preserves the measured layout policy outside the home screen', () => {
+    expect(composerUsesStackedLayout({ homeLayout: false, measuredStacked: false })).toBe(false)
+    expect(composerUsesStackedLayout({ homeLayout: false, measuredStacked: true })).toBe(true)
+  })
+})
 
 const item = (group: string): Unstable_TriggerItem =>
   ({ id: 'x', type: 'slash', label: 'x', metadata: { group } }) as unknown as Unstable_TriggerItem

@@ -45,6 +45,18 @@ export const COMPOSER_MINIMAL_PX = 180
 // which is when the composer should expand to the stacked layout.
 export const COMPOSER_SINGLE_LINE_MAX_PX = 36
 
+/** The landing design reserves a full prompt row over a dedicated controls
+ * row. Everywhere else, keep the composer's measured wrap/width policy. */
+export function composerUsesStackedLayout({
+  homeLayout,
+  measuredStacked
+}: {
+  homeLayout: boolean
+  measuredStacked: boolean
+}): boolean {
+  return homeLayout || measuredStacked
+}
+
 export const COMPOSER_FADE_BACKGROUND =
   'linear-gradient(to bottom, transparent, color-mix(in srgb, var(--dt-background) 10%, transparent))'
 

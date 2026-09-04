@@ -545,7 +545,9 @@ const ChatViewContent = memo(function ChatViewContent({
     (text: string) => requestComposerInsert(text, { mode: 'block', target: composerScope.target }),
     [composerScope.target]
   )
+
   const onHomeSelectWorkspace = useCallback(() => void openFolderAsProject(), [])
+
   const introProps = useMemo(
     () =>
       showIntro
@@ -653,6 +655,7 @@ const ChatViewContent = memo(function ChatViewContent({
       data-chat-unfocused={surfaceFocused ? undefined : ''}
       data-composer-surface-id={composerSurfaceId}
       data-composer-target={composerScope.target}
+      data-conversation-layout={!showIntro && showChatBar ? '' : undefined}
       data-home-layout={showIntro && showChatBar ? '' : undefined}
       data-session-anchor={sessionAnchor}
     >

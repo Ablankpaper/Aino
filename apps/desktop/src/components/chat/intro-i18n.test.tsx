@@ -49,7 +49,9 @@ describe('empty chat intro localization', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '审查代码' }))
     expect(onInsertPrompt).toHaveBeenCalledWith('请审查当前代码，找出问题并给出可执行的优化建议。')
-    expect(screen.getByRole('button', { name: '审查代码' }).querySelector('.tabler-icon-code')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: '审查代码' }).querySelector('[data-aino-design-icon]')
+    ).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     expect(onInsertPrompt).toHaveBeenCalledWith('请深入研究这个主题，并整理出关键结论与可靠来源。')

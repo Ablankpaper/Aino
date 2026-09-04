@@ -70,7 +70,31 @@ import {
 import { botRosterMeta, botWorkspaceOwnerKey, setBotsWorkspaceOwner } from './routing'
 import { startHideSweepScheduler } from './session-sweep'
 import { bumpBotOpenGeneration, getBotOpenGeneration, ID, pluginText, setPluginCtx } from './shared'
+import tabBotsIcon from './tab-bots.svg'
 import type { GroupChat, RosterRow } from './types'
+
+const tabBotsMask = `url(${JSON.stringify(tabBotsIcon)})`
+
+/** The exact Figma vector lives with the bundled plugin so the plugin fence
+ * remains honest: this module imports only its own assets and the public SDK. */
+function BotsTabIcon() {
+  return (
+    <span
+      aria-hidden
+      className="inline-block size-3.5 shrink-0 bg-current"
+      style={{
+        WebkitMaskImage: tabBotsMask,
+        WebkitMaskPosition: 'center',
+        WebkitMaskRepeat: 'no-repeat',
+        WebkitMaskSize: '100% 100%',
+        maskImage: tabBotsMask,
+        maskPosition: 'center',
+        maskRepeat: 'no-repeat',
+        maskSize: '100% 100%'
+      }}
+    />
+  )
+}
 
 // ── plugin ───────────────────────────────────────────────────────────────────
 
@@ -405,11 +429,12 @@ export default {
       data: {
         placement: 'left',
         // Match the sessions pane that this tab center-stacks into. A fixed
-        // zone uses its widest tenant, so 260px here widened the whole Aino
-        // sidebar beyond the 237px content width (245px with its divider).
-        width: '237px',
+        // zone uses its widest tenant, so both standing tabs carry the same
+        // 245px Aino rail width.
+        width: '245px',
         collapsible: true,
         hideOnly: true,
+        tabLead: () => <BotsTabIcon />,
         dock: {
           pane: 'sessions',
           pos: 'center',

@@ -1,6 +1,15 @@
 import { ComposerPrimitive } from '@assistant-ui/react'
 import { useStore } from '@nanostores/react'
-import { type ClipboardEvent, type FormEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useRef } from 'react'
+import {
+  type ClipboardEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef
+} from 'react'
 
 import { useTourMarker } from '@/app/chat/tour-marker'
 import { useHudComposerDrag } from '@/app/hud/composer-drag'
@@ -33,6 +42,7 @@ import { AttachmentList } from './attachments'
 import {
   acceptsTriggerCompletion,
   COMPOSER_FADE_BACKGROUND,
+  composerUsesStackedLayout,
   implicitSlashAcceptIndex,
   type QueueEditState,
   slashArgStage
@@ -196,6 +206,46 @@ export function ChatBar({
   const composerDockRef = useRef<HTMLDivElement | null>(null)
   const composerSurfaceRef = useRef<HTMLDivElement | null>(null)
 
+  // Keep the same live composer over the visual slot in the landing content
+  // without CSS Anchor Positioning. Chromium can strand a long-lived anchored
+  // element in its old paint layer when homeLayout flips off, leaving correct
+  // bounds that neither paint nor receive hit tests. A home-only measured CSS
+  // variable gives ordinary absolute positioning the exact sibling geometry;
+  // ResizeObserver covers responsive action-row wrapping without React state.
+  useLayoutEffect(() => {
+    const dock = composerDockRef.current
+    const surface = dock?.closest<HTMLElement>('[data-chat-surface]')
+
+    if (!homeLayout || !surface) {
+      return
+    }
+
+    const slot = surface.querySelector<HTMLElement>('.aino-home-composer-slot')
+    const content = surface.querySelector<HTMLElement>('.aino-home-content')
+
+    if (!slot || !content) {
+      return
+    }
+
+    const syncTop = () => {
+      const surfaceRect = surface.getBoundingClientRect()
+      const slotRect = slot.getBoundingClientRect()
+
+      surface.style.setProperty('--aino-home-composer-top', `${slotRect.top - surfaceRect.top}px`)
+    }
+
+    syncTop()
+
+    const observer = new ResizeObserver(syncTop)
+    observer.observe(surface)
+    observer.observe(content)
+
+    return () => {
+      observer.disconnect()
+      surface.style.removeProperty('--aino-home-composer-top')
+    }
+  }, [homeLayout])
+
   // Pop-out engine: docked↔floating state, dock/float/toggle, drag gestures, and
   // the on-screen re-clamp. Secondary windows can't pop out.
   const {
@@ -341,6 +391,8 @@ export function ChatBar({
     editorRef,
     poppedOut
   })
+
+  const stackedLayout = composerUsesStackedLayout({ homeLayout, measuredStacked: stacked })
 
   const hasComposerPayload = hasText || attachments.length > 0
   const canSubmit = busy || hasComposerPayload
@@ -996,6 +1048,7 @@ export function ChatBar({
 
   const contextMenu = (
     <ContextMenu
+      homeLayout={homeLayout}
       onInsertText={insertText}
       onOpenUrlDialog={openUrlDialog}
       onPasteClipboardImage={onPasteClipboardImage}
@@ -1026,6 +1079,7 @@ export function ChatBar({
       disabled={disabled}
       foldVoice={foldVoice}
       hasComposerPayload={hasComposerPayload}
+      homeLayout={homeLayout}
       minimal={minimal}
       onDictate={dictate}
       onQueue={queueDraft}
@@ -1376,17 +1430,26 @@ export function ChatBar({
                   <div
                     className={cn(
                       'grid w-full',
-                      stacked
+                      stackedLayout
                         ? 'grid-cols-[auto_1fr] gap-(--composer-row-gap) [grid-template-areas:"input_input"_"menu_controls"]'
                         : 'grid-cols-[auto_1fr_auto] items-center gap-(--composer-control-gap) [grid-template-areas:"menu_input_controls"]'
                     )}
+                    data-slot="composer-layout"
                   >
-                    <div className="flex translate-y-[3px] items-start gap-(--composer-control-gap) self-start [grid-area:menu]">
+                    <div
+                      className="flex translate-y-[3px] items-start gap-(--composer-control-gap) self-start [grid-area:menu]"
+                      data-slot="composer-leading-controls"
+                    >
                       {contextMenu}
                       <ContribSlot area={COMPOSER_AREAS.leading} />
                     </div>
-                    <div className="min-w-0 [grid-area:input]">{input}</div>
-                    <div className="flex min-w-0 items-center justify-end gap-(--composer-control-gap) [grid-area:controls]">
+                    <div className="min-w-0 [grid-area:input]" data-slot="composer-input-cell">
+                      {input}
+                    </div>
+                    <div
+                      className="flex min-w-0 items-center justify-end gap-(--composer-control-gap) [grid-area:controls]"
+                      data-slot="composer-trailing-controls"
+                    >
                       <ContribSlot area={COMPOSER_AREAS.actions} />
                       {controls}
                     </div>

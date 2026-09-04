@@ -1996,6 +1996,7 @@ export const zhHant = defineLocale({
 
   composer: {
     message: '訊息',
+    automaticModel: '自動',
     wakingProfile: profile => `正在喚醒 ${profile}…`,
     placeholderStarting: '正在啟動 Hermes...',
     placeholderReconnecting: '正在重新連線至 Hermes…',
@@ -2804,7 +2805,7 @@ export const zhHant = defineLocale({
       thinking: '思考中',
       thought: '已思考',
       thoughtBriefly: '思考了片刻',
-      thoughtFor: duration => `思考了 ${duration}`,
+      thoughtFor: duration => `用時 ${duration}`,
       turnDuration: duration => `本輪耗時 ${duration}`,
       today: time => `今天，${time}`,
       yesterday: time => `昨天，${time}`,
