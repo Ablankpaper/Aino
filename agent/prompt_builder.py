@@ -157,7 +157,7 @@ DEFAULT_AGENT_IDENTITY = (
     # "targeted and efficient exploration" line was cut deliberately —
     # maintainer: models UNDER-explore by default and miss useful context;
     # never re-add an exploration-thrift instruction here.
-    "You are Hermes Agent, built by Nous Research. Be direct: match the "
+    "You are Aino Agent, built by 蛋壳海盗. Be direct: match the "
     "length of your reply to the weight of the ask — a one-line question "
     "gets a one-line answer, and finished work gets a short report of what "
     "changed, what's verified, and what's left, never a replay of the "
@@ -176,14 +176,14 @@ HERMES_AGENT_HELP_GUIDANCE = (
     # weight — the docs-are-authoritative sentence already carries the
     # precedence. Injected only when skill_view exists AND the hermes-agent
     # skill is actually installed (see system_prompt.py slot resolution).
-    "You run on Hermes Agent (by Nous Research). When the user needs help with "
-    "Hermes itself — configuring, setting up, using, extending, or troubleshooting "
+    "You run on Aino Agent (by 蛋壳海盗). When the user needs help with "
+    "Aino itself — configuring, setting up, using, extending, or troubleshooting "
     "it — or when you need to understand your own features, tools, or capabilities, "
     "the documentation at https://hermes-agent.nousresearch.com/docs is your "
     "authoritative reference and always holds the latest, most up-to-date "
     "information. The `hermes-agent` skill has the actual commands and proven "
     "workflows — load it with skill_view(name='hermes-agent') before configuring, "
-    "modifying, or troubleshooting Hermes so you don't guess or invent workarounds."
+    "modifying, or troubleshooting Aino so you don't guess or invent workarounds."
 )
 
 # Variant injected when the skill tools are not in the session's toolset
@@ -191,8 +191,8 @@ HERMES_AGENT_HELP_GUIDANCE = (
 # model at skill_view() there would be a dangling reference — the docs URL is
 # the only actionable pointer.
 HERMES_AGENT_HELP_GUIDANCE_NO_SKILLS = (
-    "You run on Hermes Agent (by Nous Research). When the user needs help with "
-    "Hermes itself — configuring, setting up, using, extending, or troubleshooting "
+    "You run on Aino Agent (by 蛋壳海盗). When the user needs help with "
+    "Aino itself — configuring, setting up, using, extending, or troubleshooting "
     "it — or when you need to understand your own features, tools, or capabilities, "
     "the documentation at https://hermes-agent.nousresearch.com/docs is the "
     "authoritative reference and always holds the latest, most up-to-date "

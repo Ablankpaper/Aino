@@ -23,6 +23,8 @@ from agent.prompt_builder import (
     _get_context_file_max_chars,
     _CONTEXT_FILE_DYNAMIC_CEILING,
     DEFAULT_AGENT_IDENTITY,
+    HERMES_AGENT_HELP_GUIDANCE,
+    HERMES_AGENT_HELP_GUIDANCE_NO_SKILLS,
     drain_truncation_warnings,
     TOOL_USE_ENFORCEMENT_GUIDANCE,
     TOOL_USE_ENFORCEMENT_MODELS,
@@ -57,6 +59,26 @@ def _drain_truncation_warnings():
 # Guidance constants
 # =========================================================================
 
+
+class TestAinoIdentity:
+    """The user-facing built-in identity is branded for the Aino distribution."""
+
+    def test_default_identity_uses_aino_and_owner_brand(self):
+        assert DEFAULT_AGENT_IDENTITY.startswith(
+            "You are Aino Agent, built by 蛋壳海盗."
+        )
+        assert "Hermes Agent" not in DEFAULT_AGENT_IDENTITY
+        assert "Nous Research" not in DEFAULT_AGENT_IDENTITY
+
+    def test_help_guidance_uses_aino_and_owner_brand(self):
+        for guidance in (
+            HERMES_AGENT_HELP_GUIDANCE,
+            HERMES_AGENT_HELP_GUIDANCE_NO_SKILLS,
+        ):
+            assert "Aino Agent" in guidance
+            assert "蛋壳海盗" in guidance
+            assert "Hermes Agent" not in guidance
+            assert "Nous Research" not in guidance
 
 class TestGuidanceConstants:
     def test_memory_guidance_keeps_form_rule_and_routing(self):
@@ -402,7 +424,8 @@ class TestBuildContextFilesPrompt:
         with patch("pathlib.Path.home", return_value=fake_home):
             result = build_context_files_prompt(cwd=str(tmp_path))
         assert "Project Context" in result
-        assert "Hermes Agent" in result
+        assert "Aino Agent" in result
+        assert "蛋壳海盗" in result
 
     def test_loads_agents_md(self, tmp_path):
         (tmp_path / "AGENTS.md").write_text("Use Ruff for linting.")
@@ -1018,5 +1041,4 @@ class TestParallelToolCallGuidance:
 # =========================================================================
 # Budget warning history stripping
 # =========================================================================
-
 

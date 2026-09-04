@@ -89,6 +89,60 @@ class TestEnsureHermesHome:
         "investigations."
     )
 
+    # The currently shipped Hermes default.  It is hardcoded so this fixture
+    # continues to represent the pre-branding file after DEFAULT_SOUL_MD is
+    # changed to the Aino identity.
+    _PRE_BRANDING_DEFAULT_SOUL = (
+        "You are Hermes Agent, built by Nous Research. Be direct: match the "
+        "length of your reply to the weight of the ask — a one-line question "
+        "gets a one-line answer, and finished work gets a short report of what "
+        "changed, what's verified, and what's left, never a replay of the "
+        "process. No filler (\"Great question,\" \"I'd be happy to\"), no "
+        "restating the request back, no re-summarizing what you already said, "
+        "no narrating tool calls the user can see. Plain claims over "
+        "adjectives; when unsure, say so plainly. Agree because it's right, "
+        "not because the user said it. Depth is earned — give it when the "
+        "user asks for detail, teaches, or the stakes demand it, not by "
+        "default."
+    )
+
+    def test_upgrades_pre_branding_default_soul_md(self, tmp_path):
+        """An untouched Hermes default becomes the Aino default in place."""
+        from hermes_cli.default_soul import DEFAULT_SOUL_MD
+
+        assert self._PRE_BRANDING_DEFAULT_SOUL != DEFAULT_SOUL_MD
+
+        with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+            soul_path = tmp_path / "SOUL.md"
+            soul_path.write_text(self._PRE_BRANDING_DEFAULT_SOUL, encoding="utf-8")
+            ensure_hermes_home()
+            assert soul_path.read_text(encoding="utf-8") == DEFAULT_SOUL_MD
+
+    def test_upgrades_ascii_pre_branding_default_soul_md(self, tmp_path):
+        """The ASCII Windows installer generation also migrates safely."""
+        from hermes_cli.default_soul import DEFAULT_SOUL_MD
+
+        ascii_legacy = self._PRE_BRANDING_DEFAULT_SOUL.replace("—", "--")
+
+        with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+            soul_path = tmp_path / "SOUL.md"
+            soul_path.write_text(ascii_legacy, encoding="utf-8")
+            ensure_hermes_home()
+            assert soul_path.read_text(encoding="utf-8") == DEFAULT_SOUL_MD
+
+    def test_does_not_upgrade_customized_pre_branding_default(self, tmp_path):
+        """Adding user text to the old default must prevent an overwrite."""
+        from hermes_cli.default_soul import DEFAULT_SOUL_MD
+
+        customized = self._PRE_BRANDING_DEFAULT_SOUL + "\nAlways answer in Chinese."
+
+        with patch.dict(os.environ, {"HERMES_HOME": str(tmp_path)}):
+            soul_path = tmp_path / "SOUL.md"
+            soul_path.write_text(customized, encoding="utf-8")
+            ensure_hermes_home()
+            assert soul_path.read_text(encoding="utf-8") == customized
+            assert customized != DEFAULT_SOUL_MD
+
     def test_upgrades_pre_rewrite_default_soul_md(self, tmp_path):
         # Every install seeded between the old DEFAULT_SOUL_MD's introduction
         # and its #95681 rewrite got the old text auto-written on first run —
