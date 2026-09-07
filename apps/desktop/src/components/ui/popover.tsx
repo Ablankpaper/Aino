@@ -24,19 +24,14 @@ const popoverContentVariants = cva(
   {
     variants: {
       variant: {
-        // Themed glass surface, viewport-aware (Radix flips/shifts off edges).
-        // Border-only (no shadow).
+        // The same paper and elevation as menus. The arrow reads this exact
+        // variable as well, so panel and arrow never acquire different fills.
         default:
-          'border border-(--ui-stroke-secondary) bg-(--popover-surface) text-popover-foreground backdrop-blur-md [--popover-surface:color-mix(in_srgb,var(--ui-bg-elevated)_92%,transparent)]',
-        // Solid accent. For a surface that has to read as the app SPEAKING
-        // rather than as chrome the user opened — it is loud on purpose, so
-        // it earns its place by being rare. No border: at full-strength fill
-        // an edge only muddies the silhouette, and the arrow reads as a point
-        // on the shape instead of a shape stuck to it. `primary-solid`, not
-        // `primary`: a pale accent would otherwise fill this with a pastel and
-        // pair it with near-black text (themes/context.tsx).
+          'border border-(--ui-stroke-secondary) bg-(--popover-surface) text-popover-foreground shadow-md [--popover-surface:var(--ui-bg-elevated)]',
+        // A high-emphasis announcement uses the same graphite/inverse pair as
+        // the primary action. Its arrow stays borderless and shares the fill.
         accent:
-          'bg-(--popover-surface) text-(--dt-primary-solid-foreground) [--popover-surface:var(--dt-primary-solid)]'
+          'bg-(--popover-surface) text-(--aino-action-fg) shadow-md [--popover-surface:var(--aino-action-bg)]'
       }
     },
     defaultVariants: { variant: 'default' }

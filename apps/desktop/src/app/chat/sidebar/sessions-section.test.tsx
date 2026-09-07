@@ -60,6 +60,33 @@ function generateSessions(count: number): SessionInfo[] {
 const noop = () => {}
 
 describe('SidebarSessionsSection memoization & virtualizer stability', () => {
+  it('exposes the Aino section chrome without changing its content contract', () => {
+    const { container } = render(
+      <SidebarSessionsSection
+        activeSessionId={null}
+        emptyState={<div>Empty</div>}
+        label="Pinned"
+        onArchiveSession={noop}
+        onDeleteSession={noop}
+        onResumeSession={noop}
+        onToggle={noop}
+        onTogglePin={noop}
+        onToggleUnread={noop}
+        open={true}
+        pinned={true}
+        sessions={[]}
+      />
+    )
+
+    const section = container.querySelector('[data-sidebar-section="pinned"]')
+
+    expect(section).toBeTruthy()
+    expect(section?.querySelector('[data-sidebar-section-header]')).toBeTruthy()
+    expect(section?.querySelector('[data-sidebar-section-label]')).toBeTruthy()
+    expect(section?.querySelector('[data-sidebar-section-content]')).toBeTruthy()
+    expect(section?.textContent).toContain('Empty')
+  })
+
   it('memoizes flatRows and passes the exact same rows array reference across parent re-renders', () => {
     mockVirtualListPropsHistory.length = 0
 

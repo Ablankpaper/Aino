@@ -3,6 +3,7 @@
 @import 'tw-shimmer';
 @import 'katex/dist/katex.min.css';
 @import '@vscode/codicons/dist/codicon.css';
+@import './styles/aino-theme.css';
 
 /* Titlebar clusters: 24×24 hit targets, 13.9px glyphs. codicon.css is
    unlayered (`font: 16px/1`); Tailwind utilities in @layer lose that fight. */
@@ -436,7 +437,7 @@
     --dt-user-bubble-border: var(--ui-stroke-tertiary);
 
     --dt-font-sans:
-      'Segoe WPC', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif,
+      'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif,
       'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', emoji;
     /* Key caps always use the native UI face — never theme typography overrides. */
     --dt-font-kbd: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
@@ -452,11 +453,8 @@
     --dt-spacing-mul: 1;
 
     --radius: 0.75rem;
-    /* Effective value everywhere: the chat backdrop used to force 0.2 onto the
-       root element at runtime (an ungated leva slider default), so this 0.6
-       only ever applied to the windows that don't mount the backdrop. Pinned
-       to the value the app actually renders at. */
-    --radius-scalar: 0.2;
+    /* Aino uses the same soft corners on controls, portals and page panels. */
+    --radius-scalar: 1;
 
     /* Space under last message vs overlay composer — driven by the measured composer DOCK height (see
        composer/index.tsx), which covers the micro-action strip, the status stack, the composer, and the
@@ -489,7 +487,6 @@
        markdown block and between consecutive prose parts. Single knob; tweak
        freely. */
     --paragraph-gap: 0.7rem;
-    --sticky-human-top: 0.23rem;
     --file-tree-row-height: 1.375rem;
 
     --composer-width: 100%;
@@ -1195,14 +1192,31 @@ button {
    the variants. */
 
 [data-slot='dropdown-menu-content'],
+[data-slot='dropdown-menu-sub-content'],
+[data-slot='context-menu-content'],
+[data-slot='context-menu-sub-content'],
 [data-slot='select-content'],
-[data-slot='dialog-content'],
 [data-slot='thread-timeline-popover'] {
   border-color: var(--ui-stroke-secondary);
-  background: color-mix(in srgb, var(--ui-bg-elevated) 96%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--ui-bg-elevated);
+  color: var(--ui-text-primary);
+  font-family: var(--aino-landing-font);
   box-shadow: var(--shadow-md);
-  backdrop-filter: blur(0.75rem) saturate(1.08);
-  -webkit-backdrop-filter: blur(0.75rem) saturate(1.08);
+}
+
+[data-slot='dialog-content'] {
+  border-color: var(--ui-stroke-secondary);
+  border-radius: var(--aino-radius-panel);
+  background: var(--ui-bg-elevated);
+  color: var(--ui-text-primary);
+  font-family: var(--aino-landing-font);
+  box-shadow: var(--shadow-nous);
+}
+
+:where(button, [role='button'], [role='tab'], [role='checkbox'], [role='switch']):focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
 }
 
 [data-slot='dropdown-menu-item']:focus,
@@ -1283,14 +1297,14 @@ code {
    backdrop-blur flickers (badly on textareas), so the bg fill snaps instead.
    (:focus is declared after :hover so a focused+hovered field shows focus.) */
 .desktop-input-chrome {
-  background: color-mix(in srgb, var(--dt-card) var(--dt-input-bg), transparent);
-  border-color: color-mix(in srgb, var(--dt-composer-ring) var(--dt-input-border), transparent);
-  box-shadow: var(--dt-input-inset);
-  transition: border-color 200ms ease-out;
+  background: var(--ui-bg-editor);
+  border-color: var(--ui-stroke-secondary);
+  box-shadow: none;
+  transition: border-color 100ms ease-out, box-shadow 100ms ease-out;
 }
 
 .desktop-input-chrome:hover {
-  border-color: color-mix(in srgb, var(--dt-composer-ring) calc(var(--dt-input-border) * 2), transparent);
+  border-color: var(--ui-stroke-primary);
 }
 
 /* `[data-state='open']` keeps the trigger looking focused while its dropdown is
@@ -1298,13 +1312,14 @@ code {
 .desktop-input-chrome:focus,
 .desktop-input-chrome:focus-within,
 .desktop-input-chrome[data-state='open'] {
-  border-color: var(--dt-composer-ring);
-  box-shadow: none;
+  border-color: var(--ui-accent);
+  box-shadow: var(--aino-focus-ring);
   outline: none;
 }
 
 .desktop-input-chrome[aria-invalid='true'] {
   border-color: var(--dt-destructive);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dt-destructive) 12%, transparent);
 }
 
 /* Drag in progress (sash resize, console resize, tab drag): webview/iframe
@@ -1545,10 +1560,6 @@ body.guest-pointer-lock :is(webview, iframe) {
   text-align: left;
 }
 
-[data-slot='aui_user-message-root'] {
-  top: var(--sticky-human-top);
-}
-
 [data-slot='aui_user-message-root'],
 [data-slot='aui_edit-composer-root'] {
   --human-msg-line-height: 1.3;
@@ -1563,10 +1574,10 @@ body.guest-pointer-lock :is(webview, iframe) {
   line-height: var(--human-msg-line-height);
 }
 
-/* Sticky human bubbles clamp to ~2 lines with a soft bottom fade so a long
-   prompt doesn't dominate the viewport. The clamp lifts only in the edit
-   composer; expanding on read-only :focus-within ran on mousedown (before the
-   swap) and fought stick-to-bottom when parked at the bottom. */
+/* User bubbles clamp to ~2 lines with a soft bottom fade so a long prompt
+   doesn't dominate the viewport. The clamp lifts only in the edit composer;
+   expanding on read-only :focus-within ran on mousedown (before the swap) and
+   fought stick-to-bottom when parked at the bottom. */
 .sticky-human-clamp {
   cursor: pointer;
   max-height: calc(4 * var(--human-msg-line-height) * var(--conversation-text-font-size) + 0.15rem);
@@ -1579,8 +1590,8 @@ body.guest-pointer-lock :is(webview, iframe) {
 }
 
 /* Stick-to-bottom owns scrollTop while following. Once escaped, native anchoring
-   is safe and keeps sticky human edits from shoving the viewport; data-editing
-   enables that path before React swaps in the inline editor. */
+   is safe while a user bubble is being edited; data-editing enables that path
+   before React swaps in the inline editor. */
 [data-slot='aui_thread-viewport'] {
   overflow-anchor: none;
 }
@@ -1617,6 +1628,8 @@ body.guest-pointer-lock :is(webview, iframe) {
   --aino-landing-placeholder: #d1d5dc;
   --aino-landing-primary: #364153;
   --aino-landing-secondary: #6a7282;
+  --aino-landing-session-active:
+    color-mix(in srgb, var(--aino-landing-control) 86%, var(--aino-landing-surface));
   --aino-landing-sidebar: #fafafa;
   /* The Figma frame renders a slightly darker one-pixel seam than the
      translucent editor border. Keep this token scoped to the landing rail so
@@ -1628,8 +1641,7 @@ body.guest-pointer-lock :is(webview, iframe) {
   --aino-landing-title: #111;
   --aino-landing-workspace: #efefef;
   --shadow-aino-landing-composer: 0 2px 8px rgb(0 0 0 / 8%);
-  --aino-landing-font:
-    'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --aino-landing-font: var(--dt-font-sans);
 }
 
 .dark {
@@ -1643,6 +1655,8 @@ body.guest-pointer-lock :is(webview, iframe) {
   --aino-landing-placeholder: var(--ui-text-quaternary);
   --aino-landing-primary: var(--ui-text-primary);
   --aino-landing-secondary: var(--ui-text-secondary);
+  --aino-landing-session-active:
+    color-mix(in srgb, var(--aino-landing-control) 86%, var(--aino-landing-surface));
   --aino-landing-sidebar: var(--dt-sidebar-bg);
   --aino-landing-edge: var(--ui-stroke-tertiary);
   --aino-landing-stroke: var(--ui-stroke-tertiary);
@@ -1749,6 +1763,108 @@ body:has([data-chat-surface][data-home-layout]) [data-tour='sessions-sidebar'] {
 
 [data-tour='sessions-sidebar'] [data-slot='sidebar-content'] {
   background: var(--aino-landing-sidebar);
+}
+
+/* ── Aino session index ──────────────────────────────────────────────────
+   The primary nav and the conversation canvas use the same calm Aino type
+   scale.  The session index used to opt out of that language: tiny tracked
+   small-caps headings, dense one-pixel row gaps, and a different active band.
+   Keep the existing row components (and therefore all their actions, DnD and
+   status subscriptions), but give their chrome one scoped visual contract. */
+[data-tour='sessions-sidebar'] [data-sidebar-section-header] {
+  /* Keep the existing section rhythm; only the paint below changes. */
+  color: var(--aino-landing-secondary);
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-section-header] > button:hover,
+[data-tour='sessions-sidebar'] [data-sidebar-section-header] > button:focus-visible {
+  background: var(--aino-landing-control);
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-section-label] {
+  gap: 0;
+  padding-left: 0;
+  color: var(--aino-landing-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-section-label] > .dither {
+  display: none;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-section-content] {
+  gap: 0.0625rem;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-pinned-hint] {
+  /* Preserve the hint's established two-line footprint in narrow rails. */
+  color: var(--aino-landing-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-pinned-hint] > span:first-child {
+  color: var(--aino-landing-muted);
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-session-row] {
+  border-radius: 0.5rem;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-session-row]:hover {
+  background: var(--aino-landing-control);
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-session-row][data-selected='true'] {
+  background: var(--aino-landing-session-active);
+  box-shadow: none;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-session-row][data-selected='true'] .aino-sidebar-session-label {
+  color: var(--aino-landing-primary);
+  font-weight: 500;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-session-row] .aino-sidebar-session-label {
+  color: var(--aino-landing-primary);
+  font-size: 0.8125rem;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-session-row] [data-sidebar-session-actions] {
+  color: var(--aino-landing-muted);
+  font-size: 0.6875rem;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-session-row] [data-sidebar-session-lead],
+[data-tour='sessions-sidebar'] [data-sidebar-session-row] [data-reorder-handle] {
+  color: var(--aino-landing-muted);
+}
+
+[data-tour='sessions-sidebar']
+  [data-sidebar-session-row][data-selected='true']
+  :is([data-sidebar-session-lead], [data-reorder-handle]) {
+  color: var(--aino-landing-accent);
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-date-divider] {
+  color: var(--aino-landing-muted);
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-date-divider] > span:first-child {
+  color: var(--aino-landing-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+[data-tour='sessions-sidebar'] [data-sidebar-date-divider] > span[aria-hidden='true'] {
+  background: var(--aino-landing-stroke);
 }
 
 /* The approved frame splits the native titlebar at the sidebar edge and keeps
@@ -2123,7 +2239,6 @@ body:has([data-chat-surface][data-home-layout])
   --conversation-turn-gap: 1.25rem;
   --message-text-indent: 0rem;
   --paragraph-gap: 0.75rem;
-  --sticky-human-top: 2rem;
   --thread-last-message-clearance: 2rem;
   --thread-viewport-height: 100%;
   background: var(--aino-landing-surface);
@@ -2216,7 +2331,7 @@ body:has([data-chat-surface][data-home-layout])
   align-self: end;
 }
 
-/* The sticky row remains full-width so checkpoint/edit behaviour is unchanged;
+/* Keep the message row full-width so checkpoint/edit behaviour is unchanged;
    only its live message stack shrinks to a right-aligned content bubble. */
 [data-chat-surface][data-conversation-layout] [data-slot='aui_user-message-root'] {
   align-items: flex-end;
@@ -2366,7 +2481,6 @@ body:has([data-chat-surface][data-home-layout])
 @media (max-width: 52rem) {
   [data-chat-surface][data-conversation-layout] {
     --conversation-turn-gap: 1rem;
-    --sticky-human-top: 1rem;
   }
 
   [data-chat-surface][data-conversation-layout] [data-slot='aui_thread-content'] {
@@ -3502,11 +3616,8 @@ button[data-slot='aui_msg-reactions'] svg {
    no blur to separate the band from what it lies over, the sheet is the only
    thing keeping half-opacity text off someone else's UI. Fade the words, keep
    the paper. */
-/* A DARK scrim, not the theme's card. The band's ink is white unconditionally
-   (see above), so the sheet it lands on has to be dark in every theme —
-   `--dt-card` is near-white on a light theme and would put white text on a white
-   panel. This is the overlay's own surface, the way a game's chat backdrop is
-   its own thing rather than a piece of the desktop UI. */
+/* The HUD uses the same paper and ink as chat. Keep the sheet opaque enough
+   to separate text from whatever application is behind the transparent host. */
 [data-hud-shell] [data-hud-glass] {
   position: absolute;
   right: var(--hud-band-inset);
@@ -3515,7 +3626,7 @@ button[data-slot='aui_msg-reactions'] svg {
   z-index: 0;
   pointer-events: none;
   border-radius: 0.75rem 0.75rem 0 0;
-  background: rgb(12 14 18 / 0.62);
+  background: color-mix(in srgb, var(--ui-bg-elevated) 96%, transparent);
   /* Slides down behind the bar as it fades. A TRANSFORM, not height: it is
      composited, so it stays smooth where animating height re-lays-out the panel
      every frame and looked coarse — and it leaves the box alone, which matters
@@ -3539,11 +3650,17 @@ button[data-slot='aui_msg-reactions'] svg {
     background-color var(--hud-dim) var(--hud-ease-enter);
 }
 
-/* The sheet is FOCUS-ONLY. A turn landing brings the text up (see
-   `composer-bounds` below) but must not paint a panel behind it: over a game
-   the tinted sheet is the thing that reads as a desktop window parked on the
-   action, and it is most of the HUD's rectangle. Streaming shows words on the
-   game; sitting down to read promotes the surface. */
+/* Theme-colored ink needs its reading surface whenever the transcript is
+   shown, including the unfocused recent/held state. The sheet stays passive:
+   visibility does not change click-through, and native frost remains focused
+   only. At idle both layers collapse on the same clock. */
+[data-hud-shell][data-hud-recent] [data-hud-glass] {
+  translate: none;
+  opacity: 1;
+  transition-duration: var(--hud-dim);
+  transition-timing-function: var(--hud-ease-enter);
+}
+
 [data-hud-shell]:has([data-slot='composer-rich-input']:focus) [data-hud-glass] {
   translate: none;
   opacity: 1;
@@ -3560,10 +3677,8 @@ button[data-slot='aui_msg-reactions'] svg {
    transparent window that owns its own backgrounds (isChatWindow). Two flags,
    because the HUD wants the setting without the rewrite. */
 :root[data-hermes-glass-on] [data-hud-shell] [data-hud-glass] {
-  /* Same dark scrim under Glass. The docked thread's `--ui-bg-chrome` follows
-     the theme and goes near-white on a light one, which is the wrong paper for
-     this band's white ink — the HUD is over a game, not inside the app. */
-  background: rgb(12 14 18 / 0.55);
+  /* Native material stays behind a theme-colored reading surface. */
+  background: color-mix(in srgb, var(--ui-bg-elevated) 92%, transparent);
 }
 
 /* The band spans the window edge to edge under glass. The 8px side inset keeps
@@ -3597,7 +3712,7 @@ button[data-slot='aui_msg-reactions'] svg {
    never below the resting tint, so a high lever cannot make focusing the
    composer paint MORE transparent than glancing at it. */
 :root[data-hermes-glass-on] [data-hud-shell]:has([data-slot='composer-rich-input']:focus) [data-hud-glass] {
-  background: rgb(12 14 18 / 0.72);
+  background: var(--ui-bg-elevated);
 }
 
 /* Engaged means the caret is in the composer, not merely that the window holds
@@ -3607,7 +3722,7 @@ button[data-slot='aui_msg-reactions'] svg {
    below stays on :focus-within — being permissive about what can be clicked is
    harmless, being permissive about what lights up is not. */
 [data-hud-shell]:has([data-slot='composer-rich-input']:focus) [data-hud-glass] {
-  background: rgb(12 14 18 / 0.82);
+  background: var(--ui-bg-elevated);
 }
 
 /* Flipped, the sheet hangs from the bar instead of standing on it. */
@@ -3689,23 +3804,11 @@ button[data-slot='aui_msg-reactions'] svg {
   transition-timing-function: var(--hud-ease-enter);
 }
 
-/* THE BAND IS ALWAYS LIGHT-ON-DARK. Unconditional, and that is the point: the
-   transcript here is either bare text over another app or text on a translucent
-   scrim, and in both cases the theme's near-black body ink is the wrong ink.
-   Every earlier cut gated this on something — focus, then `data-hud-game` — and
-   every gate produced a state where the words went black on a dark game. A
-   HUD's legibility cannot depend on a condition being evaluated correctly; it
-   is a property of the surface. The scrim below is darkened to match, so white
-   is right whether the sheet is up or not. */
+/* Transcript typography follows chat; semantic tool/code colors remain intact. */
 [data-hud-shell] [data-slot='composer-bounds'] {
-  --hud-overlay-ink: #fff;
-  /* WoW-epic gold: reads as "yours" against white agent text and survives being
-     over a dark cave or a bright loading screen. */
-  --hud-overlay-ink-user: #ffcf6b;
-  color: var(--hud-overlay-ink);
-  text-shadow:
-    0 1px 2px rgb(0 0 0 / 0.9),
-    0 0 6px rgb(0 0 0 / 0.55);
+  color: var(--ui-text-primary);
+  font-family: var(--aino-landing-font);
+  text-shadow: none;
   /* Ramp the scrollback out at the top instead of guillotining it against the
      bar. With no sheet to end on, a hard edge reads as text sliced off; the
      fade says "there is more above" the way a game's chat log does. */
@@ -3723,64 +3826,6 @@ button[data-slot='aui_msg-reactions'] svg {
 [data-hud-shell] [data-slot='aui_thread-viewport'] {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--hud-top-fade, 3.5rem));
   mask-image: linear-gradient(to bottom, transparent 0, #000 var(--hud-top-fade, 3.5rem));
-}
-
-/* Every descendant that sets its own colour — assistant prose, user text,
-   markdown, timestamps — inherits it too, or the ink change reaches the
-   wrapper and nothing you can actually read. Widgets carve themselves out by
-   resetting the variable (see below), so this stays one rule. */
-[data-hud-shell] [data-slot='composer-bounds'] * {
-  color: var(--hud-overlay-ink) !important;
-}
-
-/* Anything that paints its OWN light surface inside the band keeps the theme's
-   ink — a clarify question, an approval prompt, an artifact card, a code block,
-   a form control. The overlay's white ink exists for text sitting on the game;
-   a widget brings its own paper, and forcing white there made the panel
-   unreadable (a clarify prompt with white options on a near-white card).
-   Done by moving the VARIABLE rather than adding a competing `color` rule: the
-   one !important above reads `--hud-overlay-ink` from whatever ancestor is
-   nearest, so a widget re-pointing it at the theme's ink re-inks its whole
-   subtree with no specificity fight and no second copy of the selector list.
-   The list is deliberately by SURFACE, not by feature: every entry paints a
-   fill. That distinction matters for approvals — `tool-approval-fallback` wraps
-   a real card (`--ui-chat-surface-background`) and its `<pre>` command block
-   brings its own, but `tool-approval-inline` / `-actions` are bare rows sitting
-   directly on the band, so they must stay WHITE like ordinary prose. Matching
-   them by slot made their labels dark-on-game, which is the exact bug this rule
-   exists to prevent, one level down. Match the fill, never the feature.
-   Widgets on the shared shell (components/chat/widget-shell.ts →
-   `--ui-widget-surface-background`) and any chat-surface card are matched on
-   their class, so new ones inherit this without touching the list. */
-[data-hud-shell]
-  [data-slot='composer-bounds']
-  :is(
-    [data-slot='clarify-inline'],
-    [data-slot='tool-block'],
-    [data-slot='file-diff-panel'],
-    [data-slot='code-card'],
-    [data-slot='aui_system-message-root'],
-    [class*='ui-widget-surface-background'],
-    [class*='ui-chat-surface-background'],
-    pre,
-    input,
-    textarea,
-    select
-  ) {
-  --hud-overlay-ink: var(--ui-text-primary);
-  --hud-overlay-ink-user: var(--ui-text-primary);
-  text-shadow: none;
-}
-
-/* …except your OWN lines. With the bubble gone at rest, white-on-white is the
-   only thing telling you apart from the agent, and it doesn't: the log reads as
-   one voice. Tint them instead — the same job the bubble was doing, done with
-   ink so it costs no surface. Warm gold rather than the theme's accent: it has
-   to hold up over whatever is behind the window, and a blue or purple lands on
-   top of exactly the palette most games use for their own UI. */
-[data-hud-shell] :is([data-slot='aui_user-message-root'], .composer-human-message),
-[data-hud-shell] :is([data-slot='aui_user-message-root'], .composer-human-message) * {
-  color: var(--hud-overlay-ink-user) !important;
 }
 
 [data-hud-shell]:has([data-slot='composer-rich-input']:focus) [data-slot='composer-bounds'] {
@@ -3806,40 +3851,32 @@ button[data-slot='aui_msg-reactions'] svg {
   background: var(--dt-card) !important;
 }
 
-/* User messages ride the band like every other line. In the app each sticky
-   user row paints an OPAQUE chat-surface slab behind it (so a stuck bubble can
-   slide over scrolled text) and the bubble is solid --dt-user-bubble — inside
-   the smoked band both read as fully opaque cards that ignore every fade. The
-   slab goes unconditionally; the bubble is gone entirely at rest and returns
-   when engaged. ONE variable carries the fill so there is no specificity fight
-   between rest/engaged rules — the states just move the var. */
+/* User messages ride the band like every other line. In the app each user row
+   paints an OPAQUE chat-surface slab behind it, and the bubble is solid
+   --dt-user-bubble — inside the smoked band both read as fully opaque cards
+   that ignore every fade. The slab goes unconditionally; the bubble is gone
+   entirely at rest and returns when engaged. ONE variable carries the fill so
+   there is no specificity fight between rest/engaged rules — the states just
+   move the var. */
 [data-hud-shell] {
   /* At rest there is no bubble: unfocused, the band is bare text over someone
      else's window, and a card around your own lines is the one thing in it
      that still reads as an app. The words stay (they are the log); the
      container stops being drawn. */
-  --hud-bubble-fill: transparent;
+  --hud-bubble-fill: var(--ui-bg-quaternary);
   --hud-bubble-stroke: transparent;
 }
 
-/* ONE opacity law for the whole band: solid on focus, material otherwise.
-   Bubbles going solid on `recent` too made them opaque cards floating on the
-   62% band mid-stream — the band only steps solid on focus, so nothing inside
-   it may step earlier. */
-/* No bubble in the HUD, ever. The band's ink already distinguishes the two
-   voices (white agent / gold yours), and a light card behind gold text is the
-   one thing in here that fights the overlay's own contrast. */
+/* The same user bubble distinguishes the speakers in both window modes. */
 [data-hud-shell]:has([data-slot='composer-rich-input']:focus) {
-  --hud-bubble-fill: transparent;
+  --hud-bubble-fill: var(--ui-bg-quaternary);
   --hud-bubble-stroke: transparent;
 }
 
 [data-hud-shell] [data-slot='aui_user-message-root'] {
   background: transparent !important;
-  /* Not sticky in HUD mode: the band is a short log, and a pinned bubble
-     spends a third of it on a line you already read. Static rows scroll away
-     like everything else (the app keeps its sticky behavior — this is the
-     HUD's call, not a global one). */
+  /* Keep this explicit as a defensive contract for HUD overlays: rows scroll
+     away with the short log even if a future shared class adds positioning. */
   position: static !important;
 }
 
@@ -4129,7 +4166,7 @@ button[data-slot='aui_msg-reactions'] svg {
   /* Bottom edge only. Enough to lift the bar off whatever it is lying over —
      without it the HUD reads as pasted onto the other app — and tight enough
      that it never becomes a glow around a floating card. */
-  box-shadow: 0 2px 2px -1px rgb(0 0 0 / 0.12) !important;
+  box-shadow: var(--shadow-aino-landing-composer) !important;
   transition: border-color var(--hud-reveal) var(--hud-ease-enter);
 }
 
@@ -4313,4 +4350,283 @@ html:has([data-hud-shell]) [data-slot='popover-content'] {
 
 [data-hud-shell] [data-slot='composer-bounds'] *::-webkit-scrollbar {
   display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   AINO SURFACE LANGUAGE
+
+   Chat is the product's visual anchor: a quiet paper surface, one-pixel
+   seams, generous whitespace, graphite actions, and soft neutral selection
+   bands.  The routes that sit beside chat used to opt into their own chrome
+   (bright blue outlines, dense boxed rows, and heavy modal frames).  Keep the
+   route components and their behavior intact, but let every durable page and
+   route overlay inherit the same visual contract here.
+
+   The variables are scoped to semantic surface markers rather than route
+   names.  That keeps contributed content and future pages on the same ladder,
+   and makes the treatment safe for the translucent-window modes: surfaces
+   still paint through the existing --ui-* tokens instead of forcing an opaque
+   background.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Palette and control appearance are global in styles/aino-theme.css and the
+   UI primitives. These markers own page layout only, so portals and auxiliary
+   renderers cannot drift from their parent page. */
+
+/* Durable pages use the same type face and paper as the landing chat.  The
+   surface token remains transparent when Glass is enabled, so native material
+   behavior is preserved. */
+:is([data-aino-page-shell], [data-aino-settings]) {
+  background: var(--aino-surface-bg) !important;
+  color: var(--aino-surface-ink);
+  font-family: var(--aino-landing-font);
+}
+
+:is([data-aino-page-shell], [data-aino-settings]) [data-aino-page-content] {
+  background: var(--aino-surface-bg) !important;
+}
+
+/* Page headers are a single quiet seam, not a second title bar. */
+[data-aino-page-header] {
+  border-bottom-color: var(--aino-surface-stroke) !important;
+  background: var(--aino-surface-bg) !important;
+}
+
+[data-aino-page-header] [data-tour='page-tabs'] [data-tour^='tab-'] {
+  border: 0 !important;
+  border-radius: 0.5rem;
+  color: var(--ui-text-tertiary);
+  text-decoration: none;
+}
+
+[data-aino-page-header] [data-tour='page-tabs'] [data-tour^='tab-']:hover {
+  background: var(--aino-surface-hover) !important;
+  color: var(--aino-surface-ink);
+}
+
+[data-aino-page-header] [data-tour='page-tabs'] [data-tour^='tab-'][data-active='true'] {
+  background: transparent !important;
+  color: var(--aino-surface-ink);
+  box-shadow: inset 0 -2px 0 var(--ui-accent);
+  font-weight: 600;
+}
+
+[data-aino-page-header] input {
+  color: var(--aino-surface-ink);
+}
+
+/* The app rail is shared by every page.  Route selection follows chat's soft
+   band; the old inset blue ring is intentionally removed. */
+[data-aino-sidebar] {
+  background: var(--aino-surface-rail) !important;
+  border-color: var(--aino-surface-stroke) !important;
+  font-family: var(--aino-landing-font);
+}
+
+[data-aino-sidebar] [data-sidebar='menu-button'] {
+  border: 0 !important;
+  border-radius: 0.625rem !important;
+  box-shadow: none !important;
+  color: var(--aino-surface-muted);
+}
+
+[data-aino-sidebar] [data-sidebar='menu-button']:hover,
+[data-aino-sidebar] [data-sidebar='menu-button']:focus-visible {
+  background: var(--aino-surface-hover) !important;
+  color: var(--aino-surface-ink);
+}
+
+[data-aino-sidebar] [data-sidebar='menu-button'][data-active='true'] {
+  background: var(--aino-surface-active) !important;
+  color: var(--aino-surface-ink) !important;
+  box-shadow: none !important;
+}
+
+[data-aino-sidebar] [data-sidebar='menu-button'][data-active='true'] [data-slot='sidebar-nav-icon'] {
+  background: var(--aino-surface-control);
+}
+
+[data-aino-sidebar] [data-slot='sidebar-identity-footer'] {
+  border-top-color: var(--aino-surface-stroke) !important;
+}
+
+[data-aino-sidebar] [data-sidebar-session-row][data-selected='true'] {
+  background: var(--aino-surface-active) !important;
+  box-shadow: none !important;
+}
+
+/* Settings navigation is the same rail pattern at a different scale. */
+[data-aino-settings] [data-aino-overlay-nav] {
+  background: var(--aino-surface-rail) !important;
+  border-right: 1px solid var(--aino-surface-stroke);
+  padding-inline: 0.75rem;
+}
+
+[data-aino-settings] [data-aino-overlay-nav] [data-tour^='nav-'] {
+  min-height: 2rem;
+  height: 2rem;
+  border-color: transparent !important;
+  border-radius: 0.625rem !important;
+  color: var(--aino-surface-muted);
+  padding-inline: 0.625rem;
+}
+
+[data-aino-settings] [data-aino-overlay-nav] [data-tour^='nav-']:hover,
+[data-aino-settings] [data-aino-overlay-nav] [data-tour^='nav-']:focus-visible {
+  background: var(--aino-surface-hover) !important;
+  color: var(--aino-surface-ink);
+}
+
+[data-aino-settings] [data-aino-overlay-nav] [data-tour^='nav-'][data-active='true'] {
+  background: var(--aino-surface-active) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--aino-surface-ink) !important;
+  font-weight: 600;
+}
+
+[data-aino-settings] [data-aino-overlay-main] {
+  background: var(--aino-surface-bg) !important;
+}
+
+[data-aino-settings] [data-settings-profile-controls],
+[data-aino-settings] [data-settings-profile-controls] + * {
+  border-color: var(--aino-surface-stroke) !important;
+}
+
+/* Master/detail pages: the list reads as a calm rail and the inspector as the
+   open conversation canvas.  A single seam replaces nested blue frames. */
+[data-aino-master-detail] {
+  background: var(--aino-surface-bg) !important;
+}
+
+[data-aino-list-column] {
+  background: var(--aino-surface-rail) !important;
+  border-right: 1px solid var(--aino-surface-stroke);
+  padding: 0.75rem 0.625rem !important;
+}
+
+[data-aino-list-column] > :is(ul, div) {
+  min-width: 0;
+}
+
+[data-aino-detail-column] {
+  background: var(--aino-surface-bg) !important;
+}
+
+[data-aino-detail-column] > div > div {
+  max-width: min(54rem, 100%) !important;
+}
+
+[data-aino-master-detail] :is([data-aino-cap-row], [data-panel-row], [data-aino-active='true']) {
+  border-radius: 0.625rem !important;
+}
+
+[data-aino-master-detail] :is([data-aino-cap-row], [data-panel-row], [data-aino-active='true']):hover {
+  background: var(--aino-surface-hover) !important;
+}
+
+[data-aino-master-detail] :is([data-aino-cap-row][data-active='true'], [data-panel-row][data-active='true'], [data-aino-active='true']) {
+  background: var(--aino-surface-active) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--aino-surface-ink) !important;
+}
+
+
+
+[data-aino-empty-state] {
+  color: var(--aino-surface-ink);
+}
+
+[data-aino-empty-state] :is(p, div) {
+  font-family: var(--aino-landing-font);
+}
+
+/* Route overlays use the same flat elevation rule as chat widgets: one soft
+   scrim, one hairline, one downward shadow. */
+[data-aino-overlay] {
+  background: color-mix(in srgb, var(--ui-base) 12%, transparent) !important;
+  backdrop-filter: blur(1px) saturate(0.96) !important;
+  -webkit-backdrop-filter: blur(1px) saturate(0.96) !important;
+}
+
+[data-aino-overlay-card] {
+  border: 1px solid var(--stroke-nous) !important;
+  border-radius: 1rem !important;
+  background: var(--ui-chat-surface-background) !important;
+  box-shadow: var(--shadow-nous) !important;
+  font-family: var(--aino-landing-font);
+}
+
+[data-aino-overlay-card] [data-aino-overlay-nav] {
+  background: var(--ui-sidebar-surface-background) !important;
+  border-right: 1px solid var(--aino-surface-stroke);
+}
+
+[data-aino-overlay-card] [data-aino-overlay-main] {
+  background: var(--ui-chat-surface-background) !important;
+}
+
+[data-aino-overlay-card] [data-aino-overlay-nav] [data-tour^='nav-'] {
+  border-color: transparent !important;
+  border-radius: 0.625rem !important;
+  color: var(--ui-text-secondary);
+}
+
+[data-aino-overlay-card] [data-aino-overlay-nav] [data-tour^='nav-']:hover,
+[data-aino-overlay-card] [data-aino-overlay-nav] [data-tour^='nav-']:focus-visible {
+  background: var(--ui-row-hover-background) !important;
+  color: var(--ui-text-primary);
+}
+
+[data-aino-overlay-card] [data-aino-overlay-nav] [data-tour^='nav-'][data-active='true'] {
+  background: var(--ui-row-active-background) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--ui-text-primary) !important;
+  font-weight: 600;
+}
+
+[data-aino-overlay-card] [data-aino-panel-body] {
+  gap: 1rem !important;
+}
+
+[data-aino-overlay-card] [data-aino-panel-list] {
+  border-right: 1px solid var(--aino-surface-stroke);
+  padding-right: 0.75rem;
+}
+
+[data-aino-overlay-card] [data-panel-row][data-active='true'] {
+  background: var(--ui-row-active-background) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-aino-overlay-card] [data-panel-row]:hover {
+  background: var(--ui-row-hover-background) !important;
+}
+
+/* The embedded hub is cross-origin, so only its host frame can be themed.
+   This removes the old bright blue shell while leaving the external content
+   and install bridge untouched. */
+[data-aino-hub-frame] {
+  border: 1px solid var(--aino-surface-stroke) !important;
+  border-radius: 0.75rem !important;
+  background: var(--ui-bg-editor);
+}
+
+/* Small-screen parity: the same rails collapse into a single quiet row. */
+@media (max-width: 47.5rem) {
+  [data-aino-list-column] {
+    border-right: 0;
+    border-bottom: 1px solid var(--aino-surface-stroke);
+  }
+
+  [data-aino-overlay-card] [data-aino-panel-list] {
+    border-right: 0;
+    border-bottom: 1px solid var(--aino-surface-stroke);
+    padding-right: 0;
+    padding-bottom: 0.5rem;
+  }
 }

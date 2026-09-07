@@ -91,6 +91,7 @@ export function PanelBody({ children, className }: { children: ReactNode; classN
         'flex min-h-0 flex-1 flex-col gap-4 overflow-hidden min-[47.5rem]:flex-row min-[47.5rem]:gap-5',
         className
       )}
+      data-aino-panel-body=""
     >
       {children}
     </div>
@@ -125,7 +126,10 @@ export function PanelList({
   return (
     // Full-width and height-capped when stacked (narrow); a fixed 13rem rail
     // beside the detail when wide.
-    <div className={cn('flex w-full shrink-0 flex-col max-[47.5rem]:max-h-[40%] min-[47.5rem]:w-52', className)}>
+    <div
+      className={cn('flex w-full shrink-0 flex-col max-[47.5rem]:max-h-[40%] min-[47.5rem]:w-52', className)}
+      data-aino-panel-list=""
+    >
       {onSearchChange ? (
         <SearchField
           aria-label={searchLabel ?? searchPlaceholder ?? ''}
@@ -186,6 +190,7 @@ export function PanelListRow({
         'group/row row-hover relative flex h-7 w-full items-center rounded-md text-[0.78rem] hover:text-foreground',
         active ? 'bg-(--ui-row-active-background) text-foreground' : 'text-(--ui-text-secondary)'
       )}
+      data-active={active}
       data-panel-row={rowKey}
     >
       <RowButton
@@ -281,7 +286,7 @@ export function PanelRowMenu({ items, label }: { items: PanelMenuItem[]; label?:
 // trace inspector), so the content stretches the full available width.
 export function PanelDetail({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', className)}>
+    <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', className)} data-aino-panel-detail="">
       <div className="space-y-4 pb-6 pl-1 pr-2">{children}</div>
     </div>
   )
@@ -297,7 +302,7 @@ interface PanelEmptyProps {
 
 export function PanelEmpty({ action, description, icon = 'inbox', title }: PanelEmptyProps) {
   return (
-    <div className="grid flex-1 place-items-center px-6 py-10 text-center">
+    <div className="grid flex-1 place-items-center px-6 py-10 text-center" data-aino-empty-state="">
       <div className="flex flex-col items-center gap-2">
         <Codicon className="text-muted-foreground/50" name={icon} size="1.25rem" />
         {title ? <p className="text-sm font-medium text-foreground/90">{title}</p> : null}

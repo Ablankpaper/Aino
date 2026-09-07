@@ -138,6 +138,7 @@ test.describe('chat interaction with mock backend', () => {
       const composerNode = node.querySelector<HTMLElement>('[data-slot="composer-surface"]')
       const composerBounds = node.querySelector<HTMLElement>('[data-slot="composer-bounds"]')
       const composerDock = node.querySelector<HTMLElement>('[data-slot="composer-dock"]')
+      const userMessageRoot = node.querySelector<HTMLElement>('[data-slot="aui_user-message-root"]')
       const userNode = node.querySelector<HTMLElement>('[data-slot="aui_user-bubble-actions"] button')
       const userBubbleNode = node.querySelector<HTMLElement>('[data-slot="aui_user-bubble"]')
       const userActionsNode = node.querySelector<HTMLElement>('[data-slot="aui_user-actions-row"]')
@@ -148,6 +149,7 @@ test.describe('chat interaction with mock backend', () => {
         !composerNode ||
         !composerBounds ||
         !composerDock ||
+        !userMessageRoot ||
         !userNode ||
         !userBubbleNode ||
         !userActionsNode ||
@@ -185,6 +187,7 @@ test.describe('chat interaction with mock backend', () => {
         dockPosition: getComputedStyle(composerDock).position,
         dockTop: dockRect.top,
         surfaceWidth: surfaceRect.width,
+        userMessagePosition: getComputedStyle(userMessageRoot).position,
         userActionsBelowBubble: userActionsRect.top >= userBubbleRect.bottom,
         userActionsRightGap: Math.abs(userActionsRect.right - userBubbleRect.right),
         userRightGap: composerRect.right - userRect.right,
@@ -201,6 +204,7 @@ test.describe('chat interaction with mock backend', () => {
     expect(metrics.composerWidth, JSON.stringify(metrics)).toBeLessThanOrEqual(800)
     expect(metrics.composerWidth, JSON.stringify(metrics)).toBeLessThan(metrics.surfaceWidth - 64)
     expect(metrics.userWidth, JSON.stringify(metrics)).toBeLessThan(metrics.composerWidth * 0.8)
+    expect(metrics.userMessagePosition, JSON.stringify(metrics)).toBe('static')
     expect(Math.abs(metrics.userRightGap), JSON.stringify(metrics)).toBeLessThanOrEqual(1)
     expect(metrics.userActionsBelowBubble, JSON.stringify(metrics)).toBe(true)
     expect(metrics.userActionsRightGap, JSON.stringify(metrics)).toBeLessThanOrEqual(1)

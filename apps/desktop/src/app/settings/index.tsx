@@ -461,10 +461,12 @@ export function SettingsView({
     <section
       aria-label={t.commandCenter.settings}
       className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-(--ui-chat-surface-background)"
+      data-aino-settings=""
       data-settings-workspace=""
     >
       <header
         className="grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-(--ui-stroke-tertiary) bg-(--ui-sidebar-surface-background) px-3"
+        data-aino-page-header=""
         data-settings-header=""
       >
         <div className="flex min-w-0 items-center">
@@ -487,7 +489,7 @@ export function SettingsView({
         <div />
       </header>
 
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1" data-aino-page-content="">
         <OverlaySplitLayout>
           <OverlayNav footer={navFooter} fullPage groups={navGroups} />
 

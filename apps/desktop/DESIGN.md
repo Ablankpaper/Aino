@@ -70,6 +70,23 @@ replace the foreground transcript or steal focus.
 
 ## Surfaces & elevation
 
+The approved Aino conversation is the visual anchor for **all** desktop-owned
+surfaces: routes, Settings, dialogs, menus, auxiliary windows, lifecycle states,
+panes and bundled plugins. `src/styles/aino-theme.css` defines the shared neutral
+surface roles at `:root`, so body portals and independent renderers inherit them
+without a page-specific opt-in. ThemeProvider owns palette seeds and font choices;
+custom skins, dark mode and native Glass continue to work.
+
+Gatewayless auxiliary renderers (Quick Entry, pet overlay, wake indicator) mount
+`ThemeProvider auxiliary`. This presentation-only mode follows the remembered
+active profile and peer appearance storage events, but never publishes gateway
+profile authority or Electron native-theme ownership.
+
+The default light canvas is white, rails and fields are soft gray, actions are
+graphite, and accent is reserved for links, focus and active navigation. Semantic
+error/success/warning, syntax and diff colors retain their meaning. Use the normal
+UI font for labels; reserve monospace for code, commands, paths and numeric data.
+
 Floating panels (base `Dialog`, route overlays, boot/install/update surfaces,
 model-picker, onboarding, prompt overlays, notifications) use:
 
@@ -99,6 +116,10 @@ for call-site shadow or border inventions.
 | `--ui-widget-surface-background` | fill for inline chat widgets (`WIDGET_SHELL_CLASS`) |
 | `--chrome-action-hover` | hover fill for quiet controls |
 | `--theme-primary`, `--ui-accent` | brand/accent |
+| `--aino-action-bg / -fg / -hover` | graphite primary action and contrast-safe inverse; shared by button, switch and checkbox |
+| `--aino-radius-control / -row / -panel` | 8px controls, 10px selection rows, 16px floating panels |
+| `--aino-text-caption / -ui / -body / -title` | 12 / 13 / 14 / 15px type roles; page-specific headings can step up |
+| `--aino-surface-*`, `--aino-scrim`, `--aino-focus-ring` | shared paper, rail, strokes, state fills, backdrop and input focus |
 | `--aino-landing-*`, `--shadow-aino-landing-composer` | Figma-authored Aino home/sidebar palette and composer elevation; light values mirror the approved frame, dark values fall back to theme tokens |
 
 Never hardcode `border-gray-*`, `bg-white`, `text-black`, etc. The white tile in
@@ -155,21 +176,25 @@ context-dependent (e.g. "Show" / "Hide"). Never hardcode combos; always use
 `useKeybindHint` or `TipKeybindLabel`.
 
 Notes:
-- Text buttons are square (no radius) and sized by padding + line-height (no
-  fixed heights). Only icon buttons carry the shared 4px radius.
+- Text buttons use the shared 8px control radius and padding + line-height (no
+  fixed heights). Boxless text/link actions have no radius; compact icon buttons
+  retain 4px corners. Primary actions use `--aino-action-*`, not the link accent.
 - SVGs inherit `size-3.5` (`size-3` at `xs`). Don't re-set icon size.
 - Polymorph with `asChild` when the button must render as a link/Slot.
 
 ## Badges — one component
 
-`src/components/ui/badge.tsx`. Variants: `default` (tinted primary), `muted`,
+`src/components/ui/badge.tsx`. Variants: `default` (neutral soft fill), `muted`,
 `warn`, `destructive`, `outline`, `solid` (primary fill — icon-corner counts).
 Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
 
 ## Form controls
 
 - **`controlVariants`** (`src/components/ui/control.ts`) is the shared shape for
-  `Input` / `Textarea` / `SelectTrigger`. New text-entry controls compose it.
+  `Input` / `Textarea` / `SelectTrigger`: 8px corners, 13px normal UI text and
+  padding-driven size. New text-entry controls compose it. Fields have neutral
+  fill/hairlines, accent-only focus and a semantic invalid state; grouped fields
+  inherit the same font size as bare controls. No page-specific control overrides.
 - **`SearchField`** — borderless, underline-on-focus, auto-width. The only
   search input. Don't build boxed search bars; don't wrap it in a bordered tile.
   Empty lists hide their search field.
@@ -234,6 +259,13 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
 - Install, onboarding, connecting, boot failure, and reauthentication are
   distinct states with shared visual primitives. Preserve their recovery
   semantics when unifying appearance.
+- Quick Entry, HUD, pet and wake windows use the same font/control tokens while
+  their native host stays transparent. HUD keeps its reveal/hold/click-through
+  behavior; its reading panel and user bubbles use the conversation palette,
+  without forcing one foreground onto code, errors, or approval actions.
+- Terminals/editors, user artifacts, external sites and cross-origin Skills Hub
+  contents are content boundaries. Unify all Aino-owned chrome, controls and
+  loading/error states around them; preserve external content and semantic output.
 - Respect `AppShell` overlay ownership. Persistent terminal/content layers,
   route overlays, dialogs, and boot surfaces must not compete through ad-hoc
   z-index literals. Pick a rung of the ladder in `styles.css` instead —
@@ -331,7 +363,8 @@ The detailed state contract lives in the scoped
 
 - `cursor-pointer` at the primitive level (Button, dropdown/select) — don't
   hardcode it per call site.
-- Global focus-ring reset; titlebar actions have no active-background state.
+- Quiet pointer focus; keyboard-focused controls retain the shared visible
+  focus outline. Titlebar actions have no active-background state.
 - `Esc` closes every dismissable overlay/dialog (install/onboarding excluded);
   close is an x-icon, not the word "Close".
 

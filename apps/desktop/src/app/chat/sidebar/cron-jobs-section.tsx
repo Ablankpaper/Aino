@@ -177,14 +177,19 @@ export function SidebarCronJobsSection({
   const hiddenCount = Math.min(sorted.length, max) - shown.length
 
   return (
-    <SidebarGroup className="shrink-0 p-0 pb-1">
-      <div className="group/section flex shrink-0 items-center justify-between pb-1 pt-1.5">
+    <SidebarGroup className="shrink-0 p-0 pb-1" data-sidebar-section="cron">
+      <div
+        className="group/section flex shrink-0 items-center justify-between pb-1 pt-1.5"
+        data-sidebar-section-header=""
+      >
         <button
           className="group/section-label flex w-fit min-w-0 items-center gap-1 bg-transparent text-left leading-none"
           onClick={onToggle}
           type="button"
         >
-          <SidebarPanelLabel>{label}</SidebarPanelLabel>
+          <SidebarPanelLabel className="aino-sidebar-section-label" data-sidebar-section-label="">
+            {label}
+          </SidebarPanelLabel>
           <DisclosureCaret
             className="text-(--ui-text-tertiary) opacity-0 transition group-hover/section-label:opacity-100"
             open={open}
@@ -192,7 +197,10 @@ export function SidebarCronJobsSection({
         </button>
       </div>
       {open && (
-        <SidebarGroupContent className="scrollbar-fade flex max-h-72 flex-col gap-px overflow-x-hidden overflow-y-auto overscroll-contain pb-1.75 compact:max-h-none compact:overflow-visible">
+        <SidebarGroupContent
+          className="scrollbar-fade flex max-h-72 flex-col gap-px overflow-x-hidden overflow-y-auto overscroll-contain pb-1.75 compact:max-h-none compact:overflow-visible"
+          data-sidebar-section-content=""
+        >
           {shown.map(job => (
             <CronJobSidebarRow
               busy={triggeringJobIds.has(job.id)}

@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { ErrorBoundary } from '@/components/error-boundary'
+import { RootTooltipProvider } from '@/components/ui/tooltip'
 import { I18nProvider } from '@/i18n'
 import { ThemeProvider } from '@/themes/context'
 
@@ -32,8 +33,10 @@ export function mountPetOverlay(): void {
     <StrictMode>
       <ErrorBoundary label="pet-overlay">
         <I18nProvider>
-          <ThemeProvider>
-            <PetOverlayApp />
+          <ThemeProvider auxiliary>
+            <RootTooltipProvider>
+              <PetOverlayApp />
+            </RootTooltipProvider>
           </ThemeProvider>
         </I18nProvider>
       </ErrorBoundary>

@@ -1,3 +1,5 @@
+import '@/app/auxiliary-surfaces.css'
+
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -24,7 +26,6 @@ import { resetPetGallery, setPetScale } from '@/store/pet-gallery'
 import { $petOverlayActive, initPetOverlayBridge, popOutPet, restorePetOverlay } from '@/store/pet-overlay'
 import { $gatewayState } from '@/store/session'
 import { isSecondaryWindow } from '@/store/windows'
-import { useTheme } from '@/themes/context'
 
 import { PET_STARTUP_RETRY_MS, petInfoPollIntervalMs } from './pet-info-poll'
 import { PetSprite, roamWalkRow } from './pet-sprite'
@@ -101,7 +102,6 @@ function loadPosition(): Point {
  */
 export function FloatingPet() {
   const { requestGateway } = useGatewayRequest()
-  const { resolvedMode } = useTheme()
   const gatewayState = useStore($gatewayState)
   const info = useStore($petInfo)
   const changeEventsAvailable = useStore($changeEventsAvailable)
@@ -123,7 +123,6 @@ export function FloatingPet() {
   // same way (cf. lairp's per-actor feet ellipse). Lighter on light backgrounds.
   const shadowW = Math.round(petW * 0.55)
   const shadowH = Math.max(3, Math.round(shadowW * 0.28))
-  const shadowAlpha = resolvedMode === 'light' ? 0.2 : 0.55
   // Live drag offset (pointer → element top-left). Drag updates the DOM
   // directly to avoid a React re-render (and canvas reflow) per pointermove —
   // state is only committed on release.
@@ -482,8 +481,8 @@ export function FloatingPet() {
     >
       <div
         aria-hidden
+        className="aino-pet-ground-shadow"
         style={{
-          background: `radial-gradient(ellipse at center, rgba(0,0,0,${shadowAlpha}) 0%, rgba(0,0,0,0) 70%)`,
           bottom: -shadowH * 0.4,
           height: shadowH,
           left: '50%',

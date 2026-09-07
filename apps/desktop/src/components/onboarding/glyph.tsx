@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
 import { Loader2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
@@ -120,7 +121,7 @@ export function DecodedLabel({ leaving, text }: { leaving?: boolean; text: strin
   return (
     <span
       className={cn(
-        'inline-flex items-center font-mono text-xs font-semibold uppercase tracking-[0.28em] tabular-nums text-primary transition duration-[360ms] ease-out',
+        'inline-flex items-center font-sans text-sm font-medium tracking-normal tabular-nums text-(--ui-text-primary) transition duration-[360ms] ease-out',
         leaving ? 'translate-y-2 opacity-0 saturate-0' : 'translate-y-0 opacity-100 saturate-100'
       )}
     >
@@ -135,9 +136,7 @@ export function DecodedLabel({ leaving, text }: { leaving?: boolean; text: strin
   )
 }
 
-// Terminal-flavored CTA to match the connecting overlay's hacker aesthetic:
-// mono, uppercase, letter-spaced, wrapped in primary brackets that light up on
-// hover. The whole onboarding "you're in" moment leans into this motif.
+// Keep the existing onboarding action API; its appearance is the shared CTA.
 export function HackeryButton({
   disabled,
   label,
@@ -150,21 +149,14 @@ export function HackeryButton({
   onClick: () => void
 }) {
   return (
-    <button
-      className={cn(
-        'group inline-flex items-center gap-2 rounded-md border border-(--stroke-nous) px-6 py-2.5',
-        'font-mono text-xs font-semibold uppercase text-primary',
-        'transition-all duration-150 hover:border-primary/60 hover:bg-primary/[0.06]',
-        'disabled:pointer-events-none disabled:opacity-50'
-      )}
+    <Button
       disabled={disabled}
       onClick={onClick}
+      size="lg"
       type="button"
     >
-      <span className="text-primary/40 transition-colors group-hover:text-primary">[</span>
       {loading ? <Loader2 className="size-3 animate-spin" /> : null}
-      <span className="-mr-[0.25em] pl-[0.25em] tracking-[0.25em]">{label}</span>
-      <span className="text-primary/40 transition-colors group-hover:text-primary">]</span>
-    </button>
+      {label}
+    </Button>
   )
 }

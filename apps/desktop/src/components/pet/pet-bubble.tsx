@@ -117,24 +117,11 @@ export function PetBubble() {
 
   return (
     <div
+      className="aino-pet-bubble"
       style={{
-        alignItems: 'center',
-        // Solid, theme-driven surface (the prior --ui-bg-card mixes in
-        // `transparent`, so the bubble was see-through).
-        background: 'var(--ui-bg-elevated)',
-        border: '1px solid var(--ui-stroke-secondary)',
-        borderRadius: hasText ? 10 : 999,
-        boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
-        color: 'var(--foreground)',
-        display: 'inline-flex',
-        fontSize: 11,
-        fontWeight: 500,
         gap: hasText ? 5 : 0,
-        lineHeight: 1,
         // Glyph-only bubbles collapse to a tight, symmetric badge.
-        padding: hasText ? '5px 8px' : 5,
-        pointerEvents: 'none',
-        whiteSpace: 'nowrap'
+        padding: hasText ? '5px 8px' : 5
       }}
     >
       {Glyph && (

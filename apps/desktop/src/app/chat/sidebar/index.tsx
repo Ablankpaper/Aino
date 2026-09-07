@@ -405,7 +405,9 @@ export function ChatSidebar({
   const profileColors = useStore($profileColors)
   const profileScope = useStore($profileScope)
   const activeConnectionId = useStore($activeConnectionId)
-  const currentProfile = profiles.find(profile => normalizeProfileKey(profile.name) === normalizeProfileKey(activeProfileName))
+  const currentProfile = profiles.find(
+    profile => normalizeProfileKey(profile.name) === normalizeProfileKey(activeProfileName)
+  )
   const identityLabel = currentProfile ? profileLabel(currentProfile) : activeProfileName
 
   // Toggle the persisted read-state watermark from a row menu. The row's own
@@ -1481,6 +1483,7 @@ export function ChatSidebar({
         'border-(--sidebar-edge-border) bg-(--ui-sidebar-surface-background) opacity-100'
       )}
       collapsible="none"
+      data-aino-sidebar=""
       data-tip-region=""
       data-tour="sessions-sidebar"
     >
@@ -1521,6 +1524,7 @@ export function ChatSidebar({
                     // A tip anchored to the label points at the end of the
                     // word; the row is what it's actually about.
                     data-tip-region=""
+                    isActive={active}
                     onClick={() => {
                       // A plain new session lands in whatever profile the live
                       // gateway is on (= the active switcher context). null →
@@ -1607,7 +1611,7 @@ export function ChatSidebar({
         </SidebarGroup>
 
         {showSessionSections && (
-          <div className="shrink-0 px-2 pb-1 pt-1">
+          <div className="shrink-0 px-2 pb-1 pt-1" data-sidebar-search="">
             <SearchField
               aria-label={s.searchAria}
               inputRef={searchInputRef}

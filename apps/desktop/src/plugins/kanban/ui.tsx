@@ -229,7 +229,7 @@ export function StatusMenu({
 
 // The board's one field/section-label style — hoisted so Section (here), the
 // create dialog's Field, and the orchestration panel all read identically.
-export const FIELD_LABEL = 'text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-(--ui-text-quaternary)'
+export const FIELD_LABEL = 'text-xs font-medium tracking-normal text-(--ui-text-secondary)'
 
 export function Section({ action, children, label }: { action?: ReactNode; children: ReactNode; label: string }) {
   return (

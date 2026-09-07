@@ -246,7 +246,7 @@ export function RosterSectionHeader({
   const button = (
     <RowButton
       aria-expanded={!collapsed}
-      className="mt-1 flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[0.6875rem] font-semibold uppercase tracking-wider text-(--ui-text-quaternary) transition-colors hover:bg-(--chrome-action-hover) hover:text-(--ui-text-secondary)"
+      className="mt-1 flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs font-medium tracking-normal text-(--ui-text-secondary) transition-colors hover:bg-(--chrome-action-hover) hover:text-(--ui-text-secondary)"
       onClick={onToggle}
     >
       <DisclosureCaret open={!collapsed} />

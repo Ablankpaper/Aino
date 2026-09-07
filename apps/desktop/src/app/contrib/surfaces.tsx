@@ -172,9 +172,15 @@ export const ChatRoutesSurface = memo(function ChatRoutesSurface({
       {routeContributions.map(route => (
         <Route
           element={page(
-            <ContribBoundary id={route.key}>
-              <ContribRender render={route.render} />
-            </ContribBoundary>
+            <div
+              className="flex h-full min-h-0 min-w-0 flex-col overflow-auto"
+              data-aino-contributed-page
+              data-aino-page-shell
+            >
+              <ContribBoundary id={route.key}>
+                <ContribRender render={route.render} />
+              </ContribBoundary>
+            </div>
           )}
           key={route.key}
           path={route.path.slice(1)}

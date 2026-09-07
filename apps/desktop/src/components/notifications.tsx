@@ -22,9 +22,9 @@ type ToneVariant = 'default' | 'destructive' | 'warning' | 'success'
 
 const tone: Record<NotificationKind, { icon: IconComponent; iconClass: string; variant: ToneVariant }> = {
   error: { icon: AlertCircle, iconClass: 'text-destructive', variant: 'destructive' },
-  warning: { icon: AlertTriangle, iconClass: 'text-primary', variant: 'warning' },
+  warning: { icon: AlertTriangle, iconClass: 'text-(--ui-yellow)', variant: 'warning' },
   info: { icon: Info, iconClass: 'text-muted-foreground', variant: 'default' },
-  success: { icon: CheckCircle2, iconClass: 'text-primary', variant: 'success' }
+  success: { icon: CheckCircle2, iconClass: 'text-(--ui-green)', variant: 'success' }
 }
 
 const STACK_SURFACE = 'pointer-events-auto border border-(--stroke-nous) bg-popover/95 shadow-nous backdrop-blur-md'

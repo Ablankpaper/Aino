@@ -536,6 +536,7 @@ function PlatformRow({
         'row-hover flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:text-foreground',
         active ? 'bg-(--ui-row-active-background) text-foreground' : 'text-(--ui-text-secondary)'
       )}
+      data-aino-active={active ? 'true' : 'false'}
       onClick={onSelect}
       type="button"
     >

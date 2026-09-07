@@ -1832,6 +1832,7 @@ function McpRow({
         'group/row row-hover flex h-11 w-full shrink-0 items-center gap-2 rounded-md pl-2 pr-1.5 hover:text-foreground',
         active ? 'bg-(--ui-row-active-background) text-foreground' : 'text-(--ui-text-secondary)'
       )}
+      data-active={active}
       id={`mcp-server-${name}`}
     >
       <button

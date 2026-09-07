@@ -25,7 +25,7 @@ interface CommandInputProps extends React.ComponentProps<typeof CommandPrimitive
 
 function CommandInput({ className, right, ...props }: CommandInputProps) {
   return (
-    <div className="flex h-11 items-center gap-2 border-b border-border px-3" data-slot="command-input-wrapper">
+    <div className="flex h-11 items-center gap-2 border-b border-(--ui-stroke-tertiary) px-3" data-slot="command-input-wrapper">
       <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
       <CommandPrimitive.Input
         className={cn(
@@ -93,7 +93,7 @@ function CommandItem({ className, ...props }: React.ComponentProps<typeof Comman
   return (
     <CommandPrimitive.Item
       className={cn(
-        'relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50',
+        'relative flex cursor-default select-none items-center gap-2 rounded-(--aino-radius-row) px-2.5 py-1.5 text-[length:var(--aino-text-ui)] outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-(--ui-row-active-background) data-[selected=true]:text-(--ui-text-primary) data-[disabled=true]:opacity-50',
         className
       )}
       data-slot="command-item"
@@ -105,7 +105,7 @@ function CommandItem({ className, ...props }: React.ComponentProps<typeof Comman
 function CommandShortcut({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
-      className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)}
+      className={cn('ml-auto text-xs tracking-normal text-muted-foreground', className)}
       data-slot="command-shortcut"
       {...props}
     />

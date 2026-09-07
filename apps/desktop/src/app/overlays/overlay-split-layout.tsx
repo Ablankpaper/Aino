@@ -56,6 +56,7 @@ export function OverlaySplitLayout({ children, className }: OverlaySplitLayoutPr
         'grid h-full min-h-0 flex-1 grid-cols-[13rem_minmax(0,1fr)] overflow-hidden bg-transparent max-[47.5rem]:grid-cols-1 max-[47.5rem]:grid-rows-[auto_minmax(0,1fr)]',
         className
       )}
+      data-aino-overlay-layout=""
     >
       {children}
     </div>
@@ -76,6 +77,7 @@ export function OverlaySidebar({ children, className, fullPage = false }: Overla
       // Every route-owned surface's left nav (Settings, cron, profiles, agents) answers to
       // one name, so a tour can point at "the nav" without knowing which
       // overlay is open. See lib/tour.
+      data-aino-overlay-nav=""
       data-tour="overlay-nav"
     >
       {children}
@@ -96,6 +98,7 @@ export function OverlayMain({ children, className, fullPage = false }: OverlayMa
         !fullPage && PAGE_MAX_W,
         className
       )}
+      data-aino-overlay-main=""
     >
       {children}
     </main>
@@ -125,6 +128,7 @@ export const OverlayNavItem = memo(function OverlayNavItem({
       )}
       // Names the row by its own id, so a tour can address one link
       // (`[data-tour="nav-models"]`) instead of guessing at nth-child.
+      data-active={active}
       data-tour={id ? `nav-${id}` : undefined}
       onClick={onClick}
       type="button"

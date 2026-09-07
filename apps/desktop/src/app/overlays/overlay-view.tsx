@@ -89,6 +89,7 @@ export function OverlayView({
       // the global type-to-focus / soft `/` / Enter down, so keystrokes don't
       // leak into the hidden composer (and the overlay's own bare-key shortcuts,
       // e.g. star map's Space, keep working).
+      data-aino-overlay=""
       data-overlay-surface=""
       onClick={event => {
         if (event.target === event.currentTarget) {
@@ -112,6 +113,7 @@ export function OverlayView({
           // Marks the card as a RAISED surface for window glass: while the field
           // behind it thins to show the desktop, this card stays near-opaque
           // (see the [data-glass-raised] rules in styles.css). Inert otherwise.
+          data-aino-overlay-card=""
           data-glass-raised=""
         >
           <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[calc(var(--titlebar-height)+0.1875rem)] [-webkit-app-region:drag]">

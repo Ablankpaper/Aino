@@ -1,6 +1,11 @@
+import '../auxiliary-surfaces.css'
+
 import { useEffect, useReducer, useRef } from 'react'
 
+import { controlVariants } from '@/components/ui/control'
+import { Input } from '@/components/ui/input'
 import { useI18n } from '@/i18n'
+import { CornerDownLeft } from '@/lib/icons'
 import {
   initialQuickComposerState,
   QUICK_TARGET_CURRENT,
@@ -85,33 +90,9 @@ export function QuickEntryApp() {
         width: '100vw'
       }}
     >
-      <div
-        style={{
-          background: 'var(--ui-bg-elevated, var(--background))',
-          border: '1px solid var(--ui-stroke-secondary, rgba(127,127,127,0.35))',
-          borderRadius: 12,
-          boxShadow: '0 18px 48px rgba(0,0,0,0.38)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          padding: '10px 14px',
-          width: '100%'
-        }}
-      >
-        <div style={{ alignItems: 'center', display: 'flex', gap: 10 }}>
-          <span
-            aria-hidden
-            style={{
-              color: 'var(--muted-foreground, #8a8a8a)',
-              flexShrink: 0,
-              fontSize: 15,
-              lineHeight: 1,
-              userSelect: 'none'
-            }}
-          >
-            ›
-          </span>
-          <input
+      <div className="aino-auxiliary-panel aino-quick-entry-panel">
+        <div className="aino-quick-entry-field">
+          <Input
             aria-label={t.desktop.quickEntry.label}
             autoCapitalize="off"
             autoComplete="off"
@@ -136,36 +117,20 @@ export function QuickEntryApp() {
             placeholder={
               state.connected ? t.desktop.quickEntry.askPlaceholder : t.desktop.quickEntry.disconnectedPlaceholder
             }
+            prefix={<CornerDownLeft aria-hidden className="aino-quick-entry-icon" />}
             ref={inputRef}
+            size="lg"
             spellCheck={false}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--foreground, #eee)',
-              flex: 1,
-              fontFamily: 'inherit',
-              fontSize: 15,
-              minWidth: 0,
-              opacity: state.connected ? 1 : 0.55,
-              outline: 'none'
-            }}
             value={state.draft}
           />
         </div>
-        <div style={{ alignItems: 'center', display: 'flex', gap: 8 }}>
-          <label
-            htmlFor="quick-entry-target"
-            style={{
-              color: 'var(--muted-foreground, #8a8a8a)',
-              flexShrink: 0,
-              fontSize: 11,
-              userSelect: 'none'
-            }}
-          >
+        <div className="aino-quick-entry-target-row">
+          <label className="aino-quick-entry-label" htmlFor="quick-entry-target">
             {t.desktop.quickEntry.sendTo}
           </label>
           <select
             aria-label={t.desktop.quickEntry.targetSession}
+            className={`${controlVariants({ size: 'xs' })} aino-quick-entry-select`}
             disabled={!state.connected}
             id="quick-entry-target"
             onChange={event => dispatch({ target: event.target.value, type: 'target' })}
@@ -174,15 +139,6 @@ export function QuickEntryApp() {
                 event.preventDefault()
                 dispatch({ type: 'dismiss' })
               }
-            }}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--ui-stroke-secondary, rgba(127,127,127,0.35))',
-              borderRadius: 6,
-              color: 'var(--foreground, #eee)',
-              fontSize: 11,
-              maxWidth: 320,
-              padding: '2px 6px'
             }}
             value={state.target}
           >

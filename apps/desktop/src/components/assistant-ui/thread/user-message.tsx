@@ -27,7 +27,7 @@ export function hasTextSelection(): boolean {
   return Boolean(selection && !selection.isCollapsed && selection.toString().length > 0)
 }
 
-export function StickyHumanMessageContainer({
+export function HumanMessageContainer({
   attachments,
   children,
   messageId
@@ -37,13 +37,13 @@ export function StickyHumanMessageContainer({
   messageId?: string
 }) {
   return (
-    // Fragment, not a wrapper: a wrapping element becomes the sticky's
-    // containing block (it'd stick within its own height = never). The bubble
-    // and attachments are flow siblings so the bubble pins against the scroller
-    // while attachments below it scroll away.
+    // Fragment, not a wrapper: the message root and its attachments stay as
+    // siblings in the transcript's normal flow. Keeping the bubble in that
+    // same flow is important — a sticky root can park a user prompt while the
+    // assistant turn scrolls, making the two sides drift apart.
     <>
       <div
-        className="group/user-message sticky z-40 -mx-4 flex w-[calc(100%+2rem)] min-w-0 max-w-none flex-col items-stretch gap-0 self-end overflow-visible bg-(--ui-chat-surface-background) px-4 pb-(--conversation-turn-gap) pt-1"
+        className="group/user-message -mx-4 flex w-[calc(100%+2rem)] min-w-0 max-w-none flex-col items-stretch gap-0 self-end overflow-visible bg-(--ui-chat-surface-background) px-4 pb-(--conversation-turn-gap) pt-1"
         data-message-id={messageId}
         data-role="user"
         data-slot="aui_user-message-root"
@@ -55,16 +55,19 @@ export function StickyHumanMessageContainer({
   )
 }
 
+// Keep the old export for extensions that imported the helper by its former
+// name. The container no longer applies sticky positioning; it only preserves
+// the message/attachment fragment shape used by the thread primitives.
+export const StickyHumanMessageContainer = HumanMessageContainer
+
 // Shared "user bubble" base. Both the read-only message and the inline
 // edit composer render the same bubble surface (rounded glass card);
 // they only differ in border weight, cursor, and padding-right (the
 // read-only view reserves room for the restore icon).
 //
-// no-drag: sticky bubbles park at --sticky-human-top (~4px), sliding under the
-// titlebar's [-webkit-app-region:drag] strips (app-shell.tsx). Electron resolves
-// drag regions at the compositor level — z-index and pointer-events don't help —
-// so without the carve-out, clicking a stuck bubble drags the window instead of
-// opening the edit composer.
+// no-drag: Electron resolves titlebar [-webkit-app-region:drag] regions at the
+// compositor level — z-index and pointer-events don't help — so keep message
+// actions explicitly outside the drag region when the user edits a prompt.
 export const USER_BUBBLE_BASE_CLASS =
   'composer-human-message standalone-glass relative flex w-full min-w-0 max-w-full flex-col gap-1.5 overflow-y-auto rounded-xl border bg-(--dt-user-bubble) px-3 py-2 text-left [-webkit-app-region:no-drag]'
 
@@ -442,11 +445,10 @@ export const UserMessage: FC<{
 
   return (
     <MessagePrimitive.Root asChild>
-      <StickyHumanMessageContainer
+      <HumanMessageContainer
         attachments={
-          // Attachments live BELOW the sticky bubble in normal flow, so they
-          // scroll away behind the pinned bubble instead of riding along with
-          // it. Image refs render as thumbnails, file refs as chips; no border.
+          // Attachments stay BELOW the user bubble in normal flow. Image refs
+          // render as thumbnails, file refs as chips; no border.
           attachmentRefs.length > 0 ? (
             <div className="flex flex-wrap gap-1 -mt-3 mb-2" data-slot="aui_user-attachments">
               <DirectiveContent text={attachmentRefs.join(' ')} />
@@ -598,13 +600,7 @@ export const UserMessage: FC<{
               data-slot="aui_user-actions-row"
             >
               <MessageTimelineTimestamp className="mr-1" />
-              <CopyButton
-                appearance="icon"
-                buttonSize="icon-xs"
-                label={copy.copy}
-                stopPropagation
-                text={messageText}
-              />
+              <CopyButton appearance="icon" buttonSize="icon-xs" label={copy.copy} stopPropagation text={messageText} />
               {!readOnly && (
                 <ActionBarPrimitive.Edit asChild>
                   <TooltipIconButton
@@ -660,7 +656,7 @@ export const UserMessage: FC<{
             </BranchPickerPrimitive.Root>
           </div>
         </ActionBarPrimitive.Root>
-      </StickyHumanMessageContainer>
+      </HumanMessageContainer>
     </MessagePrimitive.Root>
   )
 }

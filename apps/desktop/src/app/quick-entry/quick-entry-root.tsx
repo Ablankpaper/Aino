@@ -31,7 +31,7 @@ export function mountQuickEntry(): void {
     <StrictMode>
       <ErrorBoundary label="quick-entry">
         <I18nProvider>
-          <ThemeProvider>
+          <ThemeProvider auxiliary>
             <QuickEntryApp />
           </ThemeProvider>
         </I18nProvider>
