@@ -2328,6 +2328,28 @@ _pricing_cache: dict[str, dict[str, dict[str, str]]] = {}
 _FAILED_CATALOG_TTL_SECONDS = 120.0
 _pricing_cache_retry_after: dict[str, float] = {}
 
+# Auth state is part of the catalog identity. Governed endpoints can return a
+# policy-filtered catalog for authenticated callers and a full catalog for
+# anonymous callers; those responses must never shadow one another.
+_PRICING_AUTH_KEY_SUFFIX = "\x00auth"
+
+
+def _pricing_cache_key(url_root: str, api_key: str | None) -> str:
+    """Return a cache key that records only whether authentication is used."""
+    return url_root + _PRICING_AUTH_KEY_SUFFIX if api_key else url_root
+
+
+def peek_cached_pricing(base_url: str) -> dict[str, dict[str, Any]]:
+    """Return cached pricing for *base_url* without performing network I/O."""
+    root = (base_url or "").rstrip("/")
+    if root.endswith("/v1"):
+        root = root[:-3].rstrip("/")
+    for key in (root + _PRICING_AUTH_KEY_SUFFIX, root):
+        cached = _pricing_cache.get(key)
+        if cached:
+            return cached
+    return {}
+
 
 def _cached_catalog(cache_key: str) -> Optional[dict[str, dict[str, Any]]]:
     """The cached catalog for *cache_key*, or None to go fetch it."""
@@ -2503,13 +2525,14 @@ def fetch_models_with_pricing(
     ``{prompt, completion}`` shape even if a response happens to nest
     ``original``.
     """
-    cache_key = (base_url or "").rstrip("/")
+    url_root = (base_url or "").rstrip("/")
+    cache_key = _pricing_cache_key(url_root, api_key)
     if not force_refresh:
         cached = _cached_catalog(cache_key)
         if cached is not None:
             return cached
 
-    url = cache_key + "/v1/models"
+    url = url_root + "/v1/models"
     headers: dict[str, str] = {
         "Accept": "application/json",
         "User-Agent": _HERMES_USER_AGENT,
