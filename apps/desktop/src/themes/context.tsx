@@ -68,19 +68,30 @@ const normalizeMode = (value: string | null): ThemeMode =>
 // it *is* the legacy global slot, so it reads/writes the global directly. Named
 // profiles get their own entry and fall back to that global until assigned, so
 // unassigned profiles and pre-per-profile installs stay on the global value.
-const profilePref = <T extends string>(record: string, legacy: string, normalize: (v: string | null) => T) => ({
-  resolve: (profile: string): T => normalize(storedStringRecord(record)[profile] ?? storedString(legacy)),
-  assign: (profile: string, value: T): void => {
-    if (profile === 'default') {
-      persistString(legacy, value)
-    } else {
-      persistStringRecord(record, { ...storedStringRecord(record), [profile]: value })
+const profilePref = <T extends string>(record: string, legacy: string, normalize: (v: string | null) => T) => {
+  const stored = (profile: string): string | null => storedStringRecord(record)[profile] ?? storedString(legacy)
+
+  return {
+    /** The pick as written, un-normalized. */
+    stored,
+    resolve: (profile: string): T => normalize(stored(profile)),
+    assign: (profile: string, value: T): void => {
+      if (profile === 'default') {
+        persistString(legacy, value)
+      } else {
+        persistStringRecord(record, { ...storedStringRecord(record), [profile]: value })
+      }
     }
   }
-})
+}
 
 export const skinPref = profilePref(PROFILE_SKINS_KEY, SKIN_KEY, normalizeSkin)
 export const modePref = profilePref(PROFILE_MODES_KEY, MODE_KEY, normalizeMode)
+
+// Provider state keeps the raw pick so a name nothing resolves YET (a backend
+// skin the gateway hasn't seeded on this launch) isn't flattened to the default
+// for the rest of the session — it paints as soon as the registry can resolve it.
+const storedSkin = (profile: string): string => skinPref.stored(profile) ?? DEFAULT_SKIN_NAME
 
 /** Everything a peer window could change that this one has to repaint for. */
 const APPEARANCE_KEYS = new Set([SKIN_KEY, PROFILE_SKINS_KEY, MODE_KEY, PROFILE_MODES_KEY])
@@ -236,12 +247,12 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
   // shadcn/Tailwind tokens that aren't derived from the seed chain.
   const palette: Record<string, string> = {
     '--dt-primary-foreground': c.primaryForeground,
-    '--dt-secondary-foreground': 'var(--ui-text-secondary)',
-    '--dt-accent-foreground': 'var(--ui-text-primary)',
-    '--dt-border': 'var(--ui-stroke-secondary)',
-    '--dt-input': 'var(--ui-stroke-secondary)',
+    '--dt-secondary-foreground': c.secondaryForeground,
+    '--dt-accent-foreground': c.accentForeground,
+    '--dt-border': c.border,
+    '--dt-input': c.input,
     '--dt-ring': c.ring,
-    '--dt-muted': 'var(--ui-bg-tertiary)',
+    '--dt-muted': c.muted,
     '--dt-midground-foreground': c.midgroundForeground ?? readableOn(midground),
     // A LOUD fill of the brand colour, for the rare surface that has to read as
     // the app speaking rather than as chrome. `primary` alone can't do that job:
@@ -256,7 +267,7 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
     '--dt-composer-ring': c.composerRing ?? midground,
     '--dt-destructive': c.destructive,
     '--dt-destructive-foreground': c.destructiveForeground,
-    '--dt-sidebar-border': 'var(--ui-stroke-secondary)',
+    '--dt-sidebar-border': c.sidebarBorder ?? c.border,
     '--dt-user-bubble-border': c.userBubbleBorder ?? c.border,
     // Semantic success, bent toward the accent so it settles into the palette
     // instead of clashing with it. A green accent barely moves it (see
@@ -316,16 +327,7 @@ if (typeof window !== 'undefined') {
   const resolved = resolveMode(pref)
   const theme = deriveTheme(skinPref.resolve(profile), resolved)
   applyTheme(theme, resolved)
-
-  // These gatewayless presentation windows must not contend with the main/HUD
-  // renderer for Electron's process-wide nativeTheme preference.
-  const auxiliaryWindow = ['overlay', 'quick', 'wake'].includes(
-    new URLSearchParams(window.location.search).get('win') ?? ''
-  )
-
-  if (!auxiliaryWindow) {
-    syncNativeTheme(pref, renderedModeFor(theme.colors, resolved))
-  }
+  syncNativeTheme(pref, renderedModeFor(theme.colors, resolved))
 }
 
 // ─── Context ────────────────────────────────────────────────────────────────
@@ -370,19 +372,11 @@ const ThemeContext = createContext<ThemeContextValue>({
   clearThemePreview: () => {}
 })
 
-interface ThemeProviderProps {
-  children: ReactNode
-  /** Gatewayless windows follow remembered appearance without publishing profile/native-window authority. */
-  auxiliary?: boolean
-}
-
-export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProps) {
+export function ThemeProvider({ children }: { children: ReactNode }) {
   // Skin + mode are assigned per profile; the active profile drives which
   // appearance shows. Single-profile users only ever see "default", so their
   // behavior is unchanged.
-  const gatewayProfileKey = normalizeProfileKey(useStore($activeGatewayProfile))
-  const [auxiliaryProfileKey, setAuxiliaryProfileKey] = useState(readBootProfileKey)
-  const profileKey = auxiliary ? auxiliaryProfileKey : gatewayProfileKey
+  const profileKey = normalizeProfileKey(useStore($activeGatewayProfile))
 
   // Built-ins + user-installed + registry-contributed themes. Reactive so an
   // import or a plugin registration shows up live in the palette, settings
@@ -404,7 +398,7 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   )
 
   const [themeName, setThemeNameState] = useState(() =>
-    typeof window === 'undefined' ? DEFAULT_SKIN_NAME : skinPref.resolve(readBootProfileKey())
+    typeof window === 'undefined' ? DEFAULT_SKIN_NAME : storedSkin(readBootProfileKey())
   )
 
   const [mode, setModeState] = useState<ThemeMode>(() =>
@@ -414,13 +408,10 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   // Follow profile switches: paint the profile's assigned skin + mode and
   // remember it for the next boot's first paint.
   useEffect(() => {
-    if (!auxiliary) {
-      rememberActiveProfileKey(profileKey)
-    }
-
-    setThemeNameState(skinPref.resolve(profileKey))
+    rememberActiveProfileKey(profileKey)
+    setThemeNameState(storedSkin(profileKey))
     setModeState(modePref.resolve(profileKey))
-  }, [auxiliary, profileKey])
+  }, [profileKey])
 
   // Appearance is per-profile localStorage, and every desktop window is another
   // renderer on the same origin — so a switch made in the HUD (or any peer
@@ -428,29 +419,20 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   // the OTHER windows, which is exactly the set that needs to catch up.
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if (auxiliary && event.key === LAST_PROFILE_KEY) {
-        const remembered = readBootProfileKey()
-        setAuxiliaryProfileKey(remembered)
-        setThemeNameState(skinPref.resolve(remembered))
-        setModeState(modePref.resolve(remembered))
-
-        return
-      }
-
       if (event.key && !APPEARANCE_KEYS.has(event.key)) {
         return
       }
 
-      const live = auxiliary ? readBootProfileKey() : normalizeProfileKey($activeGatewayProfile.get())
+      const live = normalizeProfileKey($activeGatewayProfile.get())
 
-      setThemeNameState(skinPref.resolve(live))
+      setThemeNameState(storedSkin(live))
       setModeState(modePref.resolve(live))
     }
 
     window.addEventListener('storage', onStorage)
 
     return () => window.removeEventListener('storage', onStorage)
-  }, [auxiliary])
+  }, [])
 
   const systemDark = useMediaQuery('(prefers-color-scheme: dark)')
   const resolvedMode = resolveMode(mode, systemDark)
@@ -460,7 +442,16 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   // committed appearance.
   const [preview, setPreview] = useState<{ name: string; mode: 'light' | 'dark' } | null>(null)
 
-  const paintedName = preview ? preview.name : themeName
+  // The committed skin, resolved against the CURRENT registry — so a stored
+  // backend skin that failed to resolve at boot paints once the gateway seeds it.
+  const committedName = useMemo(
+    () => normalizeSkin(themeName),
+    // normalizeSkin resolves through the merged registry; the stores are its reactivity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [themeName, userThemes, backendThemes, registryVersion]
+  )
+
+  const paintedName = preview ? preview.name : committedName
   const paintedMode = preview ? preview.mode : resolvedMode
 
   const activeTheme = useMemo(
@@ -489,37 +480,24 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
 
   // Keep the native window appearance pinned to the app theme (vibrancy
   // material, titlebar, new-window pre-paint background).
-  useEffect(() => {
-    if (!auxiliary) {
-      syncNativeTheme(mode, renderedMode)
-    }
-  }, [auxiliary, mode, renderedMode])
+  useEffect(() => syncNativeTheme(mode, renderedMode), [mode, renderedMode])
 
   // Assign to whichever profile is live right now (read fresh so the callbacks
   // stay stable across profile switches).
-  const liveProfile = useCallback(
-    () => (auxiliary ? readBootProfileKey() : normalizeProfileKey($activeGatewayProfile.get())),
-    [auxiliary]
-  )
+  const liveProfile = () => normalizeProfileKey($activeGatewayProfile.get())
 
-  const setTheme = useCallback(
-    (name: string) => {
-      const next = normalizeSkin(name)
-      setPreview(null)
-      setThemeNameState(next)
-      skinPref.assign(liveProfile(), next)
-    },
-    [liveProfile]
-  )
+  const setTheme = useCallback((name: string) => {
+    const next = normalizeSkin(name)
+    setPreview(null)
+    setThemeNameState(next)
+    skinPref.assign(liveProfile(), next)
+  }, [])
 
-  const setMode = useCallback(
-    (next: ThemeMode) => {
-      setPreview(null)
-      setModeState(next)
-      modePref.assign(liveProfile(), next)
-    },
-    [liveProfile]
-  )
+  const setMode = useCallback((next: ThemeMode) => {
+    setPreview(null)
+    setModeState(next)
+    modePref.assign(liveProfile(), next)
+  }, [])
 
   const previewTheme = useCallback((name: string, previewMode: 'light' | 'dark') => {
     setPreview(resolveTheme(name) ? { name, mode: previewMode } : null)
@@ -533,11 +511,11 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   const pendingSkin = useStore($pendingSkinApply)
 
   useEffect(() => {
-    if (!auxiliary && pendingSkin) {
+    if (pendingSkin) {
       setTheme(pendingSkin)
       $pendingSkinApply.set(null)
     }
-  }, [auxiliary, pendingSkin, setTheme])
+  }, [pendingSkin, setTheme])
 
   // The light/dark toggle (Shift+X by default) is owned by the keybind runtime
   // (`appearance.toggleMode`) so it shows up in the hotkey map and is rebindable.
@@ -545,7 +523,7 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme: paintedTheme,
-      themeName,
+      themeName: committedName,
       mode,
       resolvedMode,
       renderedMode,
@@ -557,7 +535,7 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
     }),
     [
       paintedTheme,
-      themeName,
+      committedName,
       mode,
       resolvedMode,
       renderedMode,

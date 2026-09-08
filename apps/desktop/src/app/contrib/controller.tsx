@@ -1,15 +1,11 @@
 import { useStore } from '@nanostores/react'
 import { atom, computed } from 'nanostores'
 import type { CSSProperties, ReactElement, PointerEvent as ReactPointerEvent } from 'react'
-import { useLocation } from 'react-router'
 
 import { SessionDraftTitle } from '@/app/chat/session-draft-title'
 import { SessionStatusDot } from '@/app/chat/session-status-dot'
 import { PALETTE_AREA, type PaletteContribution, paletteToggle } from '@/app/command-palette/contrib'
 import { type StatusbarItem } from '@/app/shell/statusbar-controls'
-import { TITLEBAR_HEIGHT } from '@/app/shell/titlebar'
-import tabSessionsIcon from '@/assets/aino-home/tab-sessions.svg'
-import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { InlinePreviewDirective } from '@/components/assistant-ui/inline-preview-directive'
 import { IdleMount } from '@/components/idle-mount'
 import { $layoutEditMode, toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
@@ -38,13 +34,15 @@ import {
   toggleTargetZoneTabStrip,
   watchContributedPanes
 } from '@/components/pane-shell/tree/store'
+import { $workspaceOwnerLabels, workspaceOwnerTitle } from '@/components/pane-shell/workspace-scope'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { discoverBundledPlugins } from '@/contrib/plugins'
 import { Slot } from '@/contrib/react/slot'
 import { useContributions } from '@/contrib/react/use-contributions'
 import { registry } from '@/contrib/registry'
 import { discoverRuntimePlugins } from '@/contrib/runtime-loader'
-import { newSessionTitle, sessionTitle as storedSessionTitle } from '@/lib/chat-runtime'
+import { translateNow } from '@/i18n'
+import { NEW_SESSION_TITLE, sessionTitle as storedSessionTitle } from '@/lib/chat-runtime'
 import { Download, FileText, LayoutDashboard, PanelBottom, PanelTop, Terminal, Upload, Zap } from '@/lib/icons'
 import { type KeybindContribution, KEYBINDS_AREA } from '@/lib/keybinds/actions'
 import { TRANSCRIPT_DIRECTIVE_AREA, type TranscriptDirectiveContribution } from '@/lib/transcript-directives'
@@ -73,6 +71,7 @@ import {
 } from '@/store/review'
 import { $currentCwd, $selectedStoredSessionId, $sessions, $yoloActive, sessionMatchesStoredId } from '@/store/session'
 import { watchSessionPins } from '@/store/session-pin-sync'
+import { $botChatScopes } from '@/store/session-states'
 import { watchUnreadWriteGuard } from '@/store/session-unread-remote'
 import { $statusbarVisible } from '@/store/statusbar-prefs'
 import { isBrowserWindow, isHudWindow } from '@/store/windows'
@@ -85,13 +84,14 @@ import { startSessionDrag } from '../chat/session-drag'
 import {
   SessionTileCloseConfirm,
   stackSessionTilesIntoMain,
+  startUnrestoredTileTitleBackfill,
   watchSessionTiles,
   WorkspaceTabMenu
 } from '../chat/session-tile'
 import { AppContextMenu } from '../context-menu/app-context-menu'
 import { HudShell } from '../hud/hud-shell'
 import { $terminalTakeover, setTerminalTakeover } from '../right-sidebar/store'
-import { $workspaceIsPage, appViewForPath } from '../routes'
+import { $workspaceIsPage } from '../routes'
 
 import { FilesPane, LogsPane, ReviewPaneContent } from './panes'
 import { ContribWiring, WiredPane } from './wiring'
@@ -171,7 +171,6 @@ registry.registerMany([
       // Standing chrome: no close gestures at all — the tab is shown/hidden
       // (zone menu Show/Hide rows + the auto-registered ⌘K toggle below).
       hideOnly: true,
-      tabLead: () => <AinoDesignIcon className="size-3.5" src={tabSessionsIcon} />,
       width: `${SIDEBAR_DEFAULT_WIDTH}px`,
       minWidth: `${SIDEBAR_DEFAULT_WIDTH}px`,
       maxWidth: `${SIDEBAR_MAX_WIDTH}px`
@@ -182,7 +181,7 @@ registry.registerMany([
     id: 'workspace',
     area: 'panes',
     // Live-retitled to the loaded session by syncWorkspaceTitle below.
-    title: newSessionTitle(),
+    title: NEW_SESSION_TITLE,
     data: {
       placement: 'main',
       minWidth: '22vw',
@@ -461,6 +460,7 @@ watchContributedPanes()
 // into the transparent overlay).
 if (!isBrowserWindow() && !isHudWindow()) {
   watchSessionTiles()
+  startUnrestoredTileTitleBackfill()
   watchRouteTiles()
   watchPreviewTiles()
 }
@@ -494,7 +494,12 @@ const syncWorkspaceTitle = () => {
     area: 'panes',
     // The placeholder, not the draft's live name — `tabTitle` below renders
     // that. Keeping it here would re-register the pane on every keystroke.
-    title: stored ? storedSessionTitle(stored) : newSessionTitle(),
+    // A bot chat reads as its BOT: every canonical Bot Chat is stored under
+    // the same name, which told two open bots apart by nothing (#99152).
+    title: workspaceOwnerTitle(
+      stored ? storedSessionTitle(stored) : NEW_SESSION_TITLE,
+      selected ? $botChatScopes.get()[selected] : undefined
+    ),
     data: {
       // The tab's status dot — the SAME primitive the sidebar row and session
       // tiles render, so the main tab never disagrees with its sidebar row. A
@@ -519,6 +524,8 @@ const syncWorkspaceTitle = () => {
 
 $selectedStoredSessionId.listen(syncWorkspaceTitle)
 $sessions.listen(syncWorkspaceTitle)
+$botChatScopes.listen(syncWorkspaceTitle)
+$workspaceOwnerLabels.listen(syncWorkspaceTitle)
 $workspaceIsPage.listen(syncWorkspaceTitle)
 
 // Layout reset collapses every session tile into main as a tab (after the
@@ -743,9 +750,7 @@ registry.register(
         registry.register(
           paletteToggle({
             id: `strip-tab.${pane.id}`,
-            // The visible label is resolved by the command-palette consumer so
-            // it follows runtime locale changes; registration stays stable.
-            label: `Toggle ${title} tab`,
+            label: translateNow('zones.toggleStripTab', title),
             icon: LayoutDashboard,
             keywords: [title.toLowerCase(), 'tab', 'pane', 'sidebar', 'show', 'hide'],
             // On-screen truth, same contract as the logs toggle above.
@@ -818,8 +823,6 @@ function TitlebarSlot({ area, className, style }: TitlebarSlotProps) {
 export function ContribController() {
   const sidebarOpen = useStore($sidebarOpen)
   const statusbarVisible = useStore($statusbarVisible)
-  const location = useLocation()
-  const settingsPage = appViewForPath(location.pathname) === 'settings'
 
   // HUD mode is the SAME app with its frame removed: the wiring (gateway,
   // sessions, streams, submit) mounts identically, and only the shell around
@@ -852,7 +855,7 @@ export function ContribController() {
       <ContribWiring>
         <AppContextMenu />
         <div
-          className="relative flex h-screen min-h-0 w-screen flex-col bg-(--ui-bg-chrome) text-(--ui-text-primary)"
+          className="flex h-screen min-h-0 w-screen flex-col bg-(--ui-bg-chrome) text-(--ui-text-primary)"
           // Window-glass hook: this div and the sidebar-wrapper above it are
           // the app shell's two full-window opaque painters; the
           // [data-hermes-glass] rules in styles.css clear them so the tint
@@ -872,11 +875,7 @@ export function ContribController() {
                   tree-published --workspace-left/right vars (pure CSS, no rect
                   threading), clamped to clear the REAL TitlebarControls
                   clusters (fixed, z-70); center is truly window-centered. */}
-          <div
-            className="relative flex shrink-0 items-center bg-(--ui-sidebar-surface-background) text-xs"
-            data-slot="app-titlebar"
-            style={{ height: `${TITLEBAR_HEIGHT}px` }}
-          >
+          <div className="relative flex h-[34px] shrink-0 items-center bg-(--ui-sidebar-surface-background) text-xs">
             {/* Drag strips, AppShell-style: cut to AVOID the fixed control
                 clusters instead of overlapping them — Electron's no-drag
                 carve-out of fixed/transformed elements is unreliable, so a
@@ -910,39 +909,21 @@ export function ContribController() {
                   // Five static cluster buttons: four systemTools plus the
                   // always-present right-sidebar toggle (titlebar-controls.tsx).
                   // Keep in sync with wiring.tsx's SYSTEM_TOOL_COUNT.
-                  'max(calc(var(--workspace-right, 0px) + 0.5rem), calc(var(--titlebar-tools-right, 0.75rem) + var(--titlebar-tools-width, 8.5rem) + 0.5rem))'
+                  'max(calc(var(--workspace-right, 0px) + 0.5rem), calc(var(--titlebar-tools-right, 0.75rem) + 5 * var(--titlebar-control-size, 24px) + 0.5rem))'
               }}
             />
           </div>
 
-          {/* Keep the tiling tree mounted while Settings owns the foreground.
-              Visibility preserves terminal/session lifecycles and restores the
-              user's layout instantly when they return to chat. */}
-          <div
-            aria-hidden={settingsPage}
-            className={
-              settingsPage
-                ? 'pointer-events-none invisible absolute inset-0 flex min-h-0 min-w-0'
-                : 'relative flex min-h-0 min-w-0 flex-1'
-            }
-          >
-            <LayoutTreeRoot />
-          </div>
-
-          {settingsPage && (
-            <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-              <WiredPane part="settings" />
-            </div>
-          )}
+          <LayoutTreeRoot />
 
           {/* "Close running tab?" — the busy/input-blocked tile close gate. */}
-          {!settingsPage && <SessionTileCloseConfirm />}
+          <SessionTileCloseConfirm />
 
           {/* The REAL statusbar (model pill, command center, agents, …) with
               statusBar.left/right contributions merged in. Unmounted — not
               just hidden — while toggled off, so its 15s status poll and the
               per-turn readouts stop with it. */}
-          {statusbarVisible && !settingsPage && <WiredPane part="statusbar" />}
+          {statusbarVisible && <WiredPane part="statusbar" />}
         </div>
       </ContribWiring>
     </SidebarProvider>

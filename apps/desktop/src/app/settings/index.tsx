@@ -2,19 +2,17 @@ import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 
-import { Button } from '@/components/ui/button'
 import { codiconIcon } from '@/components/ui/codicon'
 import { KbdCombo } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
 import { getHermesConfigDefaults, getHermesConfigRecord, saveHermesConfig } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { ESCAPE_PRIORITY, isTopEscapeLayer, pushEscapeLayer } from '@/lib/escape-layers'
 import { triggerHaptic } from '@/lib/haptics'
 import {
   Archive,
   BarChart3,
   Bell,
-  ChevronLeft,
+  Cpu,
   Download,
   Globe,
   Info,
@@ -34,12 +32,14 @@ import { cn } from '@/lib/utils'
 import { $commandPaletteOpen, openCommandPalettePage } from '@/store/command-palette'
 import { confirm } from '@/store/confirm'
 import { bindingsFor } from '@/store/keybinds'
+import { $localModelsEnabled } from '@/store/local-models-flag'
 import { notifyError } from '@/store/notifications'
+import { $settingsScopeProfile } from '@/store/settings-scope'
 
-import { ProfileRail } from '../chat/sidebar/profile-switcher'
 import { useRouteEnumParam } from '../hooks/use-route-enum-param'
 import { OverlayIconButton } from '../overlays/overlay-chrome'
 import { OverlayMain, OverlayNav, type OverlayNavGroup, OverlaySplitLayout } from '../overlays/overlay-split-layout'
+import { OverlayView } from '../overlays/overlay-view'
 import { SKILLS_ROUTE } from '../routes'
 
 import { AboutSettings } from './about-settings'
@@ -54,9 +54,7 @@ import { NotificationsSettings } from './notifications-settings'
 import { PluginsSettings } from './plugins-settings'
 import { PROVIDER_VIEWS, ProvidersSettings, type ProviderView } from './providers-settings'
 import { SessionsSettings } from './sessions-settings'
-import { SettingsSystemControls } from './system-status-controls'
 import type { SettingsPageProps, SettingsView as SettingsViewId } from './types'
-import { SettingsVersionControl } from './version-control'
 
 const SETTINGS_VIEWS: readonly SettingsViewId[] = [
   ...SECTIONS.map(s => `config:${s.id}` as SettingsViewId),
@@ -74,40 +72,11 @@ const SETTINGS_VIEWS: readonly SettingsViewId[] = [
   'about'
 ]
 
-export function SettingsView({
-  onClose,
-  onConfigSaved,
-  onMainModelChanged,
-  onOpenCommandCenter,
-  onOpenCommandCenterSection,
-  requestGateway
-}: SettingsPageProps) {
+export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: SettingsPageProps) {
+  const scopeProfile = useStore($settingsScopeProfile)
   const { t } = useI18n()
   const navigate = useNavigate()
   const { hash, pathname, search } = useLocation()
-
-  // Settings is a page surface rather than an OverlayView, so own the Escape
-  // layer here. Nested dialogs still claim the higher-priority layer first.
-  useEffect(() => {
-    const releaseLayer = pushEscapeLayer(ESCAPE_PRIORITY.overlay)
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented || !isTopEscapeLayer(ESCAPE_PRIORITY.overlay)) {
-        return
-      }
-
-      event.preventDefault()
-      triggerHaptic('close')
-      onClose()
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-
-    return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      releaseLayer()
-    }
-  }, [onClose])
 
   // MCP moved out of Settings into Capabilities (/skills?tab=mcp). Keep old
   // `/settings?tab=mcp` deep links working — `useRouteEnumParam` would silently
@@ -252,7 +221,22 @@ export function SettingsView({
             id: 'pview:custom-endpoints',
             label: t.settings.nav.providerCustomEndpoints,
             onSelect: () => openProviderView('custom-endpoints')
-          }
+          },
+          // Local models ships behind the --local launch flag: no flag, no
+          // nav entry (the pane itself also refuses to render, so a stale
+          // ?pview=local deep link falls back to accounts-shaped emptiness
+          // rather than a hidden feature).
+          ...($localModelsEnabled.get()
+            ? [
+                {
+                  active: activeView === 'providers' && providerView === 'local',
+                  icon: Cpu,
+                  id: 'pview:local',
+                  label: t.settings.nav.providerLocalModels,
+                  onSelect: () => openProviderView('local')
+                }
+              ]
+            : [])
         ],
         gapBefore: true,
         icon: Zap,
@@ -375,48 +359,34 @@ export function SettingsView({
   )
 
   const navFooter = (
-    <div className="flex w-full flex-col gap-1 border-t border-(--ui-stroke-tertiary) pt-2 max-[47.5rem]:w-auto max-[47.5rem]:flex-row max-[47.5rem]:border-0 max-[47.5rem]:pt-0">
-      <div
-        className="min-w-0 w-full px-0.5 max-[47.5rem]:w-auto max-[47.5rem]:flex-1"
-        data-settings-profile-controls=""
-      >
-        <ProfileRail />
-      </div>
-      <SettingsSystemControls
-        onOpenCommandCenter={onOpenCommandCenter}
-        onOpenCommandCenterSection={onOpenCommandCenterSection}
-        requestGateway={requestGateway}
-      />
-      <SettingsVersionControl onOpenAbout={() => setActiveView('about')} />
-      <div className="flex items-center gap-1">
-        <Tip label={t.settings.exportConfig}>
-          <OverlayIconButton onClick={() => void exportConfig()}>
-            <Download />
-          </OverlayIconButton>
-        </Tip>
-        <Tip label={t.settings.importConfig}>
-          <OverlayIconButton
-            onClick={() => {
-              triggerHaptic('open')
-              importInputRef.current?.click()
-            }}
-          >
-            <Upload />
-          </OverlayIconButton>
-        </Tip>
-        <Tip label={t.settings.resetToDefaults}>
-          <OverlayIconButton
-            className="hover:text-destructive"
-            onClick={() => {
-              triggerHaptic('warning')
-              void resetConfig()
-            }}
-          >
-            <RefreshCw />
-          </OverlayIconButton>
-        </Tip>
-      </div>
-    </div>
+    <>
+      <Tip label={t.settings.exportConfig}>
+        <OverlayIconButton onClick={() => void exportConfig()}>
+          <Download />
+        </OverlayIconButton>
+      </Tip>
+      <Tip label={t.settings.importConfig}>
+        <OverlayIconButton
+          onClick={() => {
+            triggerHaptic('open')
+            importInputRef.current?.click()
+          }}
+        >
+          <Upload />
+        </OverlayIconButton>
+      </Tip>
+      <Tip label={t.settings.resetToDefaults}>
+        <OverlayIconButton
+          className="hover:text-destructive"
+          onClick={() => {
+            triggerHaptic('warning')
+            void resetConfig()
+          }}
+        >
+          <RefreshCw />
+        </OverlayIconButton>
+      </Tip>
+    </>
   )
 
   const activeSettingsContent =
@@ -439,6 +409,7 @@ export function SettingsView({
       />
     ) : activeView === 'providers' ? (
       <ProvidersSettings
+        key={scopeProfile}
         onClose={onClose}
         onConfigSaved={onConfigSaved}
         onMainModelChanged={onMainModelChanged}
@@ -458,47 +429,13 @@ export function SettingsView({
     )
 
   return (
-    <section
-      aria-label={t.commandCenter.settings}
-      className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-(--ui-chat-surface-background)"
-      data-aino-settings=""
-      data-settings-workspace=""
-    >
-      <header
-        className="grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-(--ui-stroke-tertiary) bg-(--ui-sidebar-surface-background) px-3"
-        data-aino-page-header=""
-        data-settings-header=""
-      >
-        <div className="flex min-w-0 items-center">
-          <Button
-            aria-label={t.settings.closeSettings}
-            className="gap-1.5 text-(--ui-text-secondary) hover:text-foreground"
-            onClick={() => {
-              triggerHaptic('close')
-              onClose()
-            }}
-            size="sm"
-            variant="ghost"
-          >
-            <ChevronLeft className="size-4" />
-            <span>{t.commandCenter.back}</span>
-          </Button>
-          <h1 className="ml-2 truncate text-sm font-semibold text-foreground">{t.commandCenter.settings}</h1>
-        </div>
-        <div className="flex min-w-0 items-center justify-center">{searchPill}</div>
-        <div />
-      </header>
+    <OverlayView closeLabel={t.settings.closeSettings} edgeBadge={searchPill} onClose={onClose}>
+      <OverlaySplitLayout>
+        <OverlayNav footer={navFooter} groups={navGroups} />
 
-      <div className="min-h-0 flex-1" data-aino-page-content="">
-        <OverlaySplitLayout>
-          <OverlayNav footer={navFooter} fullPage groups={navGroups} />
-
-          <OverlayMain className="px-0 pb-0" fullPage>
-            {activeSettingsContent}
-          </OverlayMain>
-        </OverlaySplitLayout>
-      </div>
-    </section>
+        <OverlayMain className="px-0 pb-0">{activeSettingsContent}</OverlayMain>
+      </OverlaySplitLayout>
+    </OverlayView>
   )
 }
 

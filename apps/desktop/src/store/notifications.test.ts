@@ -1,11 +1,8 @@
 import { beforeEach, expect, test } from 'vitest'
 
-import { setRuntimeI18nLocale } from '@/i18n'
-
 import { $notifications, clearNotifications, isDiskFullErrorMessage, notifyError } from './notifications'
 
 beforeEach(() => {
-  setRuntimeI18nLocale('en')
   clearNotifications()
 })
 
@@ -59,62 +56,15 @@ test('session storage write failure is treated as disk-full class', () => {
   expect(lastMessage()).toMatch(/Disk full/i)
 })
 
-test('fixed desktop log bridge errors use Simplified Chinese copy', () => {
-  setRuntimeI18nLocale('zh')
+test('code-skew 503 unwraps to a restart-required summary, not raw IPC JSON', () => {
+  notifyError(
+    new Error(
+      'Error invoking remote method \'hermes:api\': Error: 503: {"detail":"Restart required: This process is running code from 08b4875f4a but the checkout on disk is now 48d2528066."}'
+    ),
+    'Could not load models'
+  )
 
-  notifyError(new Error('logs root unavailable'), '无法打开日志文件夹')
-  expect(lastMessage()).toBe('无法打开日志文件夹')
-  expect($notifications.get()[0]?.detail).toBeUndefined()
-
-  notifyError(new Error('open failed'), '无法打开日志文件夹')
-  expect(lastMessage()).toBe('无法打开日志文件夹')
-  expect($notifications.get()[0]?.detail).toBeUndefined()
-})
-
-test('fixed desktop download bridge errors do not leak an English implementation detail', () => {
-  setRuntimeI18nLocale('zh')
-
-  notifyError(new Error('Desktop file download bridge is unavailable'), '文件下载失败')
-
-  expect(lastMessage()).toBe('桌面文件下载桥不可用')
-  expect($notifications.get()[0]?.detail).toBeUndefined()
-})
-
-test('fixed gateway-unavailable errors use Simplified Chinese copy', () => {
-  setRuntimeI18nLocale('zh')
-
-  notifyError(new Error('Hermes gateway unavailable for profile "work"'), '连接失败')
-  expect(lastMessage()).toBe('Aino 网关未连接')
-
-  notifyError(new Error('Gateway not connected'), '连接失败')
-  expect(lastMessage()).toBe('Aino 网关未连接')
-})
-
-test('image HTTP failures keep the status while using Simplified Chinese copy', () => {
-  setRuntimeI18nLocale('zh')
-
-  notifyError(new Error('Could not fetch image: 404'), '图片下载失败')
-
-  expect(lastMessage()).toBe('无法获取图片（HTTP 404）。')
-  expect($notifications.get()[0]?.detail).toBe('Could not fetch image: 404')
-})
-
-test('session hydration timeouts use the localized recovery summary and retain diagnostics', () => {
-  setRuntimeI18nLocale('zh')
-
-  const raw = "Timed out loading medicina's session history."
-
-  notifyError(new Error(raw), '机器人聊天打开失败')
-
-  expect(lastMessage()).toBe('与此会话的连接失败，自动重试已停止。请确认网关正在运行，然后重试。')
-  expect($notifications.get()[0]?.detail).toBe(raw)
-})
-
-test('spawn failures use a localized generic summary', () => {
-  setRuntimeI18nLocale('zh')
-
-  notifyError(new Error('spawn failed'), '无法启动操作')
-
-  expect(lastMessage()).toBe('无法启动后台操作。')
-  expect($notifications.get()[0]?.detail).toBeUndefined()
+  expect(lastMessage()).toMatch(/running old code after an update/i)
+  expect(lastMessage()).not.toMatch(/hermes:api/)
+  expect(lastMessage()).not.toMatch(/systemctl/)
 })

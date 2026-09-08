@@ -62,7 +62,7 @@ import { groupChatMemberBots, groupChatNames, groupLastActivity } from './group-
 import { $groupMainTabsRev, shouldRenderGroupChatInPane } from './group-panes'
 import { $showHiddenBots, isBotHidden, isBotPinned } from './hidden-bots'
 import { useBots } from './i18n'
-import { rosterConnectionLabel } from './labels'
+import { displayName } from './labels'
 import { deleteBot, mergeServerMeta, pullServerAvatars } from './profile-ops'
 import { $activityToasts, setActivityToasts, trackInboundActivity } from './roster-actions'
 import {
@@ -80,6 +80,18 @@ import { botRosterMeta, botWorkspaceOwnerKey, setBotsWorkspaceOwner } from './ro
 import { ACTIVE_WINDOW_S, activeBots, BOT_ROSTER_SEARCH_THRESHOLD, rosterActivityMatches } from './row-helpers'
 import { backfillMessagingProtocol } from './soul'
 import type { BotMeta, GatewaySource, GroupMember, RosterActivityFilter, RosterKindFilter, RosterRow } from './types'
+import {
+  $botSections,
+  $draggingBot,
+  createBotSection,
+  deleteBotSection,
+  groupRowsBySection,
+  moveBotSection,
+  moveBotsToSection,
+  renameBotSection,
+  UNASSIGNED_SECTION_KEY
+} from './user-sections'
+import { SectionDropZone, SectionNameDialog, useEscapeCancelsBotDrag, UserSectionHeader } from './user-sections-ui'
 
 /** Last source inventory returned by the desktop-wide agent roster. */
 const $lastSources = atom<GatewaySource[]>([])
@@ -252,6 +264,16 @@ export function BotsPane() {
   // it is not part of the shared RosterRow model, so it rides as an extra here.
   const [deleting, setDeleting] = useState<null | (RosterRow & { path?: string })>(null)
   const [deletingGroup, setDeletingGroup] = useState<null | { members: GroupMember[]; name: string }>(null)
+  const userSections = useValue($botSections)
+  const dragging = useValue($draggingBot)
+  useEscapeCancelsBotDrag()
+
+  // The one name dialog serves both New section (optionally filing the bot
+  // whose menu opened it) and Rename.
+  const [sectionDialog, setSectionDialog] = useState<
+    null | { bot?: RosterRow; mode: 'create' } | { id: string; mode: 'rename'; name: string }
+  >(null)
+
   const [grouping, setGrouping] = useState<null | RosterRow>(null)
   const [query, setQuery] = useState('')
   const [rowKindFilter, setRowKindFilter] = useState<RosterKindFilter>('all')
@@ -479,6 +501,11 @@ export function BotsPane() {
     // writes must settle after render: other subscribers of the same atoms
     // would otherwise be updated while BotsPane was still rendering.
     $lastRoster.set(roster.filter(row => !row?.ghost))
+    // Tabs caption a bot chat by its bot (#99152); republished with the
+    // roster so a rename follows and tiles restored at boot resolve.
+    roster.forEach(bot => {
+      host.setWorkspaceOwnerLabel?.(botWorkspaceOwnerKey(bot), displayName(bot, botRosterMeta(bot, allMeta)))
+    })
 
     if (Array.isArray(data?.sources)) {
       $lastSources.set(data.sources)
@@ -516,7 +543,10 @@ export function BotsPane() {
   }, [data, error, selectionHydrated, roster, sourceSnapshot, allMeta])
 
   const staleNotice =
-    error && !live && roster.length ? b.roster.staleRefresh + (gatewayUp ? '' : ` ${b.roster.staleWaiting}`) : null
+    error && !live && roster.length
+      ? 'Roster refresh failed — showing the last good list.' +
+        (gatewayUp ? '' : ' Waiting for the gateway to reconnect…')
+      : null
 
   const groupChatMembers = groupChatName ? groupChatMemberBots(groupChatName, roster, allMeta) : []
 
@@ -531,6 +561,7 @@ export function BotsPane() {
       onDelete={setDeleting}
       onEdit={setEditing}
       onGroup={setGrouping}
+      onNewSection={target => setSectionDialog({ bot: target, mode: 'create' })}
       showHandle={botNeedsHandleLabel(bot, roster, allMeta)}
     />
   )
@@ -547,6 +578,100 @@ export function BotsPane() {
     />
   )
 
+  const removeSection = (id: string) => {
+    const name = userSections.find(section => section.id === id)?.name || ''
+    const { members, undo } = deleteBotSection(id, roster)
+
+    // No confirmation: nothing is lost (the bots fall back to Unassigned) and
+    // the toast's Undo puts the section and its members back.
+    host.notify({
+      action: { label: b.sections.undo, onClick: undo },
+      durationMs: 8_000,
+      kind: 'info',
+      message: b.sections.deleted(name, members.length)
+    })
+  }
+
+  // USER SECTIONS — composed with the gateway sections, not instead of them.
+  // The gateway headings own the top level whenever the roster shows more
+  // than one connection (that axis answers "where does this run", which no
+  // folder name can, and a bot's membership lives in its profile on THAT
+  // gateway); user sections group the rows INSIDE each connection bucket,
+  // indented under it, and group the flat list when there is only one.
+  // `keyPrefix` keeps row keys unique across the gateway buckets.
+  type UserSectionRow = { bot: RosterRow; kind?: 'bot' } | RosterGroupRow
+
+  const renderUserSections = (rows: UserSectionRow[], keyPrefix = '') => {
+    // No sections made: the plain list, exactly as before this feature.
+    if (!userSections.length) {
+      return rows.map(row => (row.kind === 'group' ? renderGroupRow(row) : renderBotRow(row.bot, keyPrefix)))
+    }
+
+    const nested = Boolean(keyPrefix)
+    const blocks = groupRowsBySection(rows, userSections, allMeta)
+
+    return (
+      blocks
+        // An empty Unassigned is not worth a heading; an empty NAMED section
+        // is, because it is somewhere the user made and is about to drop into.
+        // Inside a gateway bucket the same empty section would repeat under
+        // every connection, so there it only appears while a drag is in flight
+        // (as the drop target it exists for); the row menu files into it
+        // regardless.
+        .filter(block => block.rows.length || (block.id && (!nested || dragging)))
+        .map(block => {
+          const key = `${keyPrefix}${block.id ? `user-section:${block.id}` : UNASSIGNED_SECTION_KEY}`
+          const collapsed = rosterSectionCollapsed(key)
+          const order = userSections.findIndex(section => section.id === block.id)
+
+          return (
+            <SectionDropZone
+              isSource={
+                Boolean(dragging) && block.rows.some(row => row.kind !== 'group' && botRosterKey(row.bot) === dragging)
+              }
+              key={key}
+              nested={nested}
+              onDropBot={rosterKey => {
+                const bot = roster.find(row => botRosterKey(row) === rosterKey)
+
+                // `block.id` is null for Unassigned, which is exactly the value
+                // moveBotsToSection wants for "clear the assignment".
+                if (bot) {
+                  void moveBotsToSection([bot], block.id)
+                }
+              }}
+            >
+              <UserSectionHeader
+                canMoveDown={order >= 0 && order < userSections.length - 1}
+                canMoveUp={order > 0}
+                collapsed={collapsed}
+                count={block.rows.length}
+                id={block.id}
+                name={block.name}
+                onDelete={() => block.id && removeSection(block.id)}
+                onMove={delta => block.id && moveBotSection(block.id, delta)}
+                onRename={() => block.id && setSectionDialog({ id: block.id, mode: 'rename', name: block.name })}
+                onToggle={() => toggleRosterSection(key)}
+              />
+              {collapsed ? null : block.rows.length ? (
+                <div className="grid min-w-0 gap-0.5">
+                  {block.rows.map(row =>
+                    row.kind === 'group' ? renderGroupRow(row) : renderBotRow(row.bot, `${key}:`)
+                  )}
+                </div>
+              ) : (
+                // Empty section: a quiet dashed slot that says what it is for,
+                // and doubles as a roomy drop target.
+                <div className="mx-1 mb-1 rounded-md border border-dashed border-(--ui-stroke-secondary) px-2 py-2 text-center text-[0.6875rem] text-(--ui-text-quaternary)">
+                  {b.sections.emptyHint}
+                </div>
+              )}
+            </SectionDropZone>
+          )
+        })
+    )
+  }
+
   const renderGatewaySection = (section: ResolvedRosterGatewaySection) => {
     const sectionId = `gateway:${section.id}`
     const collapsed = rosterSectionCollapsed(sectionId)
@@ -560,7 +685,7 @@ export function BotsPane() {
           option={section.option}
         />
         {collapsed ? null : (
-          <div className="grid min-w-0 gap-0.5">{section.rows.map(row => renderBotRow(row.bot, `${section.id}:`))}</div>
+          <div className="grid min-w-0 gap-0.5">{renderUserSections(section.rows, `${section.id}:`)}</div>
         )}
       </div>
     )
@@ -578,7 +703,7 @@ export function BotsPane() {
           icon="organization"
           label={b.roster.groupChats}
           onToggle={() => toggleRosterSection(sectionId)}
-          tip={b.roster.globalGroupChats(sortedGroupRows.length)}
+          tip={`${sortedGroupRows.length} global group chat${sortedGroupRows.length === 1 ? '' : 's'}`}
         />
         {collapsed ? null : <div className="grid min-w-0 gap-0.5">{sortedGroupRows.map(renderGroupRow)}</div>}
       </div>
@@ -587,17 +712,10 @@ export function BotsPane() {
 
   const renderHiddenGatewaySection = (section: ResolvedRosterGatewaySection) => (
     <div className="min-w-0" key={`hidden-gateway:${section.id}`}>
-      <div className="flex min-w-0 items-center gap-1.5 px-2 py-1 text-xs font-medium tracking-normal text-(--ui-text-secondary)">
+      <div className="flex min-w-0 items-center gap-1.5 px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-quaternary)">
         <GatewayKindGlyph kind={section.option?.kind} />
         <span className="min-w-0 flex-1 truncate">
-          {rosterConnectionLabel({
-            connectionId: section.option?.connectionId,
-            connectionKind: section.option?.kind,
-            connectionLabel: section.option?.label
-          }) ||
-            section.option?.label ||
-            section.option?.connectionId ||
-            b.roster.currentGateway}
+          {section.option?.label || section.option?.connectionId || 'Current gateway'}
         </span>
         <span className="shrink-0 font-normal tabular-nums">{section.rows.length}</span>
       </div>
@@ -608,11 +726,13 @@ export function BotsPane() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1.5">
-        <span className="text-xs font-medium tracking-normal text-(--ui-text-secondary)">
-          {b.roster.title}
+        <span className="text-[0.6875rem] font-semibold uppercase tracking-wider text-(--ui-text-quaternary)">
+          Bots
         </span>
         <div className="flex items-center gap-0.5">
-          <Tip label={activityToasts ? b.roster.activityToastsOn : b.roster.activityToastsOff}>
+          <Tip
+            label={activityToasts ? 'Activity toasts on — click to silence' : 'Activity toasts off — click to enable'}
+          >
             <Button
               className="rounded-md text-(--ui-text-tertiary) hover:text-foreground"
               onClick={() => setActivityToasts(!activityToasts)}
@@ -623,7 +743,7 @@ export function BotsPane() {
             </Button>
           </Tip>
           <DropdownMenu>
-            <Tip label={b.roster.newMenu}>
+            <Tip label="New…">
               <DropdownMenuTrigger asChild>
                 <Button
                   aria-label={b.roster.newBotOrGroup}
@@ -643,6 +763,11 @@ export function BotsPane() {
               <DropdownMenuItem disabled={activeSourceRoster.length < 2} onSelect={() => setGroupCreateOpen(true)}>
                 <Codicon className="mr-1.5" name="organization" />
                 {b.group.newTitle}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setSectionDialog({ mode: 'create' })}>
+                <Codicon className="mr-1.5" name="new-folder" />
+                {b.sections.newSection}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -665,12 +790,10 @@ export function BotsPane() {
           )}
           {showRosterFilters ? (
             <DropdownMenu key={'roster-filters'}>
-              <Tip label={activeFilterCount ? b.roster.filterRosterActive(activeFilterCount) : b.roster.filterRoster}>
+              <Tip label={activeFilterCount ? `Filters (${activeFilterCount} active)` : 'Filter roster'}>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    aria-label={
-                      activeFilterCount ? b.roster.filterRosterActive(activeFilterCount) : b.roster.filterRoster
-                    }
+                    aria-label={activeFilterCount ? `Filter roster, ${activeFilterCount} active` : 'Filter roster'}
                     className={cn(
                       'size-7 shrink-0 rounded-md text-(--ui-text-tertiary) hover:text-foreground',
                       activeFilterCount && 'text-(--ui-accent)'
@@ -713,7 +836,7 @@ export function BotsPane() {
                 {gatewayOptions.length > 1 ? (
                   <DropdownMenuItem onSelect={() => setGatewayFilter('all')}>
                     <Codicon className="mr-1.5" name="globe" />
-                    <span className="min-w-0 flex-1">{b.roster.allGateways}</span>
+                    <span className="min-w-0 flex-1">All gateways</span>
                     {gatewayFilter === 'all' ? <Codicon name="check" /> : null}
                   </DropdownMenuItem>
                 ) : null}
@@ -733,15 +856,7 @@ export function BotsPane() {
                             className={cn('mr-1.5', !status.available && 'text-amber-600 dark:text-amber-300')}
                             kind={option.kind}
                           />
-                          <span className="min-w-0 flex-1 truncate">
-                            {rosterConnectionLabel({
-                              connectionId: option.connectionId,
-                              connectionKind: option.kind,
-                              connectionLabel: option.label
-                            }) ||
-                              option.label ||
-                              option.connectionId}
-                          </span>
+                          <span className="min-w-0 flex-1 truncate">{option.label || option.connectionId}</span>
                           <span className="text-[0.625rem] tabular-nums text-(--ui-text-quaternary)">
                             {option.count}
                           </span>
@@ -780,7 +895,7 @@ export function BotsPane() {
         <div className="grid gap-2 px-3 py-4 text-xs text-(--ui-text-tertiary)">
           <div>
             {gatewayUp
-              ? b.roster.rosterUnavailable(error instanceof Error ? error.message : b.roster.gatewayError)
+              ? b.roster.rosterUnavailable(error instanceof Error ? error.message : 'gateway error')
               : b.roster.waitingForGateway}
           </div>
           <Button className="justify-self-start" onClick={() => void refetch()} size="sm" variant="secondary">
@@ -821,14 +936,14 @@ export function BotsPane() {
           />
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-slot="bots-roster">
           <div className="grid w-full min-w-0 gap-0.5 px-1.5 pb-2">
             {showGatewaySections
               ? [
                   sortedGroupRows.length ? renderGroupChatSection() : null,
                   ...gatewaySections.sections.map(renderGatewaySection)
                 ].filter(Boolean)
-              : rosterRows.map(row => (row.kind === 'group' ? renderGroupRow(row) : renderBotRow(row.bot)))}
+              : renderUserSections(rosterRows)}
             {showHiddenSection ? (
               <div
                 className="mt-1 border-t border-(--ui-stroke-tertiary) pt-1"
@@ -838,7 +953,7 @@ export function BotsPane() {
                 {hasRosterConstraint ? (
                   <div className="flex w-full items-center gap-1 px-2 py-1.5 text-[0.6875rem] font-medium text-(--ui-text-tertiary)">
                     <Codicon name="eye-closed" />
-                    <span>{b.roster.hidden}</span>
+                    <span>Hidden</span>
                     <span className="text-(--ui-text-quaternary)">{matchingHiddenBots.length}</span>
                   </div>
                 ) : (
@@ -848,7 +963,7 @@ export function BotsPane() {
                     onClick={() => $showHiddenBots.set(!hiddenExpanded)}
                   >
                     <DisclosureCaret open={hiddenExpanded} />
-                    <span>{b.roster.hidden}</span>
+                    <span>Hidden</span>
                     <span className="text-(--ui-text-quaternary)">{hiddenBots.length}</span>
                   </RowButton>
                 )}
@@ -883,6 +998,23 @@ export function BotsPane() {
         // registered connections — their turns route to their own machines.
         roster={roster}
       />
+      <SectionNameDialog
+        initialName={sectionDialog?.mode === 'rename' ? sectionDialog.name : ''}
+        mode={sectionDialog?.mode === 'rename' ? 'rename' : 'create'}
+        onOpenChange={open => {
+          if (!open) {
+            setSectionDialog(null)
+          }
+        }}
+        onSubmit={name => {
+          if (sectionDialog?.mode === 'rename') {
+            renameBotSection(sectionDialog.id, name)
+          } else {
+            createBotSection(name, sectionDialog?.bot ? [sectionDialog.bot] : [])
+          }
+        }}
+        open={Boolean(sectionDialog)}
+      />
       <EditProfileDialog
         bot={editing}
         onClose={() => {
@@ -893,11 +1025,20 @@ export function BotsPane() {
       />
       {grouping ? <GroupDialog bot={grouping} onClose={() => setGrouping(null)} /> : null}
       <ConfirmDialog
-        busyLabel={b.roster.deleting}
+        busyLabel="Deleting…"
         confirmLabel={t.common.delete}
-        description={deleting ? b.roster.deleteDescription(deleting.name, deleting.path || '') : null}
+        description={
+          deleting ? (
+            <span>
+              {'This will permanently delete the bot '}
+              <span className="font-medium text-foreground">{deleting.name}</span>
+              {' and its associated Hermes profile at '}
+              <span className="font-mono text-xs">{deleting.path}</span>. This cannot be undone.
+            </span>
+          ) : null
+        }
         destructive
-        doneLabel={b.roster.deleted}
+        doneLabel="Deleted"
         onClose={() => setDeleting(null)}
         onConfirm={async () => {
           if (!deleting) {
@@ -909,18 +1050,22 @@ export function BotsPane() {
           await refetch()
           host.notify({
             kind: 'success',
-            message: b.roster.deletedProfile(name)
+            message: `Deleted profile ${name}`
           })
         }}
         open={Boolean(deleting)}
         title={b.bot.deleteTitle}
       />
       <ConfirmDialog
-        busyLabel={b.roster.deleting}
+        busyLabel="Deleting…"
         confirmLabel={b.group.deleteAction}
-        description={deletingGroup ? b.group.disbandDescription(deletingGroup.name) : null}
+        description={
+          deletingGroup
+            ? `This removes “${deletingGroup.name}” from its bots and clears the shared room log. The bots and their individual chats are kept.`
+            : null
+        }
         destructive
-        doneLabel={b.roster.deleted}
+        doneLabel="Deleted"
         onClose={() => setDeletingGroup(null)}
         onConfirm={async () => {
           if (!deletingGroup) {
@@ -930,7 +1075,7 @@ export function BotsPane() {
           await disbandGroupChat(deletingGroup.name, deletingGroup.members)
           host.notify({
             kind: 'success',
-            message: b.roster.deletedGroup(deletingGroup.name)
+            message: `Deleted group “${deletingGroup.name}”`
           })
         }}
         open={Boolean(deletingGroup)}

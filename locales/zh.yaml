@@ -137,6 +137,8 @@ gateway:
     picker_title:          "⚡ **优先处理**\\n\\n当前模式：`{mode}`\\n\\n请选择："
     choice_fast:           "fast — 开启优先处理"
     choice_normal:         "normal — 标准处理"
+    choice_auto:           "auto — 每轮的前几秒快速"
+    choice_cold:           "cold — 仅会话的第一轮快速"
 
   footer:
     status:                "📎 运行时页脚：**{state}**\n字段：`{fields}`\n平台：`{platform}`"
@@ -266,6 +268,7 @@ gateway:
     matrix_cross_room_success: "⚠️ 跨房间恢复：已在 Matrix 房间 **{room}** 内恢复 **{title}**。\n在使用 `/reset` 或其他 `/resume` 之前，此房间的后续消息都会使用该记录。{msg_part}"
     blocked_not_owner:     "⚠️ /resume 已阻止：'**{name}**' 属于其他用户或聊天。你只能恢复此聊天中的会话。"
     no_named_sessions:     "未找到已命名的会话。\n使用 `/title 我的会话` 为当前会话命名，然后用 `/resume 我的会话` 返回。"
+    all_requires_admin: "_注意：`--all`（跨聊天列表）需要已配置的管理员；仅显示本聊天的会话。_"
     list_header:           "📋 **已命名会话**\n"
     list_item:             "• **{title}**{preview_part}"
     list_item_numbered:    "{index}. **{title}**{preview_part}"

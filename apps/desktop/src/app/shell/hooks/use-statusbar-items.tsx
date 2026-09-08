@@ -3,15 +3,32 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router'
 
 import { ConnectionSwitcher } from '@/app/chat/sidebar/connection-switcher'
+import type { CommandCenterSection } from '@/app/command-center'
 import { useApprovalModeStatusbarItem } from '@/app/shell/approval-mode-menu'
 import { ContextUsagePanel } from '@/app/shell/context-usage-panel'
+import { GatewayMenuPanel } from '@/app/shell/gateway-menu-panel'
 import { useContextBreakdown } from '@/app/shell/hooks/use-context-breakdown'
+import { useSystemResourcesStatusbarItem } from '@/app/shell/system-resources-statusbar'
 import { $paneVisible, togglePaneVisible } from '@/components/pane-shell/tree/store'
 import { Codicon } from '@/components/ui/codicon'
+import { GlyphSpinner } from '@/components/ui/glyph-spinner'
 import { useI18n } from '@/i18n'
 import { displayPath, pathLeaf } from '@/lib/display-path'
-import { AlertCircle, Clock, FolderOpen, Globe, Hash, Loader2, Terminal } from '@/lib/icons'
-import { contextBarLabel, LiveDuration, usageContextLabel } from '@/lib/statusbar'
+import {
+  Activity,
+  AlertCircle,
+  Clock,
+  Command,
+  FolderOpen,
+  Globe,
+  Hash,
+  Layers3,
+  Loader2,
+  Terminal,
+  Zap
+} from '@/lib/icons'
+import { runtimeReadinessDisplay, type RuntimeReadinessResult } from '@/lib/runtime-readiness'
+import { cacheHitLabel, contextBarLabel, LiveDuration, tokensPerSecondLabel, usageContextLabel } from '@/lib/statusbar'
 import { useStoreSelector } from '@/lib/use-session-slice'
 import { cn } from '@/lib/utils'
 import { resolveVersionStatus } from '@/lib/version-status'
@@ -35,7 +52,15 @@ import {
 import { $focusedRuntimeId, $focusedSessionState, $focusedStoredSessionId } from '@/store/session-states'
 import { $statusbarHiddenIds } from '@/store/statusbar-prefs'
 import { $subagentsBySession, activeSubagentCount, failedSubagentCount } from '@/store/subagents'
-import { $backendUpdateApply, $backendUpdateStatus, openUpdateOverlayFor } from '@/store/updates'
+import { $gatewayRestarting } from '@/store/system-actions'
+import {
+  $backendUpdateApply,
+  $backendUpdateStatus,
+  $desktopVersion,
+  $updateApply,
+  $updateStatus,
+  openUpdateOverlayFor
+} from '@/store/updates'
 import type { StatusResponse, UsageStats } from '@/types/hermes'
 
 import { CRON_ROUTE, SETTINGS_ROUTE, WEBHOOKS_ROUTE } from '../../routes'
@@ -46,24 +71,32 @@ const EMPTY_USAGE: UsageStats = { calls: 0, input: 0, output: 0, total: 0 }
 interface StatusbarItemsOptions {
   agentsOpen: boolean
   chatOpen: boolean
+  commandCenterOpen: boolean
   extraLeftItems: readonly StatusbarItem[]
   extraRightItems: readonly StatusbarItem[]
   gatewayState: string
+  inferenceStatus: RuntimeReadinessResult | null
   openAgents: () => void
+  openCommandCenterSection: (section: CommandCenterSection) => void
   freshDraftReady: boolean
   requestGateway: <T = unknown>(method: string, params?: Record<string, unknown>) => Promise<T>
   statusSnapshot: StatusResponse | null
+  toggleCommandCenter: () => void
 }
 
 export function useStatusbarItems({
   agentsOpen,
   chatOpen,
+  commandCenterOpen,
   extraLeftItems,
   extraRightItems,
   gatewayState,
+  inferenceStatus,
   openAgents,
+  openCommandCenterSection,
   requestGateway,
-  statusSnapshot
+  statusSnapshot,
+  toggleCommandCenter
 }: StatusbarItemsOptions) {
   const { t } = useI18n()
   const copy = t.shell.statusbar
@@ -75,12 +108,14 @@ export function useStatusbarItems({
   // minimized zone, which lit the button for a pane the user couldn't see.
   const terminalShowing = useStore($paneVisible('terminal'))
   const sessionsShowing = useStore($paneVisible('sessions'))
+  const botsShowing = useStore($paneVisible('hermes-bots:pane'))
   const primaryBusy = useStore($busy)
   // Draft / primary composer atom — used only while the focused surface is the
   // primary (or a draft with no runtime slice yet). A focused TILE keeps its
   // own cwd in `$sessionStates` and must not paint the primary's workspace.
   const primaryCwd = useStore($currentCwd)
   const primaryUsage = useStore($currentUsage)
+  const gatewayRestarting = useStore($gatewayRestarting)
   const primarySessionStartedAt = useStore($sessionStartedAt)
   const primaryTurnStartedAt = useStore($turnStartedAt)
 
@@ -97,8 +132,11 @@ export function useStatusbarItems({
     Object.values(bySession).reduce((sum, items) => sum + failedSubagentCount(items), 0)
   )
 
+  const updateStatus = useStore($updateStatus)
+  const updateApply = useStore($updateApply)
   const backendUpdateStatus = useStore($backendUpdateStatus)
   const backendUpdateApply = useStore($backendUpdateApply)
+  const desktopVersion = useStore($desktopVersion)
   const connection = useStore($connection)
 
   // The FOCUSED session (interacted tile, else the primary — the same
@@ -231,6 +269,8 @@ export function useStatusbarItems({
       contextBreakdown
         ? {
             ...currentUsage,
+            context_estimated: contextBreakdown.context_estimated,
+            context_source: contextBreakdown.context_source,
             context_max: contextBreakdown.context_max,
             context_percent: contextBreakdown.context_percent,
             context_used: contextBreakdown.context_used
@@ -241,8 +281,94 @@ export function useStatusbarItems({
 
   const contextUsage = useMemo(() => usageContextLabel(gaugeUsage), [gaugeUsage])
   const contextBar = useMemo(() => contextBarLabel(gaugeUsage), [gaugeUsage])
+  // Both ride the same usage payload the context meter does (session.usage
+  // ticks mid-turn, message.complete after) — no extra RPC, no polling.
+  const cacheHit = cacheHitLabel(currentUsage)
+  const tokensPerSecond = tokensPerSecondLabel(currentUsage)
 
   const approvalModeItem = useApprovalModeStatusbarItem(activeGatewayProfile, requestGateway)
+  const systemResourcesItem = useSystemResourcesStatusbarItem()
+
+  const gatewayMenuContent = useMemo(
+    () => (close: () => void) => (
+      <GatewayMenuPanel
+        gatewayState={gatewayState}
+        inferenceStatus={inferenceStatus}
+        onClose={close}
+        onOpenSystem={() => openCommandCenterSection('system')}
+        statusSnapshot={statusSnapshot}
+      />
+    ),
+    [gatewayState, inferenceStatus, openCommandCenterSection, statusSnapshot]
+  )
+
+  const gatewayOpen = gatewayState === 'open'
+  const gatewayConnecting = gatewayState === 'connecting'
+  const inferenceReady = gatewayOpen && inferenceStatus?.ready === true
+  const gatewayDegraded = gatewayOpen || gatewayConnecting
+  const readinessDisplay = runtimeReadinessDisplay(inferenceStatus)
+
+  const gatewayDetail = gatewayOpen
+    ? {
+        checking: copy.gatewayChecking,
+        needs_setup: copy.gatewayNeedsSetup,
+        ready: copy.gatewayReady,
+        unavailable: copy.gatewayUnavailable
+      }[readinessDisplay]
+    : gatewayConnecting
+      ? copy.gatewayConnecting
+      : copy.gatewayOffline
+
+  const gatewayClassName = inferenceReady
+    ? undefined
+    : gatewayDegraded
+      ? 'text-amber-600 hover:text-amber-600'
+      : 'text-destructive hover:text-destructive'
+
+  const clientVersionItem = useMemo<StatusbarItem>(() => {
+    const applying = updateApply.applying || updateApply.stage === 'restart'
+
+    const status = resolveVersionStatus({
+      applying,
+      applyMessage: updateApply.message,
+      behind: updateStatus?.behind ?? 0,
+      branch: updateStatus?.branch,
+      copy,
+      remote: connection?.mode === 'remote',
+      restarting: updateApply.stage === 'restart',
+      sha: updateStatus?.currentSha?.slice(0, 7) ?? null,
+      target: 'client',
+      updateAvailable: updateStatus?.updateAvailable,
+      version: desktopVersion?.appVersion
+    })
+
+    return {
+      className: status.hasUpdate ? 'text-primary hover:text-primary' : undefined,
+      detail: status.detail,
+      hidden: status.unknown,
+      icon: applying ? <Loader2 className="size-3 animate-spin" /> : <Hash className="size-3" />,
+      id: 'version-client',
+      label: status.label,
+      // Update state is not a preference: hiding it is how a user misses that
+      // their client is behind. Listed in the menu, but locked on.
+      lockedVisible: true,
+      onSelect: () => openUpdateOverlayFor('client'),
+      title: status.tooltip,
+      toggleLabel: copy.toggleVersion,
+      variant: 'action'
+    }
+  }, [
+    desktopVersion?.appVersion,
+    connection?.mode,
+    copy,
+    updateApply.applying,
+    updateApply.message,
+    updateApply.stage,
+    updateStatus?.behind,
+    updateStatus?.branch,
+    updateStatus?.currentSha,
+    updateStatus?.updateAvailable
+  ])
 
   const backendVersionItem = useMemo<StatusbarItem | null>(() => {
     if (connection?.mode !== 'remote') {
@@ -289,10 +415,42 @@ export function useStatusbarItems({
   const coreLeftStatusbarItems = useMemo<readonly StatusbarItem[]>(
     () => [
       {
+        className: `w-7 justify-center px-0${commandCenterOpen ? ' bg-accent/55 text-foreground' : ''}`,
+        icon: <Command className="size-3.5" />,
+        id: 'command-center',
+        // The system icon: the way into every other surface, including the
+        // settings that would bring a hidden item back. Never hideable.
+        lockedVisible: true,
+        onSelect: toggleCommandCenter,
+        title: commandCenterOpen ? copy.closeCommandCenter : copy.openCommandCenter,
+        toggleLabel: copy.toggleCommandCenter,
+        variant: 'action'
+      },
+      {
         hidden: !sessionsShowing,
         id: 'gateway-switcher',
         lockedVisible: true,
         render: () => <StatusbarGatewaySwitcher />
+      },
+      {
+        className: gatewayRestarting ? undefined : gatewayClassName,
+        detail: gatewayRestarting ? copy.gatewayRestarting : gatewayDetail,
+        hidden: botsShowing,
+        icon: gatewayRestarting ? (
+          <GlyphSpinner ariaLabel={copy.gatewayRestarting} className="size-3" />
+        ) : inferenceReady ? (
+          <Activity className="size-3" />
+        ) : (
+          <AlertCircle className="size-3" />
+        ),
+        id: 'gateway-health',
+        label: copy.gateway,
+        menuClassName: 'w-72',
+        menuContent: gatewayMenuContent,
+        // Tip only when there's a real status reason — not "gateway status" restating the label.
+        title: inferenceStatus?.reason || undefined,
+        toggleLabel: copy.gateway,
+        variant: 'menu'
       },
       {
         hidden: !currentCwd,
@@ -373,16 +531,25 @@ export function useStatusbarItems({
     ],
     [
       agentsOpen,
+      botsShowing,
+      commandCenterOpen,
       copy,
       currentCwd,
       fileMenu.copyPath,
       fileMenu.revealFileManager,
       fileMenu.revealInSidebar,
+      gatewayMenuContent,
+      gatewayClassName,
+      gatewayDetail,
+      gatewayRestarting,
+      inferenceReady,
+      inferenceStatus?.reason,
       openAgents,
       projectName,
       sessionsShowing,
       subagentsFailed,
-      subagentsRunning
+      subagentsRunning,
+      toggleCommandCenter
     ]
   )
 
@@ -399,9 +566,12 @@ export function useStatusbarItems({
       },
       {
         detail: contextBar || undefined,
-        hidden: !contextUsage,
+        // Never self-hide: the user opted this item in (it's hidden-by-
+        // default), so an empty label must render as a waiting placeholder,
+        // not a vanished item — an enabled-but-invisible toggle reads as
+        // "another item took its spot".
         id: 'context-usage',
-        label: contextUsage,
+        label: contextUsage || '—',
         menuAlign: 'end',
         menuClassName: 'w-auto border-(--ui-stroke-secondary) p-0',
         menuContent: (
@@ -411,6 +581,24 @@ export function useStatusbarItems({
         variant: 'menu'
       },
       {
+        icon: <Layers3 className="size-3" />,
+        id: 'cache-hit-rate',
+        // Same never-self-hide rule as the context meter: opted in means a
+        // placeholder until the first cached turn reports, not a vanished item.
+        label: cacheHit || '—',
+        title: copy.cacheHitRateTitle,
+        toggleLabel: copy.toggleCacheHitRate,
+        variant: 'text'
+      },
+      {
+        icon: <Zap className="size-3" />,
+        id: 'tokens-per-second',
+        label: tokensPerSecond || '—',
+        title: copy.tokensPerSecondTitle,
+        toggleLabel: copy.toggleTokensPerSecond,
+        variant: 'text'
+      },
+      {
         detail: <LiveDuration since={sessionStartedAt} />,
         hidden: !sessionStartedAt,
         id: 'session-timer',
@@ -418,6 +606,7 @@ export function useStatusbarItems({
         toggleLabel: copy.toggleSessionTimer,
         variant: 'text'
       },
+      systemResourcesItem,
       {
         ...approvalModeItem,
         hidden: gatewayState !== 'open',
@@ -434,13 +623,16 @@ export function useStatusbarItems({
         toggleLabel: copy.toggleTerminal,
         variant: 'action'
       },
+      clientVersionItem,
       ...(backendVersionItem ? [backendVersionItem] : [])
     ],
     [
       approvalModeItem,
       backendVersionItem,
       busy,
+      cacheHit,
       chatOpen,
+      clientVersionItem,
       contextBar,
       contextBreakdown,
       contextBreakdownLoading,
@@ -449,7 +641,9 @@ export function useStatusbarItems({
       gaugeUsage,
       sessionStartedAt,
       gatewayState,
+      systemResourcesItem,
       terminalShowing,
+      tokensPerSecond,
       turnStartedAt
     ]
   )

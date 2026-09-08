@@ -7,12 +7,13 @@ import { cn } from '@/lib/utils'
 // Small status/metadata tag. App radius (not a full pill); tones map to the
 // shared accent/muted/destructive surfaces so badges read consistently.
 const badgeVariants = cva(
-  'inline-flex w-fit shrink-0 items-center gap-1 rounded-md font-medium leading-none whitespace-nowrap [&_svg]:pointer-events-none',
+  'inline-flex w-fit shrink-0 items-center gap-1 rounded-[3px] font-medium leading-none whitespace-nowrap [&_svg]:pointer-events-none',
   {
     variants: {
       variant: {
-        default: 'bg-(--ui-bg-quaternary) text-(--ui-text-secondary)',
-        muted: 'bg-(--ui-bg-quaternary) text-(--ui-text-secondary)',
+        default: 'bg-primary/10 text-primary',
+        muted: 'bg-muted text-muted-foreground',
+        success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
         warn: 'bg-amber-500/10 text-amber-600 dark:text-amber-300',
         destructive: 'bg-destructive/10 text-destructive',
         outline: 'border border-(--ui-stroke-secondary) text-muted-foreground',
@@ -36,14 +37,7 @@ export interface BadgeProps extends React.ComponentProps<'span'>, VariantProps<t
 export function Badge({ asChild = false, className, size, variant, ...props }: BadgeProps) {
   const Comp = asChild ? Slot.Root : 'span'
 
-  return (
-    <Comp
-      className={cn(badgeVariants({ size, variant }), className)}
-      data-slot="badge"
-      data-variant={variant ?? 'default'}
-      {...props}
-    />
-  )
+  return <Comp className={cn(badgeVariants({ size, variant }), className)} data-slot="badge" {...props} />
 }
 
 export { badgeVariants }

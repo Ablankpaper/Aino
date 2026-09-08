@@ -2,9 +2,7 @@ import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DesktopConnectionsRegistry } from '@/global'
-import { setRuntimeI18nLocale } from '@/i18n'
 import { createClientSessionState } from '@/lib/chat-runtime'
-import { BACKEND_BOOT_WAIT_TIMEOUT_MS } from '@/lib/with-timeout'
 import { $desktopBoot } from '@/store/boot'
 import {
   $connectionsRegistry,
@@ -270,7 +268,6 @@ function Harness({
 const originalWebSocket = globalThis.WebSocket
 
 beforeEach(() => {
-  setRuntimeI18nLocale('en')
   // Drop any parked gateway left by a prior file/case (globalThis slot).
   const leftover = takeGatewaySurvivor()
 
@@ -312,7 +309,6 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  setRuntimeI18nLocale('en')
   cleanup()
   // Vitest keeps import.meta.hot truthy, so the boot effect's cleanup parks an
   // open gateway instead of tearing it down (the real HMR path). Drain + close
@@ -363,57 +359,6 @@ async function advanceBackoff() {
 }
 
 describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => {
-  it('localizes the initial backend timeout shown by the boot failure surface', async () => {
-    setRuntimeI18nLocale('zh')
-
-    const desktop = fakeDesktop()
-    desktop.getConnection = vi.fn(() => new Promise(() => undefined))
-    ;(window as { hermesDesktop?: unknown }).hermesDesktop = desktop
-
-    render(<Harness />)
-    await flushAsync()
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(BACKEND_BOOT_WAIT_TIMEOUT_MS)
-      await vi.advanceTimersByTimeAsync(0)
-    })
-
-    expect($desktopBoot.get().error).toBe('连接 Aino 后端超时')
-  })
-
-  it('keeps initial boot alive while a cold local backend is still announcing its port', async () => {
-    const desktop = fakeDesktop()
-    const pendingConnection = deferred<typeof primaryConn>()
-    desktop.getConnection = vi.fn(() => pendingConnection.promise)
-    ;(window as { hermesDesktop?: unknown }).hermesDesktop = desktop
-
-    render(<Harness />)
-    await flushAsync()
-
-    // A slow cold start can spend the full 90s port-announcement window plus
-    // most of the 45s health budget before the main process publishes its
-    // descriptor. The renderer must not fail that healthy startup early.
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(140_000)
-    })
-
-    expect($desktopBoot.get().error).toBeNull()
-
-    pendingConnection.resolve(primaryConn)
-    await flushAsync()
-    expect($gatewayState.get()).toBe('open')
-  })
-
-  it('localizes the missing desktop bridge failure shown during startup', async () => {
-    setRuntimeI18nLocale('zh')
-    delete (window as { hermesDesktop?: unknown }).hermesDesktop
-
-    render(<Harness />)
-    await flushAsync()
-
-    expect($desktopBoot.get().error).toBe('桌面 IPC 桥不可用。')
-  })
-
   it('INITIAL boot against a dead VPS: getConnection hangs (waitForHermes) → app sits in the connecting combo, then fails', async () => {
     // The report's actual path: a fresh launch pointed at an unreachable VPS.
     // startHermes()'s remote branch awaits waitForHermes() for 45s before it
@@ -1277,11 +1222,11 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
 
     expect($desktopBoot.get().error).toBeNull()
 
-    // Advance past the shared backend-boot budget — the
+    // Advance past the shared backend-boot budget (45s) — the
     // stalled await must reject on its own so boot()'s catch runs instead of
     // waiting indefinitely on main.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(BACKEND_BOOT_WAIT_TIMEOUT_MS)
+      await vi.advanceTimersByTimeAsync(45_000)
     })
 
     expect($desktopBoot.get().error).toBeTruthy()
@@ -1315,11 +1260,11 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
 
     expect($gatewaySwitching.get()).toBe(true)
 
-    // Advance past the shared backend-boot budget — the
+    // Advance past the shared backend-boot budget (45s) — the
     // stalled await must reject so the `finally` clears $gatewaySwitching
     // instead of latching the switch UI frozen forever.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(BACKEND_BOOT_WAIT_TIMEOUT_MS)
+      await vi.advanceTimersByTimeAsync(45_000)
     })
 
     expect($gatewaySwitching.get()).toBe(false)
@@ -1411,6 +1356,7 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
 
     const revalidated = deferred<{ ok: boolean; rebuilt: boolean }>()
     desktop.revalidateConnection.mockReturnValue(revalidated.promise)
+    FakeWebSocket.mode = 'fail'
 
     await act(async () => {
       const reconnect = reconnectGateway()
@@ -1424,16 +1370,18 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
       await reconnect
     })
 
-    expect(desktop.revalidateConnection).toHaveBeenCalledOnce()
+    FakeWebSocket.mode = 'open'
+    await advanceBackoff()
+    expect(desktop.revalidateConnection).toHaveBeenCalledTimes(2)
     // The manual reconnect dials the WINDOW-owned primary backend (no profile
     // arg) — same contract as the sleep/wake reconnect: passing the active
     // profile would retarget the primary socket after a live profile swap.
     const lastCall = desktop.getConnection.mock.calls.at(-1) ?? []
     expect(lastCall.length === 0 || lastCall[0] == null || lastCall[0] === '').toBe(true)
-    expect(desktop.getGatewayWsUrl).toHaveBeenCalledTimes(2)
+    expect(desktop.getGatewayWsUrl).toHaveBeenCalledTimes(3)
     expect(oldPrimary.readyState).toBe(FakeWebSocket.CLOSED)
     expect(backgroundSocket.readyState).toBe(FakeWebSocket.OPEN)
-    expect(FakeWebSocket.instances).toHaveLength(3)
+    expect(FakeWebSocket.instances).toHaveLength(4)
     expect($sessionTiles.get()[0]).not.toHaveProperty('runtimeId')
     expect($sessionTiles.get()[1].runtimeId).toBe('runtime-writer')
     expect($busy.get()).toBe(true)

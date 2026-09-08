@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef } from 'react'
 import { referenceKind, referenceStyle } from '@/components/assistant-ui/reference-kinds'
 import { Codicon } from '@/components/ui/codicon'
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
+import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 
@@ -89,20 +90,6 @@ export function ComposerTriggerPopover({
 }: ComposerTriggerPopoverProps) {
   const { t } = useI18n()
   const copy = t.composer
-
-  const groupLabels: Record<string, string> = {
-    Commands: copy.completionGroups.commands,
-    Configuration: copy.completionGroups.configuration,
-    Exit: copy.completionGroups.exit,
-    Info: copy.completionGroups.info,
-    Options: copy.completionGroups.options,
-    Session: copy.completionGroups.session,
-    Sessions: copy.completionGroups.sessions,
-    Skills: copy.completionGroups.skills,
-    Themes: copy.completionGroups.themes,
-    'Tools & Skills': copy.completionGroups.toolsAndSkills
-  }
-
   const isSlash = kind === '/'
   const isEmoji = kind === ':'
   const listRef = useRef<HTMLDivElement>(null)
@@ -173,7 +160,7 @@ export function ComposerTriggerPopover({
       ref={listRef}
       role="listbox"
     >
-      {scope && <div className={cn(GROUP_HEADER_CLASS, 'pt-0.5')}>{copy.referenceLabels[scope]}</div>}
+      {scope && <div className={cn(GROUP_HEADER_CLASS, 'pt-0.5')}>{referenceStyle(scope).label}</div>}
       {items.length === 0 ? (
         loading ? (
           <div className="flex items-center gap-2 px-2 py-1.5 text-(--ui-text-tertiary)">
@@ -207,43 +194,50 @@ export function ComposerTriggerPopover({
           const showHeader = isSlash && Boolean(group) && group !== lastGroup
           const isFirstHeader = lastGroup === undefined
           lastGroup = group || lastGroup
-          const groupLabel = group ? (groupLabels[group] ?? group) : group
           const active = index === activeIndex
           const refKind = referenceKind(rowKind(item, isSlash))
 
           return (
             <Fragment key={item.id}>
-              {showHeader && (
-                <div className={cn(GROUP_HEADER_CLASS, isFirstHeader ? 'pt-0.5' : 'pt-2')}>{groupLabel}</div>
-              )}
-              <button
-                className={ROW_CLASS}
-                data-highlighted={active ? '' : undefined}
-                onClick={() => onPick(item)}
-                onMouseEnter={() => {
-                  // React bails out when hovering the already-active row. Do
-                  // not leave a marker behind for a later items refresh.
-                  hoverIndexRef.current = index === activeIndex ? -1 : index
-                  onHover(index)
-                }}
-                type="button"
+              {showHeader && <div className={cn(GROUP_HEADER_CLASS, isFirstHeader ? 'pt-0.5' : 'pt-2')}>{group}</div>}
+              <Tip
+                className="max-w-[calc(100vw-2rem)] wrap-anywhere"
+                collisionPadding={16}
+                delayDuration={400}
+                label={kind === '/' ? description : undefined}
+                sideOffset={4}
               >
-                {isEmoji ? (
-                  // The emoji is its own icon — a glyph column beside it reads
-                  // as decoration.
-                  <span className="min-w-0 shrink truncate leading-5 text-foreground">{display}</span>
-                ) : (
-                  <>
-                    <span className="grid size-4 shrink-0 place-items-center text-(--ref-color)" data-ref={refKind}>
-                      <Codicon name={referenceStyle(refKind).codicon} size="0.875rem" />
-                    </span>
-                    <span className="min-w-0 shrink truncate font-medium leading-5 text-foreground">{display}</span>
-                    {description && (
-                      <span className="min-w-0 flex-1 truncate leading-5 text-(--ui-text-tertiary)">{description}</span>
-                    )}
-                  </>
-                )}
-              </button>
+                <button
+                  className={ROW_CLASS}
+                  data-highlighted={active ? '' : undefined}
+                  onClick={() => onPick(item)}
+                  onMouseEnter={() => {
+                    // React bails out when hovering the already-active row. Do
+                    // not leave a marker behind for a later items refresh.
+                    hoverIndexRef.current = index === activeIndex ? -1 : index
+                    onHover(index)
+                  }}
+                  type="button"
+                >
+                  {isEmoji ? (
+                    // The emoji is its own icon — a glyph column beside it reads
+                    // as decoration.
+                    <span className="min-w-0 shrink truncate leading-5 text-foreground">{display}</span>
+                  ) : (
+                    <>
+                      <span className="grid size-4 shrink-0 place-items-center text-(--ref-color)" data-ref={refKind}>
+                        <Codicon name={referenceStyle(refKind).codicon} size="0.875rem" />
+                      </span>
+                      <span className="min-w-0 shrink truncate font-medium leading-5 text-foreground">{display}</span>
+                      {description && (
+                        <span className="min-w-0 flex-1 truncate leading-5 text-(--ui-text-tertiary)">
+                          {description}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+              </Tip>
             </Fragment>
           )
         })

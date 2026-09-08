@@ -21,7 +21,7 @@ import { TitleMenuTrigger } from '@/components/ui/title-menu-trigger'
 import { type HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
 import type { ChatMessage } from '@/lib/chat-messages'
-import { newSessionTitle, quickModelOptions, sessionTitle } from '@/lib/chat-runtime'
+import { NEW_SESSION_TITLE, quickModelOptions, sessionTitle } from '@/lib/chat-runtime'
 import { useIncrementalExternalStoreRuntime } from '@/lib/incremental-external-store-runtime'
 import { modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
 import { useStoreSelector } from '@/lib/use-session-slice'
@@ -33,7 +33,6 @@ import { $pinnedSessionIds } from '@/store/layout'
 import { $petActive } from '@/store/pet'
 import { $petOverlayActive } from '@/store/pet-overlay'
 import { $activeGatewayProfile, $gatewaySwapTarget, $hydrationSyncProfile, $profiles } from '@/store/profile'
-import { openFolderAsProject } from '@/store/projects'
 import {
   $connection,
   $contextSuggestions,
@@ -79,11 +78,14 @@ import {
   mergeOlderTranscriptPage,
   transcriptBackfillAvailable
 } from './transcript-backfill'
-import { advanceTranscriptWindow, type TranscriptWindowState } from './transcript-window'
+import { advanceSessionTranscriptWindow, type SessionWindowMemo } from './transcript-window'
 
 interface ChatViewProps extends Omit<React.ComponentProps<'div'>, 'onSubmit'> {
   gateway: HermesGateway | null
+  modelOptionsOwnerConnectionId?: string
+  modelOptionsProfile?: string
   modelMenuContent?: React.ReactNode
+  requestModelOptionsForOwner?: <T>(method: string, params?: Record<string, unknown>) => Promise<T>
   onToggleSelectedPin: () => void
   onDeleteSelectedSession: () => void
   onCancel: () => Promise<void> | void
@@ -132,7 +134,7 @@ function ChatHeader({
   const activeStoredSession =
     (selectedSessionId && sessions.find(session => sessionMatchesStoredId(session, selectedSessionId))) || null
 
-  const title = activeStoredSession ? sessionTitle(activeStoredSession) : newSessionTitle()
+  const title = activeStoredSession ? sessionTitle(activeStoredSession) : NEW_SESSION_TITLE
 
   // Which agent/persona owns this chat — glanceable in the header once a
   // second profile exists, so the open session's ownership is never ambiguous
@@ -245,22 +247,37 @@ function ChatRuntimeBoundary({
 
   const [windowPages, setWindowPages] = useState(1)
   const [windowSessionKey, setWindowSessionKey] = useState(runtimeId)
-  // Sticky-cut continuity across flushes (advanceTranscriptWindow). A ref, not
-  // state: it is derived from `messages` and must never trigger a render.
-  const windowStateRef = useRef<null | TranscriptWindowState>(null)
+  // Per-session sticky-cut continuity (advanceSessionTranscriptWindow). A ref,
+  // not state: it is derived from `messages` and must never trigger a render.
+  // Keyed by runtime id so a warm switch back to a session whose transcript
+  // is unchanged reuses the previous windowed slice BY REFERENCE — no window
+  // re-index, no runtime-repository rebuild, no per-row re-parse/re-highlight
+  // (#95595). Bounded internally (oldest session evicted).
+  const windowStateRef = useRef(new Map<string, SessionWindowMemo>())
+  // The memo below intentionally skips `runtimeId` in its deps (a switch
+  // always changes the messages array too, which re-runs it), so the current
+  // value must come from a ref rather than the stale render closure.
+  const runtimeIdRef = useRef(runtimeId)
+  runtimeIdRef.current = runtimeId
 
   // Reset the window on session swap during RENDER, so a large expand from the
-  // previous chat can't leak into the next one's first paint (#55191).
+  // previous chat can't leak into the next one's first paint (#55191). The
+  // per-session map above keeps each session's own cut; only the page count
+  // resets on a switch.
   if (windowSessionKey !== runtimeId) {
     setWindowSessionKey(runtimeId)
     setWindowPages(1)
-    windowStateRef.current = null
   }
 
   const { messages: windowedMessages, windowed } = useMemo(() => {
-    const next = advanceTranscriptWindow(windowStateRef.current, messages, windowPages)
-
-    windowStateRef.current = next
+    const next = advanceSessionTranscriptWindow(
+      windowStateRef.current,
+      // Draft state has no runtime id yet; a single shared slot is fine there
+      // (mirrors the old single-slot behaviour for the no-runtime case).
+      runtimeIdRef.current ?? '',
+      messages,
+      windowPages
+    )
 
     return next.window
   }, [messages, windowPages])
@@ -294,7 +311,7 @@ function ChatRuntimeBoundary({
     // something older to show. Fire-and-forget: the prepend lands through the
     // session-state write path and re-renders this boundary.
     if (
-      !windowStateRef.current?.window.windowed &&
+      !windowStateRef.current.get(runtimeIdRef.current ?? '')?.state.window.windowed &&
       runtimeId &&
       storedId &&
       transcriptBackfillAvailable(storedId, tailProfile)
@@ -359,7 +376,10 @@ export const ChatView = memo(function ChatView(props: ChatViewProps) {
 const ChatViewContent = memo(function ChatViewContent({
   className,
   gateway,
+  modelOptionsOwnerConnectionId,
+  modelOptionsProfile,
   modelMenuContent,
+  requestModelOptionsForOwner,
   onToggleSelectedPin,
   onDeleteSelectedSession,
   onCancel,
@@ -538,34 +558,19 @@ const ChatViewContent = memo(function ChatViewContent({
   const showChatBar = !loadingSession && !resumeExhausted && !isWatchWindow()
   const threadKey = selectedSessionId || activeSessionId || (isRoutedSessionView ? location.pathname : 'new')
 
-  // The landing surface owns presentation only. These callbacks deliberately
-  // route into the existing composer/project actions so quick actions never
-  // create a second send or workspace implementation.
-  const onHomeInsertPrompt = useCallback(
-    (text: string) => requestComposerInsert(text, { mode: 'block', target: composerScope.target }),
-    [composerScope.target]
-  )
-
-  const onHomeSelectWorkspace = useCallback(() => void openFolderAsProject(), [])
-
-  const introProps = useMemo(
-    () =>
-      showIntro
-        ? {
-            home: true,
-            onInsertPrompt: onHomeInsertPrompt,
-            onPickFiles,
-            onSelectWorkspace: onHomeSelectWorkspace,
-            personality: introPersonality,
-            seed: introSeed
-          }
-        : undefined,
-    [introPersonality, introSeed, onHomeInsertPrompt, onHomeSelectWorkspace, onPickFiles, showIntro]
-  )
-
   const modelOptionsQuery = useQuery<ModelOptionsResponse>({
-    queryKey: modelOptionsQueryKey(activeGatewayProfile, activeSessionId),
-    queryFn: () => requestModelOptions({ gateway: gateway || undefined, sessionId: activeSessionId }),
+    queryKey: modelOptionsQueryKey(
+      modelOptionsProfile || activeGatewayProfile,
+      activeSessionId,
+      modelOptionsOwnerConnectionId
+    ),
+    queryFn: () =>
+      requestModelOptions({
+        gateway: gateway || undefined,
+        profile: modelOptionsProfile || activeGatewayProfile,
+        request: requestModelOptionsForOwner,
+        sessionId: activeSessionId
+      }),
     enabled: gatewayOpen
   })
 
@@ -586,7 +591,7 @@ const ChatViewContent = memo(function ChatViewContent({
       },
       tools: {
         enabled: true,
-        label: t.ui.actions.addContext,
+        label: 'Add context',
         suggestions: contextSuggestions
       },
       voice: {
@@ -594,15 +599,7 @@ const ChatViewContent = memo(function ChatViewContent({
         active: false
       }
     }),
-    [
-      contextSuggestions,
-      currentModel,
-      currentProvider,
-      gatewayOpen,
-      modelMenuContent,
-      quickModels,
-      t.ui.actions.addContext
-    ]
+    [contextSuggestions, currentModel, currentProvider, gatewayOpen, modelMenuContent, quickModels]
   )
 
   // Drop files anywhere in the conversation area, not just on the composer
@@ -655,8 +652,6 @@ const ChatViewContent = memo(function ChatViewContent({
       data-chat-unfocused={surfaceFocused ? undefined : ''}
       data-composer-surface-id={composerSurfaceId}
       data-composer-target={composerScope.target}
-      data-conversation-layout={!showIntro && showChatBar ? '' : undefined}
-      data-home-layout={showIntro && showChatBar ? '' : undefined}
       data-session-anchor={sessionAnchor}
     >
       <Backdrop />
@@ -694,7 +689,7 @@ const ChatViewContent = memo(function ChatViewContent({
             clampToComposer={showChatBar}
             cwd={currentCwd}
             gateway={gateway}
-            intro={introProps}
+            intro={showIntro ? { personality: introPersonality, seed: introSeed } : undefined}
             loading={threadLoading}
             onBranchInNewChat={onBranchInNewChat}
             onCancel={haltRun}
@@ -718,7 +713,7 @@ const ChatViewContent = memo(function ChatViewContent({
               </ErrorState>
             </div>
           )}
-          {showChatBar && !showIntro && <ScrollToBottomButton />}
+          {showChatBar && <ScrollToBottomButton sessionId={activeSessionId} />}
           {/* Vibe hearts rise from the composer only when no pet is out (else
               they play on the pet). Fired by the core `reaction` event. */}
           {!petPresent && (
@@ -755,7 +750,6 @@ const ChatViewContent = memo(function ChatViewContent({
               disabled={!gatewayOpen}
               focusKey={activeSessionId}
               gateway={gateway}
-              homeLayout={showIntro}
               maxRecordingSeconds={maxVoiceRecordingSeconds}
               onAddContextRef={onAddContextRef}
               onAddUrl={onAddUrl}

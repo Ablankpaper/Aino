@@ -1,12 +1,18 @@
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { I18nProvider } from '@/i18n'
-import { $notifications } from '@/store/notifications'
-import { $connection } from '@/store/session'
+import { onComposerAttachImagesRequest } from '@/app/chat/composer/focus'
+import { $connection, $selectedStoredSessionId } from '@/store/session'
 
 import { forgetPreviewConsole, previewConsoleState } from './preview-console-store'
 import { PreviewPane } from './preview-pane'
+
+// The consent dialog has its own test file and needs a QueryClientProvider;
+// these tests exercise the pane's console/watch/webview wiring, not the
+// prompt, so isolate it the way the pane's other collaborators are.
+vi.mock('./real-profile-consent-dialog', () => ({
+  RealProfileConsentDialog: () => null
+}))
 
 function stubPdfObjectUrls() {
   const NativeUrl = URL
@@ -31,13 +37,12 @@ describe('PreviewPane console state', () => {
       window.setTimeout(() => callback(Date.now()), 0)
     )
     vi.stubGlobal('cancelAnimationFrame', (id: number) => window.clearTimeout(id))
-    $notifications.set([])
   })
 
   afterEach(() => {
     cleanup()
     $connection.set(null)
-    $notifications.set([])
+    $selectedStoredSessionId.set(null)
     vi.unstubAllGlobals()
   })
 
@@ -193,6 +198,80 @@ describe('PreviewPane console state', () => {
     // forward, so the load lands a microtask later.
     await waitFor(() => expect(loadURL).toHaveBeenCalledWith('http://localhost:4000/app'))
     expect(webview.getAttribute('src')).toBe('http://localhost:5174')
+  })
+
+  it('continues comment numbering in one conversation and resets it when the conversation changes', async () => {
+    $selectedStoredSessionId.set('session-one')
+    const selectedCrop = 'data:image/png;base64,c2VsZWN0ZWQ='
+    const scrolledCrop = 'data:image/png;base64,ZGlmZmVyZW50LXZpc2libGU='
+    const savedRect = { height: 20, width: 40, x: 10, y: 20 }
+
+    const attached = new Promise<Blob>(resolve => {
+      const unsubscribe = onComposerAttachImagesRequest(({ blobs }) => {
+        unsubscribe()
+        resolve(blobs[0]!)
+      })
+    })
+
+    const previousDesktop = window.hermesDesktop
+    let captureCount = 0
+
+    window.hermesDesktop = {
+      ...previousDesktop,
+      capturePreview: vi.fn(async () => {
+        captureCount += 1
+
+        return captureCount === 1 ? selectedCrop : scrolledCrop
+      })
+    }
+
+    let rendered!: ReturnType<typeof render>
+    await act(async () => {
+      rendered = render(
+        <PreviewPane
+          target={{ kind: 'url', label: 'Preview', source: 'http://localhost:5174', url: 'http://localhost:5174' }}
+        />
+      )
+    })
+
+    const webview = rendered.container.querySelector('webview') as HTMLElement & Record<string, unknown>
+    let waitCount = 0
+    let releaseNextPick: ((event: unknown) => void) | undefined
+    Object.assign(webview, {
+      executeJavaScript: vi.fn(async (code: string) => {
+        if (code.includes('.wait()')) {
+          waitCount += 1
+
+          if (waitCount === 1) {
+            return { rect: savedRect, type: 'pick-area' }
+          }
+
+          return new Promise(resolve => {
+            releaseNextPick = resolve
+          })
+        }
+
+        return undefined
+      }),
+      getWebContentsId: () => 7
+    })
+
+    fireEvent.click(rendered.getByRole('button', { name: 'Annotate' }))
+    fireEvent.click(await rendered.findByRole('button', { name: 'Save' }))
+    fireEvent.click(await rendered.findByRole('button', { name: 'Add 1 comment' }))
+
+    expect(await (await attached).text()).toBe('selected')
+    await act(async () => {
+      releaseNextPick?.({ rect: { ...savedRect, y: 80 }, type: 'pick-area' })
+    })
+    expect(await rendered.findByRole('form', { name: 'Comment 2' })).toBeTruthy()
+
+    act(() => {
+      $selectedStoredSessionId.set('session-two')
+    })
+    await waitFor(() => expect(rendered.queryByRole('form', { name: 'Comment 2' })).toBeNull())
+    expect(rendered.queryByRole('button', { name: 'Add 1 comment' })).toBeNull()
+    window.hermesDesktop = previousDesktop
   })
 
   // The webview always runs on THIS machine, so a remote agent's localhost is
@@ -377,40 +456,6 @@ describe('PreviewPane console state', () => {
     expect(fireEvent.click(sourceLink!)).toBe(false)
   })
 
-  it('localizes remote HTML browser bridge errors in Simplified Chinese', async () => {
-    const dataUrl = `data:text/html;base64,${btoa('<h1>remote</h1>')}`
-    const target = {
-      dataUrl,
-      kind: 'file' as const,
-      label: 'report.html',
-      path: '/srv/report.html',
-      previewKind: 'html' as const,
-      source: '/srv/report.html',
-      url: 'file:///srv/report.html'
-    }
-
-    vi.stubGlobal('window', { ...window, hermesDesktop: {} })
-
-    let rendered!: ReturnType<typeof render>
-    await act(async () => {
-      rendered = render(
-        <I18nProvider configClient={null} initialLocale="zh">
-          <PreviewPane target={target} />
-        </I18nProvider>
-      )
-    })
-
-    const sourceLink = rendered.getByText('report.html')
-
-    await act(async () => {
-      fireEvent.click(sourceLink)
-    })
-
-    await waitFor(() => expect($notifications.get()[0]?.message).toBe('桌面桥接不可用'), {
-      container: rendered.container
-    })
-  })
-
   it('renders PDF targets in an embedded viewer', async () => {
     const dataUrl = 'data:application/pdf;base64,JVBERi0xLjQ='
     const readFileDataUrl = vi.fn(async () => dataUrl)
@@ -543,42 +588,6 @@ describe('PreviewPane console state', () => {
       container: rendered.container
     })
     expect(rendered.container.querySelector('iframe')).toBeNull()
-    expect(createObjectURL).not.toHaveBeenCalled()
-  })
-
-  it('localizes fixed PDF validation errors in simplified Chinese', async () => {
-    const readFileDataUrl = vi.fn(async () => 'data:text/html;base64,JVBERi0xLjQ=')
-    const { createObjectURL } = stubPdfObjectUrls()
-    $connection.set({ mode: 'local' } as never)
-    vi.stubGlobal('window', {
-      ...window,
-      hermesDesktop: {
-        readFileDataUrl
-      }
-    })
-
-    let rendered!: ReturnType<typeof render>
-    await act(async () => {
-      rendered = render(
-        <I18nProvider configClient={null} initialLocale="zh">
-          <PreviewPane
-            target={{
-              kind: 'file',
-              label: 'spec.pdf',
-              path: '/tmp/spec.pdf',
-              previewKind: 'pdf',
-              source: '/tmp/spec.pdf',
-              url: 'file:///tmp/spec.pdf'
-            }}
-          />
-        </I18nProvider>
-      )
-    })
-
-    await waitFor(() => expect(rendered.container.textContent).toContain('PDF 数据地址类型无效。'), {
-      container: rendered.container
-    })
-    expect(rendered.container.textContent).not.toContain('Invalid PDF data URL type')
     expect(createObjectURL).not.toHaveBeenCalled()
   })
 

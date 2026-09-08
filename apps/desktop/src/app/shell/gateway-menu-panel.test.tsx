@@ -3,8 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   notifyError: vi.fn(),
-  reconnectGateway: vi.fn<() => Promise<void>>(),
-  stateLabel: vi.fn((state: string) => `localized:${state}`)
+  reconnectGateway: vi.fn<() => Promise<void>>()
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({
@@ -32,7 +31,6 @@ vi.mock('@/i18n', () => ({
           openSystem: 'Open system panel',
           recentActivity: 'Recent activity',
           reconnectGateway: 'Reconnect gateway',
-          state: mocks.stateLabel,
           viewAllLogs: 'View all logs'
         }
       }
@@ -62,17 +60,6 @@ const renderPanel = (gatewayState: string) =>
       onClose={vi.fn()}
       onOpenSystem={vi.fn()}
       statusSnapshot={null}
-    />
-  )
-
-const renderPanelWithPlatformState = (state: string) =>
-  render(
-    <GatewayMenuPanel
-      gatewayState="open"
-      inferenceStatus={null}
-      onClose={vi.fn()}
-      onOpenSystem={vi.fn()}
-      statusSnapshot={{ gateway_platforms: { telegram: { state, updated_at: '' } } } as never}
     />
   )
 
@@ -112,12 +99,5 @@ describe('GatewayMenuPanel reconnect action', () => {
     const reconnect = screen.getByRole('button', { name: 'Reconnect gateway' })
     await act(async () => fireEvent.click(reconnect))
     expect(mocks.reconnectGateway).toHaveBeenCalledOnce()
-  })
-
-  it('uses localized state copy for unknown gateway and platform states', () => {
-    renderPanelWithPlatformState('pending_restart')
-
-    expect(screen.getByText('localized:pending_restart')).not.toBeNull()
-    expect(mocks.stateLabel).toHaveBeenCalledWith('pending_restart')
   })
 })

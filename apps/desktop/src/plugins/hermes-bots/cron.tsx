@@ -91,7 +91,7 @@ function routineBot(job: RoutineJob | null | undefined): null | string {
 }
 
 function routineTitle(job: RoutineJob | null | undefined): string {
-  return (job?.name || '').replace(BOT_TAG_RE, '') || botsText().cron.untitledJob
+  return (job?.name || '').replace(BOT_TAG_RE, '') || 'Untitled job'
 }
 
 export function isLegacyDelegatedRoutine(job: RoutineJob | null | undefined): boolean {
@@ -257,11 +257,11 @@ function shellQuote(value: unknown): string {
 
 export function routineInputError(title: string, instruction: string): null | string {
   if (String(title).includes('\0')) {
-    return botsText().cron.jobNameNul
+    return 'Job name cannot contain NUL (U+0000).'
   }
 
   if (String(instruction).includes('\0')) {
-    return botsText().cron.jobInstructionNul
+    return 'Job instruction cannot contain NUL (U+0000).'
   }
 
   return null
@@ -331,6 +331,36 @@ function routineTimestamp(value: string | undefined): null | string {
   return Number.isFinite(ms) ? `${relativeTime(ms)} · ${new Date(ms).toLocaleString()}` : null
 }
 
+/** The scheduler's `last_status` literals, spelled out for the inspector. The
+ *  set is closed on the gateway side, so every literal is named here — an
+ *  unknown one is passed through verbatim rather than hidden. `delivery_failed`
+ *  means the agent run succeeded but the brief never reached its target; it
+ *  must read as a failure, not as a run result the user can trust. */
+export function routineLastResult(status: string | null | undefined): null | string {
+  const raw = String(status || '').trim()
+
+  if (!raw) {
+    return null
+  }
+
+  switch (raw) {
+    case 'ok':
+      return 'Succeeded'
+
+    case 'error':
+      return 'Failed'
+
+    case 'delivery_failed':
+      return 'Ran, but delivery failed'
+
+    case 'blocked_config':
+      return 'Blocked by configuration (not run)'
+
+    default:
+      return raw
+  }
+}
+
 /** The facts `cron.manage list` already sends with every job, as label/value
  *  rows. Pure so the detail contract is testable without a renderer, and so
  *  the dialog cannot invent a field the gateway never sent: an absent value
@@ -345,18 +375,18 @@ export function routineDetailRows(job: RoutineJob | null | undefined): Array<{ l
   // that narrowing into the map, so the rows are typed as filtered.
   return (
     [
-      [botsText().cron.detailStatus, paused ? botsText().cron.statusPaused : botsText().cron.statusActive],
-      [botsText().cron.detailSchedule, label],
+      ['Status', paused ? 'Paused' : 'Active'],
+      ['Schedule', label],
       // `scheduleLabel` humanizes "every 1440m" and cron expressions; keep the
       // raw string when it says something the label dropped.
-      [botsText().cron.detailScheduleRaw, raw && raw !== label ? raw : null],
-      [botsText().cron.detailRepeat, job?.repeat],
-      [botsText().cron.detailNextRun, paused ? null : routineTimestamp(job?.next_run_at)],
-      [botsText().cron.detailLastRun, routineTimestamp(job?.last_run_at)],
-      [botsText().cron.detailLastResult, job?.last_status],
-      [botsText().cron.detailDeliversTo, job?.deliver],
-      [botsText().cron.detailModel, job?.model],
-      [botsText().cron.detailWorkingDirectory, job?.workdir]
+      ['Schedule (raw)', raw && raw !== label ? raw : null],
+      ['Repeat', job?.repeat],
+      ['Next run', paused ? null : routineTimestamp(job?.next_run_at)],
+      ['Last run', routineTimestamp(job?.last_run_at)],
+      ['Last result', routineLastResult(job?.last_status)],
+      ['Delivers to', job?.deliver],
+      ['Model', job?.model],
+      ['Working directory', job?.workdir]
     ] as Array<[string, string]>
   )
     .filter(([, value]) => typeof value === 'string' && value.trim())
@@ -404,7 +434,7 @@ export function RoutineDetailDialog({ job, onClose, open }: RoutineDetailDialogP
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="truncate">{routineTitle(job)}</DialogTitle>
-          <DialogDescription>{b.cron.jobDescription}</DialogDescription>
+          <DialogDescription>What this job runs, and when it runs next.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3.5">
           {issue ? (
@@ -449,7 +479,6 @@ interface RoutineRowProps {
 
 export function RoutineRow({ job, onOpen, owner }: RoutineRowProps) {
   const { t } = useI18n()
-  const b = useBots()
   const c = t.cron
   const profile = typeof owner === 'string' ? owner : owner?.name
   const [busy, setBusy] = useState(false)
@@ -552,7 +581,7 @@ export function RoutineRow({ job, onOpen, owner }: RoutineRowProps) {
       </div>
       {legacyUnsafe ? (
         <div className="rounded-md border border-(--ui-stroke-secondary) px-2 py-1.5 text-[0.65rem] leading-4 text-(--ui-accent)">
-          {b.cron.pausedSecurity}
+          Paused for security: delete and recreate this legacy job before running it again.
         </div>
       ) : null}
     </div>
@@ -660,7 +689,7 @@ function composeSchedule(state: ScheduleState): string {
 function scheduleSummary(state: ScheduleState): string {
   const c = botsText().cron
   const t = TIMES.find(x => x.id === state.time)
-  const tl = t ? t.label : c.defaultTime
+  const tl = t ? t.label : '9:00 AM'
   const unitWord = (u: string) => (u === 'm' ? c.unitMinutes : u === 'd' ? c.unitDays : c.unitHours)
 
   const cap =
@@ -777,15 +806,15 @@ function SchedulePicker({ state, setState }: SchedulePickerProps) {
             [
               {
                 id: 'm',
-                label: b.cron.onceMinutes
+                label: 'minutes from now'
               },
               {
                 id: 'h',
-                label: b.cron.onceHours
+                label: 'hours from now'
               },
               {
                 id: 'd',
-                label: b.cron.onceDays
+                label: 'days from now'
               }
             ]
           )}
@@ -837,15 +866,15 @@ function SchedulePicker({ state, setState }: SchedulePickerProps) {
             [
               {
                 id: 'm',
-                label: b.cron.unitMinutes
+                label: 'minutes'
               },
               {
                 id: 'h',
-                label: b.cron.unitHours
+                label: 'hours'
               },
               {
                 id: 'd',
-                label: b.cron.unitDays
+                label: 'days'
               }
             ]
           )}
@@ -859,13 +888,13 @@ function SchedulePicker({ state, setState }: SchedulePickerProps) {
               raw: event.target.value
             })
           }
-          placeholder={b.cron.rawPlaceholder}
+          placeholder="every 1d · every 2h · 0 9 * * * (cron)"
           value={state.raw}
         />
       ) : null}
       {state.freq !== 'once' && state.freq !== 'advanced' ? (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-(--ui-text-tertiary)">{b.cron.stopAfter}</span>
+          <span className="text-xs text-(--ui-text-tertiary)">Stop after</span>
           <Input
             className="h-7 w-16 text-xs"
             onChange={event =>
@@ -876,7 +905,7 @@ function SchedulePicker({ state, setState }: SchedulePickerProps) {
             placeholder="∞"
             value={state.repeatN}
           />
-          <span className="text-xs text-(--ui-text-tertiary)">{b.cron.runsForever}</span>
+          <span className="text-xs text-(--ui-text-tertiary)">runs (blank = forever)</span>
         </div>
       ) : null}
       <div className="text-[0.65rem] text-(--ui-text-quaternary)">{`${scheduleSummary(state)} \u00b7 ${composeSchedule(state) || '\u2014'}`}</div>

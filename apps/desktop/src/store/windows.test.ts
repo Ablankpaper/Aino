@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { setRuntimeI18nLocale } from '@/i18n'
-
+import { $activeGatewayProfile } from './profile'
+import { $sessions } from './session'
 import {
   canOpenBrowserWindow,
   canOpenNewWindow,
@@ -38,7 +38,6 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  setRuntimeI18nLocale('en')
   if (initialHermesDesktop) {
     desktopWindow.hermesDesktop = initialHermesDesktop
   } else {
@@ -73,15 +72,6 @@ describe('isPeerInstanceWindow', () => {
 })
 
 describe('openSessionInNewWindow', () => {
-  it('uses localized failure copy for Simplified Chinese users', async () => {
-    setRuntimeI18nLocale('zh')
-    installBridge(vi.fn().mockRejectedValue(new Error('boom')))
-
-    await openSessionInNewWindow('s1')
-
-    expect(notifyError).toHaveBeenCalledWith(expect.any(Error), '无法在新窗口打开会话')
-  })
-
   it('no-ops without a session id', async () => {
     const open = vi.fn().mockResolvedValue({ ok: true })
     installBridge(open)
@@ -100,23 +90,17 @@ describe('openSessionInNewWindow', () => {
     expect(notifyError).not.toHaveBeenCalled()
   })
 
-  it('invokes the bridge with the session id', async () => {
+  it('carries the owning profile: stamped row wins, an unstamped child inherits the viewed profile (#82768)', async () => {
     const open = vi.fn().mockResolvedValue({ ok: true })
     installBridge(open)
+    $activeGatewayProfile.set('work')
+    $sessions.set([{ id: 's1', profile: 'research' } as never])
 
     await openSessionInNewWindow('s1')
+    await openSessionInNewWindow('child-not-listed-yet', { watch: true })
 
-    expect(open).toHaveBeenCalledWith('s1', undefined)
-    expect(notifyError).not.toHaveBeenCalled()
-  })
-
-  it('forwards the watch flag for spectator (subagent) windows', async () => {
-    const open = vi.fn().mockResolvedValue({ ok: true })
-    installBridge(open)
-
-    await openSessionInNewWindow('s1', { watch: true })
-
-    expect(open).toHaveBeenCalledWith('s1', { watch: true })
+    expect(open).toHaveBeenCalledWith('s1', { profile: 'research' })
+    expect(open).toHaveBeenCalledWith('child-not-listed-yet', { profile: 'work', watch: true })
     expect(notifyError).not.toHaveBeenCalled()
   })
 
@@ -126,18 +110,6 @@ describe('openSessionInNewWindow', () => {
     await openSessionInNewWindow('s1')
 
     expect(notifyError).toHaveBeenCalledTimes(1)
-  })
-
-  it('localizes an ok:false result with no error detail for Simplified Chinese users', async () => {
-    setRuntimeI18nLocale('zh')
-    installBridge(vi.fn().mockResolvedValue({ ok: false }))
-
-    await openSessionInNewWindow('s1')
-
-    expect(notifyError).toHaveBeenCalledWith(
-      expect.objectContaining({ message: '发生错误' }),
-      '无法在新窗口打开会话'
-    )
   })
 
   it('notifies when the bridge throws', async () => {

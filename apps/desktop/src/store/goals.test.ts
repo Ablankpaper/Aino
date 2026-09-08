@@ -1,14 +1,16 @@
+import { JsonRpcGatewayError } from '@hermes/shared'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { setRuntimeI18nLocale } from '@/i18n'
-
-import { $goalsBySession, applyGoalStatusText, clearSessionGoal } from './goals'
+import { $gateway } from './gateway'
+import { $goalsBySession, applyGoalStatusText, clearSessionGoal, refreshSessionGoal } from './goals'
+import { resetBackgroundPollingGuard } from './runtime-gone'
 
 describe('goal store', () => {
   afterEach(() => {
     vi.useRealTimers()
-    setRuntimeI18nLocale('en')
     $goalsBySession.set({})
+    $gateway.set(null as never)
+    resetBackgroundPollingGuard()
   })
 
   it('stores active goals from /goal output', () => {
@@ -36,14 +38,6 @@ describe('goal store', () => {
       status: 'paused',
       title: 'ship the feature'
     })
-  })
-
-  it('localizes the fallback title for a goal without a stored title', () => {
-    setRuntimeI18nLocale('zh')
-
-    applyGoalStatusText('s1', '↻ Continuing toward goal (1/20): next step is tests')
-
-    expect($goalsBySession.get().s1?.title).toBe('持续目标')
   })
 
   it('lingers done goals before clearing them', () => {
@@ -117,5 +111,52 @@ describe('goal store', () => {
     applyGoalStatusText('s2', '⏸ Goal (paused, 20/20 turns): other work', { hydrate: true })
 
     expect($goalsBySession.get().s2).toMatchObject({ status: 'paused', title: 'other work' })
+  })
+
+  it('does not retry goal hydration for a runtime rejected as session-not-found', async () => {
+    const request = vi.fn(async () => {
+      throw new JsonRpcGatewayError('session not found', { code: 4001 })
+    })
+
+    $gateway.set({ request } as never)
+
+    await refreshSessionGoal('dead-runtime')
+    await refreshSessionGoal('dead-runtime')
+
+    expect(request).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('refreshSessionGoal dead-session guard', () => {
+  afterEach(() => {
+    $gateway.set(null as never)
+    resetBackgroundPollingGuard()
+  })
+
+  it('stops re-asking a runtime the gateway no longer holds', async () => {
+    const request = vi.fn(async () => {
+      throw new Error('session not found')
+    })
+
+    $gateway.set({ request } as never)
+
+    await refreshSessionGoal('dead-1')
+    await refreshSessionGoal('dead-1')
+    await refreshSessionGoal('dead-1')
+
+    expect(request).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not latch on a transient failure', async () => {
+    const request = vi.fn(async () => {
+      throw new Error('request timed out after 30s: slash.exec')
+    })
+
+    $gateway.set({ request } as never)
+
+    await refreshSessionGoal('s1')
+    await refreshSessionGoal('s1')
+
+    expect(request).toHaveBeenCalledTimes(2)
   })
 })

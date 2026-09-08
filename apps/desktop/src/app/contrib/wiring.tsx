@@ -4,7 +4,7 @@
  * gateway boot -> sessions list -> click-to-resume -> live transcript ->
  * composer send, plus the real terminal.
  *
- * The wired nodes (sidebar / chat routes / settings / terminal) are exposed through
+ * The wired nodes (sidebar / chat routes / terminal) are exposed through
  * context; registered panes render `<WiredPane part="…"/>` to consume them.
  */
 
@@ -35,7 +35,6 @@ import { SendDiagnosticsHost } from '@/components/send-diagnostics-dialog'
 import { TipHost } from '@/components/tips'
 import { emitGatewayEvent } from '@/contrib/events'
 import { getLatestSessionMessages } from '@/hermes'
-import { translateNow } from '@/i18n'
 import { type ChatMessage, chatMessageText, preserveLocalAssistantErrors, toChatMessages } from '@/lib/chat-messages'
 import { isMessagingSource } from '@/lib/session-source'
 import { latestSessionTodos } from '@/lib/todos'
@@ -59,7 +58,7 @@ import {
   normalizeProfileKey,
   refreshActiveProfile
 } from '@/store/profile'
-import { $startWorkSessionRequest, followActiveSessionCwd } from '@/store/projects'
+import { $newProjectSessionRequest, $startWorkSessionRequest, followActiveSessionCwd } from '@/store/projects'
 import {
   $activeSessionId,
   $connection,
@@ -94,13 +93,13 @@ import { CommandPalette } from '../command-palette'
 import { triggerAndRefreshCronJobs } from '../cron/cron-actions'
 import { useGatewayBoot } from '../gateway/hooks/use-gateway-boot'
 import { useGatewayRequest } from '../gateway/hooks/use-gateway-request'
+import { useHermesConfigRecord } from '../hooks/use-config-record'
 import { useKeybinds } from '../hooks/use-keybinds'
 import { useHudHandoff } from '../hud/handoff'
 import { ModelPickerOverlay } from '../model-picker-overlay'
 import { ModelVisibilityOverlay } from '../model-visibility-overlay'
 import { mainChatOccupied, openSession } from '../open-session'
 import { PetGenerateOverlay } from '../pet-generate/pet-generate-overlay'
-import { ProfileCreateDialogHost } from '../profiles/create-profile-dialog-host'
 import { FileActionDialogs } from '../right-sidebar/file-actions'
 import { RemoteFolderPicker } from '../right-sidebar/files/remote-picker'
 import { resetProjectTreeState } from '../right-sidebar/files/use-project-tree'
@@ -114,6 +113,7 @@ import {
   SETTINGS_ROUTE,
   syncWorkspaceRoute
 } from '../routes'
+import { SessionImportView } from '../session-import'
 import { SessionPickerOverlay } from '../session-picker-overlay'
 import { SessionSwitcher } from '../session-switcher'
 import { useBackgroundQueueDrain } from '../session/hooks/use-background-queue-drain'
@@ -158,8 +158,8 @@ import { ChatRoutesSurface, SidebarSurface, StatusbarSurface, TerminalSurface } 
 import type { WiringActions, WiringApi } from './types'
 
 // Overlay views the controller mounts over the shell — lazy, load on demand.
-// The workspace-route full-page views (including the Settings workspace) are
-// exposed through the wiring context and placed by the shell.
+// The workspace-route full-page views (skills/messaging/artifacts) are the
+// ChatRoutesSurface's and live in ./surfaces.
 const AgentsView = lazy(async () => ({ default: (await import('../agents')).AgentsView }))
 const CommandCenterView = lazy(async () => ({ default: (await import('../command-center')).CommandCenterView }))
 const CronView = lazy(async () => ({ default: (await import('../cron')).CronView }))
@@ -168,7 +168,7 @@ const ProfilesView = lazy(async () => ({ default: (await import('../profiles')).
 const SettingsView = lazy(async () => ({ default: (await import('../settings')).SettingsView }))
 const StarmapView = lazy(async () => ({ default: (await import('../starmap')).StarmapView }))
 
-// Surfaces (the five wired panes), the render context + WiredPane, and the
+// Surfaces (the four wired panes), the render context + WiredPane, and the
 // WiringActions/WiringApi contracts all live in sibling modules — this file is
 // the controller that assembles them.
 export { WiredPane } from './context'
@@ -270,6 +270,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     openStarmap,
     profilesOpen,
     resetOverlayReturnRoute,
+    settingsOpen,
     starmapOpen,
     toggleCommandCenter,
     webhooksOpen
@@ -342,26 +343,13 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   const { refreshHermesConfig, sttEnabled, voiceMaxRecordingSeconds } = useHermesConfig({ activeSessionIdRef })
 
   const { applySavedMainModel, refreshCurrentModel, selectModel } = useModelControls({
+    cacheOwnerConnectionId: activeConnectionId || undefined,
+    cacheProfile: activeGatewayProfile,
     queryClient,
     requestGateway
   })
 
   const openProviderSettings = useCallback(() => navigate(`${SETTINGS_ROUTE}?tab=providers`), [navigate])
-
-  const handleConfigSaved = useCallback(() => {
-    void refreshHermesConfig()
-    void refreshCurrentModel()
-    void queryClient.invalidateQueries({ queryKey: ['model-options'] })
-  }, [queryClient, refreshCurrentModel, refreshHermesConfig])
-
-  const handleMainModelChanged = useCallback(
-    (provider: string, model: string) => {
-      applySavedMainModel(provider, model)
-      void refreshCurrentModel()
-      void queryClient.invalidateQueries({ queryKey: ['model-options'] })
-    },
-    [applySavedMainModel, queryClient, refreshCurrentModel]
-  )
 
   // Palette "Keyboard shortcuts" entry dispatches a custom event (contributions
   // don't have router access); listen and navigate to the settings keybinds tab.
@@ -613,6 +601,31 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     }
   }, [startSessionInWorkspace, startWorkSessionRequest])
 
+  // "New project" DRAG completion: the dialog created a project that was
+  // dropped onto a chat zone (tab-strip slot / pane edge / pane center). Open
+  // its fresh session draft exactly there — the same `openNewSessionTile`
+  // create path the new-session drags use — so the project starts, and stays,
+  // where it was dropped. Consume-once: drop the request after handling.
+  const newProjectSessionRequest = useStore($newProjectSessionRequest)
+
+  useEffect(() => {
+    if (!newProjectSessionRequest) {
+      return
+    }
+
+    const { path, placement } = newProjectSessionRequest
+
+    $newProjectSessionRequest.set(null)
+    void openNewSessionTile(placement.dir, {
+      anchor: placement.anchor,
+      before: placement.before,
+      cwd: path,
+      // Same draft-tab contract as onNewSessionSplit: a center/strip drop is
+      // an unlisted draft tab until its first turn; an edge split lists.
+      listed: placement.dir === 'center' ? false : undefined
+    })
+  }, [newProjectSessionRequest, openNewSessionTile])
+
   const composer = useComposerActions({ activeSessionId, currentCwd, requestGateway })
 
   const branchInNewChat = useCallback(
@@ -782,7 +795,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
           } else {
             void ensureGatewayProfile(normalizeProfileKey(targetProfile)).catch((error: unknown) => {
               // #81094: the voice-path switch must surface its failure too.
-              notifyError(error, translateNow('profiles.switchProfileFailed', normalizeProfileKey(targetProfile)))
+              notifyError(error, `Failed to switch to profile "${normalizeProfileKey(targetProfile)}"`)
             })
           }
         } else if (payload?.start_new_session !== false) {
@@ -856,6 +869,15 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   // remembered-session restore, and cross-window session-list sync.
   const previewTarget = useStore($previewTarget)
 
+  // display.resume_last_session gates the cold-start restore. `undefined` while
+  // the record is still loading holds the restore latch open; a failed fetch
+  // falls back to the historical behavior (resume).
+  const configRecord = useHermesConfigRecord()
+
+  const resumeLastSession = configRecord.isPending
+    ? undefined
+    : (configRecord.data?.display as { resume_last_session?: unknown } | undefined)?.resume_last_session !== false
+
   useDesktopIntegrations({
     activeProfile: normalizeProfileKey(activeGatewayProfile),
     chatOpen,
@@ -864,6 +886,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     navigate,
     profileReady: boot.phase === 'renderer.ready',
     refreshSessions,
+    resumeLastSession,
     resumeExhaustedSessionId,
     routedSessionId,
     runtimeIdByStoredSessionId: runtimeIdByStoredSessionIdRef,
@@ -995,7 +1018,15 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     },
     onNavigate: selectSidebarItem,
     onNewSessionInWorkspace: path => startSessionInWorkspace(path, { openTab: true }),
-    onNewSessionSplit: dir => void openNewSessionTile(dir),
+    onNewSessionSplit: (dir, opts) =>
+      void openNewSessionTile(dir, {
+        ...opts,
+        // A CENTER drop stacks a fresh TAB: keep the existing draft-tab
+        // contract and leave it out of the sidebar until its first turn
+        // persists (same as the tab-strip "+" and the occupied-project "+").
+        // An EDGE drop SPLITS a visible pane — list it like every other split.
+        listed: dir === 'center' ? false : undefined
+      }),
     onPasteClipboardImage: opts => composer.pasteClipboardImage(opts),
     onPickFiles: () => void composer.pickContextPaths('file'),
     onPickFolders: () => void composer.pickContextPaths('folder'),
@@ -1065,8 +1096,15 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   const terminalNode = useMemo(() => <TerminalSurface />, [])
 
   const statusbarNode = useMemo(
-    () => <StatusbarSurface actions={actions} agentsOpen={agentsOpen} chatOpen={chatOpen} />,
-    [actions, agentsOpen, chatOpen]
+    () => (
+      <StatusbarSurface
+        actions={actions}
+        agentsOpen={agentsOpen}
+        chatOpen={chatOpen}
+        commandCenterOpen={commandCenterOpen}
+      />
+    ),
+    [actions, agentsOpen, chatOpen, commandCenterOpen]
   )
 
   // The voice cap changes only on config load; the gateway instance + all
@@ -1076,43 +1114,14 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     [actions, voiceMaxRecordingSeconds]
   )
 
-  // Settings is a route-owned page, not a pane in the tiling tree. Keep its
-  // node separate so the shell can show it full-window while the chat/terminal
-  // tree stays mounted (and therefore preserves scroll, PTYs, and tab state).
-  const settingsNode = useMemo(
-    () => (
-      <Suspense fallback={null}>
-        <SettingsView
-          gateway={gateway}
-          onClose={closeOverlayToPreviousRoute}
-          onConfigSaved={handleConfigSaved}
-          onMainModelChanged={handleMainModelChanged}
-          onOpenCommandCenter={toggleCommandCenter}
-          onOpenCommandCenterSection={openCommandCenterSection}
-          requestGateway={requestGateway}
-        />
-      </Suspense>
-    ),
-    [
-      closeOverlayToPreviousRoute,
-      gateway,
-      handleConfigSaved,
-      handleMainModelChanged,
-      openCommandCenterSection,
-      requestGateway,
-      toggleCommandCenter
-    ]
-  )
-
   const api = useMemo<WiringApi>(
     () => ({
       chatRoutes: chatRoutesNode,
       sidebar: sidebarNode,
-      settings: settingsNode,
       statusbar: statusbarNode,
       terminal: terminalNode
     }),
-    [chatRoutesNode, settingsNode, sidebarNode, statusbarNode, terminalNode]
+    [chatRoutesNode, sidebarNode, statusbarNode, terminalNode]
   )
 
   // The REAL titlebar tool clusters (sidebar/flip toggles, haptics, keybinds,
@@ -1193,11 +1202,18 @@ export function ContribWiring({ children }: { children: ReactNode }) {
           requestGateway={requestGateway}
         />
       )}
-      <ModelPickerOverlay gateway={gateway || undefined} onSelect={selectModel} profile={activeGatewayProfile} />
+      <ModelPickerOverlay
+        gateway={gateway || undefined}
+        onSelect={selectModel}
+        ownerConnectionId={activeConnectionId || undefined}
+        profile={activeGatewayProfile}
+        requestGateway={requestGateway}
+      />
       <SessionPickerOverlay onResume={sessionId => openSession(sessionId, navigate)} />
       <ModelVisibilityOverlay
         gateway={gateway || undefined}
         onOpenProviders={openProviderSettings}
+        ownerConnectionId={activeConnectionId || undefined}
         profile={activeGatewayProfile}
       />
       <UpdatesOverlay />
@@ -1206,12 +1222,42 @@ export function ContribWiring({ children }: { children: ReactNode }) {
       <CommandPalette />
       <PluginInstallModal />
       <PetGenerateOverlay />
-      {!isAuxiliaryWindow() && <ProfileCreateDialogHost />}
       <SessionSwitcher />
       <FileActionDialogs />
       <McpInstallDeepLinkDialog />
       <RemoteFolderPicker />
       <FindBar />
+
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsView
+            gateway={gateway}
+            onClose={closeOverlayToPreviousRoute}
+            onConfigSaved={() => {
+              void refreshHermesConfig()
+              void refreshCurrentModel()
+              void queryClient.invalidateQueries({ queryKey: ['model-options'] })
+            }}
+            onMainModelChanged={(provider, model) => {
+              applySavedMainModel(provider, model)
+              void refreshCurrentModel()
+              void queryClient.invalidateQueries({ queryKey: ['model-options'] })
+            }}
+          />
+        </Suspense>
+      )}
+
+      {currentView === 'session-import' && (
+        <SessionImportView
+          key={`${activeConnectionId}:${activeGatewayProfile}`}
+          onClose={closeOverlayToPreviousRoute}
+          onOpenSession={sessionId => {
+            closeOverlayToPreviousRoute()
+            openSession(sessionId, navigate, 'stack')
+          }}
+          owner={{ connectionId: activeConnectionId || 'local', profile: activeGatewayProfile }}
+        />
+      )}
 
       {commandCenterOpen && (
         <Suspense fallback={null}>

@@ -18,7 +18,6 @@ import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { setSessionYolo } from '@/lib/yolo-session'
 import { openCommandPalettePage } from '@/store/command-palette'
 import { setComposerDraft } from '@/store/composer'
-import { enqueueQueuedPrompt } from '@/store/composer-queue'
 import { applyGoalStatusText } from '@/store/goals'
 import { dismissNotification, notify, notifyError } from '@/store/notifications'
 import { setPetScale } from '@/store/pet-gallery'
@@ -34,7 +33,6 @@ import {
   $connection,
   $sessions,
   $yoloActive,
-  resolveComposerSessionKey,
   setActiveSessionId,
   setCurrentUsage,
   setModelPickerOpen,
@@ -61,11 +59,11 @@ import type {
   SlashExecResponse
 } from '../../../types'
 
+import { queueKickoffIfSessionBusy } from './queue-if-busy'
 import { resolveTargetSessionId } from './resolve-target-session'
 import {
   type GatewayRequest,
   isSessionIdCandidate,
-  isTargetSessionBusy,
   renderCommandsCatalog,
   renderRpcResult,
   slashStatusText,
@@ -74,45 +72,46 @@ import {
 } from './utils'
 
 // Manual compression is LLM-bound and routinely outlives the desktop's 30s
-// default WS request timeout on large sessions — give it the TUI client's
-// 120s RPC budget (HERMES_TUI_RPC_TIMEOUT_MS default) instead.
-const SESSION_COMPRESS_TIMEOUT_MS = 120_000
+// default WS request timeout on large sessions. The gateway blocks its own
+// compute-host wait for up to compression.context_total_ceiling_seconds + 30s
+// (capped at 630s, tui_gateway/server.py _COMPUTE_HOST_COMPRESS_WAIT_CAP_SECS)
+// and then answers `status: 'pending'` rather than an error, so this budget
+// must sit above that cap or the desktop reports a false timeout while the
+// host is still compressing (#97948).
+export const SESSION_COMPRESS_TIMEOUT_MS = 660_000
 const WAKE_START_TIMEOUT_MS = 180_000
 
-const wakeDeviceLabel = (
-  device: WakeInputDeviceStatus | undefined,
-  copy: Translations['desktop']['wakeStatus']
-): string => {
+const wakeDeviceLabel = (device?: WakeInputDeviceStatus): string => {
   if (!device) {
-    return copy.systemDefault
+    return 'system default'
   }
 
   const selector = device.selector
-  const name = device.name?.trim() || (selector == null ? copy.systemDefault : String(selector))
+  const name = device.name?.trim() || (selector == null ? 'system default' : String(selector))
 
   return device.hostapi?.trim() ? `${name} (${device.hostapi.trim()})` : name
 }
 
-const renderWakeStatus = (status: WakeStatusResponse, copy: Translations['desktop']['wakeStatus']): string => {
+const renderWakeStatus = (status: WakeStatusResponse): string => {
   const lines = [
-    copy.title,
-    copy.state(Boolean(status.listening)),
-    copy.phrase(status.phrase?.trim() || copy.defaultPhrase),
-    copy.provider(status.provider?.trim() || copy.unknown),
-    copy.surface(status.owner_surface?.trim() || status.configured_surface?.trim() || copy.auto),
-    copy.input(wakeDeviceLabel(status.input_device, copy))
+    'Wake Word Status',
+    `State: ${status.listening ? 'LISTENING' : 'OFF'}`,
+    `Phrase: "${status.phrase?.trim() || 'hey hermes'}"`,
+    `Provider: ${status.provider?.trim() || 'unknown'}`,
+    `Surface: ${status.owner_surface?.trim() || status.configured_surface?.trim() || 'auto'}`,
+    `Input: ${wakeDeviceLabel(status.input_device)}`
   ]
 
   if (status.audio_silent) {
-    lines.push(copy.audioSilent)
+    lines.push('Audio: silent')
   }
 
   if (status.input_device?.error?.trim()) {
-    lines.push(copy.inputError(status.input_device.error.trim()))
+    lines.push(`Input error: ${status.input_device.error.trim()}`)
   }
 
   if (status.hint?.trim()) {
-    lines.push(copy.hint(status.hint.trim()))
+    lines.push(`Hint: ${status.hint.trim()}`)
   }
 
   return lines.join('\n')
@@ -138,7 +137,6 @@ interface SlashCommandDeps {
   branchCurrentSession: () => Promise<boolean>
   busyRef: MutableRefObject<boolean>
   copy: Translations['desktop']
-  commandDescriptions: Record<string, string>
   createBackendSessionForSend: (preview?: string | null) => Promise<string | null>
   getRoutedStoredSessionId: () => null | string
   getRuntimeIdForStoredSession: (storedSessionId: string) => null | string
@@ -168,7 +166,6 @@ export function useSlashCommand(deps: SlashCommandDeps) {
     appendSessionTextMessage,
     branchCurrentSession,
     busyRef,
-    commandDescriptions,
     copy,
     createBackendSessionForSend,
     getRoutedStoredSessionId,
@@ -265,9 +262,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
         const { render: renderSlashOutput, sessionId, storedSessionId } = resolved
 
         if (!isDesktopSlashCommand(name)) {
-          renderSlashOutput(
-            desktopSlashUnavailableMessage(name, copy.slashUnavailable) || copy.slashUnavailable.fallback(`/${name}`)
-          )
+          renderSlashOutput(desktopSlashUnavailableMessage(name) || `/${name} is not available in the desktop app.`)
 
           return
         }
@@ -289,7 +284,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
               applyGoalStatusText(sessionId, dispatch.output)
             }
 
-            renderSlashOutput(dispatch.output ?? copy.slashEmptyOutput)
+            renderSlashOutput(dispatch.output ?? '(no output)')
 
             return
           }
@@ -331,7 +326,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
           if (!message) {
             renderSlashOutput(
-              dispatch.type === 'skill' ? copy.slashMissingMessage(name) : copy.slashEmptyMessage(name)
+              `/${name}: ${dispatch.type === 'skill' ? 'skill payload missing message' : 'empty message'}`
             )
 
             return
@@ -348,25 +343,25 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           // view's — see isTargetSessionBusy. `busyRef` mirrors whatever chat
           // is on screen, while this command runs against the session
           // resolveTargetSessionId picked, routinely a different one.
-          if (isTargetSessionBusy($sessionStates.get(), sessionId, busyRef.current)) {
-            // The backend already executed the command — for `/goal <text>`
-            // the goal is set and `message` is its kickoff prompt. Dropping
-            // it here loses the kickoff silently (the goal exists but the
-            // agent never hears about it, #63352). Queue it on the composer
-            // queue instead: it fires when the running turn settles, and the
-            // queue panel above the composer shows it in the meantime.
-            //
-            // Park it on the same stored session the output writer is bound to
-            // rather than re-reading the globals here — a session switch between
-            // dispatch and this branch would otherwise queue the kickoff on
-            // whichever chat is now in front.
-            const queueKey = resolveComposerSessionKey(storedSessionId, $sessions.get()) || storedSessionId || sessionId
+          //
+          // Parked on the same stored session the output writer is bound to
+          // rather than re-reading the globals — a session switch between
+          // dispatch and this branch would otherwise queue the kickoff on
+          // whichever chat is now in front (#63352).
+          const queued = queueKickoffIfSessionBusy({
+            displayText,
+            foregroundBusy: busyRef.current,
+            sessionId,
+            storedSessionId,
+            text: message
+          })
 
-            if (enqueueQueuedPrompt(queueKey, { attachments: [], text: message, displayText })) {
-              renderSlashOutput(copy.sessionBusyQueued)
-            } else {
-              renderSlashOutput(copy.sessionBusyInterrupt)
-            }
+          if (queued !== 'idle') {
+            renderSlashOutput(
+              queued === 'queued'
+                ? 'session busy — message queued to send when the current turn finishes'
+                : 'session busy — /interrupt the current turn before sending this command'
+            )
 
             return
           }
@@ -397,7 +392,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           }
 
           const output = result && typeof result === 'object' ? (result as SlashExecResponse) : null
-          const body = output?.output || copy.slashNoOutput(name)
+          const body = output?.output || `/${name}: no output`
 
           // `/goal status|pause|resume|clear` come back as plain exec output
           // ("⊙ Goal (active, 3/20 turns): …", "⏸ Goal paused: …", "✓ Goal
@@ -407,7 +402,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             applyGoalStatusText(sessionId, output.output)
           }
 
-          renderSlashOutput(output?.warning ? `${copy.warningLine(output.warning)}\n${body}` : body)
+          renderSlashOutput(output?.warning ? `warning: ${output.warning}\n${body}` : body)
 
           return
         } catch (error) {
@@ -423,7 +418,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           )
 
           if (!dispatch) {
-            renderSlashOutput(copy.errorLine(copy.slashInvalidResponse))
+            renderSlashOutput('error: invalid response: command.dispatch')
 
             return
           }
@@ -437,12 +432,12 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
           if (slashExecError && /not a quick\/plugin\/skill command/i.test(dispatchMessage)) {
             const original = slashExecError instanceof Error ? slashExecError.message : String(slashExecError)
-            renderSlashOutput(copy.errorLine(copy.slashCommandFailed(name, original)))
+            renderSlashOutput(`error: /${name} failed: ${original}`)
 
             return
           }
 
-          renderSlashOutput(copy.errorLine(dispatchMessage))
+          renderSlashOutput(`error: ${dispatchMessage}`)
         }
       }
 
@@ -478,7 +473,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const result = await requestGateway<unknown>(surface.rpc, params, surface.timeoutMs)
           const body = renderRpcResult(result, ctx.name)
 
-          renderSlashOutput(body || copy.slashNoOutput(ctx.name))
+          renderSlashOutput(body || `/${ctx.name}: no output`)
         } catch (err) {
           // TODO: remove this compatibility fallback once every supported
           // managed runtime exposes the dedicated RPC surface. Desktop and its
@@ -490,7 +485,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             return
           }
 
-          renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
+          renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
         }
       }
 
@@ -503,6 +498,99 @@ export function useSlashCommand(deps: SlashCommandDeps) {
         },
         branch: async () => {
           await branchCurrentSession()
+        },
+        // Desktop owns the active turn, while the historical slash worker
+        // only stops background terminal processes. Interrupt the exact chat
+        // first (the same backend path as the composer Stop button), then keep
+        // the existing process cleanup so /stop retains both meanings.
+        stop: async ctx => {
+          const resolved = await withSlashOutput(ctx)
+
+          if (!resolved) {
+            return
+          }
+
+          const { render: renderSlashOutput, sessionId: initialSessionId, storedSessionId } = resolved
+          const lines: string[] = []
+
+          try {
+            await withSessionNotFoundResume(
+              initialSessionId,
+              storedSessionId,
+              liveId => requestGateway('session.interrupt', { session_id: liveId }),
+              {
+                requestGateway,
+                onRecovered: recoveredId => {
+                  if (activeSessionIdRef.current === initialSessionId) {
+                    activeSessionIdRef.current = recoveredId
+                    setActiveSessionId(recoveredId)
+                  }
+                }
+              }
+            )
+            lines.push('Stopped the active turn.')
+          } catch (err) {
+            lines.push(`Could not stop the active turn: ${err instanceof Error ? err.message : String(err)}`)
+          }
+
+          try {
+            const result = await requestGateway<unknown>('process.stop', {})
+            const processMessage = renderRpcResult(result, ctx.name)
+
+            if (processMessage) {
+              lines.push(processMessage)
+            }
+          } catch (err) {
+            lines.push(`Could not stop background processes: ${err instanceof Error ? err.message : String(err)}`)
+          }
+
+          renderSlashOutput(lines.join('\n'))
+        },
+        // /btw uses prompt.btw (the TUI's path). It must NOT go through
+        // runExec: the slash worker prints the answer after process_command
+        // returns, past the stdout capture window (#99065). The RPC replies
+        // with a task id; the answer arrives later as btw.complete.
+        btw: async ctx => {
+          const question = ctx.arg.trim()
+
+          const resolved = await withSlashOutput(ctx)
+
+          if (!resolved) {
+            return
+          }
+
+          const { render: renderSlashOutput, sessionId } = resolved
+
+          if (!question) {
+            renderSlashOutput(
+              'Usage: /btw <question> — answered from a snapshot of this conversation without interrupting it.'
+            )
+
+            return
+          }
+
+          try {
+            const result = await requestGateway<{ task_id?: string }>('prompt.btw', {
+              session_id: sessionId,
+              text: question
+            })
+
+            renderSlashOutput(
+              result.task_id
+                ? `btw ${result.task_id} — answering from a conversation snapshot`
+                : 'btw — answering from a conversation snapshot'
+            )
+          } catch (err) {
+            // Older gateways without the dedicated RPC still have the
+            // slash-worker route — same compatibility fallback as runRpc.
+            if (isMissingRpcMethod(err)) {
+              await runExec(ctx)
+
+              return
+            }
+
+            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
+          }
         },
         // /compress (alias /compact) runs the gateway's dedicated
         // session.compress RPC — the TUI's path
@@ -541,7 +629,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             durationMs: 0,
             id: noticeId,
             kind: 'info',
-            message: copy.compressing(focusTopic)
+            message: focusTopic ? `compressing context for: ${focusTopic}` : 'compressing context...'
           })
 
           try {
@@ -579,6 +667,16 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             )
 
             sessionId = liveSessionId
+
+            // The gateway's compute-host wait expired but compression is still
+            // running there; it pushes session.info + a `compacted` status edge
+            // when the host finishes. Not an error (#97948).
+            if (result?.status === 'pending') {
+              const pendingMessage = result.message || 'compression still running in the background'
+              notify({ durationMs: 8_000, id: noticeId, kind: 'info', message: pendingMessage })
+
+              return
+            }
 
             // Replace the transcript with the post-compress history so the
             // summarized bubbles actually disappear. `messages` is the same
@@ -643,7 +741,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             }
 
             const removed = result?.removed ?? 0
-            const message = removed > 0 ? copy.compressedMessages(removed) : copy.nothingToCompress
+            const message = removed > 0 ? `compressed ${removed} messages` : 'nothing to compress'
             renderSlashOutput(message)
             notify({
               durationMs: 5_000,
@@ -665,7 +763,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
               return
             }
 
-            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
+            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
           } finally {
             compressInFlightRef.current.delete(sessionId)
           }
@@ -706,7 +804,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const requested = ctx.arg.trim().toLowerCase()
 
           if (requested && !['on', 'off', 'status'].includes(requested)) {
-            renderSlashOutput(copy.wakeUsage)
+            renderSlashOutput('usage: /wake [on|off|status]')
 
             return
           }
@@ -742,7 +840,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
               if (!started?.started) {
                 renderSlashOutput(
-                  copy.wakeStartFailed(started?.hint?.trim() || started?.reason?.trim() || copy.wakeStatus.unknown)
+                  `Failed to start wake word: ${started?.hint?.trim() || started?.reason?.trim() || 'unknown error'}`
                 )
 
                 return
@@ -751,9 +849,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
               applyWakeStopResult(await requestGateway<WakeStopResponse>('wake.stop', { persist: true }))
             }
 
-            renderSlashOutput(renderWakeStatus(await status(), copy.wakeStatus))
+            renderSlashOutput(renderWakeStatus(await status()))
           } catch (err) {
-            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
+            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
           }
         },
         // /handoff hands this session to a messaging platform. The platform is
@@ -870,11 +968,11 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             await refreshSessions().catch(() => undefined)
             renderSlashOutput(
               finalTitle
-                ? copy.sessionTitleSet(finalTitle, queued)
-                : copy.sessionTitleCleared
+                ? `Session title set: ${finalTitle}${queued ? ' (queued while session initializes)' : ''}`
+                : 'Session title cleared.'
             )
           } catch (err) {
-            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
+            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
           }
         },
         help: async ctx => {
@@ -889,9 +987,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           try {
             const catalog = await requestGateway<CommandsCatalogLike>('commands.catalog', { session_id: sessionId })
 
-            renderSlashOutput(renderCommandsCatalog(catalog, copy, commandDescriptions))
+            renderSlashOutput(renderCommandsCatalog(catalog, copy))
           } catch (err) {
-            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
+            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
           }
         },
         // /journey (aliases /learning, /memory-graph) opens the memory graph
@@ -930,7 +1028,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
             if (!rawValue || Number.isNaN(value)) {
               const resolved = await withSlashOutput(ctx)
-              resolved?.render(copy.petScaleUsage)
+              resolved?.render('usage: /pet scale <factor>  (e.g. /pet scale 0.5)')
 
               return
             }
@@ -957,7 +1055,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const { render: renderSlashOutput, sessionId } = resolved
 
           if ($connection.get()?.mode === 'remote') {
-            renderSlashOutput(copy.browserRemoteUnavailable)
+            renderSlashOutput(
+              '/browser manages a Chromium-family browser on the gateway host — only available when connected to a local gateway.'
+            )
 
             return
           }
@@ -966,7 +1066,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const cmdAction = rawAction.toLowerCase()
 
           if (!['connect', 'disconnect', 'status'].includes(cmdAction)) {
-            renderSlashOutput(copy.browserUsage)
+            renderSlashOutput(
+              'usage: /browser [connect|disconnect|status] [url] · persistent: set browser.cdp_url in config.yaml'
+            )
 
             return
           }
@@ -974,7 +1076,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const url = cmdAction === 'connect' ? rest.join(' ').trim() || 'http://127.0.0.1:9222' : undefined
 
           if (url) {
-            renderSlashOutput(copy.browserChecking(url))
+            renderSlashOutput(`checking Chromium-family browser remote debugging at ${url}...`)
           }
 
           try {
@@ -990,25 +1092,27 @@ export function useSlashCommand(deps: SlashCommandDeps) {
 
             if (cmdAction === 'status') {
               renderSlashOutput(
-                result?.connected ? copy.browserStatusConnected(result.url || copy.browserUrlUnavailable) : copy.browserNotConnected
+                result?.connected
+                  ? `browser connected: ${result.url || '(url unavailable)'}`
+                  : 'browser not connected (try /browser connect <url> or set browser.cdp_url in config.yaml)'
               )
 
               return
             }
 
             if (cmdAction === 'disconnect') {
-              renderSlashOutput(copy.browserDisconnected)
+              renderSlashOutput('browser disconnected')
 
               return
             }
 
             if (result?.connected) {
-              renderSlashOutput(copy.browserConnected)
-              renderSlashOutput(copy.browserEndpoint(result.url || copy.browserUrlUnavailable))
-              renderSlashOutput(copy.browserNextCall)
+              renderSlashOutput('Browser connected to live Chromium-family browser via CDP')
+              renderSlashOutput(`Endpoint: ${result.url || '(url unavailable)'}`)
+              renderSlashOutput('next browser tool call will use this CDP endpoint')
             }
           } catch (err) {
-            renderSlashOutput(copy.errorLine(err instanceof Error ? err.message : String(err)))
+            renderSlashOutput(`error: ${err instanceof Error ? err.message : String(err)}`)
           }
         }
       }
@@ -1091,9 +1195,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
         switch (surface?.kind) {
           case 'unavailable': {
             const resolved = await withSlashOutput(ctx)
-            resolved?.render(
-              desktopSlashUnavailableMessage(name, copy.slashUnavailable) || copy.slashUnavailable.fallback(`/${name}`)
-            )
+            resolved?.render(desktopSlashUnavailableMessage(name) || `/${name} is not available in the desktop app.`)
 
             return
           }

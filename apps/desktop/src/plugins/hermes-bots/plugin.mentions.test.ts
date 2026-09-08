@@ -21,6 +21,8 @@
 
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { RosterRow } from './types'
+
 interface MentionCompletionItem {
   display: string
   insert: string
@@ -58,7 +60,7 @@ const ROSTER = {
 }
 
 const { cache, hostMock, live } = vi.hoisted(() => {
-  const live = { focused: 'default', profile: 'default', storedSessionId: null as null | string }
+  const live = { focused: 'default', profile: 'default', stored: null as string | null }
 
   return {
     cache: new Map<string, { key: unknown[]; value: unknown }>(),
@@ -69,7 +71,7 @@ const { cache, hostMock, live } = vi.hoisted(() => {
       state: {
         connectionId: { get: () => 'local', listen: () => () => undefined },
         focusedSessionProfile: { get: () => live.focused, listen: () => () => undefined },
-        focusedStoredSessionId: { get: () => live.storedSessionId, listen: () => () => undefined },
+        focusedStoredSessionId: { get: () => live.stored, listen: () => () => undefined },
         gateway: { get: () => null, listen: () => () => undefined },
         profile: { get: () => live.profile, listen: () => () => undefined }
       }
@@ -121,7 +123,6 @@ interface Fixture {
   cacheKeyConnection?: string
   /** Profile owning the chat on screen; a bot never @s itself. */
   focused?: string
-  focusedStoredSessionId?: null | string
   profiles?: Array<Record<string, unknown>>
 }
 
@@ -129,13 +130,11 @@ interface Fixture {
 async function contributions({
   cacheKeyConnection = 'local',
   focused = 'default',
-  focusedStoredSessionId = null,
   profiles = ROSTER.profiles
 }: Fixture = {}) {
   vi.resetModules()
   cache.clear()
   live.focused = focused
-  live.storedSessionId = focusedStoredSessionId
   // Exactly where useRoster writes it: suffixed with the connection id.
   cache.set(JSON.stringify(['hermes-bots', 'roster', cacheKeyConnection]), {
     key: ['hermes-bots', 'roster', cacheKeyConnection],
@@ -147,15 +146,7 @@ async function contributions({
 
   try {
     plugin.register({
-      i18n: {
-        register: () => () => undefined,
-        t: (key: string) =>
-          ({
-            'bot.foreverChatTitle': '此聊天不会重置',
-            'bot.foreverChatMessage':
-              '机器人聊天会持续保留上下文，因此将改为压缩当前上下文。若要与此机器人开启临时会话，请使用“会话”模式。'
-          })[key] ?? key
-      },
+      i18n: { register: () => () => undefined },
       onDispose: () => undefined,
       register: (contribution: Contribution) => registered.push(contribution),
       storage: { get: async () => undefined, remove: async () => undefined, set: async () => undefined }
@@ -164,13 +155,6 @@ async function contributions({
     // Registration walks UI surfaces the stub does not fully model; the
     // contributions registered before any throw are what these tests drive.
   }
-
-  const [{ $selectedBot }, { $lastRoster }] = await Promise.all([import('./bot-state'), import('./data')])
-  // Registration synchronizes the selected owner from the host state. Seed
-  // the handler's view after that lifecycle work so this fixture controls the
-  // exact bot row it is exercising.
-  $selectedBot.set(focused)
-  $lastRoster.set(profiles as never)
 
   const completions = registered.find(entry => entry.id === 'mention-completions')
   const middleware = registered.find(entry => entry.id === 'mention-middleware')
@@ -191,7 +175,54 @@ beforeEach(() => {
   vi.clearAllMocks()
   live.focused = 'default'
   live.profile = 'default'
-  live.storedSessionId = null
+  live.stored = null
+})
+
+describe('Bot Chat reset guard', () => {
+  it.each([
+    { connectionId: 'local', sourceScoped: true },
+    { connectionId: 'remote', remoteSource: true, sourceScoped: true },
+    {}
+  ])('compacts only the selected bot canonical chat: %j', async source => {
+    const { handler } = await contributions()
+    const { $lastRoster } = await import('./data')
+    const { saveSelectedRosterBot } = await import('./bot-state')
+
+    const selected: RosterRow = {
+      ...source,
+      name: 'writer',
+      canonical_session: { id: 'bot-root', resolved_id: 'bot-tip' }
+    }
+
+    // An identically named bot on another connection must not win the lookup.
+    $lastRoster.set([
+      { name: 'writer', connectionId: 'other', sourceScoped: true, canonical_session: { id: 'other-chat' } },
+      selected
+    ])
+    saveSelectedRosterBot(selected)
+
+    for (const stored of ['bot-root', 'bot-tip']) {
+      live.stored = stored
+
+      for (const text of ['/new', '/reset']) {
+        hostMock.notify.mockClear()
+        expect(await handler({ text })).toEqual({ text: '/compact' })
+        expect(hostMock.notify).toHaveBeenCalledOnce()
+        expect(hostMock.notify).toHaveBeenCalledWith(expect.objectContaining({ title: 'This chat never resets' }))
+      }
+    }
+
+    for (const stored of ['scratch-chat', 'other-chat', null]) {
+      live.stored = stored
+
+      for (const text of ['/new', '/reset']) {
+        hostMock.notify.mockClear()
+        const draft = { text }
+        expect(await handler(draft)).toBe(draft)
+        expect(hostMock.notify).not.toHaveBeenCalled()
+      }
+    }
+  })
 })
 
 describe('@-mention completions', () => {
@@ -260,22 +291,6 @@ describe('@-mention completions', () => {
 })
 
 describe('the mention middleware', () => {
-  it('uses localized copy when /new is redirected inside a canonical Bot Chat', async () => {
-    const { handler } = await contributions({
-      focusedStoredSessionId: 'forever-chat',
-      profiles: [{ canonical_session: { id: 'forever-chat' }, name: 'default' }]
-    })
-
-    const result = await handler({ text: '/new' })
-
-    expect(hostMock.notify).toHaveBeenCalledWith({
-      kind: 'info',
-      title: '此聊天不会重置',
-      message:
-        '机器人聊天会持续保留上下文，因此将改为压缩当前上下文。若要与此机器人开启临时会话，请使用“会话”模式。'
-    })
-  })
-
   it('identifies a remote @name-device mention without delivering anything', async () => {
     const { handler } = await contributions()
     const result = await handler({ text: '@default-vera what is the disk space on the server?' })
@@ -288,12 +303,35 @@ describe('the mention middleware', () => {
     expect(hostMock.requestProfile).not.toHaveBeenCalled()
   })
 
-  it('hands the agent the connection-qualified message_agent target', async () => {
+  it('hands the agent a relay-resolvable canonical target', async () => {
     const { handler } = await contributions()
     const result = await handler({ text: 'ping @default-vera' })
 
-    expect(result.text).toMatch(/message_agent target: "default-vera@vera"/)
+    // The UI alias ('default-vera') is not a relay identity: resolve_remote_target()
+    // accepts only a roster row's handle/profile, optionally @connection-qualified.
+    // The annotation must carry the canonical profile@connection form (#97678).
+    expect(result.text).toMatch(/message_agent target: "default@vera"/)
+    expect(result.text).not.toMatch(/message_agent target: "default-vera/)
     expect(result.text).toMatch(/on Vera/)
+  })
+
+  it('annotates the resolvable handle for a local row whose UI alias differs', async () => {
+    // The reporter's shape (#97678 / Discord video): the LOCAL twin carries
+    // the 'default-this-device' alias when the remote gateway is active.
+    // The local resolver only knows bare profile names / 'hermes'.
+    const { handler } = await contributions({
+      focused: 'ops',
+      profiles: [
+        { connectionId: 'local', connectionKind: 'local', handle: 'default-this-device', name: 'default' },
+        { name: 'ops' }
+      ]
+    })
+
+    const result = await handler({ text: 'ping @default-this-device' })
+
+    expect(result.text).toMatch(/@default-this-device = agent profile "default"/)
+    expect(result.text).toMatch(/message_agent target: "hermes"/)
+    expect(result.text).not.toMatch(/message_agent target: "default-this-device/)
   })
 
   it('passes a draft with no mention straight through', async () => {
