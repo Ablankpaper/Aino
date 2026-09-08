@@ -331,6 +331,36 @@ function routineTimestamp(value: string | undefined): null | string {
   return Number.isFinite(ms) ? `${relativeTime(ms)} · ${new Date(ms).toLocaleString()}` : null
 }
 
+/** The scheduler's `last_status` literals, spelled out for the inspector. The
+ *  set is closed on the gateway side, so every literal is named here — an
+ *  unknown one is passed through verbatim rather than hidden. `delivery_failed`
+ *  means the agent run succeeded but the brief never reached its target; it
+ *  must read as a failure, not as a run result the user can trust. */
+export function routineLastResult(status: string | null | undefined): null | string {
+  const raw = String(status || '').trim()
+
+  if (!raw) {
+    return null
+  }
+
+  switch (raw) {
+    case 'ok':
+      return 'Succeeded'
+
+    case 'error':
+      return 'Failed'
+
+    case 'delivery_failed':
+      return 'Ran, but delivery failed'
+
+    case 'blocked_config':
+      return 'Blocked by configuration (not run)'
+
+    default:
+      return raw
+  }
+}
+
 /** The facts `cron.manage list` already sends with every job, as label/value
  *  rows. Pure so the detail contract is testable without a renderer, and so
  *  the dialog cannot invent a field the gateway never sent: an absent value
@@ -349,14 +379,14 @@ export function routineDetailRows(job: RoutineJob | null | undefined): Array<{ l
       [botsText().cron.detailSchedule, label],
       // `scheduleLabel` humanizes "every 1440m" and cron expressions; keep the
       // raw string when it says something the label dropped.
-      [botsText().cron.detailScheduleRaw, raw && raw !== label ? raw : null],
-      [botsText().cron.detailRepeat, job?.repeat],
-      [botsText().cron.detailNextRun, paused ? null : routineTimestamp(job?.next_run_at)],
-      [botsText().cron.detailLastRun, routineTimestamp(job?.last_run_at)],
-      [botsText().cron.detailLastResult, job?.last_status],
-      [botsText().cron.detailDeliversTo, job?.deliver],
-      [botsText().cron.detailModel, job?.model],
-      [botsText().cron.detailWorkingDirectory, job?.workdir]
+      ['Schedule (raw)', raw && raw !== label ? raw : null],
+      ['Repeat', job?.repeat],
+      ['Next run', paused ? null : routineTimestamp(job?.next_run_at)],
+      ['Last run', routineTimestamp(job?.last_run_at)],
+      ['Last result', routineLastResult(job?.last_status)],
+      ['Delivers to', job?.deliver],
+      ['Model', job?.model],
+      ['Working directory', job?.workdir]
     ] as Array<[string, string]>
   )
     .filter(([, value]) => typeof value === 'string' && value.trim())

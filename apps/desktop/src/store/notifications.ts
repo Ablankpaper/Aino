@@ -131,39 +131,8 @@ const ERROR_SUMMARIES: { test: (msg: string) => boolean; summarize: (msg: string
     summarize: () => translateNow('notifications.errors.microphonePermission')
   },
   {
-    test: msg => msg === 'logs root unavailable' || msg === 'open failed',
-    summarize: () => translateNow('assistant.thread.errorOpenLogsFailed')
-  },
-  {
-    test: msg => msg === 'Desktop file download bridge is unavailable',
-    summarize: () => translateNow('desktop.fileDownloadBridgeUnavailable')
-  },
-  {
-    test: msg => msg === 'spawn failed',
-    summarize: () => translateNow('notifications.errors.spawnFailed')
-  },
-  {
-    test: msg => /^Could not fetch image: \S+$/i.test(msg),
-    summarize: msg => {
-      const status = msg.replace(/^Could not fetch image:\s*/i, '')
-
-      return translateNow('desktop.imageFetchFailed', status)
-    }
-  },
-  {
-    // `host.openSession` keeps this English prefix as an internal retry
-    // sentinel (`startsWith('Timed out loading ')`). Translate only the
-    // notification summary; `readableError` retains the exact timeout in the
-    // detail field so support logs still identify the profile and phase.
-    test: msg => /^Timed out loading .+ session history\.$/i.test(msg),
-    summarize: () => translateNow('desktop.resumeStrandedBody')
-  },
-  {
-    test: msg =>
-      msg === 'Gateway not connected' ||
-      msg === 'Hermes gateway unavailable' ||
-      /^Hermes gateway unavailable for profile "[^"]+"$/.test(msg),
-    summarize: () => translateNow('desktop.gatewayNotConnected')
+    test: msg => /Restart required:/i.test(msg),
+    summarize: () => translateNow('notifications.errors.codeSkewRestartRequired')
   }
 ]
 

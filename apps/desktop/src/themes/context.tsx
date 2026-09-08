@@ -68,19 +68,30 @@ const normalizeMode = (value: string | null): ThemeMode =>
 // it *is* the legacy global slot, so it reads/writes the global directly. Named
 // profiles get their own entry and fall back to that global until assigned, so
 // unassigned profiles and pre-per-profile installs stay on the global value.
-const profilePref = <T extends string>(record: string, legacy: string, normalize: (v: string | null) => T) => ({
-  resolve: (profile: string): T => normalize(storedStringRecord(record)[profile] ?? storedString(legacy)),
-  assign: (profile: string, value: T): void => {
-    if (profile === 'default') {
-      persistString(legacy, value)
-    } else {
-      persistStringRecord(record, { ...storedStringRecord(record), [profile]: value })
+const profilePref = <T extends string>(record: string, legacy: string, normalize: (v: string | null) => T) => {
+  const stored = (profile: string): string | null => storedStringRecord(record)[profile] ?? storedString(legacy)
+
+  return {
+    /** The pick as written, un-normalized. */
+    stored,
+    resolve: (profile: string): T => normalize(stored(profile)),
+    assign: (profile: string, value: T): void => {
+      if (profile === 'default') {
+        persistString(legacy, value)
+      } else {
+        persistStringRecord(record, { ...storedStringRecord(record), [profile]: value })
+      }
     }
   }
-})
+}
 
 export const skinPref = profilePref(PROFILE_SKINS_KEY, SKIN_KEY, normalizeSkin)
 export const modePref = profilePref(PROFILE_MODES_KEY, MODE_KEY, normalizeMode)
+
+// Provider state keeps the raw pick so a name nothing resolves YET (a backend
+// skin the gateway hasn't seeded on this launch) isn't flattened to the default
+// for the rest of the session — it paints as soon as the registry can resolve it.
+const storedSkin = (profile: string): string => skinPref.stored(profile) ?? DEFAULT_SKIN_NAME
 
 /** Everything a peer window could change that this one has to repaint for. */
 const APPEARANCE_KEYS = new Set([SKIN_KEY, PROFILE_SKINS_KEY, MODE_KEY, PROFILE_MODES_KEY])
@@ -404,7 +415,7 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   )
 
   const [themeName, setThemeNameState] = useState(() =>
-    typeof window === 'undefined' ? DEFAULT_SKIN_NAME : skinPref.resolve(readBootProfileKey())
+    typeof window === 'undefined' ? DEFAULT_SKIN_NAME : storedSkin(readBootProfileKey())
   )
 
   const [mode, setModeState] = useState<ThemeMode>(() =>
@@ -414,11 +425,8 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   // Follow profile switches: paint the profile's assigned skin + mode and
   // remember it for the next boot's first paint.
   useEffect(() => {
-    if (!auxiliary) {
-      rememberActiveProfileKey(profileKey)
-    }
-
-    setThemeNameState(skinPref.resolve(profileKey))
+    rememberActiveProfileKey(profileKey)
+    setThemeNameState(storedSkin(profileKey))
     setModeState(modePref.resolve(profileKey))
   }, [auxiliary, profileKey])
 
@@ -443,7 +451,7 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
 
       const live = auxiliary ? readBootProfileKey() : normalizeProfileKey($activeGatewayProfile.get())
 
-      setThemeNameState(skinPref.resolve(live))
+      setThemeNameState(storedSkin(live))
       setModeState(modePref.resolve(live))
     }
 
@@ -460,7 +468,16 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   // committed appearance.
   const [preview, setPreview] = useState<{ name: string; mode: 'light' | 'dark' } | null>(null)
 
-  const paintedName = preview ? preview.name : themeName
+  // The committed skin, resolved against the CURRENT registry — so a stored
+  // backend skin that failed to resolve at boot paints once the gateway seeds it.
+  const committedName = useMemo(
+    () => normalizeSkin(themeName),
+    // normalizeSkin resolves through the merged registry; the stores are its reactivity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [themeName, userThemes, backendThemes, registryVersion]
+  )
+
+  const paintedName = preview ? preview.name : committedName
   const paintedMode = preview ? preview.mode : resolvedMode
 
   const activeTheme = useMemo(
@@ -545,7 +562,7 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme: paintedTheme,
-      themeName,
+      themeName: committedName,
       mode,
       resolvedMode,
       renderedMode,
@@ -557,7 +574,7 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
     }),
     [
       paintedTheme,
-      themeName,
+      committedName,
       mode,
       resolvedMode,
       renderedMode,

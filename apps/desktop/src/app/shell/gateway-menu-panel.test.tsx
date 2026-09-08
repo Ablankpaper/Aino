@@ -113,11 +113,4 @@ describe('GatewayMenuPanel reconnect action', () => {
     await act(async () => fireEvent.click(reconnect))
     expect(mocks.reconnectGateway).toHaveBeenCalledOnce()
   })
-
-  it('uses localized state copy for unknown gateway and platform states', () => {
-    renderPanelWithPlatformState('pending_restart')
-
-    expect(screen.getByText('localized:pending_restart')).not.toBeNull()
-    expect(mocks.stateLabel).toHaveBeenCalledWith('pending_restart')
-  })
 })

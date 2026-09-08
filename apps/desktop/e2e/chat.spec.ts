@@ -236,9 +236,9 @@ test.describe('chat interaction with mock backend', () => {
 
     await composer.click()
     await composer.type('please answer tersely')
-    // A mid-turn correction intentionally keeps the familiar Send label and
-    // arrow; submitDraft routes that payload through the steer path. Queue is
-    // the adjacent secondary action.
+    // Since "running is not busy" (3bc52fb9df) the primary keeps the Send
+    // affordance mid-turn — steer is routed through the submit engine, not a
+    // separate labeled button. Queue remains the explicit secondary action.
     await expect(primary).toHaveAttribute('aria-label', 'Send')
     await expect(dictation).toBeVisible()
     await expect(speakReplies).toBeVisible()
@@ -252,8 +252,8 @@ test.describe('chat interaction with mock backend', () => {
     )
     expect(controlLabels.indexOf('Voice dictation')).toBeLessThan(speakRepliesIndex)
     expect(speakRepliesIndex).toBeLessThan(controlLabels.indexOf('Queue message'))
-    expect(controlLabels.indexOf('Queue message')).toBeLessThan(controlLabels.lastIndexOf('Send'))
-    await page.screenshot({ path: testInfo.outputPath('busy-composer-send-to-steer.png') })
+    expect(controlLabels.indexOf('Queue message')).toBeLessThan(controlLabels.indexOf('Send'))
+    await page.screenshot({ path: testInfo.outputPath('busy-composer-steer.png') })
     await expect(primary.locator('.codicon-arrow-up')).toBeVisible()
 
     await queue.click()
