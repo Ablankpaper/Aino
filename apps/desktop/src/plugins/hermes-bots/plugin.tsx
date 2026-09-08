@@ -37,6 +37,7 @@ import {
   $lastRoster,
   botHandle,
   botMentionTag,
+  botSelectionKey,
   cachedUnionRoster,
   isActiveRosterBot,
   migrateBotMeta,
@@ -72,6 +73,7 @@ import { startHideSweepScheduler } from './session-sweep'
 import { bumpBotOpenGeneration, getBotOpenGeneration, ID, pluginText, setPluginCtx } from './shared'
 import tabBotsIcon from './tab-bots.svg'
 import type { GroupChat, RosterRow } from './types'
+import { loadBotSections } from './user-sections'
 
 const tabBotsMask = `url(${JSON.stringify(tabBotsIcon)})`
 
@@ -136,6 +138,9 @@ export default {
   },
   register(ctx: PluginContext) {
     setPluginCtx(ctx)
+    // The user's own roster sections. Read once at register; every mutation
+    // writes through.
+    loadBotSections()
     const disposeLocales = ctx.i18n.register(BOTS_LOCALES)
     setGroupChatSyncDisposed(false)
     startFaceClock()
@@ -599,10 +604,10 @@ export default {
                 return
               }
 
-              // A claim without a registry id is a fronted non-canonical tab
-              // (focusExistingBotTab / the draft fallback): re-resolving the
-              // canonical chat here would open the Bot Chat the user has
-              // closed. Its tile recovers on the next send like any tab.
+              // A claim without a registry id is the legacy newChat draft
+              // fallback: re-resolving the canonical chat here would replace
+              // a draft the user is typing into. Its tile recovers on the next
+              // send like any tab.
               if (!claim.openedRegistryId) {
                 return
               }
@@ -709,7 +714,7 @@ export default {
             // server-side by name), matching either the durable row id or
             // the compression-lineage tip currently on screen.
             const roster = $lastRoster.get()
-            const row = Array.isArray(roster) ? roster.find(bot => bot?.name === activeBot) : null
+            const row = Array.isArray(roster) ? roster.find(bot => botSelectionKey(bot) === activeBot) : null
 
             // The STORED id, which is the id space canonical_session is keyed
             // in. `host.state.activeSessionId` is the runtime id and could
@@ -779,11 +784,23 @@ export default {
               botRosterMeta(bot, $botMeta.get())?.title || bot.ui_meta?.['hermes-bots']?.title || bot.title || ''
             ).trim()
 
-            const target = bot.remoteSource && bot.connectionId ? `${handle}@${bot.connectionId}` : handle
+            // message_agent only resolves canonical identities: the relay
+            // matches a roster row's handle/profile (± @connection-id), the
+            // local path a bare profile name or 'hermes'. botHandle() prefers
+            // the row's source-qualified UI alias ('default-vera'), which
+            // neither resolver accepts — annotate the canonical form instead.
+            const target =
+              bot.remoteSource && bot.connectionId ? `${bot.name}@${bot.connectionId}` : botHandle(bot.name)
 
+            // Local rows get the same annotation whenever their UI alias
+            // ('default-this-device') differs from the resolvable handle —
+            // otherwise the agent has only the alias to go on and the local
+            // path rejects it the same way (#97678).
             const where = bot.remoteSource
               ? ` — on ${bot.connectionLabel || bot.connectionId} (message_agent target: "${target}")`
-              : ''
+              : handle !== target
+                ? ` (message_agent target: "${target}")`
+                : ''
 
             return `@${handle} = agent profile "${bot.name}"${title ? ` ("${title}")` : ''}${where}`
           })
