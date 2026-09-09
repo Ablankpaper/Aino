@@ -82,6 +82,22 @@ describe('ResponseLoadingIndicator timer', () => {
 
     expect(screen.getByRole('status', { name: '正在总结会话' })).toBeTruthy()
   })
+
+  it('uses the shared neutral scaffold palette and metadata scale', () => {
+    $activeSessionId.set('session-a')
+    $turnStartedAt.set(Date.now())
+
+    const { container } = renderIndicator()
+    const status = container.querySelector('[data-slot="aui_response-loading"]')
+    const pulse = status?.querySelector('.dither')
+    const timer = Array.from(status?.querySelectorAll('span') ?? []).find(span => span.textContent === '0s')
+
+    expect(pulse?.className).toContain('text-(--conversation-scaffold-text)')
+    expect(pulse?.className).not.toContain('text-midground')
+    expect(timer?.className).toContain('text-(--conversation-scaffold-meta)')
+    expect(timer?.className).toContain('text-[0.625rem]')
+    expect(timer?.className).not.toContain('text-[0.56rem]')
+  })
 })
 
 // The status line sits between tool rows and thinking headers, which the

@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { PaneTab, PaneTabLabel } from './pane-tab'
+import { PaneTab, PaneTabLabel, PaneTabStrip } from './pane-tab'
 
 afterEach(cleanup)
 
@@ -170,5 +170,21 @@ describe('PaneTab hover close button', () => {
     )
 
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
+  })
+})
+
+describe('PaneTabStrip surface roles', () => {
+  it('marks the main workspace surface for the shared Aino chrome contract', () => {
+    render(
+      <PaneTabStrip surface="main">
+        <PaneTab active>
+          <PaneTabLabel>workspace</PaneTabLabel>
+        </PaneTab>
+      </PaneTabStrip>
+    )
+
+    const strip = screen.getByRole('tablist').parentElement
+
+    expect(strip?.getAttribute('data-pane-surface')).toBe('main')
   })
 })

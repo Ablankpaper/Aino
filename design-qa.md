@@ -4,6 +4,76 @@
 
 final result: passed
 
+## 最终全页面复核（2026-09-07）
+
+- 按聊天主页面的 Aino 视觉基准重新走查了主路由、设置工作区、任务浮层、共享弹窗和窄窗口；
+  本轮实机截图保存在 `/tmp/aino-ui-audit-live/final-check/`（`chat.png`、`settings.png`、
+  `gateway.png`、`skills.png`、`messaging.png`、`webhooks.png`）。
+- 统一性检查覆盖：字体层级、纸面/侧栏背景、描边、圆角、阴影、焦点环、选中/悬停状态、空态和
+  加载态。所有 Aino 自有外围 UI 均使用共享 token/原语；语义错误、警告、成功、平台品牌色、代码/终端
+  内容及跨域 Skills Hub 保留其必要语义，不做误伤式换色。
+- 实机路由复核：聊天、技能与工具、消息平台、产物、定时任务、工作区、智能体、星图、Webhook、命令中心，
+  以及设置的模型/对话/外观/工作区/安全/浏览器/记忆/语音/高级/通知/账单/提供方/网关/快捷键/工具密钥/
+  插件/归档/关于页面。浮层卡片统一为 `--stroke-nous` + `shadow-nous`，设置与页面共享同一字体和 rail。
+- 响应式复核：1220×800 与 420×740 CSS px 均无横向溢出；窄窗口的设置导航、页面搜索、浮层导航和聊天输入框
+  保持可用。暗色、Glass、自定义主题的 token 继承与焦点/浮层行为沿用既有回归证据，并在本轮未改动用户偏好。
+- 真实 Electron（项目 renderer `http://127.0.0.1:5174/`，窗口标题 `Aino`）页面身份、截图、交互和控制台错误检查通过；
+  未启动 Electron Demo。Browser plugin 不可用，因此按前端验收规范使用项目 Playwright + Electron/CDP 回退路径。
+- 本轮没有发现需要再改的 Aino 自有 UI 不一致；所有原有动作、状态链、后端协议和内容边界保持不变。
+
+## 顶部会话搜索调整（2026-09-07）
+
+- 视觉真值：顶部位置参考
+  `/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/codex-clipboard-e0a040fe-41ac-487e-8f95-f5ae5816e4ab.png`；
+  本次结果区域参考
+  `/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/codex-clipboard-af3c6ea6-2964-40f4-9bae-7fb6774ae570.png`。
+- 实现截图：`/tmp/aino-session-search-after.png`；本次结果面板截图：
+  `/tmp/aino-session-search-results-after.png`；同图比较：
+  `/tmp/aino-session-search-comparison.jpg`；顶部局部比较：
+  `/tmp/aino-session-search-top-comparison.png`。
+- 两侧原图均为 2746×1766 px，对应 1373×883 CSS px、DPR 2，无密度缩放。
+  状态为明亮主题、会话页、左侧会话栏打开、已有聊天内容。
+- 全图比较确认：左侧原“搜索会话”行已移除，列表自然上移；同一个搜索输入框位于
+  43px 顶部标题栏内，并按当前工作区（排除左右停靠栏）居中。实测输入框容器
+  `x=489…1129`、`y=7…36` CSS px，宽 640px，中心偏差 0px。
+- 局部比较确认：复用现有搜索图标、中文文案、字体、颜色和弱化透明度；参考图中的红框、
+  箭头仅是位置批注，不作为产品 UI 复制。此次没有新增或替换图片资源。
+- 交互验证：真实 Electron E2E 从标题栏输入查询后，结果显示在搜索框下方的独立面板；左侧列表
+  保持普通会话模式，不再切换成搜索结果。点击结果会进入对应会话并自动清空、收起面板；原服务端
+  全文检索、清空按钮、快捷键 ref 和行级操作均保留。
+- 实机测量：Aino 窗口 1220×800 CSS px；结果面板 `x=489…1129`、`y=44…192`，宽 640px，
+  标题栏底部为 43px，面板与搜索容器左右对齐，未遮挡标题栏控制。
+- 细节统一复核：结果面板标题复用 `SidebarPanelLabel` 的中性变体，不再使用蓝色强调色、全大写字距或
+  dither 方块；实际 renderer 测得文字为 13px、500 字重、普通字距、非大写，颜色跟随
+  `--aino-landing-secondary`。搜索结果行、左侧其他分组标题和所有行级操作保持原有功能与样式。
+- 本次细节修正截图：`/tmp/aino-search-results-final.png`；截图中的红框和箭头仍仅作视觉批注，不进入产品 UI。
+- 比较历史：初始回归准确失败于“标题栏找不到搜索框”；第一次实现验证了顶部搜索位置；本次回归
+  先准确失败于旧的 `data-sessions-mode="search"` 左侧结果模式，改为标题栏下方面板后通过（9.4s）。
+  最终比较无 P0/P1/P2 问题。
+- Browser plugin 不可用；按已确认的测试方案使用项目 Playwright Electron 流程和本机
+  `127.0.0.1:9222` renderer 调试连接进行 DOM、交互、几何和截图复验。
+
+## 思考状态指示器统一（2026-09-07）
+
+- 视觉目标：红框批注中的“思考中 / 0s”状态行应与聊天里的思考标题、工具活动行
+  使用同一套中性灰阶、字重和节奏；红框、箭头只是验收批注，不进入产品界面。
+- 实现范围：`ResponseLoadingIndicator` 与 `TurnActivityIndicator` 共用
+  `SCAFFOLD_ACTIVITY_GLYPH_CLASS`、`SCAFFOLD_META_CLASS`；脉冲方块不再使用主题蓝色，
+  计时器改为 `--conversation-scaffold-meta`、10px（`0.625rem`），原有计时、停止、等待、
+  压缩和工具状态逻辑不变。
+- 回归证据：`apps/desktop/src/components/assistant-ui/thread/status.test.tsx` 5/5 通过，
+  覆盖中性 token、旧蓝色类名移除和计时器字号；响应等待与转场活动两个组件均复用同一共享常量。
+- 真实窗口证据：隔离 mock 后端的完整 Aino Electron（标题 `Aino`，renderer
+  `http://127.0.0.1:5174/`）提交测试文本后保持流式请求，首帧截图为
+  `/tmp/aino-thinking-indicator-0s-final.png`。首帧 DOM 为 `0s`；实测脉冲颜色
+  `color(srgb 0.121569 0.137255 0.156863 / 0.64)`、计时器颜色
+  `color(srgb 0.121569 0.137255 0.156863 / 0.44)`、字号 `10px`；请求到达 mock 后
+  计时器继续显示 `2s`，样式保持一致。页面标题、URL、输入框、停止按钮和状态行均正常。
+- 视觉结论：状态行的方块、文案和计时器已落在聊天脚手架同一列和同一中性层级，未改变
+  用户消息、响应流、停止/继续交互或任何后端协议。
+- Browser plugin 不可用；按前端验收技能使用项目 Vitest、Playwright/Electron 真实窗口和
+  本机 CUA 定位。未启动 Electron Demo；正常开发窗口仍为端口 `9222` 的 Aino。
+
 ## 视觉基准与比较条件
 
 - 基准：`/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/codex-clipboard-202be674-6328-40f7-94ae-9e0ed3b649c1.png`
@@ -70,24 +140,31 @@ final result: passed
    新增真实中文设置 E2E，测量文本 Range 行数：修复前为 2 行而失败，修复后为 1 行并通过
    （8.6s）。原尺寸截图确认“推理”和选择器正常横向对齐。
 
+6. **P2，思考状态行使用主题蓝色且计时器偏小。** 原实现的 dither 继承
+   `text-midground/80`，计时器为 `0.56rem`，与同一聊天列里的思考/工具脚手架不一致。
+   抽出共享活动 glyph/meta token，并在响应等待和转场活动两个入口复用；回归测试先准确
+   捕获旧类名，修正后 5/5 通过。真实隔离 Electron 首帧 `0s` 截图和计算样式复验无蓝色
+   强调色，计时器为 10px；原有功能链和状态条件保持不变。
+
 独立代码复核意见与最终视觉检查发现均已解决并复验。
 
 ## 最终自动验证
 
 | 命令/检查 | 最新结果 |
 | --- | --- |
-| `npm run test:ui` | 758 文件 /7155 测试通过，95.28s |
-| `npm run test:desktop:platforms` | 143 文件通过、2 跳过；2006 测试通过、6 跳过，5.59s |
+| `npm run test:ui` | 最终全页面复核后通过：759 文件 /7157 测试，81.00s |
+| `npm run test:desktop:platforms` | 思考状态调整后通过：143 文件通过、2 跳过；2006 测试通过、6 跳过，4.45s |
 | `npm run typecheck` | renderer、Electron、E2E 三项目通过 |
 | `npx eslint src/ electron/ --quiet` | 无错误 |
-| `npm run build` | 最后标签修正后再次通过，Vite 10.87s；Electron 主进程/preload 和 native deps 输出通过检查 |
+| `npm run build` | 思考状态调整后再次通过，Vite 10.32s；Electron 主进程/preload 和 native deps 输出通过检查 |
 | Playwright chat/onboarding/boot-failure/right-pane/context-menu-editables/hud-appearance | 15 测试通过，1.1m |
+| Playwright titlebar session search | RED 准确失败于旧侧栏结果模式；GREEN 1 测试通过，10.1s |
 | Playwright settings-appearance | 1 测试通过，8.6s；验证中文短标签与真实选择器布局 |
 | Vitest model-settings | 最后标签修正后 22 测试通过，2.30s |
 | `git diff --check` | 通过 |
 
-全量 UI、Electron 与上述 15 项 E2E 在最后两处不换行样式修正前通过；修正后重跑模型设置测试、
-新增真实窗口布局回归、三个项目类型检查、完整 lint、构建及 diff 检查，全部通过。
+全量 UI、Electron 与上述 15 项 E2E 均在本次思考状态调整后通过；随后重跑状态行回归、真实窗口
+首帧取证、三个项目类型检查、完整 lint、构建及 diff 检查，全部通过。
 
 测试中的现有 npm/Vite 废弃配置提醒、jsdom canvas 提醒，以及用于失败场景的临时仓库日志不代表测试失败。
 无已提交视觉基线，E2E 自动截图不是像素匹配证明；本记录另有归一化基准和人工图像比较。

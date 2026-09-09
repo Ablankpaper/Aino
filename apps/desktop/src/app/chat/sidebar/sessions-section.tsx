@@ -46,6 +46,7 @@ interface SidebarSectionHeaderProps {
   action?: React.ReactNode
   meta?: React.ReactNode
   icon?: React.ReactNode
+  tone?: 'accent' | 'neutral'
   // When false the section can't be collapsed: the label renders static (no
   // toggle, no caret) and the section is always open. Used for the single-
   // project view, where collapsing one project makes no sense.
@@ -59,12 +60,13 @@ function SidebarSectionHeader({
   action,
   meta,
   icon,
+  tone = 'accent',
   collapsible = true
 }: SidebarSectionHeaderProps) {
   const labelBody = (
     <>
       {icon}
-      <SidebarPanelLabel className="aino-sidebar-section-label" data-sidebar-section-label="">
+      <SidebarPanelLabel className="aino-sidebar-section-label" data-sidebar-section-label="" tone={tone}>
         {label}
       </SidebarPanelLabel>
       {meta && <SidebarSectionMeta>{meta}</SidebarSectionMeta>}
@@ -143,6 +145,7 @@ interface SidebarSessionsSectionProps {
   activeProjectId?: null | string
   labelMeta?: React.ReactNode
   labelIcon?: React.ReactNode
+  sectionLabelTone?: 'accent' | 'neutral'
   // When false the section header is static (no caret/toggle) and always open.
   collapsible?: boolean
   sortable?: boolean
@@ -208,6 +211,7 @@ export function SidebarSessionsSection({
   activeProjectId,
   labelMeta,
   labelIcon,
+  sectionLabelTone = 'accent',
   collapsible = true,
   sortable = false,
   manualOrderIds,
@@ -525,6 +529,7 @@ export function SidebarSessionsSection({
         meta={labelMeta}
         onToggle={onToggle}
         open={sectionOpen}
+        tone={sectionLabelTone}
       />
       {sectionOpen && (
         <SidebarGroupContent className={resolvedContentClassName} data-sidebar-section-content="">

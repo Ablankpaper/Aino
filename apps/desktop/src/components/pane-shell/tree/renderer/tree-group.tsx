@@ -290,6 +290,7 @@ export function TreeGroup({
 
   const active = paneFor(activeId)
   const isEmpty = shown.length === 0
+  const tabSurface = shown.some(isMainStripPane) ? 'main' : 'sidebar'
 
   // What the strip's "+" makes. The pane you are LOOKING AT answers first (a
   // Browser tab makes another Browser, even stacked into the chat strip), then
@@ -527,6 +528,7 @@ export function TreeGroup({
             }
             ref={stripRef}
             style={{ cursor: 'grab' }}
+            surface={tabSurface}
             trailing={
               <>
                 {minimizable && (
@@ -589,7 +591,14 @@ export function TreeGroup({
                     const onTap = () => {
                       clearTabSelection()
 
-                      if (node.minimized) {
+                      // Tool-panel tabs own a separate open/closed store (the
+                      // terminal's PTY mount, logs' contribution, etc.). A
+                      // stale persisted tree can leave that store off while
+                      // the tab is still visible in an otherwise open zone;
+                      // activating the tab must therefore use the same
+                      // restore route as the rail/chevron, not just switch
+                      // the layout tree's active id.
+                      if (node.minimized || isCollapsePane(paneId)) {
                         restoreTreePane(paneId)
                       }
 

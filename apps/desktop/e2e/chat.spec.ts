@@ -117,6 +117,128 @@ test.describe('chat interaction with mock backend', () => {
     )
   })
 
+  test('shows session search results below the titlebar and resumes the selected conversation', async () => {
+    const page = fixture!.page
+    const composer = page.locator('[contenteditable="true"]').first()
+
+    await composer.waitFor({ state: 'visible', timeout: 10_000 })
+    await composer.click()
+    await composer.type('Find this titlebar search conversation', { delay: 10 })
+    await page.keyboard.press('Enter')
+    await page.waitForFunction(() => (document.body.textContent ?? '').includes('mock inference server'), undefined, {
+      timeout: 60_000
+    })
+
+    const titlebar = page.locator('[data-slot="app-titlebar"]')
+    const sidebar = page.locator('[data-aino-sidebar]')
+    const anySessionSearch = page.getByRole('textbox', { name: 'Search sessions' })
+    const titlebarSearch = titlebar.getByRole('textbox', { name: 'Search sessions' })
+    const targetUrl = page.url()
+
+    // First prove the existing search surface has mounted; a missing field is
+    // a different regression from rendering the real field in the wrong pane.
+    await expect(anySessionSearch).toBeVisible({ timeout: 30_000 })
+    await expect(titlebarSearch).toBeVisible()
+    await expect(sidebar.getByRole('textbox', { name: 'Search sessions' })).toHaveCount(0)
+
+    await page.locator('button:has-text("New session")').first().click()
+    await expect(page).not.toHaveURL(targetUrl)
+    const chatSurface = page.locator('[data-chat-surface]').first()
+    const chatBeforeSearch = await chatSurface.boundingBox()
+
+    await titlebarSearch.fill('mock inference')
+    await expect(titlebarSearch).toBeFocused()
+    await expect(sidebar.locator('[data-sessions-mode="search"]')).toHaveCount(0)
+
+    const results = page.locator('[data-session-search-results]')
+    await expect(results).toBeVisible()
+    const resultRow = results.getByRole('button', { name: /mock inference server/ }).first()
+    await expect(resultRow).toBeVisible()
+
+    const resultsLabel = results.locator('[data-sidebar-section-label]')
+    await expect(resultsLabel).toHaveText(/\S+/)
+    await expect(resultsLabel).toHaveAttribute('data-sidebar-label-tone', 'neutral')
+    await expect(resultsLabel.locator('.dither')).toHaveCount(0)
+
+    const resultsLabelStyle = await resultsLabel.evaluate(label => {
+      const styles = getComputedStyle(label)
+
+      return {
+        color: styles.color,
+        fontSize: styles.fontSize,
+        fontWeight: styles.fontWeight,
+        letterSpacing: styles.letterSpacing,
+        textTransform: styles.textTransform
+      }
+    })
+
+    expect(resultsLabelStyle.color, JSON.stringify(resultsLabelStyle)).not.toBe('rgb(43, 127, 255)')
+    expect(resultsLabelStyle.fontSize, JSON.stringify(resultsLabelStyle)).toBe('13px')
+    expect(resultsLabelStyle.fontWeight, JSON.stringify(resultsLabelStyle)).toBe('500')
+    expect(resultsLabelStyle.letterSpacing, JSON.stringify(resultsLabelStyle)).toBe('normal')
+    expect(resultsLabelStyle.textTransform, JSON.stringify(resultsLabelStyle)).toBe('none')
+
+    const placement = await titlebarSearch.locator('..').evaluate(field => {
+      const titlebar = field.closest<HTMLElement>('[data-slot="app-titlebar"]')
+
+      if (!titlebar) {
+        throw new Error('Session search is not inside the app titlebar')
+      }
+
+      const fieldRect = field.getBoundingClientRect()
+      const titlebarRect = titlebar.getBoundingClientRect()
+      const styles = getComputedStyle(titlebar)
+      const workspaceLeft = Number.parseFloat(styles.getPropertyValue('--workspace-left')) || 0
+      const workspaceRight = Number.parseFloat(styles.getPropertyValue('--workspace-right')) || 0
+      const workspaceCenter = (workspaceLeft + window.innerWidth - workspaceRight) / 2
+
+      return {
+        centerDelta: Math.abs(fieldRect.left + fieldRect.width / 2 - workspaceCenter),
+        containedVertically: fieldRect.top >= titlebarRect.top && fieldRect.bottom <= titlebarRect.bottom,
+        width: fieldRect.width
+      }
+    })
+
+    expect(placement.containedVertically, JSON.stringify(placement)).toBe(true)
+    expect(placement.centerDelta, JSON.stringify(placement)).toBeLessThanOrEqual(2)
+    expect(placement.width, JSON.stringify(placement)).toBeGreaterThanOrEqual(320)
+    expect(placement.width, JSON.stringify(placement)).toBeLessThanOrEqual(640)
+
+    const panelPlacement = await results.evaluate(panel => {
+      const titlebar = panel.closest<HTMLElement>('[data-slot="app-titlebar"]')
+      const shell = panel.closest<HTMLElement>('[data-session-search-shell]')
+
+      if (!titlebar || !shell) {
+        throw new Error('Session results are not anchored to the titlebar search shell')
+      }
+
+      const panelRect = panel.getBoundingClientRect()
+      const shellRect = shell.getBoundingClientRect()
+      const titlebarRect = titlebar.getBoundingClientRect()
+
+      return {
+        alignedLeft: Math.abs(panelRect.left - shellRect.left),
+        belowTitlebar: panelRect.top >= titlebarRect.bottom - 1,
+        sameWidth: Math.abs(panelRect.width - shellRect.width)
+      }
+    })
+
+    expect(panelPlacement.belowTitlebar, JSON.stringify(panelPlacement)).toBe(true)
+    expect(panelPlacement.alignedLeft, JSON.stringify(panelPlacement)).toBeLessThanOrEqual(2)
+    expect(panelPlacement.sameWidth, JSON.stringify(panelPlacement)).toBeLessThanOrEqual(2)
+
+    const chatDuringSearch = await chatSurface.boundingBox()
+    expect(chatDuringSearch?.y, JSON.stringify({ chatBeforeSearch, chatDuringSearch })).toBe(chatBeforeSearch?.y)
+    expect(chatDuringSearch?.height, JSON.stringify({ chatBeforeSearch, chatDuringSearch })).toBe(
+      chatBeforeSearch?.height
+    )
+
+    await resultRow.click()
+    await expect(page).toHaveURL(targetUrl)
+    await expect(titlebarSearch).toHaveValue('')
+    await expect(results).toHaveCount(0)
+  })
+
   test('keeps the composer docked and uses the focused conversation layout after send', async () => {
     const page = fixture!.page
     const surface = page.locator('[data-chat-surface]').first()

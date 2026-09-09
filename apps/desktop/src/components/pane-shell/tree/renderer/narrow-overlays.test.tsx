@@ -91,4 +91,18 @@ describe('narrow overlay of a stacked zone', () => {
     expect(getByTestId('sessions-body')).toBeTruthy()
     expect(overlayTab('sessions')).toBeNull()
   })
+
+  it('uses the shared Aino surface tokens for the revealed overlay', () => {
+    render(<NarrowOverlays />)
+
+    revealPane('sessions')
+
+    const overlay = globalThis.document.querySelector<HTMLElement>('[data-glass-opaque]')
+
+    expect(overlay).toBeTruthy()
+    expect(overlay!.className).toContain('shadow-nous')
+    expect(overlay!.className).toContain('border-(--stroke-nous)')
+    expect(overlay!.className).not.toContain('shadow-2xl')
+    expect(overlay!.className).not.toContain('border-(--ui-stroke-secondary)')
+  })
 })

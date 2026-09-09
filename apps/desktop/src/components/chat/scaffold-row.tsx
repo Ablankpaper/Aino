@@ -22,6 +22,12 @@ export const SCAFFOLD_LABEL_CLASS =
 /** Durations, counts and diff stats trailing a scaffold label. */
 export const SCAFFOLD_META_CLASS = 'shrink-0 text-[0.625rem] tabular-nums text-(--conversation-scaffold-meta)'
 
+/** The live pulse used by the thread status rows. Keep it in the same neutral
+ * scaffold palette as thinking headers and tool activity, rather than the
+ * theme accent reserved for interactive navigation. */
+export const SCAFFOLD_ACTIVITY_GLYPH_CLASS =
+  'dither inline-block size-3 rounded-[2px] text-(--conversation-scaffold-text)'
+
 /** The fixed cell a scaffold line's leading glyph sits in — status dot, tool
  *  icon, spinner. Same box on every line, so the labels share a left edge. */
 export const SCAFFOLD_GLYPH_CLASS = 'grid size-3.5 shrink-0 place-items-center'

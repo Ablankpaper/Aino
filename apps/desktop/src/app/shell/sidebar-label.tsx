@@ -4,18 +4,28 @@ import { cn } from '@/lib/utils'
 
 interface SidebarPanelLabelProps extends React.ComponentProps<'span'> {
   dotClassName?: string
+  tone?: 'accent' | 'neutral'
 }
 
-export function SidebarPanelLabel({ children, className, dotClassName, ...props }: SidebarPanelLabelProps) {
+export function SidebarPanelLabel({
+  children,
+  className,
+  dotClassName,
+  tone = 'accent',
+  ...props
+}: SidebarPanelLabelProps) {
   return (
     <span
       className={cn(
         'flex min-w-0 items-center gap-2 pl-2 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-(--theme-primary)',
         className
       )}
+      data-sidebar-label-tone={tone}
       {...props}
     >
-      <span aria-hidden="true" className={cn('dither inline-block size-2 shrink-0 rounded-[1px]', dotClassName)} />
+      {tone === 'accent' && (
+        <span aria-hidden="true" className={cn('dither inline-block size-2 shrink-0 rounded-[1px]', dotClassName)} />
+      )}
       <span className="min-w-0 truncate leading-none">{children}</span>
     </span>
   )

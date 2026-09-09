@@ -7,7 +7,11 @@ import { activitySignature, toolNarratesWait, TURN_QUIET_S } from '@/components/
 import { toolPresentVerb, type ToolRunCopy } from '@/components/assistant-ui/tool/run-summary'
 import { useElapsedSeconds } from '@/components/chat/activity-timer'
 import { ActivityTimerText } from '@/components/chat/activity-timer-text'
-import { SCAFFOLD_LABEL_CLASS } from '@/components/chat/scaffold-row'
+import {
+  SCAFFOLD_ACTIVITY_GLYPH_CLASS,
+  SCAFFOLD_LABEL_CLASS,
+  SCAFFOLD_META_CLASS
+} from '@/components/chat/scaffold-row'
 import { Codicon } from '@/components/ui/codicon'
 import { Loader } from '@/components/ui/loader'
 import { StatusPulse } from '@/components/ui/status-pulse'
@@ -160,13 +164,9 @@ export const ResponseLoadingIndicator: FC = () => {
 
   return (
     <StatusRow data-slot="aui_response-loading" label={hint || t.assistant.thread.loadingResponse}>
-      <StatusPulse
-        aria-hidden="true"
-        className="dither inline-block size-3 rounded-[2px] text-midground/80"
-        kind="opacity"
-      />
+      <StatusPulse aria-hidden="true" className={SCAFFOLD_ACTIVITY_GLYPH_CLASS} kind="opacity" />
       {hint && <HintText>{hint}</HintText>}
-      <ActivityTimerText seconds={elapsed} />
+      <ActivityTimerText className={SCAFFOLD_META_CLASS} seconds={elapsed} />
     </StatusRow>
   )
 }
@@ -276,13 +276,9 @@ export const TurnActivityIndicator: FC = () => {
 
   return (
     <StatusRow data-slot="aui_turn-activity" label={hint || t.assistant.thread.working}>
-      <StatusPulse
-        aria-hidden="true"
-        className="dither inline-block size-3 rounded-[2px] text-midground/80"
-        kind="opacity"
-      />
+      <StatusPulse aria-hidden="true" className={SCAFFOLD_ACTIVITY_GLYPH_CLASS} kind="opacity" />
       {hint && <HintText>{hint}</HintText>}
-      <ActivityTimerText seconds={elapsed} />
+      <ActivityTimerText className={SCAFFOLD_META_CLASS} seconds={elapsed} />
     </StatusRow>
   )
 }

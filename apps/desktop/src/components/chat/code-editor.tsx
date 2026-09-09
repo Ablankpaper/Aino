@@ -114,6 +114,12 @@ const LAYOUT_THEME = EditorView.theme({
     backgroundColor: 'transparent',
     height: '100%'
   },
+  // CodeMirror's stock theme adds a dotted outline to the focused editor.
+  // The editor is already framed by the Aino shell below, so that browser/CM
+  // chrome is both redundant and visually unlike the rest of the app.
+  '&.cm-focused': {
+    outline: 'none'
+  },
   // CM's base theme ships `.cm-content { padding: 4px 0 }` (~5px top/bottom).
   // Zero it explicitly so pane + framed interiors match SourceView flush-top.
   '.cm-content': {
@@ -378,7 +384,7 @@ export function CodeEditor({
   return (
     <div
       className={cn(
-        'flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-(--ui-stroke-tertiary)',
+        'flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-(--ui-stroke-tertiary) focus-within:border-(--ui-accent) focus-within:shadow-[var(--aino-focus-ring)]',
         className
       )}
     >

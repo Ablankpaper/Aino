@@ -234,6 +234,9 @@ export const PaneTabLabel = React.forwardRef<HTMLElement, PaneTabLabelProps>(fun
 interface PaneTabStripProps extends React.ComponentProps<'div'> {
   /** The scrolling tab list — receives `role="tablist"`. */
   children: React.ReactNode
+  /** Semantic surface the strip belongs to. Main workspace strips share the
+   *  conversation paper with the titlebar; sidebar strips retain the rail. */
+  surface?: 'main' | 'sidebar'
   /** Ref on the scroller itself, for `useActiveTabVisible`. */
   listRef?: React.Ref<HTMLDivElement>
   /** Non-scrolling trailing chrome pinned to the right (the minimize chevron). */
@@ -250,7 +253,7 @@ interface PaneTabStripProps extends React.ComponentProps<'div'> {
  * `data-zone-tabstrip`, drop carets) ride on the usual div props.
  */
 export const PaneTabStrip = React.forwardRef<HTMLDivElement, PaneTabStripProps>(function PaneTabStrip(
-  { children, className, listRef, trailing, ...props },
+  { children, className, listRef, surface, trailing, ...props },
   ref
 ) {
   return (
@@ -262,6 +265,7 @@ export const PaneTabStrip = React.forwardRef<HTMLDivElement, PaneTabStripProps>(
         'group/pane-header relative flex h-7 shrink-0 select-none bg-(--ui-sidebar-surface-background) [-webkit-app-region:no-drag] [--pane-tab-active-bg:var(--ui-sidebar-surface-background)]',
         className
       )}
+      data-pane-surface={surface}
       ref={ref}
       {...props}
     >
