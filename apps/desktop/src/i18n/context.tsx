@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { getHermesConfigRecord, type HermesConfigRecord, saveHermesConfig } from '@/hermes'
+import { brandTranslationTree } from '@/lib/brand'
 
 import { TRANSLATIONS } from './catalog'
 import { DEFAULT_LOCALE, localeConfigValue, normalizeLocale } from './languages'
@@ -83,7 +84,10 @@ const I18nContext = createContext<I18nContextValue>({
   locale: DEFAULT_LOCALE,
   saveError: null,
   setLocale: async () => {},
-  t: TRANSLATIONS[DEFAULT_LOCALE]
+  // Keep components branded even when rendered outside the provider (for
+  // example, an Electron error/first-run overlay mounted during bootstrap or
+  // a lightweight host that does not install the React provider).
+  t: brandTranslationTree(TRANSLATIONS[DEFAULT_LOCALE])
 })
 
 export interface I18nProviderProps {
@@ -98,6 +102,7 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
   const [isSavingLocale, setIsSavingLocale] = useState(false)
   const [configLoadError, setConfigLoadError] = useState<Error | null>(null)
   const [saveError, setSaveError] = useState<Error | null>(null)
+  const [configResolved, setConfigResolved] = useState(() => !configClient)
   const localeRef = useRef(locale)
 
   // eslint-disable-next-line no-restricted-syntax -- legitimate non-atom ref write (see eslint rule comment)
@@ -105,7 +110,28 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
     localeRef.current = locale
     setRuntimeI18nLocale(locale)
     applyDocumentLocale(locale)
-  }, [locale])
+
+    // Electron menus and native dialogs sit outside React's tree. Keep the
+    // main-process mirror best-effort so an older shell (or a non-Electron
+    // test/browser host) remains fully usable when the optional bridge is
+    // absent. When a config client exists, wait until its persisted language
+    // has been resolved so the initial English state does not briefly replace
+    // an OS-native Chinese menu before the real preference arrives.
+    if (configClient && !configResolved) {
+      return
+    }
+
+    const syncNativeLocale = typeof window !== 'undefined' ? window.hermesDesktop?.setLocale : undefined
+
+    if (syncNativeLocale) {
+      void Promise.resolve()
+        .then(() => syncNativeLocale(locale))
+        .catch(() => {
+          // Native copy is an enhancement; renderer localization must not wait
+          // on or fail because an older Electron main process lacks the channel.
+        })
+    }
+  }, [configClient, configResolved, locale])
 
   useEffect(() => {
     if (!configClient) {
@@ -114,6 +140,7 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
 
     let cancelled = false
 
+    setConfigResolved(false)
     setIsLoadingConfig(true)
     setConfigLoadError(null)
 
@@ -121,17 +148,20 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
       .getConfig()
       .then(config => {
         if (!cancelled) {
+          setConfigResolved(true)
           setLocaleState(normalizeLocale(getConfigDisplayLanguage(config)))
         }
       })
       .catch(error => {
         if (!cancelled) {
+          setConfigResolved(true)
           setConfigLoadError(toError(error))
           setLocaleState(DEFAULT_LOCALE)
         }
       })
       .finally(() => {
         if (!cancelled) {
+          setConfigResolved(true)
           setIsLoadingConfig(false)
         }
       })
@@ -159,7 +189,7 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
         const result = await configClient.saveConfig(withConfigDisplayLanguage(latestConfig, next))
 
         if (!result.ok) {
-          throw new Error('Failed to save language')
+          throw new Error(TRANSLATIONS[next].language.saveError)
         }
       } catch (error) {
         const nextError = toError(error)
@@ -183,7 +213,12 @@ export function I18nProvider({ children, configClient = defaultConfigClient, ini
       locale,
       saveError,
       setLocale,
-      t: TRANSLATIONS[locale]
+      // Locale files intentionally track upstream Hermes so future syncs stay
+      // low-conflict. Apply the Aino product overlay at the React boundary so
+      // every user-facing string (including newly added upstream keys) uses
+      // the configured product identity while compatibility snippets inside
+      // code spans remain untouched.
+      t: brandTranslationTree(TRANSLATIONS[locale])
     }),
     [configLoadError, isLoadingConfig, isSavingLocale, locale, saveError, setLocale]
   )

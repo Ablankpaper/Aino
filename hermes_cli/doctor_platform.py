@@ -4,12 +4,19 @@ Split out of ``hermes_cli/doctor.py``, which re-exports every name so ``hermes_c
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from hermes_cli.colors import Colors, color
 from hermes_cli.config import is_nix_install_method, recommended_update_command_for_method
+from hermes_cli.desktop_identity import (
+    DESKTOP_APP_ID,
+    DESKTOP_PRODUCT_NAME,
+    LEGACY_DESKTOP_APP_ID,
+    LEGACY_DESKTOP_PRODUCT_NAME,
+)
 from hermes_cli.doctor_report import (
     Finding, _fail_and_issue, _section, check_bool, check_fail, check_info, check_ok, check_warn, doctor_check,
     warn_on_error,
@@ -272,20 +279,56 @@ def check_macos_tcc_grants() -> None:
         return check_warn("macOS TCC grants will reset after every update", _TCC_CDHASH_DETAIL)
     # --setup-tcc-identity or notarized build (certificate-anchored) is the strongest anchor.
     check_ok("macOS TCC signing identity is stable", _TCC_STABLE_DETAIL["certificate" in dr.lower()])
-    check_info("If macOS still re-prompts for permissions (toggle shows ON): the stored grant is stale — run "
-               "`tccutil reset ScreenCapture com.nousresearch.hermes` (repeat per affected service), toggle it ON in "
-               "System Settings, then fully quit & relaunch Hermes once.")
+    tcc_identifier = _macos_tcc_identifier(app, dr)
+    check_info(
+        "If macOS still re-prompts for permissions (toggle shows ON): the stored "
+        f"grant is stale — run `tccutil reset ScreenCapture {tcc_identifier}` "
+        "(repeat per affected service), toggle it ON in System Settings, then "
+        f"fully quit & relaunch {DESKTOP_PRODUCT_NAME} once."
+    )
 
 
 def _desktop_app_bundle() -> Path | None:
-    """Locate the locally-built desktop bundle (``apps/desktop/release/mac-<arch>/Hermes.app``), newest first.
+    """Locate a locally-built Aino bundle, with a legacy Hermes fallback.
 
-    The only layout whose ad-hoc re-signed bundle can invalidate TCC grants. ``/Applications/Hermes.app`` is
-    deliberately not probed: it is the separately-signed, certificate-anchored Hermes-Setup launcher.
+    Installed application bundles are deliberately not probed: they are
+    separately signed and unaffected by the local rebuild path.
     """
     release_dir = Path(__file__).resolve().parents[1] / "apps" / "desktop" / "release"
-    candidates = [p for p in release_dir.glob("mac*/Hermes.app") if p.is_dir()]
-    return max(candidates, key=lambda p: p.stat().st_mtime) if candidates else None
+    return _select_desktop_app_bundle(release_dir)
+
+
+def _select_desktop_app_bundle(release_dir: Path) -> Path | None:
+    """Select a local desktop bundle using Aino-first migration precedence.
+
+    A stale Hermes tree can have a newer mtime than the current Aino build;
+    identity precedence must therefore be resolved before the newest-build
+    tie-breaker. Hermes is retained only as an explicit old-install fallback.
+    """
+    for product_name in (DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME):
+        candidates = [
+            p
+            for p in release_dir.glob(f"mac*/{product_name}.app")
+            if p.is_dir()
+        ]
+        if candidates:
+            return max(candidates, key=lambda p: p.stat().st_mtime)
+    return None
+
+
+def _macos_tcc_identifier(app: Path, designated_requirement: str) -> str:
+    """Return a safe bundle id for one-time TCC reset guidance.
+
+    Prefer the identifier reported by ``codesign``, but only accept the two
+    identities owned by this project. If old/stripped output omits it, infer
+    the migration generation from the bundle name.
+    """
+    match = re.search(r'identifier\s+"([^"]+)"', designated_requirement or "")
+    if match and match.group(1) in {DESKTOP_APP_ID, LEGACY_DESKTOP_APP_ID}:
+        return match.group(1)
+    if app.name.casefold() == f"{LEGACY_DESKTOP_PRODUCT_NAME}.app".casefold():
+        return LEGACY_DESKTOP_APP_ID
+    return DESKTOP_APP_ID
 
 
 def _macos_desktop_dr(app: Path) -> str | None:

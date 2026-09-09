@@ -3,6 +3,8 @@ import { act, renderHook } from '@testing-library/react'
 import { createElement, type PropsWithChildren } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import type { BillingResult } from './api'
 import type { BillingChargeStatusResponse } from './types'
 
@@ -62,11 +64,13 @@ function wrapper({ children }: PropsWithChildren) {
 }
 
 beforeEach(() => {
+  setRuntimeI18nLocale('en')
   apiMocks.charge.mockReset()
   apiMocks.chargeStatus.mockReset()
 })
 
 afterEach(() => {
+  setRuntimeI18nLocale('en')
   vi.clearAllMocks()
 })
 
@@ -179,6 +183,37 @@ describe('pollChargeSettlement', () => {
       title: 'Charge outcome unconfirmed'
     })
   })
+
+  it('uses Simplified Chinese copy for a declined charge', async () => {
+    setRuntimeI18nLocale('zh')
+    const clock = controlledClock()
+
+    const api = {
+      chargeStatus: vi.fn().mockResolvedValue(status({ reason: 'card_declined', status: 'failed' }))
+    }
+
+    await expect(pollChargeSettlement(api, 'ch_123', clock)).resolves.toMatchObject({
+      kind: 'failure',
+      message: '你的银行卡被拒绝。请在门户中尝试其他银行卡。',
+      title: '扣款失败'
+    })
+  })
+
+  it('uses Simplified Chinese copy for a still-processing charge', async () => {
+    setRuntimeI18nLocale('zh')
+    const clock = controlledClock()
+
+    const api = {
+      chargeStatus: vi.fn().mockResolvedValue(status())
+    }
+
+    await expect(pollChargeSettlement(api, 'ch_123', clock)).resolves.toEqual({
+      kind: 'ambiguous',
+      message: '扣款可能仍在结算。请在重试前检查门户。',
+      portalUrl: undefined,
+      title: '处理超过 5 分钟'
+    })
+  })
 })
 
 describe('useChargeFlow', () => {
@@ -228,5 +263,22 @@ describe('useChargeFlow', () => {
 
     expect(apiMocks.charge).toHaveBeenNthCalledWith(1, '25', undefined)
     expect(apiMocks.charge).toHaveBeenNthCalledWith(2, '25', 'key-1')
+  })
+
+  it('uses Simplified Chinese copy when the billing service omits a charge id', async () => {
+    setRuntimeI18nLocale('zh')
+    apiMocks.charge.mockResolvedValue({ ok: true, data: { charge_id: '' } })
+
+    const { result } = renderHook(() => useChargeFlow(), { wrapper })
+
+    await act(async () => {
+      await result.current.start('25')
+    })
+
+    expect(result.current.outcome).toMatchObject({
+      kind: 'failure',
+      message: '账单服务已接受请求，但没有返回扣款编号。',
+      title: '无法追踪扣款'
+    })
   })
 })

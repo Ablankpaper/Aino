@@ -302,6 +302,9 @@ export function useComposerActions({
 }: ComposerActionsOptions) {
   const { t } = useI18n()
   const copy = t.desktop
+  const attachFailedCopy = copy.attachFailed
+  const attachFolderFailedCopy = copy.attachFolderFailed
+  const dropFilesCopy = copy.dropFiles
 
   /** Add to this scope's composer and focus it. All sidebar/picker/drop
    *  attach paths funnel through here. */
@@ -397,7 +400,7 @@ export function useComposerActions({
   const pickContextPaths = useCallback(
     async (kind: 'file' | 'folder') => {
       const paths = await selectDesktopPaths({
-        title: kind === 'file' ? 'Add files as context' : 'Add folders as context',
+        title: kind === 'file' ? copy.pickFilesTitle : copy.pickFoldersTitle,
         defaultPath: currentCwd || undefined,
         directories: kind === 'folder'
       })
@@ -419,7 +422,7 @@ export function useComposerActions({
         })
       }
     },
-    [attachToMain, currentCwd]
+    [attachToMain, copy.pickFilesTitle, copy.pickFoldersTitle, currentCwd]
   )
 
   const insertContextPathInlineRef = useCallback(
@@ -632,7 +635,7 @@ export function useComposerActions({
               continue
             }
 
-            lastFailure = `Could not attach folder ${knownPath || ''}`
+            lastFailure = attachFolderFailedCopy(knownPath)
 
             continue
           }
@@ -644,7 +647,7 @@ export function useComposerActions({
               continue
             }
 
-            lastFailure = `Could not attach ${knownPath}`
+            lastFailure = attachFailedCopy(knownPath)
 
             continue
           }
@@ -655,7 +658,7 @@ export function useComposerActions({
             continue
           }
 
-          lastFailure = `Could not attach ${knownPath || 'file'}`
+          lastFailure = attachFailedCopy(knownPath)
 
           continue
         }
@@ -680,7 +683,7 @@ export function useComposerActions({
             continue
           }
 
-          lastFailure = `Could not attach ${file.name || 'image'}`
+          lastFailure = attachFailedCopy(file.name || 'image')
 
           continue
         }
@@ -691,16 +694,24 @@ export function useComposerActions({
           continue
         }
 
-        lastFailure = `Could not attach ${file.name || 'file'}`
+        lastFailure = attachFailedCopy(file.name || 'file')
       }
 
       if (!attached && lastFailure) {
-        notify({ kind: 'warning', title: copy.dropFiles, message: lastFailure })
+        notify({ kind: 'warning', title: dropFilesCopy, message: lastFailure })
       }
 
       return attached
     },
-    [attachContextFilePath, attachContextFolderPath, attachImageBlob, attachImagePath, copy.dropFiles]
+    [
+      attachContextFilePath,
+      attachContextFolderPath,
+      attachImageBlob,
+      attachImagePath,
+      attachFailedCopy,
+      attachFolderFailedCopy,
+      dropFilesCopy
+    ]
   )
 
   const removeAttachment = useCallback(

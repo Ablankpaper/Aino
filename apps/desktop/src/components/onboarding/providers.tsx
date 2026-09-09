@@ -1,5 +1,5 @@
 import { RowButton } from '@/components/ui/row-button'
-import { useI18n } from '@/i18n'
+import { translateNow, useI18n } from '@/i18n'
 import { Check, ChevronRight, Terminal } from '@/lib/icons'
 import type { OAuthProvider } from '@/types/hermes'
 
@@ -17,7 +17,8 @@ const PROVIDER_DISPLAY: Record<string, { order: number; title: string }> = {
 
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`
 
-export const providerTitle = (p: OAuthProvider) => PROVIDER_DISPLAY[p.id]?.title ?? p.name
+export const providerTitle = (p: OAuthProvider) =>
+  translateNow('onboarding.providerTitle', p.id, PROVIDER_DISPLAY[p.id]?.title ?? p.name)
 const orderOf = (p: OAuthProvider) => PROVIDER_DISPLAY[p.id]?.order ?? 99
 
 export const sortProviders = (providers: OAuthProvider[]) =>
@@ -35,7 +36,7 @@ export function FeaturedProviderRow({
 
   return (
     <button
-      className="group relative flex w-full items-center justify-between gap-4 rounded-[8px] bg-primary/[0.06] px-3 py-2.5 text-left transition-colors hover:bg-primary/10"
+      className="group relative flex w-full items-center justify-between gap-4 rounded-lg bg-(--ui-bg-quaternary) px-3 py-2.5 text-left transition-colors hover:bg-(--ui-row-active-background)"
       onClick={() => onSelect(provider)}
       type="button"
     >
@@ -49,7 +50,7 @@ export function FeaturedProviderRow({
           {loggedIn ? (
             <ConnectedTag />
           ) : (
-            <span className="inline-flex items-center gap-1.5 bg-primary px-2 py-0.5 text-[0.64rem] font-semibold uppercase tracking-[0.16em] text-primary-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-(--aino-action-bg) px-2 py-0.5 text-xs font-medium tracking-normal text-(--aino-action-fg)">
               <span aria-hidden="true" className="dither inline-block size-2 shrink-0" />
               {t.onboarding.recommended}
             </span>
@@ -74,7 +75,7 @@ function ConnectedTag() {
 }
 
 const PROVIDER_ROW_CLASS =
-  'group flex w-full items-center justify-between gap-3 rounded-[6px] px-3 py-2.5 text-left transition-colors hover:bg-(--ui-control-hover-background)'
+  'group flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-(--ui-control-hover-background)'
 
 /** Quick-key row for API-key providers (Fireworks leads the expanded list after Nous, OpenRouter further down). */
 export function KeyProviderRow({ onClick, pitch, title }: { onClick: () => void; pitch: string; title: string }) {

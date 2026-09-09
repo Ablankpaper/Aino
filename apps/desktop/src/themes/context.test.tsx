@@ -1,8 +1,10 @@
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { $activeGatewayProfile } from '@/store/profile'
+
 import { __resetBackendSkinSync, ingestBackendSkin } from './backend-sync'
-import { skinPref, ThemeProvider, useTheme } from './context'
+import { modePref, skinPref, ThemeProvider, useTheme } from './context'
 import { everforestTheme } from './presets'
 
 // The live-authoring loop: Hermes writes/edits one skin file and every surface
@@ -13,6 +15,83 @@ const bloomberg = (foreground: string) => ({
 })
 
 const cssVar = (name: string) => window.document.documentElement.style.getPropertyValue(name)
+const ACTIVE_PROFILE_KEY = 'hermes-desktop-active-profile-v1'
+
+describe('ThemeProvider profile authority', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    $activeGatewayProfile.set('default')
+    skinPref.assign('default', 'mono')
+    modePref.assign('default', 'light')
+    skinPref.assign('work', 'everforest')
+    modePref.assign('work', 'dark')
+    window.localStorage.setItem(ACTIVE_PROFILE_KEY, 'work')
+  })
+
+  afterEach(() => {
+    cleanup()
+    $activeGatewayProfile.set('default')
+  })
+
+  it('keeps a gatewayless auxiliary surface on the remembered profile and follows peer storage changes', () => {
+    let ctx: ReturnType<typeof useTheme>
+
+    function Probe() {
+      ctx = useTheme()
+
+      return null
+    }
+
+    render(
+      <ThemeProvider auxiliary>
+        <Probe />
+      </ThemeProvider>
+    )
+
+    expect(ctx!.themeName).toBe('everforest')
+    expect(ctx!.mode).toBe('dark')
+    expect(window.localStorage.getItem(ACTIVE_PROFILE_KEY)).toBe('work')
+
+    act(() => {
+      modePref.assign('work', 'light')
+      window.dispatchEvent(new StorageEvent('storage', { key: 'hermes-desktop-profile-modes-v1' }))
+    })
+
+    expect(ctx!.themeName).toBe('everforest')
+    expect(ctx!.mode).toBe('light')
+
+    act(() => {
+      window.localStorage.setItem(ACTIVE_PROFILE_KEY, 'default')
+      window.dispatchEvent(new StorageEvent('storage', { key: ACTIVE_PROFILE_KEY }))
+    })
+
+    expect(ctx!.themeName).toBe('mono')
+    expect(ctx!.mode).toBe('light')
+    expect(window.localStorage.getItem(ACTIVE_PROFILE_KEY)).toBe('default')
+  })
+
+  it('keeps the normal provider authoritative for the actual gateway profile', () => {
+    act(() => $activeGatewayProfile.set('work'))
+
+    let ctx: ReturnType<typeof useTheme>
+
+    function Probe() {
+      ctx = useTheme()
+
+      return null
+    }
+
+    render(
+      <ThemeProvider>
+        <Probe />
+      </ThemeProvider>
+    )
+
+    expect(ctx!.themeName).toBe('everforest')
+    expect(ctx!.mode).toBe('dark')
+    expect(window.localStorage.getItem(ACTIVE_PROFILE_KEY)).toBe('work')
+  })
+})
 
 describe('ThemeProvider ← backend skin sync', () => {
   beforeEach(() => {

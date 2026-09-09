@@ -16,6 +16,9 @@ import { afterEach, beforeEach, describe, test } from 'vitest'
 const require = createRequire(import.meta.url)
 const desktopDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const desktopPkg = require(path.join(desktopDir, 'package.json'))
+const expectedRepository = new URL(desktopPkg.repository.url.replace(/^git\+/, ''))
+const [expectedOwner, expectedRepoPath] = expectedRepository.pathname.split('/').filter(Boolean)
+const expectedRepo = expectedRepoPath.replace(/\.git$/, '')
 
 const { getPublishConfigs } = require('app-builder-lib/out/publish/PublishManager.js')
 const { getRepositoryInfo } = require('app-builder-lib/out/util/repositoryInfo.js')
@@ -79,17 +82,12 @@ describe('local desktop pack stays out of the publish path', () => {
     // and app-builder-lib does not walk up to the workspace root.
     process.env.GITHUB_TOKEN = 'x'
 
-    const configs = await getPublishConfigs(
-      fakePackager(desktopPkg),
-      null,
-      null,
-      /* errorIfCannot */ true
-    )
+    const configs = await getPublishConfigs(fakePackager(desktopPkg), null, null, /* errorIfCannot */ true)
 
     assert.ok(Array.isArray(configs) && configs.length > 0)
     assert.equal(configs[0].provider, 'github')
-    assert.equal(configs[0].owner, 'NousResearch')
-    assert.equal(configs[0].repo, 'hermes-agent')
+    assert.equal(configs[0].owner, expectedOwner)
+    assert.equal(configs[0].repo, expectedRepo)
   })
 
   test('a package without the repository field is what breaks resolution', async () => {

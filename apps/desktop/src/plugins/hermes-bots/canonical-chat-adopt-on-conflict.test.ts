@@ -47,7 +47,10 @@ vi.mock('./data', () => ({
   saveBotMeta: saveBotMetaMock
 }))
 
-vi.mock('./shared', () => ({ getPluginCtx: () => null }))
+vi.mock('./shared', () => ({
+  getPluginCtx: () => null,
+  pluginText: (_key: string, fallback: string) => fallback
+}))
 
 let events: string[]
 

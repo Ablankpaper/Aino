@@ -14,7 +14,7 @@ import { host } from '@hermes/plugin-sdk'
 import { $botMeta, botMetaKey, botOwner, persistBotMetaSnapshot } from './data'
 import { backendTargetProfile, botConnectionRoute, botRosterMeta, botWorkspaceOwnerKey, requestForBot } from './routing'
 import type { RpcErrorLike } from './routing'
-import { getPluginCtx } from './shared'
+import { pluginText } from './shared'
 import type { BotMeta, CanonicalSession, RosterRow } from './types'
 
 // ── canonical bot chat ───────────────────────────────────────────────────────
@@ -84,7 +84,9 @@ async function openStoredBotChat(
   summary: CanonicalChatRow
 ): Promise<string> {
   if (!storedId || typeof host.openSession !== 'function') {
-    throw new Error('This Hermes Desktop version cannot open stored sessions')
+    throw new Error(
+      pluginText('bot.storedSessionOpenUnsupported', 'This Hermes Desktop version cannot open stored sessions')
+    )
   }
 
   const { bot, name, route } = botOwner(owner)
@@ -162,8 +164,8 @@ export function notifyBotOpenFailure(error: unknown, bot: RosterRow, fallbackMes
     const gateway = bot.connectionLabel || bot.connectionId || 'this gateway'
     host.notify?.({
       kind: 'error',
-      title: 'Update this gateway to use Bot Mode',
-      message: `Update ${gateway}, then try again.`
+      title: pluginText('bot.updateGatewayTitle', 'Update this gateway to use Bot Mode'),
+      message: pluginText('bot.updateGatewayMessage', `Update ${gateway}, then try again.`, gateway)
     })
 
     return
@@ -209,7 +211,9 @@ async function findExistingCanonicalChat(owner: RosterRow | string): Promise<Can
     // message so update-required classification and diagnostics still work.
     const message = typeof (error as RpcErrorLike)?.message === 'string' ? (error as { message: string }).message : ''
     const detail = message ? ` (${message})` : ''
-    throw new Error(`Could not check ${name}'s Bot Chat registry${detail} — not starting a new chat`)
+    throw new Error(
+      pluginText('bot.registryCheckFailed', `Could not check ${name}'s Bot Chat registry${detail} — not starting a new chat`, name, message)
+    )
   }
 
   const rows = res?.sessions ?? []
@@ -253,7 +257,7 @@ interface CreateCanonicalChatOptions {
  *  documented in AGENTS.md ("kicked off with the bot's intro"); what this
  *  narrows is who has to read it in English. */
 function kickoffText(): string {
-  return getPluginCtx()?.i18n?.t('bot.kickoff') ?? 'Hey, tell me about yourself!'
+  return pluginText('bot.kickoff', 'Hey, tell me about yourself!')
 }
 
 /** Create the bot's ONE forever chat: a real session titled "Bot Chat".
@@ -531,8 +535,7 @@ export async function prepareBotSource(bot: RosterRow) {
 
   if (route && typeof host.requestProfile !== 'function') {
     throw new Error(
-      getPluginCtx()?.i18n?.t('bot.remoteConnectionsUnsupported') ??
-        'Update Hermes Desktop to chat with bots on other connections.'
+      pluginText('bot.remoteConnectionsUnsupported', 'Update Hermes Desktop to chat with bots on other connections.')
     )
   }
 

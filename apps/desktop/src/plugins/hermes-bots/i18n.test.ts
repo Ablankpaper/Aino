@@ -51,6 +51,104 @@ describe('BOTS_LOCALES', () => {
     }
   })
 
+  it('covers the roster, row, and avatar controls used by the desktop shell', () => {
+    const samples = [
+      'roster.title',
+      'roster.newMenu',
+      'roster.activityToastsOn',
+      'roster.filterRoster',
+      'roster.globalGroupChats',
+      'roster.currentGateway',
+      'roster.staleRefresh',
+      'roster.gatewayUnreachable',
+      'roster.newMessageFor',
+      'roster.hasNewActivity',
+      'roster.openChatToSeeIt',
+      'roster.deleteDescription',
+      'roster.deletedProfile',
+      'bot.pinToTop',
+      'bot.unpin',
+      'bot.manageGroups',
+      'bot.duplicating',
+      'bot.chatOpenFailed',
+      'bot.updateGatewayTitle',
+      'bot.updateGatewayMessage',
+      'bot.attentionProviderAuth',
+      'group.newConversationHint',
+      'group.attachmentTooLarge',
+      'group.you',
+      'group.botCount',
+      'group.availability',
+      'avatar.lockFace',
+      'avatar.faceLocked',
+      'avatar.noImageModel',
+      'avatar.chooseImage',
+      'bot.createDescription',
+      'bot.remoteCreateHint',
+      'bot.capabilitiesImmediate',
+      'tools.browseHub',
+      'tools.hubHint',
+      'mcp.saveTest',
+      'mcp.setupNeeded',
+      'model.backToDropdowns',
+      'model.inheritLaunch',
+      'cron.jobDescription',
+      'cron.detailStatus',
+      'cron.pausedSecurity',
+      'cron.onceMinutes'
+    ] as const
+
+    const enByPath = Object.fromEntries(leafEntries(en))
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    for (const path of samples) {
+      expect(zhByPath[path], path).toBeDefined()
+      expect(zhByPath[path], path).not.toBe(enByPath[path])
+    }
+  })
+
+  it('localizes the skill hub install affordance for Chinese users', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    expect(zhByPath['tools.hubHint']).toBe(
+      '点击任意技能上的“+ 添加到此智能体”即可安装，安装后会出现在上方列表中。拖动角落可调整大小。'
+    )
+  })
+
+  it('localizes the forever-chat reset guard for Chinese users', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    expect(zhByPath['bot.foreverChatTitle']).toBe('此聊天不会重置')
+    expect(zhByPath['bot.foreverChatMessage']).toBe(
+      '机器人聊天会持续保留上下文，因此将改为压缩当前上下文。若要与此机器人开启临时会话，请使用“会话”模式。'
+    )
+  })
+
+  it('localizes profile-operation and stored-session guards for Chinese users', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    expect(zhByPath['bot.duplicateNameExhausted']).toBe('没有可用的复制名称。')
+    expect(zhByPath['bot.defaultDeleteBlocked']).toBe('默认工作区不能删除。')
+    expect(zhByPath['bot.remoteDeleteUnsupported']).toBe('当前桌面端暂不支持删除来源限定的工作区。')
+    expect(zhByPath['bot.storedSessionOpenUnsupported']).toBe('当前桌面版本无法打开已保存的会话。')
+    expect((zhByPath['bot.registryCheckFailed'] as (name: string, detail: string) => string)('研究员', '网关超时')).toBe(
+      '无法检查 研究员 的机器人聊天注册表（网关超时） — 不会启动新聊天'
+    )
+  })
+
+  it('localizes the roster disband confirmation description for Chinese users', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+    const description = zhByPath['group.disbandDescription'] as (group: string) => string
+
+    expect(description('研究组')).toBe('这会从机器人中移除“研究组”并清空共享房间日志。机器人及其各自的聊天会保留。')
+  })
+
+  it('provides localized labels for the Bot Mode palette action', () => {
+    const zhByPath = Object.fromEntries(leafEntries(zh))
+
+    expect(zhByPath['bot.newCommand']).toBe('新建机器人…')
+  })
+
   it('keeps interpolator arguments in the translated string', () => {
     const sentinel = 'QUERY_SENTINEL'
     const gateway = 'GATEWAY_SENTINEL'

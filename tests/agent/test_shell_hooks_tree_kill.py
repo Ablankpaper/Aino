@@ -63,7 +63,7 @@ def _pid_alive(pid: int) -> bool:
     return True
 
 
-def _read_marker(marker, timeout=5.0) -> int:
+def _read_marker(marker, timeout=10.0) -> int:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if marker.exists() and marker.read_text().strip():
@@ -77,7 +77,12 @@ def test_timeout_kills_descendants(tmp_path):
     script, marker = _write_forking_script(tmp_path, stall_after=True)
 
     t0 = time.monotonic()
-    r = _spawn(_spec(str(script), timeout=1), "{}")
+    # Keep enough startup headroom for a heavily loaded CI worker. The child
+    # still runs a 300-second sleep, so a five-second hook timeout exercises
+    # exactly the same timeout/kill path without racing the shell's first
+    # scheduling slice (the old one-second value occasionally killed it before
+    # it could write the marker, producing a false flaky failure).
+    r = _spawn(_spec(str(script), timeout=5), "{}")
     elapsed = time.monotonic() - t0
 
     assert r["timed_out"] is True

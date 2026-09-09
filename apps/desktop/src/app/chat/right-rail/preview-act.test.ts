@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import { $rightRailActiveTabId } from '@/store/layout'
 import { closeRightRail, openPreview, type PreviewTarget } from '@/store/preview'
 
@@ -28,6 +29,7 @@ describe('actOnActivePreview (drive_preview tool)', () => {
 
   beforeEach(() => {
     vi.useRealTimers()
+    setRuntimeI18nLocale('en')
 
     for (const cleanup of cleanups) {
       cleanup()
@@ -43,6 +45,15 @@ describe('actOnActivePreview (drive_preview tool)', () => {
 
     expect(result.success).toBe(false)
     expect(result.error).toContain('open_preview')
+  })
+
+  it('localizes the missing-page error for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(await actOnActivePreview({ kind: 'elements' })).toEqual({
+      error: '应用内浏览器中没有打开可交互的页面——请先使用 open_preview 打开一个页面。',
+      success: false
+    })
   })
 
   it('injects the engine and returns the page’s answer', async () => {
@@ -106,6 +117,28 @@ describe('actOnActivePreview (drive_preview tool)', () => {
     expect((await actOnActivePreview({ kind: 'click', ref: '@e1' })).error).toContain('did not answer')
   })
 
+  it('localizes a page that does not answer for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    withRunner(async () => '')
+
+    expect(await actOnActivePreview({ kind: 'click', ref: '@e1' })).toEqual({
+      error: '页面没有回应此操作。',
+      success: false
+    })
+  })
+
+  it('localizes a page rejection while preserving its technical detail', async () => {
+    setRuntimeI18nLocale('zh')
+    withRunner(async () => {
+      throw new Error('bridge closed')
+    })
+
+    expect(await actOnActivePreview({ kind: 'click', ref: '@e1' })).toEqual({
+      error: '页面拒绝了此操作：Error: bridge closed',
+      success: false
+    })
+  })
+
   /** A pane that answers the locate trip with a fixed on-screen point, and the
    *  read-back trip with an empty inventory. Returns the input spy. */
   const withDrivenPane = () => {
@@ -143,6 +176,16 @@ describe('actOnActivePreview (drive_preview tool)', () => {
       y: 80
     })
     expect(result.acted).toBe('clicked button "Save"')
+  })
+
+  it('localizes the driven action summary for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    const send = withDrivenPane()
+
+    const result = await actOnActivePreview({ kind: 'click', ref: '@e1' })
+
+    expect(send).toHaveBeenCalled()
+    expect(result.acted).toBe('已点击 button "Save"')
   })
 
   it('types by pressing keys, after selecting whatever the field held', async () => {
@@ -243,6 +286,20 @@ describe('actOnActivePreview (drive_preview tool)', () => {
     })
   })
 
+  it('localizes the no-scroll note for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    const tabId = openBrowserTab()
+
+    cleanups.push(
+      registerPreviewScriptRunner(tabId, async () =>
+        JSON.stringify({ page: 700, point: { x: 500, y: 400 }, span: 0, success: true })
+      )
+    )
+    cleanups.push(registerPreviewInput(tabId, { focus: vi.fn(), send: vi.fn() }))
+
+    expect((await actOnActivePreview({ kind: 'scroll' })).note).toBe('页面无需滚动——所有内容已经适合当前视口。')
+  })
+
   it('fails loudly when the pointer input never reaches the page', async () => {
     const tabId = openBrowserTab()
 
@@ -263,6 +320,24 @@ describe('actOnActivePreview (drive_preview tool)', () => {
     expect(result.error).toContain('never reached the page')
   })
 
+  it('localizes a missed pointer-input error for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    const tabId = openBrowserTab()
+
+    cleanups.push(
+      registerPreviewScriptRunner(tabId, async code =>
+        code.includes('"kind":"locate"')
+          ? JSON.stringify({ acted: 'looking at button "Save"', point: { x: 12, y: 8 }, success: true })
+          : JSON.stringify({ elements: [], hit: null, success: true })
+      )
+    )
+    cleanups.push(registerPreviewInput(tabId, { focus: vi.fn(), send: vi.fn() }))
+
+    expect((await actOnActivePreview({ kind: 'click', ref: '@e1' })).error).toBe(
+      '指针输入没有到达页面，因此没有点击。'
+    )
+  })
+
   it('says so when the overlay itself swallowed the click', async () => {
     const tabId = openBrowserTab()
 
@@ -276,6 +351,22 @@ describe('actOnActivePreview (drive_preview tool)', () => {
     cleanups.push(registerPreviewInput(tabId, { focus: vi.fn(), send: vi.fn() }))
 
     expect((await actOnActivePreview({ kind: 'click', ref: '@e1' })).note).toContain('overlay intercepted')
+  })
+
+  it('localizes an overlay-intercepted note for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    const tabId = openBrowserTab()
+
+    cleanups.push(
+      registerPreviewScriptRunner(tabId, async code =>
+        code.includes('"kind":"locate"')
+          ? JSON.stringify({ acted: 'looking at button "Save"', point: { x: 12, y: 8 }, success: true })
+          : JSON.stringify({ elements: [], hit: { tag: 'HERMES-WATCH', trusted: true }, success: true })
+      )
+    )
+    cleanups.push(registerPreviewInput(tabId, { focus: vi.fn(), send: vi.fn() }))
+
+    expect((await actOnActivePreview({ kind: 'click', ref: '@e1' })).note).toBe('操作覆盖层拦截了点击，没有到达页面。')
   })
 
   it('falls back to scripted events when the pane exposes no input channel', async () => {
@@ -308,6 +399,17 @@ describe('actOnActivePreview (drive_preview tool)', () => {
     expect(runner).not.toHaveBeenCalled()
     expect(result.success).toBe(true)
     expect(result.note).toContain('elements')
+  })
+
+  it('localizes the history loading note for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    const back = vi.fn()
+    const tabId = openBrowserTab()
+    cleanups.push(registerPreviewNav(tabId, { back, forward: vi.fn(), reload: vi.fn() }))
+
+    expect(await actOnActivePreview({ kind: 'back' })).toMatchObject({
+      note: '页面正在加载——请调用 elements 查看页面内容。'
+    })
   })
 
   it('reports history verbs with no pane to drive', async () => {

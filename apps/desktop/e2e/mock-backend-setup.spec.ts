@@ -81,6 +81,37 @@ test.describe('mock backend gets past setup screen', () => {
     )
   })
 
+  test('long home draft scrolls above the controls instead of overlapping them', async () => {
+    const page = fixture!.page
+    const composer = page.locator('[data-slot="composer-rich-input"]').first()
+
+    await composer.fill('long composer draft '.repeat(120))
+
+    const metrics = await page.locator('[data-slot="composer-layout"]').evaluate(layout => {
+      const editor = layout.querySelector<HTMLElement>('[data-slot="composer-rich-input"]')
+      const controls = layout.querySelector<HTMLElement>('[data-slot="composer-trailing-controls"]')
+
+      if (!editor || !controls) {
+        throw new Error('Home composer input or controls did not render')
+      }
+
+      const editorRect = editor.getBoundingClientRect()
+      const controlsRect = controls.getBoundingClientRect()
+
+      return {
+        controlsTop: controlsRect.top,
+        editorBottom: editorRect.bottom,
+        editorClientHeight: editor.clientHeight,
+        editorScrollHeight: editor.scrollHeight
+      }
+    })
+
+    expect(metrics.editorScrollHeight, JSON.stringify(metrics)).toBeGreaterThan(metrics.editorClientHeight)
+    expect(metrics.editorBottom, JSON.stringify(metrics)).toBeLessThanOrEqual(metrics.controlsTop + 0.5)
+
+    await composer.fill('')
+  })
+
   test('screenshot shows chat UI without setup screen', async () => {
     await expectVisualSnapshot(fixture!.page, { name: 'mock-backend-chat-ready', app: fixture!.app })
   })

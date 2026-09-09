@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { summarizeToolRun, type ToolCallLike } from './run-summary'
+import { summarizeToolRun, type ToolCallLike, toolPresentVerb, type ToolRunCopy } from './run-summary'
 
 function tool(toolName: string, args: Record<string, unknown> = {}, result?: unknown): ToolCallLike {
   return { args, result, toolCallId: `${toolName}-${Math.random()}`, toolName }
@@ -13,10 +13,23 @@ const ran = (command: string) => tool('terminal', { command }, { exit_code: 0 })
 const settled = (tools: ToolCallLike[]) => summarizeToolRun(tools, false)
 const running = (tools: ToolCallLike[]) => summarizeToolRun(tools, true)
 
+const zhCopy: ToolRunCopy = {
+  delegate: { count: count => `${count} 个任务`, past: '已委派', present: '正在委派' },
+  edit: { count: count => `${count} 个文件`, past: '已编辑', present: '正在编辑' },
+  explore: { count: count => `${count} 个文件`, past: '已探索', present: '正在探索' },
+  other: { count: count => `${count} 个工具`, past: '已使用', present: '正在使用' },
+  run: { count: count => `${count} 个命令`, past: '已运行', present: '正在运行' }
+}
+
 // A run only ever holds ephemeral activity: reads, searches, commands. File
 // edits and other cards are split out before a run is summarized, so there is
 // no "Edited …" clause to test here — that work shows as its own diff card.
 describe('summarizeToolRun', () => {
+  it('uses supplied localized copy for summaries and present-tense hints', () => {
+    expect(summarizeToolRun([searched('a'), read('b.ts')], false, zhCopy)).toBe('已探索 2 个文件')
+    expect(toolPresentVerb('read_file', zhCopy)).toBe('正在探索')
+  })
+
   it('names a lone target and counts the rest', () => {
     expect(settled([searched('toolRuns'), read('a.ts'), read('b.ts'), read('c.ts')])).toBe('Explored 4 files')
   })

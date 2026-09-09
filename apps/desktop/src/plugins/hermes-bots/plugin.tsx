@@ -58,7 +58,7 @@ import {
 import { groupWorkspaceOwnerKey } from './group-membership'
 import { annotateOrphanedGroupChatMembers } from './hygiene'
 import { BOTS_LOCALES } from './i18n'
-import { displayName } from './labels'
+import { displayName, rosterConnectionLabel } from './labels'
 import { startBotRelay, stopBotRelay } from './relay'
 import { $activityToasts } from './roster-actions'
 import {
@@ -70,9 +70,33 @@ import {
 } from './roster-pane'
 import { botRosterMeta, botWorkspaceOwnerKey, setBotsWorkspaceOwner } from './routing'
 import { startHideSweepScheduler } from './session-sweep'
-import { bumpBotOpenGeneration, getBotOpenGeneration, ID, setPluginCtx } from './shared'
+import { bumpBotOpenGeneration, getBotOpenGeneration, ID, pluginText, setPluginCtx } from './shared'
+import tabBotsIcon from './tab-bots.svg'
 import type { GroupChat, RosterRow } from './types'
 import { loadBotSections } from './user-sections'
+
+const tabBotsMask = `url(${JSON.stringify(tabBotsIcon)})`
+
+/** The exact Figma vector lives with the bundled plugin so the plugin fence
+ * remains honest: this module imports only its own assets and the public SDK. */
+function BotsTabIcon() {
+  return (
+    <span
+      aria-hidden
+      className="inline-block size-3.5 shrink-0 bg-current"
+      style={{
+        WebkitMaskImage: tabBotsMask,
+        WebkitMaskPosition: 'center',
+        WebkitMaskRepeat: 'no-repeat',
+        WebkitMaskSize: '100% 100%',
+        maskImage: tabBotsMask,
+        maskPosition: 'center',
+        maskRepeat: 'no-repeat',
+        maskSize: '100% 100%'
+      }}
+    />
+  )
+}
 
 // ── plugin ───────────────────────────────────────────────────────────────────
 
@@ -95,6 +119,23 @@ export default {
   name: 'Bots',
   description:
     'Bot Mode — a one-chat-per-agent roster with avatars, routines, group chats, and bot-to-bot messaging. Ships with the app; disable here if unwanted.',
+  localized: {
+    zh: {
+      name: '机器人',
+      description:
+        '机器人模式：为每个智能体提供独立聊天、头像、例程、群聊和机器人之间的消息互通。随应用提供，不需要时可在此禁用。'
+    },
+    'zh-hant': {
+      name: '機器人',
+      description:
+        '機器人模式：為每個智能體提供獨立聊天、頭像、例程、群聊和機器人之間的訊息互通。隨應用提供，不需要時可在此停用。'
+    },
+    ja: {
+      name: 'ボット',
+      description:
+        'ボットモード：エージェントごとのチャット、アバター、ルーティン、グループチャット、ボット間メッセージを提供します。アプリ付属で、不要ならここで無効にできます。'
+    }
+  },
   register(ctx: PluginContext) {
     setPluginCtx(ctx)
     // The user's own roster sections. Read once at register; every mutation
@@ -162,7 +203,8 @@ export default {
               continue
             }
 
-            const source = profile.connectionLabel ? ` · ${profile.connectionLabel}` : ''
+            const sourceLabel = rosterConnectionLabel(profile)
+            const source = sourceLabel ? ` · ${sourceLabel}` : ''
             items.push({
               insert: `@${tag}`,
               display: `@${tag}`,
@@ -364,7 +406,9 @@ export default {
     ctx.register({
       id: 'pane',
       area: 'panes',
-      title: 'Bots',
+      // Pane titles are read once at registration, so resolve the plugin's
+      // locale here rather than leaving the static English fallback visible.
+      title: pluginText('roster.title', 'Bots'),
       // dock: explicit adoption gesture — CENTER-STACK into the sessions zone
       // so the sidebar grows a SESSIONS | BOTS tab strip instead of splitting
       // two cramped panes down the column. Center is safe now: insertAtGroup
@@ -389,9 +433,13 @@ export default {
       // zone's tab strip, so the pane stays reachable while collapsed.
       data: {
         placement: 'left',
-        width: '260px',
+        // Match the sessions pane that this tab center-stacks into. A fixed
+        // zone uses its widest tenant, so both standing tabs carry the same
+        // 245px Aino rail width.
+        width: '245px',
         collapsible: true,
         hideOnly: true,
+        tabLead: () => <BotsTabIcon />,
         dock: {
           pane: 'sessions',
           pos: 'center',
@@ -626,12 +674,12 @@ export default {
       area: PALETTE_AREA,
       data: {
         id: `${ID}.new-agent`,
-        label: 'New Bot…',
+        label: pluginText('bot.newCommand', 'New Bot…'),
         keywords: ['bot', 'agent', 'profile', 'teammate', 'create'],
         run: () => {
           host.notify({
             kind: 'info',
-            message: ctx.i18n.t('bot.createFirstHint')
+            message: pluginText('bot.createFirstHint', 'Open the Bots pane and hit “New Bot”.')
           })
         }
       }
@@ -676,10 +724,11 @@ export default {
             if (activeBot && isCanonicalChatOnScreen(row, host.state.focusedStoredSessionId.get())) {
               host.notify({
                 kind: 'info',
-                title: 'This chat never resets',
-                message:
-                  'Bot chats are one continuous conversation — compacting instead. ' +
-                  'For a throwaway session with this bot, use Sessions mode.'
+                title: pluginText('bot.foreverChatTitle', 'This chat never resets'),
+                message: pluginText(
+                  'bot.foreverChatMessage',
+                  'Bot chats are one continuous conversation — compacting instead. For a throwaway session with this bot, use Sessions mode.'
+                )
               })
 
               return {

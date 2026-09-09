@@ -281,6 +281,14 @@ class TestParseSkillFile:
 class TestPromptBuilderImports:
     def test_module_import_does_not_eagerly_import_skills_tool(self, monkeypatch):
         original_import = builtins.__import__
+        import agent as agent_package
+
+        # Keep the package attribute in sync with sys.modules.  Re-importing
+        # this module is intentional here, but leaving the replacement on the
+        # package makes later tests that hold the original module object patch
+        # the wrong instance when pytest runs files in one process.
+        original_module = sys.modules.get("agent.prompt_builder")
+        original_package_attr = getattr(agent_package, "prompt_builder", None)
 
         def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
             if name == "tools.skills_tool" or (
@@ -289,12 +297,18 @@ class TestPromptBuilderImports:
                 raise ModuleNotFoundError("simulated optional tool import failure")
             return original_import(name, globals, locals, fromlist, level)
 
-        monkeypatch.delitem(sys.modules, "agent.prompt_builder", raising=False)
-        monkeypatch.setattr(builtins, "__import__", guarded_import)
+        try:
+            monkeypatch.delitem(sys.modules, "agent.prompt_builder", raising=False)
+            monkeypatch.setattr(builtins, "__import__", guarded_import)
 
-        module = importlib.import_module("agent.prompt_builder")
+            module = importlib.import_module("agent.prompt_builder")
 
-        assert hasattr(module, "build_skills_system_prompt")
+            assert hasattr(module, "build_skills_system_prompt")
+        finally:
+            if original_module is not None:
+                sys.modules["agent.prompt_builder"] = original_module
+            if original_package_attr is not None:
+                agent_package.prompt_builder = original_package_attr
 
 
 # =========================================================================
@@ -409,7 +423,9 @@ class TestBuildContextFilesPrompt:
         with patch("pathlib.Path.home", return_value=fake_home):
             result = build_context_files_prompt(cwd=str(tmp_path))
         assert "Project Context" in result
-        assert "Hermes Agent" in result
+        # The seeded identity follows the active product brand; assert the
+        # canonical identity rather than pinning the upstream name.
+        assert DEFAULT_AGENT_IDENTITY in result
 
     def test_loads_agents_md(self, tmp_path):
         (tmp_path / "AGENTS.md").write_text("Use Ruff for linting.")

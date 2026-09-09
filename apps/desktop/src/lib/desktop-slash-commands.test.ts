@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import {
   type CommandCatalogMeta,
   type CommandsCatalogLike,
@@ -72,6 +74,7 @@ describe('desktop slash command curation', () => {
 
   afterEach(() => {
     rememberDesktopCommandsCatalog(undefined)
+    setRuntimeI18nLocale('en')
   })
 
   it('keeps core desktop chat commands in suggestions', () => {
@@ -328,6 +331,26 @@ describe('desktop slash command curation', () => {
     expect(filtered.skill_count).toBe(1)
   })
 
+  it('uses locale command descriptions for built-ins while preserving extension copy', () => {
+    const filtered = filterDesktopCommandsCatalog(
+      {
+        pairs: [
+          ['/review', 'Spawn an independent reviewer'],
+          ['/ship-it', 'Run the release checklist']
+        ]
+      },
+      {
+        '/review': '启动独立审阅智能体',
+        '/ship-it': '运行发布检查清单'
+      }
+    )
+
+    expect(filtered.pairs).toEqual([
+      ['/review', '启动独立审阅智能体'],
+      ['/ship-it', '运行发布检查清单']
+    ])
+  })
+
   it('recomputes skill_count to reflect only extensions surfaced on desktop', () => {
     const filtered = filterDesktopCommandsCatalog({
       pairs: [
@@ -352,6 +375,20 @@ describe('desktop slash command curation', () => {
     )
   })
 
+  it('uses the active locale when a built-in description has no explicit map', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(desktopSlashDescription('/branch', 'Branch the current session')).toBe('将最新消息分支到新对话')
+  })
+
+  it('prefers a locale-specific description for the canonical command', () => {
+    expect(
+      desktopSlashDescription('/fork', 'Branch the current session', {
+        '/branch': '将最新消息分支到新对话'
+      })
+    ).toBe('将最新消息分支到新对话')
+  })
+
   it('builds /skin completions from desktop themes', () => {
     const completions = desktopSkinSlashCompletions(
       [
@@ -367,20 +404,47 @@ describe('desktop slash command curation', () => {
       {
         text: '/skin mono',
         display: '/skin mono',
-        meta: 'Mono (current) - Clean grayscale'
+        meta: 'Mono (current) - Clean grayscale — minimal and focused'
       },
       {
         text: '/skin midnight',
         display: '/skin midnight',
-        meta: 'Midnight - Deep blue'
+        meta: 'Midnight - Deep blue-violet with cool accents'
       }
     ])
+  })
+
+  it('localizes /skin completion metadata for Simplified Chinese users', () => {
+    setRuntimeI18nLocale('zh')
+
+    const completions = desktopSkinSlashCompletions(
+      [{ name: 'ember', label: 'Ember', description: 'Warm crimson and bronze' }],
+      'ember',
+      ''
+    )
+
+    expect(completions.slice(0, 2)).toEqual([
+      { text: '/skin list', display: '/skin list', meta: '显示可用的桌面主题' },
+      { text: '/skin next', display: '/skin next', meta: '切换到下一个桌面主题' }
+    ])
+    expect(completions[2]).toEqual({
+      text: '/skin ember',
+      display: '/skin ember',
+      meta: '余烬 (当前) - 温暖的深红与青铜色——锻造氛围'
+    })
   })
 
   it('explains known commands that desktop owns elsewhere', () => {
     expect(desktopSlashUnavailableMessage('/model sonnet')).toContain('model picker')
     expect(desktopSlashUnavailableMessage('/skills')).toContain('desktop sidebar')
     expect(desktopSlashUnavailableMessage('/clear')).toContain('terminal interface')
+  })
+
+  it('localizes unavailable-command guidance when no copy object is passed', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(desktopSlashUnavailableMessage('/clear')).toContain('终端界面')
+    expect(desktopSlashUnavailableMessage('/model')).toContain('模型选择器')
   })
 
   it('flags /model as a picker-owned command so the desktop opens the overlay', () => {

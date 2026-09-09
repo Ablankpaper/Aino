@@ -130,20 +130,20 @@ notify_fallback() { # status message — renderer-free recovery surface.
   # boot surfaces it in a dialog (handoff-result.ts + main.ts).
   case "$1" in manual|error) ;; *) return 0 ;; esac
   if [ "$(uname)" = "Darwin" ]; then
-    /usr/bin/osascript -e "display notification \"$(printf '%s' "$2" | sed 's/"/\\"/g')\" with title \"Hermes update\"" 2>/dev/null && return 0
+    /usr/bin/osascript -e "display notification \"$(printf '%s' "$2" | sed 's/"/\\"/g')\" with title \"Aino update\"" 2>/dev/null && return 0
   else
     if command -v notify-send >/dev/null 2>&1; then
-      notify-send -u critical "Hermes update" "$2" 2>/dev/null && return 0
+      notify-send -u critical "Aino update" "$2" 2>/dev/null && return 0
     fi
     local p
     if command -v zenity >/dev/null 2>&1; then
-      zenity --warning --title="Hermes update" --text="$2" 2>/dev/null &
+      zenity --warning --title="Aino update" --text="$2" 2>/dev/null &
       p=$!; sleep 1
       kill -0 "$p" 2>/dev/null && return 0
       wait "$p" 2>/dev/null
     fi
     if command -v kdialog >/dev/null 2>&1; then
-      kdialog --title "Hermes update" --sorry "$2" 2>/dev/null &
+      kdialog --title "Aino update" --sorry "$2" 2>/dev/null &
       p=$!; sleep 1
       kill -0 "$p" 2>/dev/null && return 0
       wait "$p" 2>/dev/null
@@ -176,7 +176,7 @@ find_browser() {
   # No Microsoft Edge and no Brave, on purpose. Edge's OS-level
   # Microsoft-account integration signs a fresh throwaway profile into the
   # user's MSA and renders its own "syncing your data" notification — MSA
-  # email included — inside this window that is titled "Hermes" (#88410).
+  # email included — inside this window that is titled "Aino" (#88410).
   # Brave paints its own P3A privacy-notice bar over the progress page in
   # the same window — cramped to unreadability at the shim's small size
   # (#88682). The throwaway --user-data-dir below cannot block either; the
@@ -318,11 +318,20 @@ stop_ui() { # error/manual outcomes keep the window up briefly so a watching
 # Outcomes mirror decideRelaunchOutcome: relaunch | skew | manual.
 GATE="" GATE_MSG=""
 linux_gate() {
-  local unpacked="$INSTALL_ROOT/apps/desktop/release/linux-unpacked" sb arg
-  case "$RELAUNCH_TARGET" in
-    "$unpacked"/*) ;;
-    *) GATE=skew GATE_MSG="Backend updated, but the desktop app package (AppImage/deb/rpm) was not changed. Update or reinstall it to match."; return ;;
-  esac
+  local release="$INSTALL_ROOT/apps/desktop/release" unpacked="" sb arg candidate
+  # electron-builder may emit linux-unpacked or an architecture-qualified
+  # sibling (for example linux-arm64-unpacked). Resolve the directory from
+  # the actual relaunch target instead of assuming the legacy name; this keeps
+  # Aino builds launchable while retaining old Hermes trees during migration.
+  for candidate in "$release"/*-unpacked; do
+    [ -d "$candidate" ] || continue
+    case "$RELAUNCH_TARGET" in
+      "$candidate"/*) unpacked="$candidate"; break ;;
+    esac
+  done
+  if [ -z "$unpacked" ] || [ ! -f "$RELAUNCH_TARGET" ]; then
+    GATE=skew GATE_MSG="Backend updated, but the desktop app package (AppImage/deb/rpm) was not changed. Update or reinstall it to match."; return
+  fi
 
   sb="$unpacked/chrome-sandbox"
   if [ ! -e "$sb" ]; then GATE=relaunch; return; fi
@@ -338,12 +347,16 @@ linux_gate() {
     [ "$arg" = "--no-sandbox" ] && { GATE=relaunch; return; }
   done
 
-  GATE=manual GATE_MSG="Update complete, but the rebuilt app can't relaunch itself (its sandbox helper needs root ownership). Reopen Hermes to finish."
+  GATE=manual GATE_MSG="Update complete, but the rebuilt app can't relaunch itself (its sandbox helper needs root ownership). Reopen Aino to finish."
 }
 
 mac_swap() {
   local rebuilt="" c
-  for c in "$INSTALL_ROOT/apps/desktop/release/mac-arm64/Hermes.app" \
+  # Aino artifacts are authoritative. Legacy Hermes bundles remain a final
+  # migration fallback for users upgrading an older pre-brand installation.
+  for c in "$INSTALL_ROOT/apps/desktop/release/mac-arm64/Aino.app" \
+           "$INSTALL_ROOT/apps/desktop/release/mac/Aino.app" \
+           "$INSTALL_ROOT/apps/desktop/release/mac-arm64/Hermes.app" \
            "$INSTALL_ROOT/apps/desktop/release/mac/Hermes.app"; do
     [ -d "$c" ] && { rebuilt="$c"; break; }
   done
@@ -368,7 +381,7 @@ mac_swap() {
         DONE_NOTE="Update complete, but the new app could not be installed; the previous version was restored. Run the update again."
         log "WARNING: bundle install failed; rolled back to the previous app"
       else
-        FINAL_CODE=7 FINAL_MSG="The update finished but installing the new app failed and the previous app could not be restored. Reinstall Hermes (the rebuilt app is at $rebuilt)."
+        FINAL_CODE=7 FINAL_MSG="The update finished but installing the new app failed and the previous app could not be restored. Reinstall Aino (the rebuilt app is at $rebuilt)."
         log "ERROR: bundle install failed AND rollback failed"
       fi
     else
@@ -463,7 +476,7 @@ finish() {
       if ! launch_app; then
         # Even the kept bundle didn't come back: the durable message must
         # carry BOTH facts (update ok, previous app not reopened).
-        FINAL_MSG="$DONE_NOTE Hermes also could not reopen itself - open it manually."
+        FINAL_MSG="$DONE_NOTE Aino also could not reopen itself - open it manually."
         write_result
       fi
     fi
@@ -473,7 +486,7 @@ finish() {
   else
     # Launch was due and did not land. Downgrade: truthful result for the
     # next boot, manual state held on screen now.
-    FINAL_MSG="Update complete. Reopen Hermes to finish (it could not restart itself)."
+    FINAL_MSG="Update complete. Reopen Aino to finish (it could not restart itself)."
     MANUAL=1
     write_result
     publish "manual" "$FINAL_MSG"; stop_ui leave-window
@@ -656,7 +669,7 @@ fi
 # teardown, while retaining the same marker/result protocol.
 if [ "$HANDOFF_DAEMONIZED" -ne 1 ]; then
   # This launcher is disposable. In particular it must not run finish() on
-  # EXIT: that would publish a false failure and relaunch Hermes while the
+  # EXIT: that would publish a false failure and relaunch Aino while the
   # re-parented orchestrator is only just starting.
   trap - EXIT HUP INT QUIT TERM
   # --daemonized must precede ORIGINAL_ARGS, not follow it: ORIGINAL_ARGS may
@@ -708,7 +721,7 @@ fi
 if [ "$DESKTOP_PID" -gt 0 ] 2>/dev/null; then
   for _ in $(seq 1 100); do kill -0 "$DESKTOP_PID" 2>/dev/null || break; sleep 0.3; done
   if kill -0 "$DESKTOP_PID" 2>/dev/null; then
-    FINAL_CODE=4 FINAL_MSG="Update aborted: the Hermes window (pid $DESKTOP_PID) did not exit within 30s. Nothing was changed. Close Hermes fully and try again."
+    FINAL_CODE=4 FINAL_MSG="Update aborted: the Aino window (pid $DESKTOP_PID) did not exit within 30s. Nothing was changed. Close Aino fully and try again."
     log "$FINAL_MSG"; exit "$FINAL_CODE"
   fi
 fi
@@ -721,7 +734,7 @@ sleep 1
 start_ui
 
 HERMES_BIN="$INSTALL_ROOT/venv/bin/hermes"
-[ -x "$HERMES_BIN" ] || { FINAL_CODE=3 FINAL_MSG="Update aborted: $HERMES_BIN is missing. The install needs repair (run the Hermes installer or hermes doctor)."; log "$FINAL_MSG"; exit 3; }
+[ -x "$HERMES_BIN" ] || { FINAL_CODE=3 FINAL_MSG="Update aborted: $HERMES_BIN is missing. The install needs repair (run the Aino installer or hermes doctor)."; log "$FINAL_MSG"; exit 3; }
 
 # Heal a venv the reverted TCC anchor left bricked BEFORE invoking the CLI:
 # venv/bin/hermes execs venv/bin/python3, so a dead alias kills every attempt
@@ -754,7 +767,7 @@ export PYTHONUNBUFFERED=1
 # --keep-stash: never re-apply local source edits after the update (they stay
 # parked in git stash). Probe --help first: older installed backends don't
 # know the flag and argparse would abort with exit 2, which collides with the
-# "close all Hermes windows" sentinel.
+# "close all Aino windows" sentinel.
 KEEP_STASH=""
 if "${UPDATE_INVOKE[@]}" update --help 2>/dev/null | grep -q -- '--keep-stash'; then
   KEEP_STASH="--keep-stash"
@@ -769,7 +782,7 @@ log "hermes update exit code: $CODE"
 
 if [ "$CODE" -ne 0 ] && [ "$CODE" -ne 2 ]; then
   # Retry once: update-boundary class (fresh code on disk, stale in memory).
-  # Exit 2 ("close all Hermes windows") is not retryable.
+  # Exit 2 ("close all Aino windows") is not retryable.
   #
   # A parked-branch SKIP (checkout on a feature branch with unmerged
   # commits) is also deterministic — the retry would hit the exact same

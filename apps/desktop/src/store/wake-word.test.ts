@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { setRuntimeI18nLocale } from '@/i18n'
 
 import {
   $wakeWord,
@@ -18,7 +20,12 @@ const requester = (impl: (method: string, params?: Record<string, unknown>) => u
   ) as unknown as WakeRequester
 
 beforeEach(() => {
+  setRuntimeI18nLocale('en')
   resetWakeWordState()
+})
+
+afterEach(() => {
+  setRuntimeI18nLocale('en')
 })
 
 describe('applyWakeStatus', () => {
@@ -105,6 +112,37 @@ describe('toggleWakeWord', () => {
     expect(state.listening).toBe(false)
     expect(state.notice).toBe('another surface owns the listener')
     expect(state.available).toBe(true)
+  })
+
+  it('uses Simplified Chinese copy for a known ownership refusal', async () => {
+    setRuntimeI18nLocale('zh')
+    applyWakeStatus({ available: true, listening: false, phrase: 'hey hermes' })
+
+    await toggleWakeWord(requester(() => ({ owner_surface: 'tui', reason: 'owned', started: false })))
+
+    expect($wakeWord.get().notice).toBe('另一个界面正在占用监听器')
+  })
+
+  it('uses Simplified Chinese copy while the first wake-word arm is pending', async () => {
+    setRuntimeI18nLocale('zh')
+    applyWakeStatus({ available: true, listening: false, phrase: 'hey hermes' })
+
+    let resolveStart: (value: unknown) => void = () => undefined
+
+    const request = vi.fn(
+      async () =>
+        new Promise(resolve => {
+          resolveStart = resolve
+        })
+    ) as unknown as WakeRequester
+
+    const pending = toggleWakeWord(request)
+    await Promise.resolve()
+
+    expect($wakeWord.get().notice).toBe('正在启动——首次使用时引擎安装可能需要一分钟')
+
+    resolveStart({ started: true, phrase: 'hey hermes' })
+    await pending
   })
 
   it('marks the feature unavailable when start refuses with reason unavailable', async () => {

@@ -13,10 +13,13 @@ const LEGACY_HIDDEN_STORAGE_KEY = 'hermes.desktop.statusbarHidden'
 // back to "on" once, and hiding it again persists here.
 const STATUSBAR_VISIBLE_STORAGE_KEY = 'hermes.desktop.statusbarVisible.v2'
 
-// Whole-bar visibility, VS Code's `workbench.statusBar.visible`. On by default.
+// Whole-bar visibility, VS Code's `workbench.statusBar.visible`. Aino's primary
+// navigation and system details now live in the sidebar/settings workspace, so
+// the Figma shell starts without a second strip across the bottom. The command
+// palette/keybind still exposes the optional diagnostics bar.
 // Hiding it unmounts the bar (its 15s status poll goes with it), so the way back
 // is the `view.toggleStatusbar` keybind or the ⌘K row, never the bar itself.
-export const $statusbarVisible = persistentAtom(STATUSBAR_VISIBLE_STORAGE_KEY, true, Codecs.bool)
+export const $statusbarVisible = persistentAtom(STATUSBAR_VISIBLE_STORAGE_KEY, false, Codecs.bool)
 
 export function toggleStatusbarVisible() {
   $statusbarVisible.set(!$statusbarVisible.get())

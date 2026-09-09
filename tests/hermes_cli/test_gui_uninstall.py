@@ -53,7 +53,7 @@ def test_gui_install_summary_shape(tmp_path, monkeypatch):
     _make_agent(hermes_home)
     _make_gui_build(hermes_home)
     monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
-    monkeypatch.setattr(gu, "desktop_userdata_dir", lambda: tmp_path / "none")
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [])
 
     summary = gu.gui_install_summary(hermes_home)
     # JSON-serializable primitives the desktop UI gates on.
@@ -63,6 +63,7 @@ def test_gui_install_summary_shape(tmp_path, monkeypatch):
     assert all(isinstance(p, str) for p in summary["source_built_artifacts"])
     assert summary["hermes_home"] == str(hermes_home)
     assert summary["platform"] == sys.platform
+    assert summary["userdata_paths"] == []
 
 
 
@@ -77,6 +78,25 @@ def test_linux_discovery_includes_launcher_entry(tmp_path, monkeypatch):
     from hermes_cli import linux_desktop_entry as lde
 
     assert lde.desktop_entry_path() in gu.packaged_gui_app_paths()
+
+
+def test_macos_discovery_prefers_aino_and_keeps_hermes_migration_paths(monkeypatch):
+    """Packaged discovery names the new app first but still sees old installs."""
+    monkeypatch.setattr(gu.sys, "platform", "darwin")
+    paths = gu.packaged_gui_app_paths()
+
+    assert paths[:2] == [Path("/Applications/Aino.app"), Path.home() / "Applications" / "Aino.app"]
+    assert Path("/Applications/Hermes.app") in paths
+    assert Path.home() / "Applications" / "Hermes.app" in paths
+
+
+def test_userdata_candidates_are_aino_first_with_hermes_compatibility(monkeypatch):
+    monkeypatch.setattr(gu.sys, "platform", "darwin")
+
+    candidates = gu.desktop_userdata_dirs()
+
+    assert candidates[0].name == "Aino"
+    assert candidates[1].name == "Hermes"
 
 
 def test_uninstall_removes_launcher_entry_and_refreshes_cache(tmp_path, monkeypatch):
@@ -126,6 +146,22 @@ def test_uninstall_skips_cache_refresh_when_no_launcher_entry(tmp_path, monkeypa
     assert refreshed == []
 
 
+def test_uninstall_removes_branded_and_legacy_userdata(tmp_path, monkeypatch):
+    """GUI uninstall cleans both app-data generations without touching agent data."""
+    branded = tmp_path / "Aino"
+    legacy = tmp_path / "Hermes"
+    branded.mkdir()
+    legacy.mkdir()
+    monkeypatch.setattr(gu, "source_built_gui_artifacts", lambda _home: [])
+    monkeypatch.setattr(gu, "packaged_gui_app_paths", lambda: [])
+    monkeypatch.setattr(gu, "desktop_userdata_dirs", lambda: [branded, legacy])
+
+    removed = gu.uninstall_gui(tmp_path / ".hermes")
+
+    assert branded in removed and legacy in removed
+    assert not branded.exists() and not legacy.exists()
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX symlink semantics")
 def test_remove_path_handles_symlink(tmp_path):
     target = tmp_path / "real"
@@ -166,4 +202,3 @@ def test_uninstall_args_namespace_mode_mapping():
 
     full = uninstall._UninstallArgs(mode="full")
     assert full.gui is False and full.full is True and full.yes is True
-

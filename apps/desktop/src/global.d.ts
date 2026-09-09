@@ -520,6 +520,9 @@ declare global {
       cancelBootstrap: () => Promise<{ ok: boolean; cancelled: boolean }>
       onBootstrapEvent: (callback: (payload: DesktopBootstrapEvent) => void) => () => void
       getVersion: () => Promise<DesktopVersionInfo>
+      /** Mirror the renderer language into Electron-owned menus/dialogs. */
+      getLocale?: () => Promise<string>
+      setLocale?: (locale: string) => Promise<{ locale: string }>
       /** Restart the app in place — loads the swapped bundle when bundleSwapPending. */
       relaunchApp?: () => Promise<void>
       getRemoteDisplayReason?: () => Promise<string | null>
@@ -617,6 +620,8 @@ export interface DesktopUninstallSummary {
   packaged_app_paths: string[]
   userdata_dir: string
   userdata_exists: boolean
+  /** Existing Aino and legacy Hermes Electron userData directories. */
+  userdata_paths?: string[]
   platform: string
   running_app_path?: null | string
   probe?: string

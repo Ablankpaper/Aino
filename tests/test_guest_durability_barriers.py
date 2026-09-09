@@ -11,7 +11,7 @@ import sqlite3
 
 import pytest
 
-import hermes_state
+import hermes_state_wal
 from hermes_state_repair import apply_durability_barriers
 
 
@@ -42,6 +42,11 @@ def test_guest_barriers_apply_configured_synchronous(monkeypatch, tmp_path):
 
 def test_guest_barriers_leave_synchronous_alone_when_unset(monkeypatch, tmp_path):
     _config(monkeypatch, {})
+    # Isolate the config contract from the independent macOS durability floor,
+    # which intentionally promotes every connection to FULL.
+    monkeypatch.setattr(
+        hermes_state_wal, "_enforce_macos_synchronous_full", lambda _conn: None
+    )
     conn = sqlite3.connect(tmp_path / "state.db")
     try:
         conn.execute("PRAGMA journal_mode=DELETE")

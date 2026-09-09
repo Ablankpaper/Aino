@@ -10,24 +10,24 @@ describe('statusbar whole-bar visibility', () => {
     vi.resetModules()
   })
 
-  it('shows the bar on a fresh install and for installs that hid it under the v1 key', async () => {
+  it('keeps the Aino shell bar hidden on fresh installs and ignores the legacy visibility key', async () => {
     window.localStorage.setItem(LEGACY_VISIBLE_KEY, 'false')
 
     const { $statusbarVisible } = await loadStore()
 
-    expect($statusbarVisible.get()).toBe(true)
+    expect($statusbarVisible.get()).toBe(false)
   })
 
-  it('still honours a hide made after the update', async () => {
+  it('persists an explicit show made after the update', async () => {
     const first = await loadStore()
 
     first.toggleStatusbarVisible()
-    expect(first.$statusbarVisible.get()).toBe(false)
+    expect(first.$statusbarVisible.get()).toBe(true)
 
     vi.resetModules()
     const reloaded = await loadStore()
 
-    expect(reloaded.$statusbarVisible.get()).toBe(false)
+    expect(reloaded.$statusbarVisible.get()).toBe(true)
   })
 })
 

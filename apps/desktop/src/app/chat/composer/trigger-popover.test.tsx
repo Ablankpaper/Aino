@@ -87,6 +87,25 @@ describe('ComposerTriggerPopover i18n', () => {
     expect(screen.getByText('没有匹配项。')).toBeTruthy()
     expect(container.textContent).toContain('/help')
   })
+
+  it('renders a localized reference scope heading', () => {
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <ComposerTriggerPopover
+          activeIndex={0}
+          items={[]}
+          kind="@"
+          loading={false}
+          onHover={vi.fn()}
+          onPick={vi.fn()}
+          scope="file"
+        />
+      </I18nProvider>
+    )
+
+    expect(screen.getByText('文件')).toBeTruthy()
+    expect(screen.queryByText('Files')).toBeNull()
+  })
 })
 
 describe('ComposerTriggerPopover keyboard scrolling', () => {

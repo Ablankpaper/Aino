@@ -73,7 +73,7 @@ test.each(['disconnect', 'hung', 'hung-body', 'http', 'invalid'])('bounds %s pro
   await vi.advanceTimersByTimeAsync(20_000)
   assert.equal(document.body.className, 'disconnected')
   assert.equal(document.getElementById('title').textContent, 'Update status unavailable')
-  assert.match(document.getElementById('line').textContent, /Check Hermes/)
+  assert.match(document.getElementById('line').textContent, /Check Aino/)
   assert.ok(attempts <= 4, `unbounded retry loop: ${attempts}`)
 })
 
@@ -95,6 +95,6 @@ test('continues displaying a healthy long update while progress remains reachabl
   const document = openPage(fetch)
   await vi.advanceTimersByTimeAsync(60_000)
   assert.equal(document.body.className, '')
-  assert.equal(document.getElementById('title').textContent, 'Updating Hermes')
+  assert.equal(document.getElementById('title').textContent, 'Updating Aino')
   assert.equal(document.getElementById('line').textContent, 'Building Desktop')
 })

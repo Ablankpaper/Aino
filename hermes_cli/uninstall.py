@@ -436,8 +436,11 @@ def run_gui_uninstall(args):
     print(color("Will remove:", Colors.YELLOW, Colors.BOLD))
     for p in (*summary["source_built_artifacts"], *summary["packaged_app_paths"]):
         print(f"  • {p}")
-    if summary["userdata_exists"]:
-        print(f"  • {summary['userdata_dir']}  (desktop app data)")
+    userdata_paths = summary.get("userdata_paths")
+    if userdata_paths is None and summary.get("userdata_exists"):
+        userdata_paths = [summary["userdata_dir"]]
+    for userdata_path in userdata_paths or []:
+        print(f"  • {userdata_path}  (desktop app data)")
     print()
     if agent_is_installed(hermes_home):
         print(color("Kept intact:", Colors.GREEN, Colors.BOLD))

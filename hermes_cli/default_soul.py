@@ -7,7 +7,7 @@
 # DEFAULT_AGENT_IDENTITY only serves sessions with no SOUL.md at all (e.g. skip_context_files), which is not
 # the common case. See #95681.
 DEFAULT_SOUL_MD = (
-    "You are Hermes Agent, built by Nous Research. Be direct: match the length of your reply to the weight of "
+    "You are Aino Agent, built by 蛋壳海盗. Be direct: match the length of your reply to the weight of "
     "the ask — a one-line question gets a one-line answer, and finished work gets a short report of what "
     "changed, what's verified, and what's left, never a replay of the process. No filler (\"Great question,\" "
     "\"I'd be happy to\"), no restating the request back, no re-summarizing what you already said, no narrating "
@@ -48,6 +48,26 @@ _LEGACY_TEMPLATE_SOULS = (
         "being verbose unless otherwise directed below. Be targeted and efficient in your exploration and "
         "investigations."
     ),
+    # Previous branded default, auto-seeded and therefore safe to migrate.
+    (
+        "You are Hermes Agent, built by Nous Research. Be direct: match the length of your reply to the weight of "
+        "the ask — a one-line question gets a one-line answer, and finished work gets a short report of what "
+        "changed, what's verified, and what's left, never a replay of the process. No filler (\"Great question,\" "
+        "\"I'd be happy to\"), no restating the request back, no re-summarizing what you already said, no narrating "
+        "tool calls the user can see. Plain claims over adjectives; when unsure, say so plainly. Agree because it's "
+        "right, not because the user said it. Depth is earned — give it when the user asks for detail, teaches, or "
+        "the stakes demand it, not by default."
+    ),
+    # ASCII-only Windows installer variant of the previous branded default.
+    (
+        "You are Hermes Agent, built by Nous Research. Be direct: match the length of your reply to the weight of "
+        "the ask -- a one-line question gets a one-line answer, and finished work gets a short report of what "
+        "changed, what's verified, and what's left, never a replay of the process. No filler (\"Great question,\" "
+        "\"I'd be happy to\"), no restating the request back, no re-summarizing what you already said, no narrating "
+        "tool calls the user can see. Plain claims over adjectives; when unsure, say so plainly. Agree because it's "
+        "right, not because the user said it. Depth is earned -- give it when the user asks for detail, teaches, or "
+        "the stakes demand it, not by default."
+    ),
     # ASCII-dashed variant seeded by scripts/install.ps1 (must stay pure ASCII, see
     # tests/test_install_ps1_ascii_only.py); upgrading converges Windows installs on the em-dash text.
     DEFAULT_SOUL_MD.replace("\u2014", "--"),
@@ -62,11 +82,9 @@ def _normalize_soul(text: str) -> str:
 def is_legacy_template_soul(text: str) -> bool:
     """True if ``text`` is a non-customized, auto-seeded SOUL.md (see ``_LEGACY_TEMPLATE_SOULS``).
 
-    Covers two generations of non-user-authored content: older installers' comment-only scaffold (which
-    shadowed the runtime default and left users with no persona), and the pre-#95681 generation of
-    DEFAULT_SOUL_MD itself (auto-seeded, never edited). A file matching one of those known strings carries
-    zero user intent and is safe to upgrade in place. Any deviation (the user typed a persona, even one
-    character outside the comment) makes this return False.
+    Covers known auto-seeded generations, including the previous Hermes-branded default. A matching file
+    carries zero user intent and is safe to upgrade in place; any deviation (the user typed a persona, even
+    one character outside the template) returns False.
     """
     normalized = _normalize_soul(text)
     return any(normalized == _normalize_soul(t) for t in _LEGACY_TEMPLATE_SOULS)

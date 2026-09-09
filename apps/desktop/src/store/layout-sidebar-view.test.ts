@@ -5,9 +5,11 @@ import {
   $sidebarOrdering,
   $sidebarRowMeta,
   $sidebarViewCustomized,
+  $sidebarWidth,
   resetSidebarView,
   setSidebarGrouping,
   setSidebarOrdering,
+  setSidebarWidth,
   toggleSidebarRowMeta,
   toggleSidebarStatusFilter
 } from './layout'
@@ -19,6 +21,12 @@ beforeEach(() => {
 })
 
 describe('the sidebar as it ships', () => {
+  it('keeps the sessions rail at the 245px Aino baseline when resized below its minimum', () => {
+    setSidebarWidth(0)
+
+    expect($sidebarWidth.get()).toBe(245)
+  })
+
   it('groups by date, sorts by recency, and pins the timestamp and preview', () => {
     expect($sidebarGrouping.get()).toBe('date')
     expect($sidebarOrdering.get()).toBe('updated')

@@ -3,6 +3,8 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { createElement, type PropsWithChildren } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
+
 const apiMocks = vi.hoisted(() => ({
   stepUp: vi.fn()
 }))
@@ -54,9 +56,16 @@ vi.mock('./api', () => ({
 
 import { useStepUpFlow } from './use-step-up'
 
-function createWrapper(client: QueryClient) {
+function createWrapper(client: QueryClient, locale: 'en' | 'zh' = 'en') {
   return function wrapper({ children }: PropsWithChildren) {
-    return createElement(QueryClientProvider, { client }, children)
+    return createElement(
+      I18nProvider,
+      {
+        configClient: null,
+        initialLocale: locale,
+        children: createElement(QueryClientProvider, { client }, children)
+      }
+    )
   }
 }
 
@@ -128,5 +137,41 @@ describe('useStepUpFlow', () => {
 
     unmount()
     expect(gatewayMock.count('billing.step_up.verification')).toBe(0)
+  })
+
+  it('localizes a declined verification result in Simplified Chinese', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+    apiMocks.stepUp.mockResolvedValue({ data: { granted: false, ok: true }, ok: true })
+
+    const { result } = renderHook(() => useStepUpFlow(), { wrapper: createWrapper(client, 'zh') })
+
+    await act(async () => {
+      await result.current.start()
+    })
+
+    expect(result.current.message).toEqual({
+      kind: 'error',
+      text: '验证完成，但未允许此终端使用远程消费。',
+      title: '验证未获批准'
+    })
+  })
+
+  it('localizes an approved verification result in Simplified Chinese', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+    apiMocks.stepUp.mockResolvedValue({ data: { granted: true, ok: true }, ok: true })
+
+    const { result } = renderHook(() => useStepUpFlow(), { wrapper: createWrapper(client, 'zh') })
+
+    await act(async () => {
+      await result.current.start()
+    })
+
+    expect(result.current.message).toEqual({
+      kind: 'success',
+      text: '此终端已允许使用远程消费。',
+      title: '验证完成'
+    })
   })
 })

@@ -1,3 +1,5 @@
+import { applyProductBrand } from '@/lib/brand'
+
 import type { Translations } from './types'
 
 const DESKTOP_BOOT_FAILURE = /^Desktop boot failed: ?([\s\S]*)$/
@@ -39,16 +41,20 @@ export function localizedBootFailureError(translations: Translations, error: unk
   const desktopFailure = message.match(DESKTOP_BOOT_FAILURE)
 
   if (desktopFailure) {
-    return restore(translations.boot.desktopBootFailedWithMessage(DETAIL_TOKEN), [[DETAIL_TOKEN, desktopFailure[1]]])
+    return restore(applyProductBrand(translations.boot.desktopBootFailedWithMessage(DETAIL_TOKEN)), [
+      [DETAIL_TOKEN, desktopFailure[1]]
+    ])
   }
 
   const backendStartFailure = message.match(BACKEND_START_FAILURE)
 
   if (backendStartFailure) {
     return restore(
-      translations.boot.failure.backendStartFailed(
-        DETAIL_TOKEN,
-        backendStartFailure[1] === undefined ? undefined : PROFILE_TOKEN
+      applyProductBrand(
+        translations.boot.failure.backendStartFailed(
+          DETAIL_TOKEN,
+          backendStartFailure[1] === undefined ? undefined : PROFILE_TOKEN
+        )
       ),
       [
         [PROFILE_TOKEN, backendStartFailure[1] ?? ''],
@@ -64,10 +70,12 @@ export function localizedBootFailureError(translations: Translations, error: unk
     const suffixToken = suffix.startsWith('.') ? `.${SUFFIX_TOKEN}` : SUFFIX_TOKEN
 
     return restore(
-      translations.boot.failure.backendExitedBeforeReady(
-        STATUS_TOKEN,
-        suffixToken,
-        backendExitFailure[1] === undefined ? undefined : PROFILE_TOKEN
+      applyProductBrand(
+        translations.boot.failure.backendExitedBeforeReady(
+          STATUS_TOKEN,
+          suffixToken,
+          backendExitFailure[1] === undefined ? undefined : PROFILE_TOKEN
+        )
       ),
       [
         [PROFILE_TOKEN, backendExitFailure[1] ?? ''],

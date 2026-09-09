@@ -29,6 +29,7 @@ import {
 import { createBootstrapCoordinator } from './ssh-bootstrap-coordinator'
 
 const CORRELATION = '12345678-1234-4678-9234-567812345678'
+const TRUE_COMMAND = process.platform === 'darwin' ? '/usr/bin/true' : '/bin/true'
 const exec = promisify(execCallback)
 
 function observation(over: Record<string, unknown> = {}) {
@@ -288,7 +289,7 @@ test('POSIX managed launcher executes the updater command and atomically publish
       {
         ssh: { exec: async () => '' },
         platform: 'Linux',
-        hermesPath: '/bin/true',
+        hermesPath: TRUE_COMMAND,
         hermesHome: home
       },
       CORRELATION

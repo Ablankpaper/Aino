@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import { $petInfo, setPetInfo } from './pet'
-import { $petGallery, adoptPet, type GatewayRequest, loadPetGallery, resetPetGallery } from './pet-gallery'
+import {
+  $petGallery,
+  $petGalleryError,
+  adoptPet,
+  type GatewayRequest,
+  loadPetGallery,
+  resetPetGallery
+} from './pet-gallery'
 
 function localGallery() {
   return {
@@ -13,11 +22,13 @@ function localGallery() {
 
 describe('pet gallery pet.info sync', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     resetPetGallery()
     setPetInfo({ enabled: false })
   })
 
   afterEach(() => {
+    setRuntimeI18nLocale('en')
     resetPetGallery()
     setPetInfo({ enabled: false })
     vi.restoreAllMocks()
@@ -206,5 +217,25 @@ describe('pet gallery pet.info sync', () => {
     const methods = requestMock.mock.calls.map(([method]) => method)
     expect(methods).toEqual(['pet.select', 'pet.info.meta'])
     expect($petInfo.get().spritesheetBase64).toBe('large-sprite-payload')
+  })
+
+  it('uses Simplified Chinese copy for a gallery connection failure', async () => {
+    setRuntimeI18nLocale('zh')
+
+    const request = vi.fn(async (method: string) => {
+      if (method === 'pet.gallery') {
+        throw null
+      }
+
+      if (method === 'pet.info.meta') {
+        return { enabled: false }
+      }
+
+      throw new Error(`unexpected method: ${method}`)
+    }) as unknown as GatewayRequest
+
+    await loadPetGallery(request)
+
+    expect($petGalleryError.get()).toBe('无法连接到 petdex 画廊。')
   })
 })

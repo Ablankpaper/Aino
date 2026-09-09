@@ -32,8 +32,8 @@ import { setStatusbarItemGroup, useStatusbarContributions } from './panes'
 import type { SidebarActions, WiringActions } from './types'
 
 // Same lazy-view split as DesktopController — pages load on demand. The
-// full-page views the workspace route table mounts live here; overlay views
-// (agents/settings/…) are the controller's and stay in wiring.tsx.
+// full-page views the workspace route table mounts live here; modal overlays
+// (agents/command-center/…) are the controller's and stay in wiring.tsx.
 const ArtifactsView = lazy(async () => ({ default: (await import('../artifacts')).ArtifactsView }))
 const MessagingView = lazy(async () => ({ default: (await import('../messaging')).MessagingView }))
 const SkillsView = lazy(async () => ({ default: (await import('../skills')).SkillsView }))
@@ -70,37 +70,31 @@ export const TerminalSurface = memo(function TerminalSurface() {
 export const StatusbarSurface = memo(function StatusbarSurface({
   actions,
   agentsOpen,
-  chatOpen,
-  commandCenterOpen
+  chatOpen
 }: {
   actions: WiringActions
   agentsOpen: boolean
   chatOpen: boolean
-  commandCenterOpen: boolean
 }) {
   const activeConnectionId = useStore($activeConnectionId)
   const activeGatewayProfile = useStore($activeGatewayProfile)
   const gatewayState = useStore($gatewayState)
   const freshDraftReady = useStore($freshDraftReady)
   const gatewayScope = `${activeConnectionId ?? ''}\0${activeGatewayProfile}`
-  const { inferenceStatus, statusSnapshot } = useStatusSnapshot(gatewayState, actions.requestGateway, gatewayScope)
+  const { statusSnapshot } = useStatusSnapshot(gatewayState, actions.requestGateway, gatewayScope)
   const extraLeftItems = useStatusbarContributions('left')
   const extraRightItems = useStatusbarContributions('right')
 
   const { leftStatusbarItems, statusbarItems } = useStatusbarItems({
     agentsOpen,
     chatOpen,
-    commandCenterOpen,
     extraLeftItems,
     extraRightItems,
     freshDraftReady,
     gatewayState,
-    inferenceStatus,
     openAgents: actions.openAgents,
-    openCommandCenterSection: actions.openCommandCenterSection,
     requestGateway: actions.requestGateway,
-    statusSnapshot,
-    toggleCommandCenter: actions.toggleCommandCenter
+    statusSnapshot
   })
 
   return <StatusbarControls items={statusbarItems} leftItems={leftStatusbarItems} />
@@ -183,9 +177,15 @@ export const ChatRoutesSurface = memo(function ChatRoutesSurface({
       {routeContributions.map(route => (
         <Route
           element={page(
-            <ContribBoundary id={route.key}>
-              <ContribRender render={route.render} />
-            </ContribBoundary>
+            <div
+              className="flex h-full min-h-0 min-w-0 flex-col overflow-auto"
+              data-aino-contributed-page
+              data-aino-page-shell
+            >
+              <ContribBoundary id={route.key}>
+                <ContribRender render={route.render} />
+              </ContribBoundary>
+            </div>
           )}
           key={route.key}
           path={route.path.slice(1)}

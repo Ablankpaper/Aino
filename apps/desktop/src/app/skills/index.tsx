@@ -27,7 +27,7 @@ import {
   setSkillEnabled,
   setToolsetEnabled
 } from '@/hermes'
-import { useI18n } from '@/i18n'
+import { type Translations, useI18n } from '@/i18n'
 import { isDesktopToolsetVisible } from '@/lib/desktop-toolsets'
 import { compactNumber } from '@/lib/format'
 import { Loader2 } from '@/lib/icons'
@@ -118,7 +118,7 @@ const usageOf = (skill: SkillInfo): number => (typeof skill.usage === 'number' ?
 const categoryFor = (skill: SkillInfo): string => asText(skill.category) || 'general'
 
 // Row subtitle: category, with non-default origins badged.
-function skillSubtitle(skill: SkillInfo): React.ReactNode {
+function skillSubtitle(skill: SkillInfo, provenanceCopy: Translations['skills']['provenance']): React.ReactNode {
   const category = prettyName(categoryFor(skill))
   const provenance = skill.provenance
 
@@ -127,12 +127,12 @@ function skillSubtitle(skill: SkillInfo): React.ReactNode {
       <span className="truncate">{category}</span>
       {provenance === 'agent' && (
         <Badge className="shrink-0 normal-case" variant="default">
-          learned
+          {provenanceCopy.agent}
         </Badge>
       )}
       {provenance === 'hub' && (
         <Badge className="shrink-0 normal-case" variant="muted">
-          hub
+          {provenanceCopy.hub}
         </Badge>
       )}
     </>
@@ -927,7 +927,7 @@ export function SkillsView({
                           setSelectedOfficial(null)
                         }}
                         onToggle={enabled => void handleToggleSkill(skill, enabled)}
-                        subtitle={skillSubtitle(skill)}
+                        subtitle={skillSubtitle(skill, t.skills.provenance)}
                         title={skill.name}
                         toggleLabel={skill.name}
                       />

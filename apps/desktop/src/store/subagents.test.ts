@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import {
   $subagentsBySession,
   activeSubagentCount,
@@ -266,6 +268,18 @@ describe('subagent store', () => {
     upsertSubagent('s1', { status: 'timeout', subagent_id: 't2', task_index: 0 }, false, 'subagent.complete')
 
     expect(listFor('s1')[0]?.summary).toBe('Timed out after ?s')
+  })
+
+  it('localizes synthesized timeout and missing goal copy', () => {
+    setRuntimeI18nLocale('zh')
+
+    try {
+      upsertSubagent('s1', { status: 'timeout', subagent_id: 'zh-timeout', task_index: 0 }, true, 'subagent.complete')
+
+      expect(listFor('s1')[0]).toMatchObject({ goal: '子智能体', summary: '运行 ? 秒后超时' })
+    } finally {
+      setRuntimeI18nLocale('en')
+    }
   })
 
   // Fail-closed guard: subagent.complete is terminal by definition, so an

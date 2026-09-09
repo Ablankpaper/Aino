@@ -2,6 +2,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
+
 /**
  * The timeline must do NO work it can't currently show. Two gates are proven
  * here by rendering the real component and counting the work it performs:
@@ -93,6 +95,18 @@ describe('ThreadTimeline in a background tab', () => {
 })
 
 describe('ThreadTimeline popover', () => {
+  it('uses the active locale for the navigation label', () => {
+    messages = transcript(6)
+
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <ThreadTimeline />
+      </I18nProvider>
+    )
+
+    expect(screen.getByRole('navigation', { name: '对话时间线' })).toBeTruthy()
+  })
+
   it('builds no rows until the rail is hovered', () => {
     messages = transcript(6)
 

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import { $rightRailActiveTabId, selectRightRailTab } from '@/store/layout'
 import { closeRightRail, openPreview, type PreviewTarget } from '@/store/preview'
 
@@ -27,6 +28,8 @@ describe('readActivePreview (read_preview tool)', () => {
   }
 
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
+
     for (const cleanup of cleanups) {
       cleanup()
     }
@@ -107,6 +110,27 @@ describe('readActivePreview (read_preview tool)', () => {
       note: expect.stringContaining('read_file') as string,
       path: '/work/notes.md'
     })
+  })
+
+  it('localizes the file fallback note for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    openPreview(fileTarget('/work/notes.md'), 'file-browser')
+
+    expect((await readActivePreview())?.note).toBe('文件预览——请使用 read_file 读取文件本身。')
+  })
+
+  it('localizes the artifact fallback note for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    openPreview({ kind: 'artifact', label: 'report', source: 'report', url: 'report' }, 'tool-result')
+
+    expect((await readActivePreview())?.note).toBe('生成的产物——内容位于生成它的对话中。')
+  })
+
+  it('localizes the loading fallback note for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    openPreview(urlTarget('https://example.com'), 'tool-result')
+
+    expect((await readActivePreview())?.note).toBe('页面尚未加载完成——请稍后重试。')
   })
 
   it('reads the tab the user is LOOKING at, not the last one opened', async () => {

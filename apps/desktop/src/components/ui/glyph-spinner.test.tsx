@@ -25,13 +25,15 @@ import spinners from 'unicode-animations'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PaneVisibleContext } from '@/components/pane-shell/pane-visibility'
+import { I18nProvider } from '@/i18n'
 
 import { GlyphSpinner } from './glyph-spinner'
 
 const BRAILLE = spinners.braille
+const DEFAULT_LABEL = 'Loading…'
 
 function strip(): HTMLElement {
-  const status = screen.getByRole('status', { name: 'Loading' })
+  const status = screen.getByRole('status', { name: DEFAULT_LABEL })
   const found = status.querySelector<HTMLElement>('.glyph-spinner__strip')
 
   if (!found) {
@@ -50,6 +52,16 @@ describe('GlyphSpinner', () => {
     vi.clearAllTimers()
     vi.restoreAllMocks()
     vi.useRealTimers()
+  })
+
+  it('localizes the default accessible label for the active locale', () => {
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <GlyphSpinner spinner="braille" />
+      </I18nProvider>
+    )
+
+    expect(screen.getByRole('status', { name: '加载中…' })).toBeTruthy()
   })
 
   it('renders every frame in source order as the scroll strip', () => {
@@ -117,7 +129,7 @@ describe('GlyphSpinner', () => {
       </PaneVisibleContext.Provider>
     )
 
-    const viewport = () => screen.getByRole('status', { name: 'Loading' }).querySelector('.glyph-spinner')
+    const viewport = () => screen.getByRole('status', { name: DEFAULT_LABEL }).querySelector('.glyph-spinner')
 
     expect(viewport()?.getAttribute('data-paused')).toBe('true')
 
@@ -135,7 +147,7 @@ describe('GlyphSpinner', () => {
 
     // role="status" is a live region. The frames must not be announced — the
     // old implementation rewrote this region's text ~12x/second.
-    const status = screen.getByRole('status', { name: 'Loading' })
+    const status = screen.getByRole('status', { name: DEFAULT_LABEL })
 
     expect(status.querySelector('.glyph-spinner')?.getAttribute('aria-hidden')).toBe('true')
   })
@@ -144,7 +156,7 @@ describe('GlyphSpinner', () => {
     // For a caller that keeps the spinner in the tree through a fade-out
     // (ChatSwapOverlay) and does not want it animating once the wait is over.
     const { rerender } = render(<GlyphSpinner paused spinner="braille" />)
-    const viewport = () => screen.getByRole('status', { name: 'Loading' }).querySelector('.glyph-spinner')
+    const viewport = () => screen.getByRole('status', { name: DEFAULT_LABEL }).querySelector('.glyph-spinner')
 
     expect(viewport()?.getAttribute('data-paused')).toBe('true')
 

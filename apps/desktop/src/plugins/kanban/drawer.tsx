@@ -767,7 +767,7 @@ export function TaskDrawer({
               {task.tenant && <MetaRow label={k.metaTenant}>{task.tenant}</MetaRow>}
               {task.workspace_path && (
                 <MetaRow label={k.workspace}>
-                  {task.workspace_kind ? `${task.workspace_kind}: ` : ''}
+                  {task.workspace_kind ? `${k.workspaceKindLabel(task.workspace_kind)}: ` : ''}
                   {task.workspace_path}
                 </MetaRow>
               )}
@@ -907,7 +907,7 @@ export function TaskDrawer({
                         <li className="flex flex-col gap-0.5 text-[0.71rem]" key={run.id}>
                           <div className="flex items-center gap-2">
                             <Badge size="xs" variant={failed ? 'destructive' : 'muted'}>
-                              {run.outcome ?? run.status}
+                              {k.runStatusLabel(run.outcome ?? run.status)}
                             </Badge>
                             {run.profile && <span className="text-(--ui-text-tertiary)">{run.profile}</span>}
                             {duration(run.started_at, run.ended_at) && (

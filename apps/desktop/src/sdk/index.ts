@@ -44,6 +44,7 @@ import { onGatewayEvent } from '@/contrib/events'
 import { registry } from '@/contrib/registry'
 import type { WorkspaceMode } from '@/contrib/types'
 import { deleteProfile, getLogs, getStatus, hermesApi, type HermesGateway } from '@/hermes'
+import { translateNow } from '@/i18n'
 import { completeMcpDesktopOAuth } from '@/lib/mcp-dashboard-oauth'
 import {
   $gateway,
@@ -726,7 +727,7 @@ export const host = {
     }
 
     if (normalizeProfileKey(targetProfile) === 'default') {
-      throw new Error('The default profile cannot be deleted.')
+      throw new Error(translateNow('profiles.defaultProfileDeleteBlocked'))
     }
 
     // Capture before the delete; re-home after so our write is the last one
@@ -1205,7 +1206,7 @@ export const host = {
   newChat: (profile?: null | string | PluginProfileRoute, options: PluginNewChatOptions = {}): void => {
     if (options.workspaceMode === 'bots') {
       if (!profile || typeof profile === 'string' || !options.workspaceOwnerKey) {
-        notify({ kind: 'error', message: 'Select a Bot before starting another chat.' })
+        notify({ kind: 'error', message: translateNow('desktop.botMode.selectBotBeforeNewChat') })
 
         return
       }
@@ -1215,7 +1216,10 @@ export const host = {
       const openTab = $newSessionTabAction.get()
 
       if (!openTab) {
-        notify({ kind: 'error', message: 'Update Hermes Desktop to open another Bot chat.' })
+        notify({
+          kind: 'error',
+          message: translateNow('desktop.botMode.updateForAnotherChat', 'Aino')
+        })
 
         return
       }

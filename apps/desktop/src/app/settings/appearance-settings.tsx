@@ -53,6 +53,7 @@ import { $vibeHeartsEnabled, setVibeHeartsEnabled } from '@/store/vibe-hearts-en
 import { $zoomPercent, setZoomPercent } from '@/store/zoom'
 import { getBaseColors, useTheme } from '@/themes/context'
 import { installVscodeThemeFromMarketplace } from '@/themes/install'
+import { localizedThemeCopy } from '@/themes/localized'
 import type { DesktopTheme } from '@/themes/types'
 import { $marketplaceInstalls, isUserTheme, removeUserTheme } from '@/themes/user-themes'
 
@@ -144,8 +145,8 @@ function ThemePreview({ name, mode }: { name: string; mode: 'light' | 'dark' }) 
   )
 }
 
-// UI scale presets, as zoom percentages. 100 is Chromium's actual-size
-// baseline; the shipped default is the 90% preset. Ids double as the percent
+// UI scale presets, as zoom percentages. 100 is Chromium's actual-size and
+// Aino's shipped design baseline. Ids double as the percent
 // values sent to the main process. A Cmd/Ctrl +/- step landing between
 // presets highlights nothing, and the row description keeps showing the
 // exact current percent.
@@ -177,6 +178,7 @@ function MarketplaceThemeResults({
   onInstalled: (name: string) => void
 }) {
   const { t } = useI18n()
+  const a = t.settings.appearance
   const copy = t.commandCenter.installTheme
   const debounced = useDebounced(query.trim(), 300)
   const [installingId, setInstallingId] = useState<string | null>(null)
@@ -229,7 +231,7 @@ function MarketplaceThemeResults({
 
   const header = (
     <p className="mb-2 mt-4 text-[length:var(--conversation-caption-font-size)] font-medium text-(--ui-text-tertiary)">
-      From the VS Code Marketplace
+      {a.marketplaceHeading}
     </p>
   )
 
@@ -416,9 +418,9 @@ export function AppearanceSettings() {
   const activeProfileKey = normalizeProfileKey(useStore($activeGatewayProfile))
   const a = t.settings.appearance
 
-  // A pointer held on the intensity slider when this overlay closes (Escape
+  // A pointer held on the intensity slider when this workspace closes (Escape
   // mid-drag) never delivers its pointerup here, which would strand the peek
-  // counter above zero and ghost the NEXT settings overlay. Unmount drops
+  // counter above zero and ghost the NEXT Settings workspace. Unmount drops
   // every outstanding hold.
   useEffect(() => resetTranslucencyPeek, [])
 
@@ -450,13 +452,18 @@ export function AppearanceSettings() {
   const needle = normalize(query)
 
   const filteredThemes = availableThemes
-    .filter(
-      theme =>
+    .filter(theme => {
+      const copy = localizedThemeCopy(theme, t)
+
+      return (
         !needle ||
-        theme.label.toLowerCase().includes(needle) ||
+        copy.label.toLowerCase().includes(needle) ||
         theme.name.toLowerCase().includes(needle) ||
+        copy.description.toLowerCase().includes(needle) ||
+        theme.label.toLowerCase().includes(needle) ||
         theme.description.toLowerCase().includes(needle)
-    )
+      )
+    })
     // Active theme first; stable sort keeps the rest in their original order.
     .sort((a, b) => Number(b.name === themeName) - Number(a.name === themeName))
 
@@ -521,7 +528,7 @@ export function AppearanceSettings() {
                   <input
                     className="w-full rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-quinary) px-3 py-1.5 text-[length:var(--conversation-caption-font-size)] outline-none placeholder:text-(--ui-text-tertiary) focus:border-(--ui-stroke-secondary)"
                     onChange={event => setQuery(event.target.value)}
-                    placeholder="Search your themes or the VS Code Marketplace…"
+                    placeholder={a.themeSearchPlaceholder}
                     spellCheck={false}
                     value={query}
                   />
@@ -533,7 +540,7 @@ export function AppearanceSettings() {
                   {filteredThemes.length === 0 ? (
                     needle ? (
                       <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
-                        No installed themes match "{query.trim()}".
+                        {a.noInstalledThemesMatch(query.trim())}
                       </p>
                     ) : null
                   ) : (
@@ -541,6 +548,7 @@ export function AppearanceSettings() {
                       {filteredThemes.map(theme => {
                         const active = themeName === theme.name
                         const removable = isUserTheme(theme.name)
+                        const copy = localizedThemeCopy(theme, t)
 
                         return (
                           <div className="group relative" key={theme.name}>
@@ -555,10 +563,10 @@ export function AppearanceSettings() {
                               <ThemePreview mode={resolvedMode} name={theme.name} />
                               <div className="mt-3 px-1">
                                 <div className="truncate text-[length:var(--conversation-text-font-size)] font-medium">
-                                  {theme.label}
+                                  {copy.label}
                                 </div>
                                 <div className="mt-0.5 line-clamp-2 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
-                                  {theme.description}
+                                  {copy.description}
                                 </div>
                               </div>
                             </button>

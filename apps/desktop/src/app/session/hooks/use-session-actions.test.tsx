@@ -19,11 +19,13 @@ import {
   type SessionResumeResponse,
   setSessionArchived
 } from '@/hermes'
+import { I18nProvider, setRuntimeI18nLocale } from '@/i18n'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $clarifyRequests, clearClarifyRequest, setClarifyRequest } from '@/store/clarify'
 import { clearSessionDraft, stashSessionDraft, takeSessionDraft } from '@/store/composer'
 import { requestGatewayForAgent, requestGatewayForProfile } from '@/store/gateway'
 import { $pinnedSessionIds } from '@/store/layout'
+import { $notifications, clearNotifications } from '@/store/notifications'
 import { $activeGatewayProfile, $newChatProfile, $newChatRoute, $profiles, ensureGatewayProfile } from '@/store/profile'
 import { $projectScope, $projectTree, ALL_PROJECTS } from '@/store/projects'
 import {
@@ -4166,6 +4168,7 @@ const profiles = (...names: string[]) => names.map(name => ({ name }) as never)
 
 describe('removeSession / archiveSession profile routing (#78836)', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('zh')
     setSessions([])
     setMessagingSessions([])
     setCronSessions([])
@@ -4182,6 +4185,8 @@ describe('removeSession / archiveSession profile routing (#78836)', () => {
   })
 
   afterEach(() => {
+    setRuntimeI18nLocale('en')
+    clearNotifications()
     cleanup()
     setSessions([])
     setMessagingSessions([])
@@ -4373,6 +4378,27 @@ describe('removeSession / archiveSession profile routing (#78836)', () => {
     expect($unreadFinishedMarkers.get().winefox).toEqual(['tg-unresolved'])
     expect($removedSessionIds.get().has('tg-unresolved')).toBe(false)
     expect($sessionMutationsInFlight.get().has('tg-unresolved')).toBe(false)
+  })
+
+  it('localizes the unresolved-session-owner error for Simplified Chinese users', async () => {
+    const row = storedSession({ id: 'tg-unresolved-copy', source: 'telegram', title: 'QQ/TG' })
+    setMessagingSessions([row])
+    mockGetSession.mockRejectedValue(new Error('404: Session not found'))
+
+    let handle: HarnessHandle | null = null
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness onReady={value => (handle = value)} requestGateway={vi.fn(async () => ({}) as never)} />
+      </I18nProvider>
+    )
+    await waitFor(() => expect(handle).not.toBeNull())
+
+    await act(async () => {
+      await handle!.removeSession('tg-unresolved-copy')
+    })
+
+    expect($notifications.get()[0]?.message).toBe('无法确定会话归属，已取消操作。')
+    expect(mockDeleteSession).not.toHaveBeenCalled()
   })
 
   it('fails closed when a listed profile-less messaging archive cannot resolve an owner', async () => {

@@ -31,6 +31,7 @@ vi.mock('@/i18n', () => ({
           openSystem: 'Open system panel',
           recentActivity: 'Recent activity',
           reconnectGateway: 'Reconnect gateway',
+          state: (value: string) => value.replace(/_/g, ' ').replace(/^./, char => char.toUpperCase()),
           viewAllLogs: 'View all logs'
         }
       }

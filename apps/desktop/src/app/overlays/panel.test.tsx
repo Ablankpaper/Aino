@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
+
 import { PanelRowMenu } from './panel'
 
 beforeAll(() => {
@@ -28,5 +30,16 @@ describe('PanelRowMenu', () => {
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Rename' }))
 
     expect(onSelect).toHaveBeenCalledOnce()
+  })
+
+  it('uses the active locale for the default actions label', () => {
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <PanelRowMenu items={[{ label: '重命名', onSelect: vi.fn() }]} />
+      </I18nProvider>
+    )
+
+    expect(screen.getByRole('button', { name: '操作' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Actions' })).toBeNull()
   })
 })

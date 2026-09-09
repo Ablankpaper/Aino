@@ -99,6 +99,35 @@ describe('room naming', () => {
   })
 })
 
+describe('localized room transcript fallbacks', () => {
+  it('localizes the empty-response notice without changing the sentinel input', async () => {
+    const room = await loadRoom()
+    const shared = await import('./shared')
+    const storage = scriptedStorage(room.gateway.storage)
+
+    storage.i18n = {
+      t: (key: string) =>
+        key === 'group.emptyResponse'
+          ? '⚠️ 模型处理工具结果后没有返回内容。这可能是某些模型的行为，请重试或改写问题。'
+          : key
+    } as typeof storage.i18n
+
+    shared.setPluginCtx(storage)
+
+    room.chat.updateGroupChat('Localized', current => current)
+
+    const entry = room.chat.appendGroupChatEntry(
+      'Localized',
+      { kind: 'member', name: 'research' },
+      '(empty)',
+      'thread-1'
+    )
+
+    expect(entry.text).toBe('⚠️ 模型处理工具结果后没有返回内容。这可能是某些模型的行为，请重试或改写问题。')
+    expect(entry.text).not.toBe('(empty)')
+  })
+})
+
 describe('speaker labels', () => {
   it('the default profile speaks as Hermes in transcripts, not @default', async () => {
     const { rounds } = await loadRoom()

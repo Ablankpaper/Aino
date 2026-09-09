@@ -122,9 +122,12 @@ from gateway.scale_to_zero import (  # noqa: E402 - grouped with their section
 _FLY_ENV = {FLY_APP_NAME_ENV: "hermes-agent-stg-test", FLY_MACHINE_ID_ENV: "d891234f"}
 
 
-def _fake_flaps(tmp_path, status_line, capture):
+def _fake_flaps(_tmp_path, status_line, capture):
     """One-shot unix-socket HTTP server standing in for flaps."""
-    sock_path = str(tmp_path / "fly-api.sock")
+    # macOS caps AF_UNIX paths at roughly 104 bytes; pytest's isolated temp
+    # root can already exceed that before the socket filename is appended.
+    # Keep the endpoint short while retaining per-process/test uniqueness.
+    sock_path = f"/tmp/hermes-flaps-{os.getpid()}-{id(capture):x}.sock"
     server = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
     server.bind(sock_path)
     server.listen(1)
@@ -144,6 +147,10 @@ def _fake_flaps(tmp_path, status_line, capture):
                 f"HTTP/1.1 {status_line}\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{{}}".encode()
             )
         server.close()
+        try:
+            os.unlink(sock_path)
+        except OSError:
+            pass
 
     t = threading.Thread(target=serve, daemon=True)
     t.start()

@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DesktopBootstrapEvent, DesktopBootstrapState, DesktopConnectionProbeResult } from '@/global'
+import { I18nProvider, setRuntimeI18nLocale } from '@/i18n'
 
 import { DesktopInstallOverlay } from './desktop-install-overlay'
 
@@ -81,11 +82,13 @@ function whenPresent(text: string): Promise<HTMLElement> {
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  setRuntimeI18nLocale('en')
 })
 
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  setRuntimeI18nLocale('en')
   Reflect.deleteProperty(window, 'hermesDesktop')
 })
 
@@ -99,14 +102,14 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    expect(await screen.findByText('Set up Hermes Desktop')).toBeTruthy()
-    expect(screen.getByText('Connect to existing Hermes')).toBeTruthy()
-    expect(screen.getByText('Install Hermes locally')).toBeTruthy()
+    expect(await screen.findByText('Set up Aino')).toBeTruthy()
+    expect(screen.getByText('Connect to existing Aino')).toBeTruthy()
+    expect(screen.getByText('Install Aino locally')).toBeTruthy()
     expect(screen.queryByText(/steps complete/i)).toBeNull()
     expect(screen.queryByText(/Fetching installer manifest/i)).toBeNull()
   })
 
-  it('continues local bootstrap only when Install Hermes locally is selected', async () => {
+  it('continues local bootstrap only when Install Aino locally is selected', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
         setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\hermes\\hermes-agent' }
@@ -115,16 +118,16 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Install Hermes locally'))
+    fireEvent.click(await screen.findByText('Install Aino locally'))
 
     expect(desktop.continueBootstrapLocal).toHaveBeenCalledTimes(1)
-    expect(screen.getByText('Set up Hermes Desktop')).toBeTruthy()
+    expect(screen.getByText('Set up Aino')).toBeTruthy()
 
     act(() => {
       desktop.emitBootstrapEvent({ type: 'manifest', protocolVersion: 1, stages: [] })
     })
 
-    await waitFor(() => expect(screen.queryByText('Set up Hermes Desktop')).toBeNull())
+    await waitFor(() => expect(screen.queryByText('Set up Aino')).toBeNull())
     expect(screen.getByText(/Fetching installer manifest/i)).toBeTruthy()
   })
 
@@ -138,12 +141,10 @@ describe('DesktopInstallOverlay first-run setup', () => {
     desktop.continueBootstrapLocal = undefined as never
     render(<DesktopInstallOverlay />)
 
-    const install = (await screen.findByText('Install Hermes locally')).closest('button') as HTMLButtonElement
+    const install = (await screen.findByText('Install Aino locally')).closest('button') as HTMLButtonElement
     fireEvent.click(install)
 
-    expect(
-      await screen.findByText('Local installation could not start. Restart Hermes Desktop and try again.')
-    ).toBeTruthy()
+    expect(await screen.findByText('Local installation could not start. Restart Aino and try again.')).toBeTruthy()
     expect(install.disabled).toBe(false)
   })
 
@@ -160,14 +161,14 @@ describe('DesktopInstallOverlay first-run setup', () => {
     // Click the instant the choice paints, before React drains the passive
     // effect that reacts to the first snapshot. A loaded runner hits this
     // window by accident; observing the DOM directly hits it every time.
-    const install = (await whenPresent('Install Hermes locally')).closest('button') as HTMLButtonElement
+    const install = (await whenPresent('Install Aino locally')).closest('button') as HTMLButtonElement
     fireEvent.click(install)
 
     await act(async () => {
       await Promise.resolve()
     })
 
-    expect(screen.queryByText('Local installation could not start. Restart Hermes Desktop and try again.')).toBeTruthy()
+    expect(screen.queryByText('Local installation could not start. Restart Aino and try again.')).toBeTruthy()
   })
 
   it('clears a stale local-start error when a repair presents a different root', async () => {
@@ -180,10 +181,8 @@ describe('DesktopInstallOverlay first-run setup', () => {
     desktop.continueBootstrapLocal = undefined as never
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click((await screen.findByText('Install Hermes locally')).closest('button') as HTMLButtonElement)
-    expect(
-      await screen.findByText('Local installation could not start. Restart Hermes Desktop and try again.')
-    ).toBeTruthy()
+    fireEvent.click((await screen.findByText('Install Aino locally')).closest('button') as HTMLButtonElement)
+    expect(await screen.findByText('Local installation could not start. Restart Aino and try again.')).toBeTruthy()
 
     act(() => {
       desktop.emitBootstrapEvent({
@@ -194,7 +193,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
       })
     })
 
-    expect(screen.queryByText('Local installation could not start. Restart Hermes Desktop and try again.')).toBeNull()
+    expect(screen.queryByText('Local installation could not start. Restart Aino and try again.')).toBeNull()
   })
 
   it('opens the remote connection form from the first-run choice', async () => {
@@ -206,7 +205,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Hermes'))
+    fireEvent.click(await screen.findByText('Connect to existing Aino'))
 
     expect(await screen.findByText('Gateway URL')).toBeTruthy()
     expect(screen.getByText('Test connection')).toBeTruthy()
@@ -222,13 +221,13 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Hermes'))
+    fireEvent.click(await screen.findByText('Connect to existing Aino'))
     expect(await screen.findByText('Gateway URL')).toBeTruthy()
 
     fireEvent.click(screen.getByText('Back'))
 
-    expect(await screen.findByText('Set up Hermes Desktop')).toBeTruthy()
-    expect(screen.getByText('Install Hermes locally')).toBeTruthy()
+    expect(await screen.findByText('Set up Aino')).toBeTruthy()
+    expect(screen.getByText('Install Aino locally')).toBeTruthy()
   })
 
   it('requires a successful token connection test before applying remote config', async () => {
@@ -259,7 +258,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Hermes'))
+    fireEvent.click(await screen.findByText('Connect to existing Aino'))
     fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/hermes'), {
       target: { value: 'https://gateway.example.com/hermes' }
     })
@@ -318,7 +317,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Hermes'))
+    fireEvent.click(await screen.findByText('Connect to existing Aino'))
     const urlInput = await screen.findByPlaceholderText('https://gateway.example.com/hermes')
     fireEvent.change(urlInput, { target: { value: 'https://gateway.example.com/hermes' } })
 
@@ -371,7 +370,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Hermes'))
+    fireEvent.click(await screen.findByText('Connect to existing Aino'))
     fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/hermes'), {
       target: { value: 'https://gateway.example.com/hermes' }
     })
@@ -422,7 +421,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Hermes'))
+    fireEvent.click(await screen.findByText('Connect to existing Aino'))
     fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/hermes'), {
       target: { value: 'https://gateway.example.com/hermes' }
     })
@@ -474,7 +473,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Hermes'))
+    fireEvent.click(await screen.findByText('Connect to existing Aino'))
     fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/hermes'), {
       target: { value: 'https://gateway.example.com/hermes' }
     })
@@ -530,7 +529,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    expect(await screen.findByText('Hermes needs a one-time install')).toBeTruthy()
+    expect(await screen.findByText('Aino needs a one-time install')).toBeTruthy()
 
     fireEvent.click(screen.getByText('Connect existing'))
 
@@ -571,6 +570,40 @@ describe('DesktopInstallOverlay first-run setup', () => {
     fireEvent.click(screen.getByText('Apply and reconnect'))
 
     await waitFor(() => expect(screen.queryByText('Gateway URL')).toBeNull())
-    expect(screen.queryByText('Hermes needs a one-time install')).toBeNull()
+    expect(screen.queryByText('Aino needs a one-time install')).toBeNull()
+  })
+})
+
+describe('DesktopInstallOverlay stage labels', () => {
+  it('localizes known installer stage names for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    installDesktopMock(
+      bootstrapState({
+        active: true,
+        manifest: {
+          protocolVersion: 1,
+          stages: [{ category: 'prereqs', name: 'system-packages', needs_user_input: false, title: 'System packages' }],
+          type: 'manifest'
+        },
+        stages: {
+          'system-packages': {
+            durationMs: null,
+            error: null,
+            json: null,
+            startedAt: Date.now(),
+            state: 'running'
+          }
+        }
+      })
+    )
+
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <DesktopInstallOverlay />
+      </I18nProvider>
+    )
+
+    expect(await screen.findByText('系统组件')).toBeTruthy()
+    expect(screen.queryByText('System packages')).toBeNull()
   })
 })

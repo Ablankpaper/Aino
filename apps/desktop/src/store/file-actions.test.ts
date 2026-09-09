@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import { $notifications, clearNotifications } from '@/store/notifications'
 
 vi.mock('@/lib/media', () => ({
@@ -28,6 +29,7 @@ describe('downloadRemoteFile', () => {
 
   afterEach(() => {
     clearNotifications()
+    setRuntimeI18nLocale('en')
   })
 
   it('saves a remote gateway file through the native download bridge', async () => {
@@ -54,5 +56,17 @@ describe('downloadRemoteFile', () => {
 
     expect($notifications.get()[0]?.kind).toBe('error')
     expect($notifications.get()[0]?.title).toBe('Download failed')
+  })
+
+  it('localizes an unavailable desktop download bridge for Simplified Chinese users', async () => {
+    setRuntimeI18nLocale('zh')
+    downloadGatewayMediaFile.mockRejectedValue(new Error('Desktop file download bridge is unavailable'))
+
+    await downloadRemoteFile('/home/linux/project/notes.md')
+
+    expect($notifications.get()[0]).toMatchObject({
+      message: '桌面文件下载桥不可用',
+      title: '下载失败'
+    })
   })
 })

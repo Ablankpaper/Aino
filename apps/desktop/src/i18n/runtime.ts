@@ -1,3 +1,5 @@
+import { applyProductBrand } from '@/lib/brand'
+
 import { TRANSLATIONS } from './catalog'
 import { DEFAULT_LOCALE } from './languages'
 import type { Locale } from './types'
@@ -16,11 +18,11 @@ function resolvePath(source: unknown, key: string): unknown {
 /** A string is returned as-is, a function is called with `args`, else `null`. */
 function render(value: unknown, args: unknown[]): null | string {
   if (typeof value === 'string') {
-    return value
+    return applyProductBrand(value)
   }
 
   if (typeof value === 'function') {
-    return (value as (...args: unknown[]) => string)(...args)
+    return applyProductBrand(String((value as (...args: unknown[]) => string)(...args)))
   }
 
   return null

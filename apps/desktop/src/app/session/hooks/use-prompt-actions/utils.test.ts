@@ -1,6 +1,8 @@
 import type { AppendMessage } from '@assistant-ui/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+import { zh } from '@/i18n/zh'
 import type { ChatMessage } from '@/lib/chat-messages'
 
 import {
@@ -23,6 +25,7 @@ import {
   readFileDataUrlForAttach,
   RECENT_INTERRUPT_COOLDOWN_MS,
   releaseSubmitInFlight,
+  renderCommandsCatalog,
   renderRpcResult,
   SessionRecoveryAborted,
   shouldInterruptBeforeRewind,
@@ -34,6 +37,7 @@ import {
 } from './utils'
 
 afterEach(() => {
+  setRuntimeI18nLocale('en')
   clearSessionRecentlyInterrupted()
   clearSubmitInFlight()
 })
@@ -135,6 +139,28 @@ describe('inlineErrorMessage', () => {
 
   it('falls back for non-error, non-string input', () => {
     expect(inlineErrorMessage(undefined, 'fallback')).toBe('fallback')
+  })
+})
+
+describe('renderCommandsCatalog', () => {
+  it('renders built-in command descriptions in the active locale', () => {
+    const output = renderCommandsCatalog(
+      {
+        pairs: [
+          ['/review', 'Spawn an independent reviewer'],
+          ['/ship-it', 'Run the release checklist']
+        ]
+      },
+      zh.desktop,
+      {
+        '/review': '启动独立审阅智能体',
+        '/ship-it': '运行发布检查清单'
+      }
+    )
+
+    expect(output).toMatch(/\/review\s+启动独立审阅智能体/)
+    expect(output).toMatch(/\/ship-it\s+运行发布检查清单/)
+    expect(output).not.toContain('Spawn an independent reviewer')
   })
 })
 
@@ -379,6 +405,14 @@ describe('friendlyRemoteAttachError', () => {
     const original = new Error('something else')
     expect(friendlyRemoteAttachError(original, 'pic.png')).toBe(original)
   })
+
+  it('uses Simplified Chinese copy for a too-large remote attachment', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(
+      friendlyRemoteAttachError(new Error('file is too large (20 bytes; limit 16777216 bytes)'), 'pic.png')
+    ).toHaveProperty('message', 'pic.png 太大，无法上传到远程网关（上限 16 MB）。')
+  })
 })
 
 describe('readFileDataUrlForAttach', () => {
@@ -449,6 +483,20 @@ describe('visible user ordinals', () => {
 })
 
 describe('renderRpcResult', () => {
+  it('localizes application-owned RPC status wrappers in Simplified Chinese', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(renderRpcResult({ status: 'queued', text: '继续查看日志' }, 'steer')).toBe(
+      '已引导：\u201c继续查看日志\u201d 已排队，将在下一次工具调用时发送'
+    )
+    expect(renderRpcResult({ killed: 2 }, 'stop')).toBe('已停止 2 个后台进程。')
+    expect(renderRpcResult({ file: '/tmp/chat.json' }, 'save')).toBe('已将记录保存到 /tmp/chat.json')
+    expect(renderRpcResult({ calls: 12, input: 1000, output: 200, total: 1200 }, 'usage')).toBe(
+      '用量：12 次调用 · 输入 1,000 / 输出 200 · 总计 1,200'
+    )
+    expect(renderRpcResult({ processes: [] }, 'agents')).toBe('当前没有运行中的后台任务。')
+  })
+
   describe('session.compress (summary shape)', () => {
     it('renders the summary headline with token line and note', () => {
       expect(

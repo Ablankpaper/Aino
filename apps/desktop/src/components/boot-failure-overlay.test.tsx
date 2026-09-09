@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider, setRuntimeI18nLocale } from '@/i18n'
 import { $desktopBoot } from '@/store/boot'
 import { $desktopOnboarding } from '@/store/onboarding'
 
@@ -62,7 +63,10 @@ beforeEach(() => {
   failBoot()
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  setRuntimeI18nLocale('en')
+})
 
 describe('BootFailureOverlay', () => {
   it('swaps to the in-place gateway settings view (no route nav) and back', async () => {
@@ -226,5 +230,20 @@ describe('BootFailureOverlay', () => {
     } finally {
       restore()
     }
+  })
+
+  it('localizes a fixed backend boot prefix while retaining its diagnostic detail', () => {
+    $desktopBoot.set({
+      ...$desktopBoot.get(),
+      error: 'Aino backend failed to start: spawn /opt/aino ENOENT'
+    })
+
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <BootFailureOverlay />
+      </I18nProvider>
+    )
+
+    expect(screen.getByText('Aino 后端启动失败：spawn /opt/aino ENOENT')).toBeTruthy()
   })
 })

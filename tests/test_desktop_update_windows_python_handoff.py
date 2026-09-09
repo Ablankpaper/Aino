@@ -120,7 +120,24 @@ def test_desktop_relaunch_waits_for_an_in_place_rebuild() -> None:
     body = relaunch.group("body")
     assert "if (-not $RelaunchExe) { return $false }" in body
     assert "$relaunchDeadline = (Get-Date).AddSeconds(120)" in body
-    assert "while (-not (Test-Path -LiteralPath $RelaunchExe))" in body
+    assert "while (-not $selectedRelaunchExe)" in body
+    assert "foreach ($candidate in $relaunchCandidates)" in body
     assert "if ((Get-Date) -ge $relaunchDeadline)" in body
     assert "Start-Sleep -Milliseconds 500" in body
     assert "[System.Windows.Forms.Application]::DoEvents()" in body
+
+
+def test_desktop_relaunch_migrates_from_legacy_hermes_to_aino() -> None:
+    """An old Hermes.exe path must fall back to the rebuilt Aino.exe."""
+    source = _read()
+    relaunch = re.search(
+        r"function Start-DesktopRelaunch \{(?P<body>.*?)\n\}\n\nfunction Invoke-HermesStep",
+        source,
+        re.DOTALL,
+    )
+    assert relaunch, "Expected Start-DesktopRelaunch in the Windows hand-off script."
+    body = relaunch.group("body")
+    assert "$legacyRelaunchExe" in body
+    assert "$ainoRelaunchExe = Join-Path $relaunchDir 'Aino.exe'" in body
+    assert "$requestedLeaf -ieq 'Hermes.exe'" in body
+    assert "$relaunchCandidates = @($ainoRelaunchExe, $requestedRelaunchExe)" in body

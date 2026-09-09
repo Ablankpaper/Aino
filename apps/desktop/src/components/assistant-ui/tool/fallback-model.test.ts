@@ -92,6 +92,104 @@ describe('buildToolView terminal exit-code status', () => {
   })
 })
 
+describe('buildToolView generic fallback errors', () => {
+  it('uses Simplified Chinese copy for app-generated tool errors', () => {
+    setRuntimeI18nLocale('zh')
+
+    const returnedError = buildToolView(part({ isError: true, result: {}, toolName: 'terminal' }), '')
+    const returnedFalse = buildToolView(part({ result: { success: false }, toolName: 'vision_analyze' }), '')
+    const returnedStatus = buildToolView(part({ result: { status: 'failed' }, toolName: 'vision_analyze' }), '')
+    const failedCommand = buildToolView(part({ result: { exit_code: 127 }, toolName: 'terminal' }), '')
+
+    expect(returnedError.detail).toBe('工具返回了错误。')
+    expect(returnedFalse.detail).toContain('工具返回 success=false。')
+    expect(returnedStatus.detail).toContain('工具返回状态“failed”。')
+    expect(failedCommand.detail).toContain('命令失败，退出码为 127。')
+  })
+})
+
+describe('buildToolView cron summaries', () => {
+  it('uses Simplified Chinese copy for generated cron labels and empty states', () => {
+    setRuntimeI18nLocale('zh')
+
+    const empty = buildToolView(part({ result: { jobs: [] }, toolName: 'cronjob' }), '')
+
+    const detail = buildToolView(
+      part({
+        result: {
+          deliver: 'chat',
+          next_run_at: '2026-09-01T09:00:00.000Z',
+          repeat: 'daily',
+          schedule: '0 9 * * *'
+        },
+        toolName: 'cronjob'
+      }),
+      ''
+    )
+
+    expect(empty.subtitle).toBe('没有 Cron 任务')
+    expect(empty.detail).toBe('没有已安排的 Cron 任务')
+    expect(detail.detail).toContain('计划: 0 9 * * *')
+    expect(detail.detail).toContain('重复: daily')
+    expect(detail.detail).toContain('发送到: chat')
+    expect(detail.detail).toContain('下次运行:')
+  })
+})
+
+describe('buildToolView browser and command summaries', () => {
+  it('uses Simplified Chinese copy for fixed subtitles while preserving dynamic text', () => {
+    setRuntimeI18nLocale('zh')
+
+    const navigated = buildToolView(part({ result: {}, toolName: 'browser_navigate' }), '')
+    const snapshot = buildToolView(part({ result: {}, toolName: 'browser_snapshot' }), '')
+    const clicked = buildToolView(part({ result: {}, toolName: 'browser_click' }), '')
+
+    const clickedInternal = buildToolView(
+      part({ result: { clicked: '@email' }, toolName: 'browser_click' }),
+      ''
+    )
+
+    const filled = buildToolView(
+      part({ args: { label: '邮箱', value: 'alice@example.com' }, result: {}, toolName: 'browser_fill' }),
+      ''
+    )
+
+    const searched = buildToolView(part({ result: {}, toolName: 'web_search' }), '')
+    const executed = buildToolView(part({ result: {}, toolName: 'terminal' }), '')
+    const changed = buildToolView(part({ result: { inline_diff: '--- a/a.ts\n+++ b/a.ts' }, toolName: 'patch' }), '')
+    const fetched = buildToolView(part({ result: {}, toolName: 'web_extract' }), '')
+
+    expect(navigated.subtitle).toBe('已在浏览器中导航')
+    expect(snapshot.subtitle).toBe('已捕获浏览器无障碍快照')
+    expect(clicked.subtitle).toBe('已点击页面')
+    expect(clickedInternal.subtitle).toBe('已点击页面元素（内部引用 @email）')
+    expect(filled.subtitle).toBe('字段：邮箱 · 值：alice@example.com')
+    expect(searched.subtitle).toBe('已查询网页来源')
+    expect(executed.subtitle).toBe('已执行命令')
+    expect(changed.subtitle).toBe('已更改文件')
+    expect(fetched.subtitle).toBe('已获取网页')
+  })
+})
+
+describe('buildToolView result counts', () => {
+  it('localizes known count nouns in Simplified Chinese', () => {
+    setRuntimeI18nLocale('zh')
+
+    const results = buildToolView(
+      part({ result: { results: [{ title: 'A' }, { title: 'B' }] }, toolName: 'web_search' }),
+      ''
+    )
+
+    const files = buildToolView(
+      part({ result: { files: ['a.txt', 'b.txt', 'c.txt'] }, toolName: 'list_files' }),
+      ''
+    )
+
+    expect(results.countLabel).toBe('2 个结果')
+    expect(files.countLabel).toBe('3 个文件')
+  })
+})
+
 describe('buildToolView browser_exec step label', () => {
   const bexec = (code: string) =>
     buildToolView(part({ args: { code }, result: undefined, toolName: 'browser_exec' }), '')
@@ -431,6 +529,12 @@ describe('clampForDisplay', () => {
     expect(clamped.startsWith('x'.repeat(MAX_TOOL_RENDER_CHARS))).toBe(true)
     expect(clamped).toContain('5,000 more characters truncated')
     expect(clamped).toContain('Copy')
+  })
+
+  it('uses the active Simplified Chinese copy for truncated output', () => {
+    setRuntimeI18nLocale('zh')
+
+    expect(clampForDisplay('1234567890', 5)).toBe('12345\n\n… 已省略 5 个字符 — 使用“复制”获取完整输出。')
   })
 })
 

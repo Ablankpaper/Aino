@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { hudIgnoresMouse } from './click-through'
+import { hudIgnoresMouse, useHudClickThrough } from './click-through'
 
 /** The HUD's real shape: a React mount wrapping the shell, the bar inside it,
  *  and a portalled overlay as a sibling of the mount under <body>. */
@@ -93,5 +94,46 @@ describe('hudIgnoresMouse', () => {
     // test reports the scaffolding — handing the mouse away mid-gesture.
     expect(hudIgnoresMouse(shell, mount, null, true)).toBe(false)
     expect(hudIgnoresMouse(shell, null, null, true)).toBe(false)
+  })
+})
+
+describe('useHudClickThrough', () => {
+  const desktopWindow = window as unknown as { hermesDesktop?: Window['hermesDesktop'] }
+  const originalDesktop = desktopWindow.hermesDesktop
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+
+    if (originalDesktop) {
+      desktopWindow.hermesDesktop = originalDesktop
+    } else {
+      delete desktopWindow.hermesDesktop
+    }
+  })
+
+  it('keeps a newly opened HUD solid until the first pointer position is known', () => {
+    const setIgnoreMouse = vi.fn()
+    const onCursor = vi.fn(() => vi.fn())
+    desktopWindow.hermesDesktop = {
+      hud: { onCursor, setIgnoreMouse }
+    } as unknown as Window['hermesDesktop']
+
+    const root = document.createElement('div')
+    document.body.append(root)
+
+    renderHook(() => useHudClickThrough({ current: root }))
+
+    expect(setIgnoreMouse).toHaveBeenLastCalledWith(false)
+
+    // Once the pointer has crossed the window, a null hit means the cursor is
+    // over transparent scaffolding and the native window may hand the click
+    // back to the app underneath.
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: vi.fn(() => null)
+    })
+    act(() => window.dispatchEvent(new MouseEvent('mousemove', { clientX: 10, clientY: 10 })))
+
+    expect(setIgnoreMouse).toHaveBeenLastCalledWith(true)
   })
 })

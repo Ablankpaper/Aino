@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Hermes Agent" width="100%">
+  <img src="assets/aino-banner.svg" alt="Aino" width="100%">
 </p>
 
-# Hermes Agent ☤
+# Aino ☤
 <p align="center">
-  <a href="https://hermes-agent.nousresearch.com/">Hermes Agent</a> | <a href="https://hermes-agent.nousresearch.com/">Hermes Desktop</a>
+  <a href="https://github.com/Ablankpaper/Aino">Aino</a> | <a href="https://github.com/Ablankpaper/Aino/releases">Aino Desktop</a>
 </p>
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
@@ -16,7 +16,9 @@
   <a href="README.es.md"><img src="https://img.shields.io/badge/Lang-Español-orange?style=for-the-badge" alt="Español"></a>
 </p>
 
-**The self-improving AI agent built by [Nous Research](https://nousresearch.com).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
+**Aino is an independent distribution built on the [Hermes Agent](https://github.com/NousResearch/hermes-agent) runtime.** It keeps the runtime's self-improving learning loop — creating skills from experience, improving them during use, persisting knowledge, searching past conversations, and building a deeper model of who you are across sessions — while establishing Aino as its own product identity. The MIT license and upstream attribution remain intact.
+
+The command-line and protocol identifiers are intentionally still `hermes` for compatibility. Aino Desktop uses its own application identity and local data root; see [the brand boundary](docs/aino-brand-boundary.md) for the exact scope and migration policy.
 
 Use any model you want — [Nous Portal](https://portal.nousresearch.com), OpenRouter, OpenAI, your own endpoint, and [many others](https://hermes-agent.nousresearch.com/docs/integrations/providers). Switch with `hermes model` — no code changes, no lock-in.
 

@@ -232,6 +232,8 @@ function waitForDashboardPortAnnouncement(
     bufferedOutput?: () => string
     /** Returns a formatted stdout/stderr tail suffix for exit errors (#93608). */
     describeOutputTail?: () => string
+    /** Snapshot captured before the readiness watcher was attached (test/legacy callers). */
+    initialOutput?: string
     readyFile?: fs.PathOrFileDescriptor | null
     timeoutMs?: number
   } = {}
@@ -243,7 +245,12 @@ function waitForDashboardPortAnnouncement(
     return waitForDashboardReadyFile(options.readyFile, child, timeoutMs, describeOutputTail)
   }
 
-  return waitForDashboardPort(child, timeoutMs, describeOutputTail, options.bufferedOutput ?? (() => ''))
+  return waitForDashboardPort(
+    child,
+    timeoutMs,
+    describeOutputTail,
+    options.bufferedOutput ?? (() => options.initialOutput ?? '')
+  )
 }
 
 export {

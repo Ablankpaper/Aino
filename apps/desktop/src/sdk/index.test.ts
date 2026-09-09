@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { host } from '@/sdk'
+import { $notifications, clearNotifications } from '@/store/notifications'
 import { setActiveSessionId, setAwaitingResponse, setBusy } from '@/store/session'
 import { clearAllSessionStates, publishSessionState } from '@/store/session-states'
 
@@ -229,5 +231,33 @@ describe('host workspace scope', () => {
 
     expect(opened).toEqual(['tab'])
     expect($workspaceNewSessionTarget.get()).toEqual({ kind: 'route', route })
+  })
+
+  it('localizes the missing Bot selection notice', () => {
+    setRuntimeI18nLocale('zh')
+
+    host.newChat(undefined, { workspaceMode: 'bots', workspaceOwnerKey: 'bot:missing' })
+
+    expect($notifications.get()[0]?.message).toBe('开始新的机器人聊天前，请先选择一个机器人。')
+
+    clearNotifications()
+  })
+
+  it('localizes the unsupported extra Bot chat notice', async () => {
+    setRuntimeI18nLocale('zh')
+    const tree = await import('@/components/pane-shell/tree/store')
+
+    const route = {
+      connectionId: 'connection-b',
+      mode: 'remote' as const,
+      profile: 'writer',
+      targetProfile: 'writer'
+    }
+
+    tree.$newSessionTabAction.set(null)
+    host.newChat(route, { workspaceMode: 'bots', workspaceOwnerKey: 'bot:connection-b::writer' })
+
+    expect($notifications.get()[0]?.message).toBe('请更新 Aino 以打开另一个机器人聊天。')
+    clearNotifications()
   })
 })

@@ -65,6 +65,9 @@ def _install_fake_tools_package():
     tools_package = types.ModuleType("tools")
     tools_package.__path__ = [str(TOOLS_DIR)]  # type: ignore[attr-defined]
     sys.modules["tools"] = tools_package
+    sys.modules["tools.lazy_deps"] = types.SimpleNamespace(
+        ensure=lambda *_args, **_kwargs: None,
+    )
     sys.modules["tools.debug_helpers"] = types.SimpleNamespace(
         DebugSession=lambda *args, **kwargs: types.SimpleNamespace(
             active=False,

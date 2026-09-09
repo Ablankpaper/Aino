@@ -196,7 +196,7 @@ export function useGatewayBoot({
     }
 
     if (!desktop) {
-      failDesktopBoot('Desktop IPC bridge is unavailable.')
+      failDesktopBoot(translateNow('boot.errors.ipcBridgeUnavailable'))
       setSessionsLoading(false)
 
       return () => void (cancelled = true)
@@ -320,7 +320,7 @@ export function useGatewayBoot({
         await withTimeout(
           desktop.revalidateConnection?.() ?? Promise.resolve(),
           RECONNECT_ATTEMPT_TIMEOUT_MS,
-          'Timed out revalidating the gateway connection'
+          translateNow('boot.errors.gatewayRevalidationTimeout')
         ).catch(() => undefined)
 
         // Primary sleep/wake reconnect must dial the WINDOW-owned primary backend
@@ -330,7 +330,7 @@ export function useGatewayBoot({
         const conn = await withTimeout(
           desktop.getConnection(),
           RECONNECT_ATTEMPT_TIMEOUT_MS,
-          'Timed out reconnecting to Hermes backend'
+          translateNow('boot.errors.gatewayReconnectTimeout')
         )
 
         setPrimaryGatewayConnection(conn)
@@ -357,7 +357,7 @@ export function useGatewayBoot({
         const wsUrl = await withTimeout(
           resolveGatewayWsUrl(desktop, conn),
           RECONNECT_ATTEMPT_TIMEOUT_MS,
-          'Timed out re-minting the gateway WebSocket URL'
+          translateNow('boot.errors.gatewayWsRemintTimeout')
         )
 
         await gateway.connect(wsUrl)
@@ -618,7 +618,7 @@ export function useGatewayBoot({
         const conn = await withTimeout(
           desktop.getConnection(windowProfileOverride() ?? undefined),
           BACKEND_BOOT_WAIT_TIMEOUT_MS,
-          'Timed out reconnecting to Hermes backend'
+          translateNow('boot.errors.gatewayReconnectTimeout')
         )
 
         if (!ownsSwitch()) {
@@ -633,7 +633,7 @@ export function useGatewayBoot({
         const wsUrl = await withTimeout(
           resolveGatewayWsUrl(desktop, conn),
           RECONNECT_ATTEMPT_TIMEOUT_MS,
-          'Timed out re-minting the gateway WebSocket URL'
+          translateNow('boot.errors.gatewayWsRemintTimeout')
         )
 
         if (!ownsSwitch()) {
@@ -801,7 +801,7 @@ export function useGatewayBoot({
         void withTimeout(
           desktop.getConnection(fallbackProfile),
           RECONNECT_ATTEMPT_TIMEOUT_MS,
-          'Timed out resolving the fallback gateway connection'
+          translateNow('boot.errors.gatewayFallbackTimeout')
         )
           .then(connection => {
             if (!cancelled && gatewayActivationEpoch() === invalidationEpoch) {
@@ -1023,12 +1023,12 @@ export function useGatewayBoot({
         // Everything else keeps dialing the primary.
         // Bounded like the reconnect path (#93454): a wedged main-process
         // round-trip must not hang "Starting Hermes…" forever. Initial boot
-        // rides out a full backend cold spawn, so it gets the shared 45s
-        // backend-boot budget, not the 20s reconnect budget.
+        // rides out a full backend cold spawn, so it gets the shared backend-
+        // boot budget, not the 20s reconnect budget.
         const conn = await withTimeout(
           desktop.getConnection(windowProfileOverride() ?? undefined),
           BACKEND_BOOT_WAIT_TIMEOUT_MS,
-          'Timed out connecting to Hermes backend'
+          translateNow('boot.errors.backendConnectionTimeout')
         )
 
         if (cancelled) {
@@ -1066,7 +1066,7 @@ export function useGatewayBoot({
         const wsUrl = await withTimeout(
           resolveGatewayWsUrl(desktop, conn),
           RECONNECT_ATTEMPT_TIMEOUT_MS,
-          'Timed out minting the gateway WebSocket URL'
+          translateNow('boot.errors.gatewayWsMintTimeout')
         )
 
         await gateway.connect(wsUrl)

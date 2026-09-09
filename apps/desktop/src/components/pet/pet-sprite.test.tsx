@@ -18,6 +18,7 @@ vi.mock('@/store/pet', () => {
   }
 })
 
+import { I18nProvider } from '@/i18n'
 import { reactRoot } from '@/test/react-root'
 
 import { installWindowStateBridge, setDocumentHidden, type WindowStateBridge } from '../../test/window-state'
@@ -227,5 +228,20 @@ describe('PetSprite RAF scheduling', () => {
     expect(ctxMock.imageSmoothingEnabled).toBe(true)
     expect(ctxMock.imageSmoothingQuality).toBe('high')
     expect(ctxMock.drawImage).toHaveBeenCalledTimes(1)
+  })
+
+  it('uses the active locale for the sprite accessibility label', () => {
+    const raf = installRaf()
+
+    mount.render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <PetSprite info={{ ...INFO, displayName: '小猫' }} />
+      </I18nProvider>
+    )
+
+    expect(mount.container?.querySelector('canvas')?.getAttribute('aria-label')).toBe('小猫 宠物')
+    expect(mount.container?.querySelector('canvas')?.getAttribute('aria-label')).not.toBe('小猫 pet')
+
+    act(() => raf.runNext(0))
   })
 })

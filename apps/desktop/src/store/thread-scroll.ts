@@ -77,7 +77,7 @@ export const requestScrollToBottom = (sessionId: string | null = null) => {
   handlers.get(sessionId)?.forEach(handler => handler())
 }
 
-// Inline edit grows a sticky human bubble. Fire on pointerdown so the viewport
+// Inline edit can grow a user bubble. Fire on pointerdown so the viewport
 // escapes stick-to-bottom before focus/layout; close clears the edit flag when
 // the inline composer unmounts.
 const editOpenHandlers = new Set<() => void>()

@@ -77,6 +77,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# New Desktop builds use the Aino artifact name. Keep the legacy Hermes name
+# as a discovery fallback so an existing upstream installation can be repaired
+# or upgraded without being stranded.
+$script:DesktopProductName = "Aino"
+$script:LegacyDesktopProductName = "Hermes"
+
 # Suppress Invoke-WebRequest's per-chunk progress bar.  Windows PowerShell
 # 5.1's progress UI repaints synchronously on every received byte, which
 # pegs CPU on a single core and throttles downloads by 10-100x (a 57MB
@@ -383,8 +389,20 @@ $script:ResolvedPathReport = @{
 # Configuration
 # ============================================================================
 
-$RepoUrlSsh = "git@github.com:NousResearch/hermes-agent.git"
-$RepoUrlHttps = "https://github.com/NousResearch/hermes-agent.git"
+# Keep the canonical Hermes URLs for CLI/server installs, while allowing a
+# branded desktop bootstrap to select the repository that supplied its
+# installer and build stamp.  The desktop runner sets both values explicitly;
+# an unset override preserves the upstream installer behavior.
+$RepoUrlSsh = if ($env:HERMES_INSTALL_REPOSITORY_SSH_URL) {
+    $env:HERMES_INSTALL_REPOSITORY_SSH_URL
+} else {
+    "git@github.com:NousResearch/hermes-agent.git"
+}
+$RepoUrlHttps = if ($env:HERMES_INSTALL_REPOSITORY_URL) {
+    $env:HERMES_INSTALL_REPOSITORY_URL
+} else {
+    "https://github.com/NousResearch/hermes-agent.git"
+}
 $PythonVersion = "3.11"
 # Minor versions the installer accepts when the requested $PythonVersion isn't
 # available, in preference order. Only checkout-private uv-managed interpreters
@@ -2413,17 +2431,28 @@ function Install-Repository {
             if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir -ErrorAction SilentlyContinue }
             Write-Warn "Git clone failed -- downloading ZIP archive instead..."
             try {
+                # Keep the archive fallback on the same repository as the git
+                # clone.  A branded desktop install must never silently fall
+                # back to the upstream Hermes source after an Aino clone
+                # failure.  GitHub archive URLs are only available when the
+                # selected HTTPS remote is a GitHub repository; other remotes
+                # have already had their git path attempted above.
+                $archiveRepo = $RepoUrlHttps.TrimEnd('/') -replace '\.git$', ''
+                if ($archiveRepo -notmatch '^https://github\.com/[^/]+/[^/]+$') {
+                    throw "ZIP fallback requires a GitHub HTTPS repository URL; selected remote: $RepoUrlHttps"
+                }
+
                 # Pick the ZIP URL for the most-specific ref the caller asked
                 # for.  GitHub supports archive URLs for commits, tags, and
                 # branches; we honour Commit > Tag > Branch.
                 if ($Commit) {
-                    $zipUrl = "https://github.com/NousResearch/hermes-agent/archive/$Commit.zip"
+                    $zipUrl = "$archiveRepo/archive/$Commit.zip"
                     $zipLabel = $Commit
                 } elseif ($Tag) {
-                    $zipUrl = "https://github.com/NousResearch/hermes-agent/archive/refs/tags/$Tag.zip"
+                    $zipUrl = "$archiveRepo/archive/refs/tags/$Tag.zip"
                     $zipLabel = $Tag
                 } else {
-                    $zipUrl = "https://github.com/NousResearch/hermes-agent/archive/refs/heads/$Branch.zip"
+                    $zipUrl = "$archiveRepo/archive/refs/heads/$Branch.zip"
                     $zipLabel = $Branch
                 }
                 $zipPath = "$env:TEMP\hermes-agent-$zipLabel.zip"
@@ -3392,8 +3421,11 @@ function Copy-ConfigTemplates {
         # MUST match DEFAULT_SOUL_MD in hermes_cli/default_soul.py. The runtime
         # upgrades the old comment-only scaffold to this text on next run, so
         # drift is self-healing, but keep them in sync to avoid first-run churn.
+        # Keep this installer source ASCII-only for Windows PowerShell 5.1.
+        # U+86CB U+58F3 U+6D77 U+76D7 spell the owner name.
+        $ainoBrandOwner = ([char]0x86CB).ToString() + ([char]0x58F3).ToString() + ([char]0x6D77).ToString() + ([char]0x76D7).ToString()
         $soulContent = @"
-You are Hermes Agent, built by Nous Research. Be direct: match the length of your reply to the weight of the ask -- a one-line question gets a one-line answer, and finished work gets a short report of what changed, what's verified, and what's left, never a replay of the process. No filler ("Great question," "I'd be happy to"), no restating the request back, no re-summarizing what you already said, no narrating tool calls the user can see. Plain claims over adjectives; when unsure, say so plainly. Agree because it's right, not because the user said it. Depth is earned -- give it when the user asks for detail, teaches, or the stakes demand it, not by default.
+You are Aino Agent, built by ${ainoBrandOwner}. Be direct: match the length of your reply to the weight of the ask -- a one-line question gets a one-line answer, and finished work gets a short report of what changed, what's verified, and what's left, never a replay of the process. No filler ("Great question," "I'd be happy to"), no restating the request back, no re-summarizing what you already said, no narrating tool calls the user can see. Plain claims over adjectives; when unsure, say so plainly. Agree because it's right, not because the user said it. Depth is earned -- give it when the user asks for detail, teaches, or the stakes demand it, not by default.
 "@
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($soulPath, $soulContent, $utf8NoBom)
@@ -4272,8 +4304,10 @@ function Install-Desktop {
     # 3. Sanity-check the produced binary. Probe both arches so this works
     # on x64 and arm64 build machines.
     $exeCandidates = @(
-        "$desktopDir\release\win-unpacked\Hermes.exe",
-        "$desktopDir\release\win-arm64-unpacked\Hermes.exe"
+        "$desktopDir\release\win-unpacked\$($script:DesktopProductName).exe",
+        "$desktopDir\release\win-arm64-unpacked\$($script:DesktopProductName).exe",
+        "$desktopDir\release\win-unpacked\$($script:LegacyDesktopProductName).exe",
+        "$desktopDir\release\win-arm64-unpacked\$($script:LegacyDesktopProductName).exe"
     )
     $found = $false
     $desktopExe = $null
@@ -4286,7 +4320,7 @@ function Install-Desktop {
         }
     }
     if (-not $found) {
-        throw "Desktop build completed but no Hermes.exe was found under $desktopDir\release\*-unpacked\"
+        throw "Desktop build completed but no $($script:DesktopProductName).exe or legacy $($script:LegacyDesktopProductName).exe was found under $desktopDir\release\*-unpacked\"
     }
 
     # 3b. The Hermes icon + identity are stamped onto Hermes.exe by the
@@ -4346,8 +4380,8 @@ function New-DesktopShortcuts {
         }
 
         $targets = @(
-            (Join-Path ([Environment]::GetFolderPath('Programs')) 'Hermes.lnk'),
-            (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Hermes.lnk')
+            (Join-Path ([Environment]::GetFolderPath('Programs')) "$($script:DesktopProductName).lnk"),
+            (Join-Path ([Environment]::GetFolderPath('Desktop')) "$($script:DesktopProductName).lnk")
         )
 
         foreach ($lnkPath in $targets) {
@@ -4360,7 +4394,7 @@ function New-DesktopShortcuts {
                 $sc.TargetPath = $TargetExe
                 $sc.WorkingDirectory = $workDir
                 $sc.IconLocation = $iconLocation
-                $sc.Description = 'Hermes Agent'
+                $sc.Description = 'Aino Agent'
                 $sc.Save()
                 Write-Success "Shortcut created: $lnkPath"
             } catch {

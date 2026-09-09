@@ -6,9 +6,11 @@ import path from 'node:path'
 import { test } from 'vitest'
 
 import {
+  buildInstallerEnv,
   buildPinArgs,
   buildPosixPinArgs,
   cachedScriptPath,
+  downloadInstallScript,
   hasExistingGitCheckout,
   installedAgentInstallScript,
   installRefForStamp,
@@ -110,6 +112,20 @@ test('existing-checkout bootstrap args keep branch but skip the packaged commit 
   )
 })
 
+test('installer child environment points at the branded Aino repository', () => {
+  const env = buildInstallerEnv('/tmp/aino-home', {
+    PATH: '/usr/bin',
+    HERMES_HOME: '/tmp/old-hermes-home',
+    HERMES_INSTALL_REPOSITORY_URL: 'https://github.com/NousResearch/hermes-agent.git',
+    HERMES_INSTALL_REPOSITORY_SSH_URL: 'git@github.com:NousResearch/hermes-agent.git'
+  })
+
+  assert.equal(env.PATH, '/usr/bin')
+  assert.equal(env.HERMES_HOME, '/tmp/aino-home')
+  assert.equal(env.HERMES_INSTALL_REPOSITORY_URL, 'https://github.com/Ablankpaper/Aino')
+  assert.equal(env.HERMES_INSTALL_REPOSITORY_SSH_URL, 'git@github.com:Ablankpaper/Aino.git')
+})
+
 test('fallback install stamps use an unpinned branch ref', () => {
   const stamp = { commit: ZERO_COMMIT, branch: 'main' }
 
@@ -183,6 +199,33 @@ test('resolveInstallScript downloads fallback stamps by branch instead of zero c
       logs.some(ev => /fallback, unpinned/.test(ev.line || '')),
       'emits an unpinned fallback log line'
     )
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('downloadInstallScript falls back to the GitHub API when raw download fails', async () => {
+  const home = mkTmpHome()
+  const destination = path.join(home, 'install.sh')
+  let rawAttempts = 0
+  let apiAttempts = 0
+
+  try {
+    await downloadInstallScript('a'.repeat(40), destination, {
+      _downloadRaw: async () => {
+        rawAttempts += 1
+        throw new Error('raw.githubusercontent.com timed out')
+      },
+      _downloadApi: async (_ref, destPath) => {
+        apiAttempts += 1
+        fs.writeFileSync(destPath, '#!/bin/sh\necho api fallback\n')
+        return destPath
+      }
+    })
+
+    assert.equal(rawAttempts, 1)
+    assert.equal(apiAttempts, 1)
+    assert.equal(fs.readFileSync(destination, 'utf8'), '#!/bin/sh\necho api fallback\n')
   } finally {
     fs.rmSync(home, { recursive: true, force: true })
   }

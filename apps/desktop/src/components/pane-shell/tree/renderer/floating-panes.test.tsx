@@ -9,6 +9,7 @@
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { TITLEBAR_HEIGHT } from '@/app/shell/titlebar'
 import { registry } from '@/contrib/registry'
 import { reactRoot } from '@/test/react-root'
 
@@ -76,9 +77,10 @@ describe('FloatingPanes (live DOM)', () => {
 
     expect(el).toBeTruthy()
     expect(el.className).toContain('fixed')
-    // 1440 - 224 - 12 margin = 1204; titlebar 34 + 12 = 46.
+    // 1440 - 224 - 12 margin = 1204; the pane keeps the same 12px gap
+    // below whichever titlebar height the shell currently owns.
     expect(el.style.left).toBe('1204px')
-    expect(el.style.top).toBe('46px')
+    expect(el.style.top).toBe(`${TITLEBAR_HEIGHT + 12}px`)
     expect(el.style.width).toBe('224px')
     expect(document.querySelector('[data-testid="hud-body"]')?.textContent).toBe('live')
   })
@@ -101,7 +103,7 @@ describe('FloatingPanes (live DOM)', () => {
     pointer(grab(), 'pointerup', 260, 240)
 
     expect(card()!.style.left).toBe('172px')
-    expect(card()!.style.top).toBe('186px')
+    expect(card()!.style.top).toBe(`${TITLEBAR_HEIGHT + 12 + 140}px`)
   })
 
   it('persists the dragged position across a remount', () => {
@@ -140,7 +142,7 @@ describe('FloatingPanes (live DOM)', () => {
     pointer(grab(), 'pointermove', 100, -900)
     pointer(grab(), 'pointerup', 100, -900)
 
-    expect(Number.parseFloat(card()!.style.top)).toBeGreaterThanOrEqual(34)
+    expect(Number.parseFloat(card()!.style.top)).toBeGreaterThanOrEqual(TITLEBAR_HEIGHT)
   })
 
   it('collapses to the header and drops the body, and does not drag from the button', () => {

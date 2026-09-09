@@ -102,4 +102,24 @@ describe('initialBlueprintValues', () => {
 
     expect(values).toEqual({ deliver: 'telegram' })
   })
+
+  it('allows display-only defaults without changing canonical enum values', () => {
+    const values = initialBlueprintValues(
+      blueprint([
+        { name: 'topic', type: 'text', label: 'Topic', default: 'AI', options: [], optional: false, help: '' },
+        {
+          name: 'recurrence',
+          type: 'weekdays',
+          label: 'Repeat',
+          default: 'weekdays',
+          options: ['everyday', 'weekdays'],
+          optional: false,
+          help: ''
+        }
+      ]),
+      { topic: '人工智能与科技' }
+    )
+
+    expect(values).toEqual({ topic: '人工智能与科技', recurrence: 'weekdays' })
+  })
 })

@@ -52,6 +52,22 @@ const ROW_CLASS = [
 const GROUP_HEADER_CLASS =
   'select-none px-2 pb-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-tertiary)'
 
+// Completion metadata deliberately keeps the stable English ids emitted by
+// the gateway. Only the visible heading is localized here; changing the id
+// would break grouping, sorting, and command routing.
+const GROUP_LABEL_KEYS = {
+  Commands: 'commands',
+  Configuration: 'configuration',
+  Exit: 'exit',
+  Info: 'info',
+  Options: 'options',
+  Session: 'session',
+  Sessions: 'sessions',
+  Skills: 'skills',
+  Themes: 'themes',
+  'Tools & Skills': 'toolsAndSkills'
+} as const
+
 interface ComposerTriggerPopoverProps {
   activeIndex: number
   items: readonly Unstable_TriggerItem[]
@@ -151,6 +167,12 @@ export function ComposerTriggerPopover({
 
   let lastGroup: string | undefined
 
+  const localizedGroup = (group: string) => {
+    const key = GROUP_LABEL_KEYS[group as keyof typeof GROUP_LABEL_KEYS]
+
+    return key ? copy.completionGroups[key] : group
+  }
+
   return (
     <div
       className={placement === 'bottom' ? COMPLETION_DRAWER_BELOW_CLASS : COMPLETION_DRAWER_CLASS}
@@ -160,7 +182,7 @@ export function ComposerTriggerPopover({
       ref={listRef}
       role="listbox"
     >
-      {scope && <div className={cn(GROUP_HEADER_CLASS, 'pt-0.5')}>{referenceStyle(scope).label}</div>}
+      {scope && <div className={cn(GROUP_HEADER_CLASS, 'pt-0.5')}>{copy.referenceLabels[scope]}</div>}
       {items.length === 0 ? (
         loading ? (
           <div className="flex items-center gap-2 px-2 py-1.5 text-(--ui-text-tertiary)">
@@ -199,7 +221,11 @@ export function ComposerTriggerPopover({
 
           return (
             <Fragment key={item.id}>
-              {showHeader && <div className={cn(GROUP_HEADER_CLASS, isFirstHeader ? 'pt-0.5' : 'pt-2')}>{group}</div>}
+              {showHeader && (
+                <div className={cn(GROUP_HEADER_CLASS, isFirstHeader ? 'pt-0.5' : 'pt-2')}>
+                  {localizedGroup(group || '')}
+                </div>
+              )}
               <Tip
                 className="max-w-[calc(100vw-2rem)] wrap-anywhere"
                 collisionPadding={16}

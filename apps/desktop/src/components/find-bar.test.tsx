@@ -919,9 +919,9 @@ describe('FindBar', () => {
     expect($findInPage.get().active).toBe(false)
   })
 
-  it('does not render on overlay routes (settings, command center, …)', () => {
-    // Match isOverlayView: agents, command-center, cron, profiles, settings,
-    // starmap, webhooks. Test with the most commonly hit one.
+  it('does not render on route-owned surfaces (settings, command center, …)', () => {
+    // Match isRouteBlockingSurface: Settings plus the modal route overlays
+    // (agents, command-center, cron, profiles, starmap, webhooks).
     openFindBar()
     renderFindBar('/settings')
 

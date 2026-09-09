@@ -2,6 +2,7 @@ import { AssistantRuntimeProvider, type ThreadMessage, useExternalStoreRuntime }
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
 import { $displayTimestamps } from '@/store/display-timestamps'
 
 import { stubThreadEnvironment } from '../test-utils'
@@ -14,7 +15,7 @@ $displayTimestamps.set(true)
 const timestamp = new Date('2026-05-01T00:00:00.000Z')
 stubThreadEnvironment()
 
-function Harness({ text }: { text: string }) {
+function Harness({ locale = 'en', text }: { locale?: 'en' | 'zh'; text: string }) {
   const message = {
     id: 'system-1',
     role: 'system',
@@ -30,9 +31,11 @@ function Harness({ text }: { text: string }) {
   })
 
   return (
-    <AssistantRuntimeProvider runtime={runtime}>
-      <Thread />
-    </AssistantRuntimeProvider>
+    <I18nProvider configClient={null} initialLocale={locale}>
+      <AssistantRuntimeProvider runtime={runtime}>
+        <Thread />
+      </AssistantRuntimeProvider>
+    </I18nProvider>
   )
 }
 
@@ -63,5 +66,12 @@ describe('system message timestamp text separation', () => {
     const { container } = render(<Harness text="steer:rerun tests" />)
 
     expectTimestampSeparated(container, 'rerun tests')
+  })
+
+  it('localizes the steer marker for Simplified Chinese users', () => {
+    const { container } = render(<Harness locale="zh" text="steer:rerun tests" />)
+
+    expect(container.querySelector('[data-role="system"]')?.textContent).toContain('已引导')
+    expect(container.querySelector('[data-role="system"]')?.textContent).not.toContain('steered')
   })
 })

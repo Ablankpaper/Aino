@@ -81,6 +81,31 @@ describe('ModelPill pinned-override badge', () => {
 })
 
 describe('ModelPill per-surface model label', () => {
+  it('uses the compact localized automatic label for an unpinned landing-page default', () => {
+    setCurrentModelSource('default')
+
+    render(
+      <ModelPill
+        disabled={false}
+        landing
+        model={modelState({ model: 'deepseek/deepseek-v4-pro', modelMenuContent: <div /> })}
+      />
+    )
+
+    expect(screen.getByText('Auto')).toBeTruthy()
+    expect(screen.getByLabelText(/deepseek-v4-pro/i)).toBeTruthy()
+  })
+
+  it('keeps a manually pinned model visible on the landing page', () => {
+    setCurrentModel('deepseek/deepseek-v4-flash')
+    setCurrentModelSource('manual')
+
+    render(<ModelPill disabled={false} landing model={modelState({ model: 'deepseek/deepseek-v4-flash' })} />)
+
+    expect(screen.queryByText('Auto')).toBeNull()
+    expect(screen.getByText(/Deepseek V4 Flash/i)).toBeTruthy()
+  })
+
   it('shows the chat-bar model even when the primary global differs', () => {
     setCurrentModel('primary/model')
     $activeSessionId.set('primary-runtime')

@@ -114,7 +114,7 @@ export function MasterDetail({
   const [list, ...rest] = Children.toArray(children)
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col" data-aino-master-detail="">
       <div
         className={cn(
           'grid min-h-0 flex-1 grid-cols-1',
@@ -153,7 +153,7 @@ export function MasterDetail({
 
 export function ListColumn({ children, header }: { children: ReactNode; header?: ReactNode }) {
   return (
-    <aside className="flex min-h-0 flex-col p-2">
+    <aside className="flex min-h-0 flex-col p-2" data-aino-list-column="">
       {header}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">{children}</div>
     </aside>
@@ -173,7 +173,7 @@ export function DetailColumn({
   footer?: ReactNode
 }) {
   return (
-    <main className="flex min-h-0 flex-col overflow-hidden">
+    <main className="flex min-h-0 flex-col overflow-hidden" data-aino-detail-column="">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
         <div className="mx-auto max-w-2xl space-y-5 px-5 py-4">{children}</div>
       </div>
@@ -461,6 +461,8 @@ export function CapRow({
         subtitle ? 'h-11' : 'h-8',
         active ? 'bg-(--ui-row-active-background) text-foreground' : 'text-(--ui-text-secondary)'
       )}
+      data-active={active}
+      data-aino-cap-row=""
       id={rowId}
     >
       <RowButton

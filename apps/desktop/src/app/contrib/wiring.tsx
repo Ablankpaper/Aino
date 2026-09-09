@@ -1101,10 +1101,9 @@ export function ContribWiring({ children }: { children: ReactNode }) {
         actions={actions}
         agentsOpen={agentsOpen}
         chatOpen={chatOpen}
-        commandCenterOpen={commandCenterOpen}
       />
     ),
-    [actions, agentsOpen, chatOpen, commandCenterOpen]
+    [actions, agentsOpen, chatOpen]
   )
 
   // The voice cap changes only on config load; the gateway instance + all

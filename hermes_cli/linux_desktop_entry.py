@@ -19,6 +19,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from hermes_cli.desktop_identity import DESKTOP_PRODUCT_NAME
+
 DESKTOP_ENTRY_NAME = "hermes.desktop"
 
 _SHELL_NAMES = ("bash", "sh", "dash", "zsh", "ksh")
@@ -392,15 +394,15 @@ def render_desktop_entry(exec_command: str, icon: str) -> str:
     return (
         "[Desktop Entry]\n"
         "Type=Application\n"
-        "Name=Hermes\n"
-        "GenericName=Hermes Desktop\n"
-        "Comment=Launch Hermes Desktop\n"
+        f"Name={DESKTOP_PRODUCT_NAME}\n"
+        f"GenericName={DESKTOP_PRODUCT_NAME} Desktop\n"
+        f"Comment=Launch {DESKTOP_PRODUCT_NAME} Desktop\n"
         f"Exec={exec_command}\n"
         f"Icon={icon}\n"
         "Terminal=false\n"
         "Categories=Utility;\n"
         "StartupNotify=true\n"
-        "StartupWMClass=Hermes\n"
+        f"StartupWMClass={DESKTOP_PRODUCT_NAME}\n"
     )
 
 

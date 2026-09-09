@@ -22,7 +22,12 @@ export function getPluginCtx(): PluginContext | null {
 /** Resolve plugin copy while keeping an English floor when a handler races
  * plugin registration (or an older host has no matching key). */
 export function pluginText(key: string, fallback: string, ...args: unknown[]): string {
-  const translated = pluginCtx?.i18n?.t(key, ...args)
+  // Older hosts (and lightweight plugin test harnesses) may expose locale
+  // registration without the runtime translator. Feature-detect the method
+  // instead of invoking through optional chaining, which only guards the
+  // `i18n` object and still throws when `t` is absent.
+  const translate = pluginCtx?.i18n?.t
+  const translated = typeof translate === 'function' ? translate(key, ...args) : undefined
 
   return translated && translated !== key ? translated : fallback
 }

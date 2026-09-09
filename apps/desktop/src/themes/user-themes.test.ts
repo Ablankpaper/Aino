@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import { BUILTIN_THEMES, DEFAULT_SKIN_NAME } from './presets'
 import {
   $marketplaceInstalls,
@@ -25,6 +27,7 @@ const makeTheme = (label: string, source?: string) =>
 
 describe('user theme registry', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     window.localStorage.clear()
     $userThemes.set({})
   })
@@ -71,6 +74,15 @@ describe('user theme registry', () => {
     broken.colors = { background: '#000000' }
 
     expect(() => installUserTheme(broken)).toThrow(/colors/)
+  })
+
+  it('uses the active locale for invalid stored theme errors', () => {
+    setRuntimeI18nLocale('zh')
+    const broken = makeTheme('Broken')
+    // @ts-expect-error — intentionally corrupt the palette for the test.
+    broken.colors = { background: '#000000' }
+
+    expect(() => installUserTheme(broken)).toThrow('主题缺少必要的颜色。')
   })
 })
 

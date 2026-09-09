@@ -72,13 +72,18 @@ function SidebarSectionHeader({
   const labelBody = (
     <>
       {icon}
-      <SidebarPanelLabel>{label}</SidebarPanelLabel>
+      <SidebarPanelLabel className="aino-sidebar-section-label" data-sidebar-section-label="">
+        {label}
+      </SidebarPanelLabel>
       {meta && <SidebarSectionMeta>{meta}</SidebarSectionMeta>}
     </>
   )
 
   return (
-    <div className="group/section flex shrink-0 items-center justify-between gap-1 pb-1 pt-1.5">
+    <div
+      className="group/section flex shrink-0 items-center justify-between gap-1 pb-1 pt-1.5"
+      data-sidebar-section-header=""
+    >
       {collapsible ? (
         <button
           // min-w-0 lets the label truncate at narrow sidebar widths instead of
@@ -579,8 +584,18 @@ export function SidebarSessionsSection({
   // kept a phantom 4px scrollbar gutter and cut every row short on the right.
   const resolvedContentClassName = cn(contentClassName, flatVirtualized && 'overflow-visible')
 
+  const sectionKind = pinned
+    ? 'pinned'
+    : projectOverview?.length
+      ? 'projects'
+      : projectContent
+        ? 'project'
+        : groups?.length
+          ? 'grouped'
+          : 'sessions'
+
   return (
-    <SidebarGroup className={rootClassName}>
+    <SidebarGroup className={rootClassName} data-sidebar-section={sectionKind}>
       <SidebarSectionHeader
         action={headerAction}
         collapsible={collapsible}
@@ -591,7 +606,7 @@ export function SidebarSessionsSection({
         open={sectionOpen}
       />
       {sectionOpen && (
-        <SidebarGroupContent className={resolvedContentClassName}>
+        <SidebarGroupContent className={resolvedContentClassName} data-sidebar-section-content="">
           {inner}
           {footer}
         </SidebarGroupContent>

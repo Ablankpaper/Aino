@@ -2,6 +2,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { HermesReadDirResult } from '@/global'
+import { setRuntimeI18nLocale } from '@/i18n'
 import { $connection } from '@/store/session'
 import { notifyWorkspaceChanged } from '@/store/workspace-events'
 
@@ -11,6 +12,7 @@ import { resetProjectTreeState, useProjectTree } from './use-project-tree'
 const readDir = vi.fn<(path: string) => Promise<HermesReadDirResult>>()
 
 beforeEach(() => {
+  setRuntimeI18nLocale('en')
   $connection.set(null)
   resetProjectTreeState()
   readDir.mockReset()
@@ -19,6 +21,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  setRuntimeI18nLocale('en')
   $connection.set(null)
   resetProjectTreeState()
   delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
@@ -29,6 +32,51 @@ function ok(entries: { name: string; path: string; isDirectory: boolean }[]): He
 }
 
 describe('useProjectTree', () => {
+  it('uses Simplified Chinese for a lazy loading placeholder', async () => {
+    readDir.mockResolvedValueOnce(ok([{ name: 'src', path: '/p/src', isDirectory: true }]))
+
+    let resolveChildren: ((value: HermesReadDirResult) => void) | undefined
+    readDir.mockImplementationOnce(
+      () =>
+        new Promise<HermesReadDirResult>(resolve => {
+          resolveChildren = resolve
+        })
+    )
+
+    setRuntimeI18nLocale('zh')
+    const { result } = renderHook(() => useProjectTree('/p'))
+
+    await waitFor(() => expect(result.current.data.length).toBe(1))
+
+    let loadPromise: Promise<void> | undefined
+    act(() => {
+      loadPromise = result.current.loadChildren('/p/src')
+    })
+
+    await waitFor(() => expect(result.current.data[0]?.children?.[0]?.name).toBe('正在加载…'))
+
+    await act(async () => {
+      resolveChildren?.(ok([]))
+      await loadPromise
+    })
+  })
+
+  it('uses Simplified Chinese for a lazy folder read error while preserving the error code', async () => {
+    readDir.mockResolvedValueOnce(ok([{ name: 'private', path: '/p/private', isDirectory: true }]))
+    readDir.mockResolvedValueOnce({ entries: [], error: 'EACCES' })
+    setRuntimeI18nLocale('zh')
+
+    const { result } = renderHook(() => useProjectTree('/p'))
+
+    await waitFor(() => expect(result.current.data.length).toBe(1))
+
+    await act(async () => {
+      await result.current.loadChildren('/p/private')
+    })
+
+    expect(result.current.data[0]?.children?.[0]?.name).toBe('无法读取 (EACCES)')
+  })
+
   it('starts empty when cwd is blank and skips IPC', async () => {
     const { result } = renderHook(() => useProjectTree(''))
 

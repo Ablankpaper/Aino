@@ -305,7 +305,7 @@ const toBackgroundItem = (proc: GatewayProcessEntry): ComposerStatusItem => {
     id: proc.session_id ?? '',
     output: proc.output_tail || undefined,
     state: exited ? (exitCode ? 'failed' : 'done') : 'running',
-    title: (proc.command ?? '').split('\n')[0]!.trim() || 'background process',
+    title: (proc.command ?? '').split('\n')[0]!.trim() || translateNow('statusStack.backgroundProcess'),
     type: 'background'
   }
 }
@@ -459,7 +459,7 @@ export async function stopBackgroundProcess(sid: string, id: string): Promise<vo
   }
 
   if (!gateway) {
-    notifyError(new Error('Gateway is not connected'), 'Could not stop the process')
+    notifyError(new Error('Gateway is not connected'), translateNow('desktop.stopProcessFailed'))
 
     return
   }
@@ -475,7 +475,7 @@ export async function stopBackgroundProcess(sid: string, id: string): Promise<vo
       return
     }
 
-    notifyError(err, 'Could not stop the process')
+    notifyError(err, translateNow('desktop.stopProcessFailed'))
   }
 }
 

@@ -66,6 +66,7 @@ export const ar = defineLocale({
     choose: 'اختيار',
     clear: 'مسح',
     close: 'إغلاق',
+    actions: 'إجراءات',
     collapse: 'طي',
     confirm: 'تأكيد',
     connect: 'اتصال',
@@ -435,7 +436,23 @@ export const ar = defineLocale({
       testUnsupported: 'هذا النظام لا يدعم الإشعارات الأصلية.',
       completionSoundTitle: 'صوت الاكتمال',
       completionSoundDesc: 'يُشغّل عند انتهاء دور الوكيل. اختر إعدادا مسبقا وعاينه هنا.',
-      completionSoundPreview: 'معاينة'
+      completionSoundPreview: 'معاينة',
+      completionSoundNames: {
+        '1': 'نغمتان مريحتان',
+        '2': 'رنين زجاجي',
+        '3': 'ماريمبا ناعمة',
+        '4': 'رسالة ثلاثية النغمات',
+        '5': 'وشوشة هوائية',
+        '6': 'عنقود الاكتشاف',
+        '7': 'الأنظمة متصلة',
+        '8': 'طرفية IBM',
+        '9': 'صفير المودم',
+        '10': 'أجراس الرياح',
+        '11': 'وعاء غنائي',
+        '12': 'صعود القيثارة',
+        '13': 'رنين السونار',
+        '14': 'صندوق موسيقى'
+      }
     },
     sections: {
       model: 'النموذج',
@@ -894,7 +911,9 @@ export const ar = defineLocale({
       deepLinkErrorConfig: 'إعدادات الرابط ليست JSON صالحا مرمّزا بـ base64.',
       deepLinkErrorShape: 'يجب أن تكون الإعدادات كائن JSON يحتوي على حقل `url` أو `command` نصي.',
       deepLinkErrorUrl: 'يسمح فقط بعناوين http:// و https:// للخادم.',
-      deepLinkErrorTooLarge: 'حجم الإعدادات يتجاوز الحد الأقصى 32KB.'
+      deepLinkErrorTooLarge: 'حجم الإعدادات يتجاوز الحد الأقصى 32KB.',
+      importExpectedObject: 'يجب أن يكون الإدخال كائن JSON.',
+      importServerWrapperRequired: 'لفّ الخادم داخل `{"mcpServers": {"name": …}}` لمنحه اسما.'
     },
     model: {
       loading: 'جار تحميل إعدادات النموذج...',
@@ -1442,6 +1461,7 @@ export const ar = defineLocale({
     newProfile: 'ملف شخصي جديد',
     importProfile: 'استيراد ملف شخصي…',
     exportProfile: 'تصدير ملف شخصي…',
+    archiveFilter: 'ملف تعريف Aino',
     exportMenu: 'تصدير…',
     imported: 'تم استيراد الملف الشخصي',
     exported: 'تم تصدير الملف الشخصي',
@@ -1786,6 +1806,8 @@ export const ar = defineLocale({
       copyPath: 'نسخ المسار',
       removeFromSidebar: 'إخفاء من الشريط الجانبي',
       createFailed: 'تعذّر إنشاء المشروع',
+      unavailableAllProfiles: 'المشاريع غير متاحة أثناء عرض كل الملفات الشخصية',
+      activeProfileChanged: 'تغيّر الملف الشخصي النشط أثناء الاتصال',
       deleteConfirm: 'هذا يزيل المشروع المحفوظ من Hermes. تبقى الملفات ومستودعات git وأشجار العمل دون تغيير.',
       startWork: 'شجرة عمل جديدة',
       newWorktreeTitle: 'شجرة عمل جديدة',
@@ -2207,7 +2229,18 @@ export const ar = defineLocale({
       restarting: 'تعيد الواجهة الخلفية التشغيل لتحميل التحديث...',
       notAvailable: 'التحديث غير متاح لهذه الواجهة الخلفية.',
       failed: 'فشل تحديث الواجهة الخلفية.',
-      noReturn: 'لم تعد الواجهة الخلفية إلى الاتصال. قد لا يكون التحديث قد اكتمل — تحقق من مضيف الواجهة الخلفية.'
+      noReturn: 'لم تعد الواجهة الخلفية إلى الاتصال. قد لا يكون التحديث قد اكتمل — تحقق من مضيف الواجهة الخلفية.',
+    },
+    changelog: {
+      groups: {
+        new: 'ما الجديد',
+        fixed: 'إصلاحات',
+        faster: 'أداء أسرع',
+        improved: 'تحسينات',
+        other: 'تحسينات أخرى'
+      },
+      fallbackItem: 'تحسينات وإصلاحات',
+      fallbackLabel: 'في هذا التحديث'
     }
   },
   install: {
@@ -2217,6 +2250,19 @@ export const ar = defineLocale({
       succeeded: 'تم',
       skipped: 'تم التخطي',
       failed: 'فشل'
+    },
+    stageNames: {
+      'system-packages': 'حزم النظام',
+      uv: 'uv',
+      python: 'بيئة Python',
+      repo: 'مستودع Aino',
+      dependencies: 'تبعيّات Python',
+      node: 'وقت تشغيل Node',
+      desktop: 'تطبيق سطح المكتب',
+      handoff: 'جارٍ التحضير للتحديث',
+      update: 'جارٍ تنزيل أحدث إصدار',
+      rebuild: 'جارٍ إعادة بناء تطبيق سطح المكتب',
+      install: 'جارٍ تثبيت التحديث'
     },
     oneTimeTitle: 'يحتاج Hermes إلى تثبيت لمرة واحدة',
     unsupportedDesc: platform =>
@@ -2281,6 +2327,7 @@ export const ar = defineLocale({
         description: 'وصول مباشر إلى نماذج xAI Grok.'
       },
       local: {
+        title: 'نقطة نهاية محلية / مخصّصة',
         short: 'مستضاف ذاتيا',
         description:
           'وجّه Hermes إلى نقطة نهاية محلية أو مستضافة ذاتيا متوافقة مع OpenAI (vLLM، llama.cpp، Ollama، إلخ).'
@@ -2471,6 +2518,7 @@ export const ar = defineLocale({
     loadingTree: 'جار تحميل الشجرة...',
     loadingFiles: 'جار تحميل الملفات...',
     terminalHide: 'إخفاء الطرفية',
+    terminalStartFailed: (error: string) => `فشل تشغيل الطرفية: ${error}`,
     addToChat: 'إضافة للمحادثة'
   },
   preview: {
@@ -2540,6 +2588,8 @@ export const ar = defineLocale({
       restartingTitle: 'جار إعادة تشغيل خادم المعاينة',
       restartingMessage: 'يعمل Hermes في الخلفية. راقب كونسول المعاينة لمتابعة التقدم.',
       startRestartFailed: message => `تعذّر بدء إعادة تشغيل الخادم: ${message}`,
+      restartNoActiveSession: 'لا توجد جلسة نشطة لإعادة تشغيلها في الخلفية.',
+      restartMissingTaskId: 'لم تُرجع إعادة التشغيل في الخلفية معرّف مهمة.',
       restartFailed: 'فشلت إعادة تشغيل الخادم',
       hideConsole: 'إخفاء كونسول المعاينة',
       showConsole: 'إظهار كونسول المعاينة',
@@ -2895,6 +2945,7 @@ export const ar = defineLocale({
   },
   prompts: {
     gatewayDisconnected: 'البوابة غير متصلة',
+    dangerousCommand: 'أمر خطير',
     sudoSendFailed: 'فشل إرسال كلمة مرور sudo',
     secretSendFailed: 'فشل إرسال السر',
     sudoTitle: 'مطلوب sudo',
@@ -2906,6 +2957,7 @@ export const ar = defineLocale({
   },
   desktop: {
     audioReadFailed: 'فشلت قراءة الصوت',
+    fileDownloadBridgeUnavailable: 'جسر تنزيل ملفات سطح المكتب غير متاح',
     sessionUnavailable: 'الجلسة غير متاحة',
     createSessionFailed: 'فشل إنشاء الجلسة',
     promptFailed: 'فشل إرسال الرسالة',
@@ -2913,6 +2965,8 @@ export const ar = defineLocale({
     emptySlashCommand: 'أمر slash فارغ',
     desktopCommands: 'أوامر سطح المكتب',
     skillCommandsAvailable: count => `${count} أمر مهارة متاح`,
+    petScaleUsage: 'الاستخدام: /pet scale <factor> (مثال: /pet scale 0.5)',
+    agentReportedError: 'أبلغ Hermes عن خطأ',
     warningLine: message => `تحذير: ${message}`,
     yoloArmed: 'YOLO مفعل',
     yoloOff: 'YOLO معطل',
@@ -2930,6 +2984,9 @@ export const ar = defineLocale({
     editFailed: 'فشل التحرير',
     editTurnUnavailable: 'هذه الجولة لم تعد في سجل الخادم (ربما أزيلت بالضغط).',
     resumeFailed: 'فشل الاستئناف',
+    restoreNoActiveSession: 'لا توجد جلسة نشطة لاستعادتها.',
+    restoreTargetMissing: 'تعذّر العثور على الرسالة لاستعادتها.',
+    restoreEmptyMessage: 'لا يمكن استعادة رسالة فارغة.',
     readOnlyTranscriptTitle: 'فُتحت للقراءة فقط',
     readOnlyTranscriptBody:
       'لا يوجد بعد خادم متصل يملك هذه المحادثة القديمة، لذا فُتحت كنصّ محفوظ للقراءة فقط. السجل سليم؛ الإرسال معطّل حتى يتبنّاها خادم.',
@@ -2948,6 +3005,9 @@ export const ar = defineLocale({
     deleteFailed: 'فشل الحذف',
     archived: 'تمت الأرشفة',
     archiveFailed: 'فشلت الأرشفة',
+    sessionOwnershipUnavailable: 'تعذّر تحديد مالك الجلسة، وتم إلغاء العملية.',
+    attachmentReadFailed: (label: string) => `تعذّرت قراءة المرفق: ${label}`,
+    attachmentAttachFailed: (label: string) => `تعذّر إرفاق المرفق: ${label}`,
     cwdChangeFailed: 'فشل تغيير مجلد العمل',
     cwdStagedTitle: 'تم تجهيز مجلد العمل',
     cwdStagedMessage: 'سيطبق مجلد العمل على الرسالة التالية.',

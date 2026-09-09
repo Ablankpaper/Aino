@@ -1,12 +1,22 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import { $previewTabs, closeRightRail, openBrowserTab, openPreview } from './preview'
 
 beforeEach(() => {
+  setRuntimeI18nLocale('en')
   closeRightRail()
 })
 
 describe('openBrowserTab', () => {
+  it('uses Simplified Chinese for a newly created blank browser target', () => {
+    setRuntimeI18nLocale('zh')
+    openBrowserTab()
+
+    expect($previewTabs.get()[0]?.target.label).toBe('浏览器')
+  })
+
   it('opens a blank browser when there is no browser tab yet', () => {
     openBrowserTab()
 

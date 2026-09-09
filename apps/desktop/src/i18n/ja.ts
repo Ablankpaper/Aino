@@ -46,6 +46,7 @@ export const ja = defineLocale({
     choose: '選択',
     clear: 'クリア',
     close: '閉じる',
+    actions: 'アクション',
     collapse: '折りたたむ',
     confirm: '確認',
     connect: '接続',
@@ -367,7 +368,23 @@ export const ja = defineLocale({
       testUnsupported: 'このシステムはネイティブ通知に対応していません。',
       completionSoundTitle: '完了サウンド',
       completionSoundDesc: 'エージェントのターン終了時に再生されます。プリセットを選んでここで試聴できます。',
-      completionSoundPreview: '試聴'
+      completionSoundPreview: '試聴',
+      completionSoundNames: {
+        '1': '2音の安らぎ',
+        '2': 'グラス・ピング',
+        '3': 'ソフトマリンバ',
+        '4': '3音メッセージ',
+        '5': 'エアリー・ウーシュ',
+        '6': 'ディスカバリー・クラスター',
+        '7': 'システムオンライン',
+        '8': 'IBM ターミナル',
+        '9': 'モデム・チャープ',
+        '10': '風鈴',
+        '11': 'シンギングボウル',
+        '12': 'ハープ・リフト',
+        '13': 'ソナー・ピング',
+        '14': 'オルゴール'
+      }
     },
     sections: {
       model: 'モデル',
@@ -1028,6 +1045,8 @@ export const ja = defineLocale({
         '設定は文字列の `url` または `command` フィールドを持つ JSON オブジェクトである必要があります。',
       deepLinkErrorUrl: 'サーバー URL は http:// と https:// のみ許可されます。',
       deepLinkErrorTooLarge: '設定ペイロードが 32KB の上限を超えています。',
+      importExpectedObject: 'JSON オブジェクトが必要です。',
+      importServerWrapperRequired: '`{"mcpServers": {"name": …}}` でサーバーをラップして名前を付けてください。',
       importButton: 'インポート',
       importPlaceholder: 'mcp.json スニペット、npx/docker コマンド、claude mcp add 行、URL、Cursor リンクを貼り付け…',
       importNoMatch: '貼り付けたテキストからサーバー設定を認識できませんでした。',
@@ -1376,7 +1395,9 @@ export const ja = defineLocale({
     skillArchivedTitle: 'スキルをアーカイブしました',
     skillArchivedMessage: 'hermes curator restore で復元できます。',
     officialCatalog: 'インストール可能',
-    officialPill: '公式'
+    officialPill: '公式',
+archiveConfirmTitle: name => `スキル「${name}」をアーカイブしますか？`,
+    archiveConfirmDescription: 'スキルはアーカイブされ、hermes curator restore で復元できます。'
   },
 
   starmap: {
@@ -1385,6 +1406,7 @@ export const ja = defineLocale({
     close: 'メモリグラフを閉じる',
     refresh: '更新',
     memory: 'メモリ',
+    skill: 'スキル',
     filterAll: 'すべて',
     filterUsed: '使用済み',
     filterLearned: '学習済み',
@@ -1392,7 +1414,30 @@ export const ja = defineLocale({
     loadFailed: 'メモリグラフを読み込めませんでした',
     loading: '読み込み中…',
     emptyTitle: 'まだ学習はありません',
-    emptyDesc: 'Hermes がスキルやメモリを蓄積すると、ここに表示されます。'
+    emptyDesc: 'Hermes がスキルやメモリを蓄積すると、ここに表示されます。',
+    share: 'マップを共有',
+    shareHint:
+      'コードをコピーしてマップを共有するか、貼り付けて読み込みます。レイアウトのみを含み、メモリやスキル本文は含みません。',
+    shareTitle: 'マップをインポート / エクスポート',
+    sharePlaceholder: 'マップコードを貼り付け…',
+    copy: 'マップコードをコピー',
+    copied: 'コピーしました！',
+    importMap: 'マップをインポート',
+    importBtn: '読み込む',
+    importEmpty: 'マップコードを貼り付けて読み込んでください。',
+    importSuccess: nodes => `${nodes} ノードのマップを読み込みました。`,
+    importedBadge: 'インポートしたマップ',
+    resetToMine: '自分のマップに戻る',
+    legendAge: '中心 = 最古・外側 = 新しい',
+    playTimeline: 'タイムラインを再生',
+    pauseTimeline: 'タイムラインを一時停止',
+    timelineScrubber: 'タイムラインスクラバー',
+    editNode: (kind, label) => `${kind} ${label} を編集…`,
+    archiveSkill: 'スキルをアーカイブ',
+    deleteMemory: 'メモリを削除',
+    deleteMemoryDescription: 'このメモリは完全に削除されます。',
+    deleteMemoryTitle: label => `${label} を削除しますか？`,
+    couldNotReadCode: 'マップコードを読み取れませんでした。'
   },
   agents: {
     close: 'エージェントを閉じる',
@@ -1711,6 +1756,7 @@ export const ja = defineLocale({
     newProfile: '新しいプロファイル',
     importProfile: 'プロファイルをインポート…',
     exportProfile: 'プロファイルをエクスポート…',
+    archiveFilter: 'Hermes プロファイル',
     imported: 'プロファイルをインポートしました',
     exported: 'プロファイルをエクスポートしました',
     failedImport: 'プロファイルのインポートに失敗しました',
@@ -2086,6 +2132,8 @@ export const ja = defineLocale({
       copyPath: 'パスをコピー',
       removeFromSidebar: 'サイドバーから削除',
       createFailed: 'プロジェクトを作成できませんでした',
+      unavailableAllProfiles: 'すべてのプロファイルを表示中はプロジェクトを利用できません',
+      activeProfileChanged: '接続中にアクティブな Hermes プロファイルが変更されました',
       staleBackend:
         'プロジェクトを作成するには Hermes バックエンドを更新してください。バックエンドがこのデスクトップアプリより古いです（設定 → 更新 → バックエンド）。',
       deleteConfirm:
@@ -2184,6 +2232,7 @@ export const ja = defineLocale({
 
   composer: {
     message: 'メッセージ',
+    automaticModel: '自動',
     wakingProfile: profile => `${profile} を起動中…`,
     placeholderStarting: 'Hermes を起動中...',
     placeholderReconnecting: 'Hermes に再接続中…',
@@ -2553,6 +2602,17 @@ export const ja = defineLocale({
       failed: 'バックエンドの更新に失敗しました。',
       noReturn:
         'バックエンドがオンラインに戻りませんでした。更新が完了していない可能性があります。バックエンドホストを確認してください。'
+    },
+    changelog: {
+      groups: {
+        new: '新機能',
+        fixed: '修正',
+        faster: '高速化',
+        improved: '改善',
+        other: 'その他の改善'
+      },
+      fallbackItem: '改善と修正',
+      fallbackLabel: '今回の更新'
     }
   },
 
@@ -2563,6 +2623,19 @@ export const ja = defineLocale({
       succeeded: '完了',
       skipped: 'スキップ',
       failed: '失敗'
+    },
+    stageNames: {
+      'system-packages': 'システムパッケージ',
+      uv: 'uv',
+      python: 'Python 環境',
+      repo: 'Hermes リポジトリ',
+      dependencies: 'Python 依存関係',
+      node: 'Node ランタイム',
+      desktop: 'デスクトップアプリ',
+      handoff: '更新を準備中',
+      update: '最新バージョンをダウンロード中',
+      rebuild: 'デスクトップアプリを再ビルド中',
+      install: '更新をインストール中'
     },
     oneTimeTitle: 'Hermes には一度限りのインストールが必要です',
     unsupportedDesc: platform =>
@@ -2662,6 +2735,7 @@ export const ja = defineLocale({
       gemini: { short: 'Gemini モデル', description: 'Google Gemini モデルへの直接アクセス。' },
       xai: { short: 'Grok モデル', description: 'xAI Grok モデルへの直接アクセス。' },
       local: {
+        title: 'ローカル / カスタムエンドポイント',
         short: 'セルフホスト',
         description:
           'ローカルまたはセルフホストの OpenAI 互換エンドポイント（vLLM、llama.cpp、Ollama など）に Hermes を接続。'
@@ -2748,7 +2822,9 @@ export const ja = defineLocale({
       noModels: 'モデルが見つかりません',
       editModels: 'モデルを編集…',
       refreshModels: 'モデルを更新',
-      fast: '高速'
+      fast: '高速',
+      moaPresets: 'MoA プリセット',
+      moaPrefix: 'MoA:'
     },
     modelOptions: {
       noOptions: 'このモデルにはオプションがありません',
@@ -2908,6 +2984,7 @@ export const ja = defineLocale({
     terminalNew: '新しいターミナル',
     terminalCloseOthers: '他を閉じる',
     terminalCloseAll: 'すべて閉じる',
+    terminalStartFailed: error => `ターミナルの起動に失敗しました: ${error}`,
     addToChat: 'チャットに追加'
   },
 
@@ -2979,6 +3056,8 @@ export const ja = defineLocale({
       restartingTitle: 'プレビューサーバーを再起動中',
       restartingMessage: 'Hermes はバックグラウンドで作業中です。進捗はプレビューコンソールで確認してください。',
       startRestartFailed: message => `サーバー再起動を開始できませんでした: ${message}`,
+      restartNoActiveSession: 'バックグラウンドで再起動するアクティブなセッションがありません。',
+      restartMissingTaskId: 'バックグラウンド再起動からタスク ID が返されませんでした。',
       restartFailed: 'サーバーの再起動に失敗しました',
       hideConsole: 'プレビューコンソールを非表示',
       showConsole: 'プレビューコンソールを表示',
@@ -3140,7 +3219,14 @@ export const ja = defineLocale({
       restoreNext: '次のチェックポイントに戻す',
       goForward: '進む',
       sendEdited: '編集済みメッセージを送信',
-      attachingFile: '添付中…'
+      attachingFile: '添付中…',
+      messaging: target => `${target} にメッセージを送信中`,
+      messaged: target => `${target} にメッセージを送信しました`,
+      messageFrom: sender => `${sender} からのメッセージ`,
+      repliedTo: sender => `${sender} に返信しました`,
+      showMessage: 'メッセージを表示',
+      showReply: '返信を表示',
+      output: '出力'
     },
     approval: {
       gatewayDisconnected: 'Hermes ゲートウェイが接続されていません',
@@ -3187,7 +3273,64 @@ export const ja = defineLocale({
       copyPath: 'パスをコピー',
       outputAlt: 'ツール出力',
       rawResponse: '生の応答',
+      truncatedOutput: count => `… ${count.toLocaleString()}文字を省略しました — 「コピー」で完全な出力を取得できます。`,
       copyActivity: 'アクティビティをコピー',
+      arguments: '引数',
+      result: '結果',
+      payload: 'ツールペイロード',
+      search: '検索',
+      searchResults: '検索結果',
+      details: '詳細',
+      stdout: '標準出力',
+      stderr: '標準エラー',
+      errorDetails: 'エラーの詳細',
+      snapshotSummary: 'スナップショットの概要',
+      fallbacks: {
+        returnedError: 'ツールがエラーを返しました。',
+        returnedSuccessFalse: 'ツールが success=false を返しました。',
+        returnedStatus: status => `ツールがステータス「${status}」を返しました。`,
+        commandFailedExitCode: code => `コマンドが終了コード ${code} で失敗しました。`
+      },
+      cron: {
+        noJobs: 'Cron ジョブはありません',
+        noJobsScheduled: 'スケジュールされた Cron ジョブはありません',
+        schedule: 'スケジュール',
+        repeat: '繰り返し',
+        delivery: '配信',
+        nextRun: '次回実行'
+      },
+      subtitles: {
+        navigatedInBrowser: 'ブラウザーで移動しました',
+        capturedBrowserSnapshot: 'ブラウザーのアクセシビリティスナップショットを取得しました',
+        clickedPage: 'ページをクリックしました',
+        clickedPageElement: target =>
+          target.startsWith('@') ? `ページ要素をクリックしました（内部参照 ${target}）` : `${target}をクリックしました`,
+        filledPageInput: 'ページの入力欄に入力しました',
+        fieldValue: (field, value) =>
+          [field && `フィールド: ${field}`, value && `値: ${value}`].filter(Boolean).join(' · '),
+        queriedWebSources: 'Web ソースを検索しました',
+        query: query => `クエリ: ${query}`,
+        executedCommand: 'コマンドを実行しました',
+        changedFile: 'ファイルを変更しました',
+        fetchedWebpage: 'Web ページを取得しました'
+      },
+      countLabel: (count, noun, plural) => {
+        const labels: Record<string, string> = {
+          document: '件の文書',
+          entry: '件のエントリ',
+          file: '個のファイル',
+          item: '件の項目',
+          match: '件の一致',
+          result: '件の結果',
+          row: '行',
+          search: '回の検索',
+          source: '件のソース',
+          step: '件のステップ',
+          todo: '件のTODO'
+        }
+
+        return labels[noun] ? `${count}${labels[noun]}` : `${count} ${count === 1 ? noun : plural}`
+      },
       recoveredOne: '1 つの失敗したステップの後に回復しました',
       recoveredMany: count => `${count} つの失敗したステップの後に回復しました`,
       failedOne: '1 つのステップが失敗しました',
@@ -3284,6 +3427,7 @@ export const ja = defineLocale({
 
   prompts: {
     gatewayDisconnected: 'Hermes ゲートウェイが接続されていません',
+    dangerousCommand: '危険なコマンド',
     sudoSendFailed: 'sudo パスワードを送信できませんでした',
     secretSendFailed: 'シークレットを送信できませんでした',
     sudoTitle: '管理者パスワード',
@@ -3297,6 +3441,7 @@ export const ja = defineLocale({
 
   desktop: {
     audioReadFailed: '録音した音声を読み取れませんでした',
+    fileDownloadBridgeUnavailable: 'デスクトップのファイルダウンロードブリッジを利用できません',
     sessionUnavailable: 'セッションが利用できません',
     createSessionFailed: '新しいセッションを作成できませんでした',
     promptFailed: 'プロンプトに失敗しました',
@@ -3304,6 +3449,8 @@ export const ja = defineLocale({
     emptySlashCommand: '空のスラッシュコマンド',
     desktopCommands: 'デスクトップコマンド',
     skillCommandsAvailable: count => `${count} 件のスキルコマンドが利用可能です。`,
+    petScaleUsage: '使用法: /pet scale <factor>（例: /pet scale 0.5）',
+    agentReportedError: 'Hermes がエラーを報告しました',
     warningLine: message => `警告: ${message}`,
     yoloArmed: 'このチャットでは YOLO が有効になっています',
     yoloOff: 'YOLO オフ',
@@ -3322,6 +3469,9 @@ export const ja = defineLocale({
     editFailed: '編集に失敗しました',
     editTurnUnavailable: 'このターンはサーバー履歴にありません（圧縮で削除された可能性があります）。',
     resumeFailed: '再開に失敗しました',
+    restoreNoActiveSession: '復元するアクティブなセッションがありません。',
+    restoreTargetMissing: '復元するメッセージが見つかりません。',
+    restoreEmptyMessage: '空のメッセージは復元できません。',
     readOnlyTranscriptTitle: '読み取り専用で開きました',
     readOnlyTranscriptBody:
       'この古いチャットを所有するバックエンドがまだ接続されていないため、読み取り専用のトランスクリプトとして開きました。履歴は無事です。バックエンドが所有を認識するまで送信は無効です。',
@@ -3330,6 +3480,8 @@ export const ja = defineLocale({
     resumeStrandedBody:
       'このセッションへの接続に失敗し、自動再試行も停止しました。ゲートウェイが実行中か確認してから、もう一度お試しください。',
     resumeRetry: '再試行',
+    sessionStillAvailableRetry: 'セッションはまだ利用できます。再開を再試行してください。',
+    sessionUnavailableRetry: 'セッションを利用できません。再開を再試行できます。',
     nothingToBranch: 'ブランチするものがありません',
     branchNeedsChat: 'ブランチする前にチャットを開始または再開してください。',
     sessionBusy: 'セッションが使用中',
@@ -3340,6 +3492,9 @@ export const ja = defineLocale({
     deleteFailed: '削除に失敗しました',
     archived: 'アーカイブしました',
     archiveFailed: 'アーカイブに失敗しました',
+    sessionOwnershipUnavailable: 'セッションの所有者を解決できませんでした。操作をキャンセルしました。',
+    attachmentReadFailed: label => `添付ファイルを読み取れませんでした: ${label}`,
+    attachmentAttachFailed: label => `添付ファイルを追加できませんでした: ${label}`,
     cwdChangeFailed: '作業ディレクトリの変更に失敗しました',
     cwdStagedTitle: '作業ディレクトリがステージングされました',
     cwdStagedMessage:
@@ -3365,6 +3520,15 @@ export const ja = defineLocale({
     noClipboardImage: 'クリップボードに画像が見つかりません',
     clipboardPasteFailed: 'クリップボードからの貼り付けに失敗しました',
     dropFiles: 'ファイルをドロップ',
+    quickEntry: {
+      label: 'クイック入力',
+      askPlaceholder: 'Hermes に質問…',
+      disconnectedPlaceholder: '接続されていません — Hermes を開いて再接続してください',
+      targetSession: '対象セッション',
+      sendTo: '送信先',
+      currentChat: '現在のチャット',
+      newSession: '新しいセッション'
+    },
     handoff: {
       pickPlatform: '送信先を選択',
       success: platform => `${platform} に引き継ぎました。いつでもここで再開できます。`,
@@ -3430,6 +3594,74 @@ export const ja = defineLocale({
   },
 
   ui: {
+    actions: {
+      addContext: 'コンテキストを追加',
+      filters: 'フィルター',
+      grouping: 'グループ化',
+      ordering: '並べ替え',
+      show: '表示',
+      inboxStyle: '受信トレイ形式',
+      status: 'ステータス',
+      pullRequest: 'プルリクエスト',
+      profile: 'プロファイル',
+      project: 'プロジェクト',
+      archived: 'アーカイブ済み',
+      resetDefaults: 'デフォルトに戻す',
+      expandAll: 'すべて展開',
+      collapseAll: 'すべて折りたたむ',
+      markAllRead: 'すべて既読にする',
+      labels: {
+        updated: '更新日時',
+        project: 'プロジェクト',
+        status: 'ステータス',
+        profile: 'プロファイル',
+        created: '作成日時',
+        tokens: 'トークン',
+        cost: 'コスト',
+        manual: '手動',
+        preview: 'プレビュー',
+        pr: 'PR',
+        open: 'オープン',
+        draft: '下書き',
+        merged: 'マージ済み',
+        closed: 'クローズ済み',
+        noPr: 'PR なし',
+        needsInput: '入力が必要',
+        working: '作業中',
+        unread: '未読',
+        idle: 'アイドル',
+        cardRows: '受信トレイ形式',
+        archived: 'アーカイブ済み'
+      }
+    },
+    accessibility: {
+      showOptions: 'オプションを表示',
+      removeReference: '参照画像を削除',
+      referenceImage: '参照画像',
+      generatedImage: '生成画像',
+      youtubeEmbed: 'YouTube 埋め込み',
+      spotifyEmbed: 'Spotify 埋め込み',
+      conversationTimeline: '会話タイムライン',
+      holdToZoom: '⌘ を押しながらズーム',
+      moreActions: 'その他の操作',
+      openFullView: '全画面表示を開く',
+      openDiagram: '図を開く',
+      zoomOut: '縮小',
+      resetZoom: 'ズームをリセット',
+      zoomIn: '拡大',
+      copy: 'コピー',
+      copied: 'コピーしました',
+      close: '閉じる'
+    },
+    messages: {
+      embedLoadFailed: label => `${label} の埋め込みを読み込めませんでした`,
+      noPageAt: path => `${path} にページがありません`
+    },
+    routes: {
+      artifacts: 'アーティファクト',
+      messaging: 'メッセージング',
+      capabilities: '機能'
+    },
     search: {
       clear: '検索をクリア'
     },

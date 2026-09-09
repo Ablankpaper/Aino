@@ -42,6 +42,24 @@ describe('sidebar collapse persistence', () => {
   it('reset reopens a hidden sidebar, so a later hide persists across reload', async () => {
     const s1 = await loadStores()
     const { group, split } = await import('@/components/pane-shell/tree/model')
+    const { registry } = await import('@/contrib/registry')
+
+    registry.registerMany([
+      {
+        id: 'sessions',
+        area: 'panes',
+        title: 'sessions',
+        data: { placement: 'left' },
+        render: () => null
+      },
+      {
+        id: 'workspace',
+        area: 'panes',
+        title: 'workspace',
+        data: { placement: 'main' },
+        render: () => null
+      }
+    ])
     s1.tree.declareDefaultTree(split('row', [group(['sessions']), group(['workspace'])], [1, 3]))
     s1.bind()
 
@@ -60,5 +78,47 @@ describe('sidebar collapse persistence', () => {
     expect(s2.layout.$sidebarOpen.get()).toBe(false)
     s2.bind()
     expect(s2.leftCollapsed()).toBe(true)
+  })
+
+  it('restores a minimized sessions zone when the sidebar flag is already open', async () => {
+    const s = await loadStores()
+    const { group, split } = await import('@/components/pane-shell/tree/model')
+    const { registry } = await import('@/contrib/registry')
+
+    registry.registerMany([
+      {
+        id: 'sessions',
+        area: 'panes',
+        title: 'sessions',
+        data: { placement: 'left' },
+        render: () => null
+      },
+      {
+        id: 'workspace',
+        area: 'panes',
+        title: 'workspace',
+        data: { placement: 'main' },
+        render: () => null
+      }
+    ])
+    s.tree.declareDefaultTree(
+      split('row', [group(['sessions'], { id: 'grp-sessions', minimized: true }), group(['workspace'])], [1, 3])
+    )
+    s.bind()
+
+    expect(s.layout.$sidebarOpen.get()).toBe(true)
+    expect(s.tree.isTreeSideVisible('left')).toBe(false)
+
+    // The old toggle only flipped chat-sidebar.open, leaving this zone on its
+    // 28px rail. One press must now restore the actual sessions pane.
+    s.layout.toggleSidebarOpen()
+
+    expect(s.layout.$sidebarOpen.get()).toBe(true)
+    expect(s.tree.isTreeSideVisible('left')).toBe(true)
+    const tree = s.tree.$layoutTree.get()
+    expect(tree?.type).toBe('split')
+    if (tree?.type === 'split') {
+      expect(tree.children[0]).toMatchObject({ id: 'grp-sessions', minimized: false })
+    }
   })
 })

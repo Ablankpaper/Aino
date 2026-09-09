@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
 import type { TerminalBackendsResponse } from '@/types/hermes'
 
 const getTerminalBackends = vi.fn()
@@ -60,6 +61,48 @@ afterEach(() => {
 })
 
 describe('TerminalBackendPanel', () => {
+  it('localizes built-in backend metadata in simplified Chinese', async () => {
+    const { TerminalBackendPanel } = await import('./terminal-backend-panel')
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <TerminalBackendPanel onConfiguredChange={vi.fn()} />
+      </I18nProvider>
+    )
+
+    expect(await screen.findByText('本地')).toBeTruthy()
+    expect(screen.getByText('直接在此机器上运行命令，不提供隔离。')).toBeTruthy()
+    expect(screen.getByText('Docker 守护进程无法连接——请启动 Docker 后重试。')).toBeTruthy()
+  })
+
+  it('preserves metadata from unknown plugin backends', async () => {
+    const { TerminalBackendPanel } = await import('./terminal-backend-panel')
+    getTerminalBackends.mockResolvedValue(
+      backends({
+        backends: [
+          {
+            name: 'custom',
+            label: 'Custom sandbox',
+            description: 'Provided by a plugin.',
+            active: true,
+            status: 'unavailable',
+            detail: 'Plugin-specific setup required.'
+          }
+        ],
+        active: 'custom'
+      })
+    )
+
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <TerminalBackendPanel onConfiguredChange={vi.fn()} />
+      </I18nProvider>
+    )
+
+    expect(await screen.findByText('Custom sandbox')).toBeTruthy()
+    expect(screen.getByText('Provided by a plugin.')).toBeTruthy()
+    expect(screen.getByText((content: string) => content.includes('Plugin-specific setup required.'))).toBeTruthy()
+  })
+
   it('lists backends with status pills from the backends endpoint', async () => {
     const { TerminalBackendPanel } = await import('./terminal-backend-panel')
     render(<TerminalBackendPanel onConfiguredChange={vi.fn()} />)

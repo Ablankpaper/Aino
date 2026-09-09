@@ -60,10 +60,10 @@ export type MessageGroup = { id: string; weight: number } & (
 // dozen one-line summaries, so a session spent the whole page in two or three
 // turns and offered "Show earlier" over a screen and a half of transcript.
 //
-// "Show earlier" prepends another page; whole turns stay intact so the sticky
-// human bubble never loses its turn. This is the long-session perf lever WITHOUT
-// a virtualizer — pure rendering, never touches scrollTop, so it can't fight
-// use-stick-to-bottom (the single scroll owner).
+// "Show earlier" prepends another page; whole turns stay intact so a user
+// message is never separated from its assistant turn. This is the long-session
+// perf lever WITHOUT a virtualizer — pure rendering, never touches scrollTop,
+// so it can't fight use-stick-to-bottom (the single scroll owner).
 //
 // 600 units ≈ 10-20 agentic turns on measured real sessions (a tool-heavy turn
 // prices at 30-90, a plain exchange at 5-10), and a whole session of ordinary
@@ -214,9 +214,10 @@ interface ThreadMessageListProps {
   sessionKey?: string | null
 }
 
-// Group each user message with the assistant turn(s) that follow it so the
-// human bubble can `position: sticky` against the scroller across its whole
-// turn (see StickyHumanMessageContainer in thread.tsx).
+// Group each user message with the assistant turn(s) that follow it so a
+// complete turn stays intact while the transcript is windowed and backfilled.
+// The message roots themselves remain in normal document flow; grouping is
+// only a rendering/spacing boundary, not a scroll-positioning mechanism.
 export function buildGroups(signature: string): MessageGroup[] {
   if (!signature) {
     return []
@@ -430,7 +431,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
   // escape on user scroll-up, re-lock at bottom. Snap instantly, not spring — a
   // spring can't tell live-token growth from a session-switch bulk relayout, and
   // chasing the latter reads as the view scrolling to random spots before
-  // settling. Its refs hang off our own DOM so the sticky human bubbles survive.
+  // settling. Its refs hang off our own DOM so message edits survive.
   const { scrollRef, contentRef, isAtBottom, scrollToBottom, stopScroll } = useStickToBottom({
     initial: 'instant',
     resize: 'instant',
@@ -600,13 +601,6 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
   // hide the titlebar tool cluster + session header, but the OS traffic lights
   // still sit in the top-left, so reserve the titlebar gap above the transcript.
   const secondaryWindow = isSecondaryWindow()
-  // NB: CSS calc() requires whitespace around the +/- operator. This string is
-  // assigned verbatim to the --sticky-human-top inline style below (it does not
-  // go through Tailwind, which would auto-space it), so the spaces are load-
-  // bearing — without them the declaration is invalid, gets dropped, and the
-  // sticky user bubble falls back to its ~4px default and slides under the OS
-  // traffic lights.
-  const secondaryTitlebarGap = 'calc(var(--titlebar-height) + 0.75rem)'
 
   const threadContentTopPad = secondaryWindow
     ? 'pt-[calc(var(--titlebar-height)+0.75rem)]'
@@ -640,7 +634,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
     scrollRef.current?.removeAttribute('data-editing')
   }, [scrollRef])
 
-  // Inline edit grows a sticky bubble. Escape before focus/layout so the
+  // Inline edit grows a user bubble. Escape before focus/layout so the
   // resize-follow can't snap scrollTop; native anchoring holds the viewport.
   const beginEditHold = useCallback(() => {
     const el = scrollRef.current
@@ -995,8 +989,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
       className="relative min-h-0 max-w-full overflow-hidden contain-[layout_paint]"
       style={
         {
-          height: clampToComposer ? 'var(--thread-viewport-height)' : '100%',
-          ...(secondaryWindow ? { '--sticky-human-top': secondaryTitlebarGap } : {})
+          height: clampToComposer ? 'var(--thread-viewport-height)' : '100%'
         } as CSSProperties
       }
     >

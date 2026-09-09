@@ -21,6 +21,7 @@ import { KbdCombo } from '@/components/ui/kbd'
 import { getHermesConfigRecord, listAllProfileSessions } from '@/hermes'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useI18n } from '@/i18n'
+import { localizedPaletteDetail, localizedPaletteLabel } from '@/i18n/contributions'
 import { sessionTitle } from '@/lib/chat-runtime'
 import {
   Activity,
@@ -87,6 +88,7 @@ import {
 import { canOpenNewWindow, openNewWindow } from '@/store/windows'
 import { luminance } from '@/themes/color'
 import { type ThemeMode, useTheme } from '@/themes/context'
+import { localizedThemeCopy } from '@/themes/localized'
 import { isUserTheme, resolveTheme } from '@/themes/user-themes'
 
 import { openSession, openSessionIntentFromModifiers } from '../open-session'
@@ -877,13 +879,13 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
                 action: item.action,
                 // Read on mount and after every select (the deps below), so a
                 // row that reports state can't show the state it just left.
-                detail: item.detail?.(),
+                detail: localizedPaletteDetail(t, item.detail?.()),
                 detailVariant: item.detailVariant,
                 icon: item.icon ?? Zap,
                 id: item.key,
                 keepOpen: item.keepOpen,
                 keywords: item.keywords,
-                label: item.label,
+                label: localizedPaletteLabel(t, item.contributionId, item.label, item.source),
                 run: item.run
               }))
             }
@@ -1126,6 +1128,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
     result.push({
       heading: t.settings.appearance.themeTitle,
       items: availableThemes.map(theme => {
+        const copy = localizedThemeCopy(theme, t)
         // Same mode fixup as run(): if a theme cannot render the current
         // light/dark, preview (and commit) in the one mode it supports.
         const previewMode = themeSupportsMode(theme.name, resolvedMode)
@@ -1139,8 +1142,8 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
           icon: Palette,
           id: `search-theme-${theme.name}`,
           keepOpen: true,
-          keywords: ['theme', 'appearance', 'color', 'skin', theme.name, theme.description],
-          label: theme.label,
+          keywords: ['theme', 'appearance', 'color', 'skin', theme.name, copy.label, copy.description],
+          label: copy.label,
           onHighlight: () => previewTheme(theme.name, previewMode),
           run: () => {
             setTheme(theme.name)
@@ -1269,7 +1272,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
     [baseGroups, branchGroup, searchGroups]
   )
 
-  // Settings-scoped page (⌘K on the Settings overlay, or its search pill):
+  // Settings-scoped page (⌘K on the Settings workspace, or its search pill):
   // the same catalog as root, minus everything that isn't settings. Pages
   // always list; the granular entries surface on type, same contract as the
   // root.
@@ -1364,6 +1367,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
           {
             heading: t.settings.appearance.themeTitle,
             items: availableThemes.map(theme => {
+              const copy = localizedThemeCopy(theme, t)
               const previewMode = themeSupportsMode(theme.name, resolvedMode)
                 ? resolvedMode
                 : resolvedMode === 'dark'
@@ -1375,8 +1379,8 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
                 icon: Palette,
                 id: `theme-${theme.name}`,
                 keepOpen: true,
-                keywords: ['theme', 'appearance', 'palette', theme.label, theme.description ?? ''],
-                label: theme.label,
+                keywords: ['theme', 'appearance', 'palette', theme.name, copy.label, copy.description],
+                label: copy.label,
                 onHighlight: () => previewTheme(theme.name, previewMode),
                 run: () => {
                   setTheme(theme.name)
@@ -1422,8 +1426,8 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
         placeholder: t.commandCenter.installTheme.placeholder,
         groups: []
       },
-      // Settings-scoped search (⌘K while the Settings overlay is up, or the
-      // search pill beside its close button).
+      // Settings-scoped search (⌘K while the Settings workspace is open, or the
+      // search pill beside its back button).
       settings: {
         title: t.commandCenter.nav.settings.title,
         placeholder: t.settings.search.placeholder,

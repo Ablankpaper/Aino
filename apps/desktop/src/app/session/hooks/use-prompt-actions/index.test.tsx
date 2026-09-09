@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getSession } from '@/hermes'
+import { I18nProvider, setRuntimeI18nLocale } from '@/i18n'
 import { textPart } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $composerAttachments, $composerDraft, type ComposerAttachment, setComposerDraft } from '@/store/composer'
@@ -251,11 +252,13 @@ function Harness({
 
 describe('usePromptActions /title', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     setSessions(() => [sessionInfo()])
   })
 
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     vi.restoreAllMocks()
   })
 
@@ -306,6 +309,32 @@ describe('usePromptActions /title', () => {
     // Even when queued, the sidebar reflects the chosen title optimistically.
     expect(refreshSessions).toHaveBeenCalledTimes(1)
     expect($sessions.get()[0]?.title).toBe('Fresh chat')
+  })
+
+  it('renders a queued title result in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const refreshSessions = vi.fn(async () => undefined)
+
+    const requestGateway = vi.fn(
+      async (method: string) => (method === 'session.title' ? { pending: true, title: '我的新会话' } : {}) as never
+    )
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={refreshSessions}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/title 我的新会话')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain('会话标题已设置：我的新会话（会话初始化期间已排队）')
   })
 
   it('falls through to the slash worker for a bare /title (show current title)', async () => {
@@ -574,12 +603,14 @@ describe('usePromptActions slash session targeting', () => {
 
 describe('usePromptActions /wake', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     setSessions(() => [sessionInfo()])
     resetWakeWordState()
   })
 
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     resetWakeWordState()
     vi.restoreAllMocks()
   })
@@ -641,6 +672,53 @@ describe('usePromptActions /wake', () => {
     expect(renderedSeedTexts(seeds).join('\n')).toContain('Input: Microphone Array (Windows WASAPI)')
   })
 
+  it('renders wake status and fallback labels in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'wake.status') {
+        return {
+          available: true,
+          configured_surface: 'gui',
+          input_device: {
+            hostapi: 'Windows WASAPI',
+            name: 'Microphone Array',
+            selector: 'Microphone Array'
+          },
+          listening: true,
+          owner_surface: 'gui',
+          phrase: '',
+          provider: ''
+        } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/wake status')
+
+    const rendered = renderedSeedTexts(seeds).join('\n')
+    expect(rendered).toContain('唤醒词状态')
+    expect(rendered).toContain('状态：正在监听')
+    expect(rendered).toContain('唤醒词：“hey hermes”')
+    expect(rendered).toContain('提供方：未知')
+    expect(rendered).toContain('界面：gui')
+    expect(rendered).toContain('输入：Microphone Array (Windows WASAPI)')
+    expect(rendered).not.toContain('Wake Word Status')
+  })
+
   it('uses gateway truth for a bare toggle and stops through wake.stop', async () => {
     let statusCalls = 0
 
@@ -680,13 +758,122 @@ describe('usePromptActions /wake', () => {
   })
 })
 
-describe('usePromptActions /compress', () => {
+describe('usePromptActions /browser', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     setSessions(() => [sessionInfo()])
   })
 
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
+    vi.restoreAllMocks()
+  })
+
+  it('renders the disconnected browser status in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'browser.manage') {
+        return { connected: false } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/browser status')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain(
+      '浏览器未连接（请尝试 /browser connect <url>，或在 config.yaml 中设置 browser.cdp_url）'
+    )
+  })
+
+  it('localizes the unavailable browser URL placeholder without changing the URL label', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'browser.manage') {
+        return { connected: true, url: '' } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/browser status')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain('浏览器已连接：（URL 不可用）')
+  })
+})
+
+describe('usePromptActions /pet', () => {
+  beforeEach(() => {
+    setRuntimeI18nLocale('en')
+    setSessions(() => [sessionInfo()])
+  })
+
+  afterEach(() => {
+    cleanup()
+    setRuntimeI18nLocale('en')
+    vi.restoreAllMocks()
+  })
+
+  it('localizes the /pet scale usage line while keeping command syntax in English', async () => {
+    const seeds: Record<string, unknown>[] = []
+    const requestGateway = vi.fn(async () => ({}) as never)
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/pet scale nope')
+
+    const rendered = renderedSeedTexts(seeds).join('\n')
+    expect(rendered).toContain('用法：/pet scale <factor>（例如：/pet scale 0.5）')
+    expect(rendered).not.toContain('usage:')
+  })
+})
+
+describe('usePromptActions /compress', () => {
+  beforeEach(() => {
+    setRuntimeI18nLocale('en')
+    setSessions(() => [sessionInfo()])
+  })
+
+  afterEach(() => {
+    cleanup()
+    setRuntimeI18nLocale('en')
     clearNotifications()
     setCurrentUsage({ calls: 0, input: 0, output: 0, total: 0 })
     setMessages([])
@@ -733,6 +920,34 @@ describe('usePromptActions /compress', () => {
     )
     expect(requestGateway).not.toHaveBeenCalledWith('slash.exec', expect.anything())
     expect(requestGateway).not.toHaveBeenCalledWith('command.dispatch', expect.anything())
+  })
+
+  it('renders the compressed-message fallback in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.compress') {
+        return { removed: 3 } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/compress')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain('已压缩 3 条消息')
   })
 
   it('replaces the transcript from the response messages', async () => {
@@ -1165,11 +1380,13 @@ describe('usePromptActions /btw', () => {
 
 describe('usePromptActions exec fallback error reporting', () => {
   beforeEach(() => {
+    setRuntimeI18nLocale('en')
     setSessions(() => [sessionInfo()])
   })
 
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     vi.restoreAllMocks()
   })
 
@@ -1207,6 +1424,62 @@ describe('usePromptActions exec fallback error reporting', () => {
     const texts = renderedSeedTexts(seeds)
     expect(texts.some(text => text.includes('slash worker timed out'))).toBe(true)
     expect(texts.some(text => text.includes('not a quick/plugin/skill command'))).toBe(false)
+  })
+
+  it('localizes the slash worker failure wrapper in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'slash.exec') {
+        throw new Error('slash worker timed out')
+      }
+
+      if (method === 'command.dispatch') {
+        throw new Error('not a quick/plugin/skill command: debug')
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/debug')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain('错误：/debug 执行失败：slash worker timed out')
+  })
+
+  it('localizes a desktop-unavailable slash explanation in Simplified Chinese', async () => {
+    const seeds: Record<string, unknown>[] = []
+    const requestGateway = vi.fn(async () => ({}) as never)
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          onReady={h => (handle = h)}
+          onSeedState={state => seeds.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/voice')
+
+    expect(renderedSeedTexts(seeds).join('\n')).toContain(
+      '语音对话位于这里的输入框：点击麦克风按钮并选择“开始语音对话”（或按 Ctrl+B）。'
+    )
+    expect(requestGateway).not.toHaveBeenCalled()
   })
 
   it('falls back to slash.exec when an older gateway lacks a dedicated RPC', async () => {
@@ -1276,6 +1549,7 @@ describe('usePromptActions exec fallback error reporting', () => {
 describe('usePromptActions slash.exec dispatch payloads', () => {
   afterEach(() => {
     cleanup()
+    setRuntimeI18nLocale('en')
     $busy.set(false)
     vi.restoreAllMocks()
   })
@@ -1504,6 +1778,46 @@ describe('usePromptActions slash.exec dispatch payloads', () => {
     // to /interrupt.
     expect(renderedText).toContain('⊙ Goal set (20-turn budget): ship the release notes')
     expect(renderedText).toContain('queued')
+
+    dropSessionState(RUNTIME_SESSION_ID)
+    $queuedPromptsBySession.set({})
+  })
+
+  it('localizes the busy-session queue notice in Simplified Chinese', async () => {
+    $queuedPromptsBySession.set({})
+    publishSessionState(RUNTIME_SESSION_ID, {
+      ...createClientSessionState(RUNTIME_SESSION_ID),
+      busy: true
+    })
+
+    const states: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'slash.exec') {
+        return { type: 'send', message: '继续执行这项工作' } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <Harness
+          busyRef={{ current: true }}
+          onReady={h => (handle = h)}
+          onSeedState={state => states.push(state)}
+          refreshSessions={async () => undefined}
+          requestGateway={requestGateway}
+        />
+      </I18nProvider>
+    )
+
+    await handle!.submitText('/goal 继续执行这项工作')
+
+    expect(renderedSeedTexts(states).join('\n')).toContain(
+      '会话忙碌中——消息已排队，将在当前回合结束后发送'
+    )
 
     dropSessionState(RUNTIME_SESSION_ID)
     $queuedPromptsBySession.set({})
@@ -2694,7 +3008,26 @@ describe('usePromptActions restoreToMessage', () => {
     cleanup()
     $busy.set(false)
     $messages.set([])
+    setRuntimeI18nLocale('en')
     vi.restoreAllMocks()
+  })
+
+  it('localizes the missing active-session restore error in Simplified Chinese', async () => {
+    setRuntimeI18nLocale('zh')
+    const requestGateway = vi.fn(async () => ({}) as never)
+    let handle: HarnessHandle | null = null
+
+    await actRender(
+      <Harness
+        activeSessionId={null}
+        onReady={h => (handle = h)}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+      />
+    )
+
+    await expect(handle!.restoreToMessage('u1')).rejects.toThrow('没有可恢复的活动会话。')
+    expect(requestGateway).not.toHaveBeenCalled()
   })
 
   it('rewinds to the target user turn and resubmits its text', async () => {
@@ -5398,6 +5731,7 @@ describe('usePromptActions eager attachment upload (drop-time)', () => {
 
 describe('uploadComposerAttachment remote read failures', () => {
   afterEach(() => {
+    setRuntimeI18nLocale('en')
     vi.restoreAllMocks()
   })
 
@@ -5426,7 +5760,7 @@ describe('uploadComposerAttachment remote read failures', () => {
     expect(requestGateway).not.toHaveBeenCalled()
   })
 
-  it('passes non-cap read errors through unchanged', async () => {
+  it('localizes non-cap read errors instead of exposing raw IPC details', async () => {
     Object.defineProperty(window, 'hermesDesktop', {
       configurable: true,
       value: {
@@ -5441,7 +5775,43 @@ describe('uploadComposerAttachment remote read failures', () => {
         { id: 'file:gone', kind: 'file', label: 'gone.csv', path: '/abs/gone.csv' },
         { remote: true, requestGateway: vi.fn(async () => ({}) as never), sessionId: RUNTIME_SESSION_ID }
       )
-    ).rejects.toThrow('ENOENT: no such file')
+    ).rejects.toThrow('Could not read attachment: gone.csv')
+  })
+
+  it('localizes unreadable attachment errors in Simplified Chinese', async () => {
+    setRuntimeI18nLocale('zh')
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        readFileDataUrl: vi.fn(async () => {
+          throw new Error('ENOENT: no such file')
+        })
+      }
+    })
+
+    await expect(
+      uploadComposerAttachment(
+        { id: 'file:gone', kind: 'file', label: 'gone.csv', path: '/abs/gone.csv' },
+        { remote: true, requestGateway: vi.fn(async () => ({}) as never), sessionId: RUNTIME_SESSION_ID }
+      )
+    ).rejects.toThrow('无法读取附件：gone.csv')
+  })
+
+  it('localizes an attachment rejection without a gateway message in Simplified Chinese', async () => {
+    setRuntimeI18nLocale('zh')
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: { readFileDataUrl: vi.fn(async () => 'data:text/csv;base64,YQ==') }
+    })
+
+    const requestGateway = vi.fn(async () => ({ attached: false, ref_text: '' }) as never)
+
+    await expect(
+      uploadComposerAttachment(
+        { id: 'file:rejected', kind: 'file', label: 'report.txt', path: '/abs/report.txt' },
+        { remote: true, requestGateway, sessionId: RUNTIME_SESSION_ID }
+      )
+    ).rejects.toThrow('无法附加附件：report.txt')
   })
 })
 

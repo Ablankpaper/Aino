@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n/runtime'
 import { type ChatMessage, textPart } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 
@@ -93,6 +94,28 @@ describe('appendMidTurnUserMessage', () => {
     expect(next.messages.map(message => message.id)).toEqual(['user-1', 'user-2'])
     expect(next.streamId).toBeNull()
     expect(next.interimBoundaryPending).toBe(false)
+  })
+})
+
+describe('planRestore errors', () => {
+  it('uses Simplified Chinese for a missing restore target', () => {
+    setRuntimeI18nLocale('zh')
+
+    try {
+      expect(() => planRestore([row('assistant-1', 'assistant', 'answer')], 'missing')).toThrow('找不到要恢复的消息。')
+    } finally {
+      setRuntimeI18nLocale('en')
+    }
+  })
+
+  it('uses Simplified Chinese for an empty restore target', () => {
+    setRuntimeI18nLocale('zh')
+
+    try {
+      expect(() => planRestore([row('user-1', 'user', '   ')], 'user-1')).toThrow('无法恢复空消息。')
+    } finally {
+      setRuntimeI18nLocale('en')
+    }
   })
 })
 

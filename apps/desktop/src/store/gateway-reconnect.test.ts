@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import { reconnectGateway, registerGatewayReconnect } from './gateway-reconnect'
 
 const disposers: Array<() => void> = []
 
 afterEach(() => {
+  setRuntimeI18nLocale('en')
+
   while (disposers.length > 0) {
     disposers.pop()?.()
   }
@@ -55,5 +59,11 @@ describe('gateway reconnect controller', () => {
 
   it('rejects when the gateway boot owner is not mounted', async () => {
     await expect(reconnectGateway()).rejects.toThrow('Gateway reconnect is unavailable')
+  })
+
+  it('uses Simplified Chinese copy when the gateway boot owner is unavailable', async () => {
+    setRuntimeI18nLocale('zh')
+
+    await expect(reconnectGateway()).rejects.toThrow('网关重连不可用')
   })
 })

@@ -17,6 +17,7 @@ import pytest
 
 from tools.computer_use import cua_backend
 from tools.computer_use import cua_backend_driver
+from tools.computer_use import cua_backend_daemon
 
 
 class TestNoOverlayFlag:
@@ -241,6 +242,10 @@ class TestEmbeddedDaemonOverlayFlag:
             cua_backend, "_cua_no_overlay", return_value=True,
         ), patch.object(
             cua_backend_driver, "_cua_driver_supports_no_overlay", return_value=True,
+        ), patch.object(
+            cua_backend_daemon,
+            "_embedded_daemon_spawn_command",
+            side_effect=lambda driver, args, **_kwargs: [driver, *args],
         ), patch.object(
             cua_backend.subprocess, "Popen", return_value=process,
         ) as popen, patch.object(

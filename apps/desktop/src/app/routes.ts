@@ -185,8 +185,8 @@ export function routeSessionId(pathname: string): string | null {
  * id over a store selection that can be momentarily null/stale mid-switch
  * (#59305). A genuine new-chat route always wins with `null`, never falling
  * back to a leftover selection from the chat just left. A non-chat route
- * (settings, an overlay) has no session opinion, so the store selection passes
- * through unchanged.
+ * (Settings or a modal overlay) has no session opinion, so the store selection
+ * passes through unchanged.
  */
 export function primaryRouteSelectedSessionId(pathname: string, storeSelectedSessionId: string | null): string | null {
   if (isNewChatRoute(pathname)) {
@@ -226,8 +226,8 @@ export function isWorkspacePageRoute(to: string): boolean {
 /** True while the workspace pane shows a FULL PAGE (settings/skills/messaging/
  *  artifacts/plugin routes) instead of the chat. Published by the wiring
  *  (which owns the router location); the workspace pane contribution mirrors
- *  it as `headerVeto` so the zone tab bar stands down on pages. Overlays
- *  (settings/…) don't count — the chat stays beneath them. */
+ *  it as `headerVeto` so the zone tab bar stands down on pages. Modal overlays
+ *  don't count — they float above the workspace. */
 export const $workspaceIsPage = atom(false)
 
 function revealWorkspacePane(): void {

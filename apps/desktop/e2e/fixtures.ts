@@ -27,7 +27,12 @@ import * as path from 'node:path'
 import { _electron, type ElectronApplication, type Page } from '@playwright/test'
 
 import { resolveElectronBinary } from './electron-binary'
-import { startMockServer, type MockServerOptions } from './mock-server'
+import {
+  type PackagedBinaryPathOptions,
+  packagedBinaryCandidates as packagedBinaryCandidatesFor,
+  resolvePackagedBinaryPath as resolvePackagedBinaryPathFor
+} from './packaged-paths'
+import { type MockServerOptions, startMockServer } from './mock-server'
 import { installErrorBannerGuard } from './test'
 
 const DESKTOP_ROOT = path.resolve(import.meta.dirname, '..')
@@ -120,11 +125,9 @@ export function createSandbox(prefix: string): Sandbox {
     'utf8',
   )
 
-  // Pin Chromium actual-size zoom (level 0) for the suite. Fresh installs
-  // ship DEFAULT_ZOOM_LEVEL at the Appearance 90% preset, but Playwright
-  // click hit-testing and the committed visual baselines were calibrated at
-  // 100%. Without this file every sandbox would inherit the product default
-  // and fail pointer interception + snapshot diffs.
+  // Pin Chromium actual-size zoom (level 0) for the suite. This mirrors Aino's
+  // product default and also makes the visual harness independent from any
+  // future preference migration.
   fs.writeFileSync(
     path.join(userDataDir, 'zoom-state.json'),
     JSON.stringify({ zoomLevel: 0 }, null, 2),
@@ -263,7 +266,7 @@ export function buildAppEnv(sandbox: Sandbox, extra: Record<string, string> = {}
     HERMES_DESKTOP_USER_DATA_DIR: sandbox.userDataDir,
     HERMES_DESKTOP_IGNORE_EXISTING: '1',
     HERMES_DESKTOP_HERMES_ROOT: REPO_ROOT,
-    HERMES_DESKTOP_APP_NAME: `HermesE2E-${Date.now()}`,
+    HERMES_DESKTOP_APP_NAME: `AinoE2E-${Date.now()}`,
     // `app.close()` in teardown must exit even when a spec leaves a turn
     // mid-flight — otherwise the quit confirmation waits on a click that no
     // one is there to make, and the worker dies on a teardown timeout.
@@ -518,18 +521,24 @@ providers:
  * Resolve the packaged Electron binary path, per-platform, matching
  * electron-builder's output layout under release/.
  */
-function resolvePackagedBinaryPath(): string {
-  if (process.platform === 'win32') {
-    return path.join(RELEASE_ROOT, 'win-unpacked', 'Hermes.exe')
-  }
+export function packagedBinaryCandidates(
+  options: Omit<PackagedBinaryPathOptions, 'releaseRoot'> & { releaseRoot?: string } = {}
+): string[] {
+  return packagedBinaryCandidatesFor({
+    platform: options.platform,
+    arch: options.arch,
+    releaseRoot: options.releaseRoot ?? RELEASE_ROOT
+  })
+}
 
-  if (process.platform === 'darwin') {
-    const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
-
-    return path.join(RELEASE_ROOT, `mac-${arch}`, 'Hermes.app', 'Contents', 'MacOS', 'Hermes')
-  }
-
-  return path.join(RELEASE_ROOT, 'linux-unpacked', 'hermes')
+export function resolvePackagedBinaryPath(
+  options: Omit<PackagedBinaryPathOptions, 'releaseRoot'> & { releaseRoot?: string } = {}
+): string {
+  return resolvePackagedBinaryPathFor({
+    platform: options.platform,
+    arch: options.arch,
+    releaseRoot: options.releaseRoot ?? RELEASE_ROOT
+  })
 }
 
 export const PACKAGED_BINARY_PATH = resolvePackagedBinaryPath()

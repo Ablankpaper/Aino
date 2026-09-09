@@ -235,6 +235,30 @@ describe('SidebarSessionRow', () => {
     vi.useRealTimers()
   })
 
+  it('exposes the selected row state for the Aino sidebar chrome', () => {
+    const { container } = render(
+      <SidebarSessionRow
+        isPinned={true}
+        isSelected={true}
+        onArchive={noop}
+        onDelete={noop}
+        onPin={noop}
+        onResume={noop}
+        onToggleUnread={noop}
+        session={makeSession({ title: 'Selected session' })}
+        unread={false}
+      />
+    )
+
+    const row = container.querySelector('[data-sidebar-session-row]')
+
+    expect(row).toBeTruthy()
+    expect(row?.getAttribute('data-selected')).toBe('true')
+    expect(row?.getAttribute('data-card')).toBe('false')
+    expect(row?.querySelector('[data-sidebar-session-label]')).toBeTruthy()
+    expect(row?.querySelector('[data-sidebar-session-actions]')).toBeTruthy()
+  })
+
   it('keeps an aria-label on the kebab without wrapping it in a Tip', () => {
     render(
       <SidebarSessionRow

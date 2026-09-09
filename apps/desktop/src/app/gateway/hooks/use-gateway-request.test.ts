@@ -52,6 +52,7 @@ vi.mock('@/hermes', async importOriginal => {
 
 import type * as HermesModule from '@/hermes'
 import type { HermesGateway } from '@/hermes'
+import { setRuntimeI18nLocale } from '@/i18n'
 import {
   $gateway,
   closeSecondaryGateways,
@@ -232,6 +233,14 @@ afterEach(() => {
 })
 
 describe('useGatewayRequest', () => {
+  it('uses localized copy when no gateway is available', async () => {
+    setRuntimeI18nLocale('zh')
+
+    const { result } = renderHook(() => useGatewayRequest())
+
+    await expect(result.current.requestGateway('session.list')).rejects.toThrow('Aino 网关未连接')
+  })
+
   it('exposes the live gateway on the first render, before effects run', () => {
     $gateway.set(fakeGateway)
 

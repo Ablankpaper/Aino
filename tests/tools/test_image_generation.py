@@ -19,11 +19,14 @@ import pytest
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def image_tool():
-    """Fresh import of tools.image_generation_tool per test."""
+def image_tool(monkeypatch):
+    """Fresh import of the wrapper per test, without loading the FAL SDK."""
     import importlib
+    monkeypatch.setattr("tools.lazy_deps.ensure", lambda *_args, **_kwargs: None)
     import tools.image_generation_tool as mod
-    return importlib.reload(mod)
+    mod = importlib.reload(mod)
+    monkeypatch.setattr(mod, "_load_fal_client", lambda: None)
+    return mod
 
 
 # ---------------------------------------------------------------------------

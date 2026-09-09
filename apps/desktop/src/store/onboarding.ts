@@ -410,12 +410,10 @@ async function completeWithModelConfirm(
   })
 }
 
-function providerResolutionFailure(reason: null | string) {
+export function providerResolutionFailure(reason: null | string) {
   const detail = reason?.trim()
 
-  return detail
-    ? `Connected, but Hermes still cannot resolve a usable provider. ${detail}`
-    : 'Connected, but Hermes still cannot resolve a usable provider.'
+  return translateNow('onboarding.providerResolutionFailure', detail || undefined)
 }
 
 async function refreshProviders() {

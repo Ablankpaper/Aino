@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
+
 import { ExpandableBlock } from './expandable-block'
 
 // jsdom has no ResizeObserver and reports scrollHeight === 0, so the block
@@ -70,5 +72,19 @@ describe('ExpandableBlock', () => {
     fireEvent.click(toggle)
 
     expect(screen.getByRole('button', { name: 'Collapse' }).getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('uses Simplified Chinese labels for the expand control', () => {
+    vi.stubGlobal('ResizeObserver', TestResizeObserver)
+
+    render(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <ExpandableBlock>
+          <pre>{'line\n'.repeat(20)}</pre>
+        </ExpandableBlock>
+      </I18nProvider>
+    )
+
+    expect(screen.getByRole('button', { name: '展开' })).toBeTruthy()
   })
 })

@@ -40,7 +40,15 @@ vi.mock('@hermes/plugin-sdk', () => ({
 
 vi.mock('./i18n', () => ({
   useBots: () => ({
-    avatar: { petLoadFailed: 'Could not load that pet.', pickPet: 'Pick a pet', removeBackToShape: 'Remove' }
+    avatar: {
+      petGalleryEmpty: 'No pets in the petdex gallery.',
+      petLoadFailed: 'Could not load that pet.',
+      petNoMatch: 'No pets match.',
+      petScrollMore: (visible: number, total: number) => `Scroll for more (${visible} of ${total})`,
+      petSearchPlaceholder: (count: number) => `Search ${count} pets…`,
+      pickPet: 'Pick a pet',
+      removeBackToShape: 'Remove'
+    }
   })
 }))
 

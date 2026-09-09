@@ -1,6 +1,8 @@
 import { JsonRpcGatewayError } from '@hermes/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import {
   $backgroundStatusBySession,
   dismissBackgroundProcess,
@@ -29,6 +31,23 @@ const exited = (id: string, exit_code = 0, command = `cmd ${id}`) => ({
 
 const items = () => $backgroundStatusBySession.get()[SID] ?? []
 
+describe('stopBackgroundProcess errors', () => {
+  afterEach(() => {
+    setRuntimeI18nLocale('en')
+    $gateway.set(null as never)
+    vi.mocked(notifyError).mockClear()
+  })
+
+  it('uses the Simplified Chinese failure title', async () => {
+    setRuntimeI18nLocale('zh')
+    $gateway.set({ request: vi.fn().mockRejectedValue(new Error('boom')) } as never)
+
+    await stopBackgroundProcess(SID, 'proc-1')
+
+    expect(notifyError).toHaveBeenCalledWith(expect.any(Error), '无法停止进程')
+  })
+})
+
 describe('reconcileBackgroundProcesses', () => {
   beforeEach(() => {
     // Fake timers so the success self-clear (a real setTimeout) is deterministic
@@ -51,6 +70,15 @@ describe('reconcileBackgroundProcesses', () => {
       ['c', 'failed']
     ])
     expect(items()[2]!.exitCode).toBe(1)
+  })
+
+  it('localizes the fallback title for an unnamed background process', () => {
+    setRuntimeI18nLocale('zh')
+
+    reconcileBackgroundProcesses(SID, [{ session_id: 'unnamed', status: 'running', command: '   ' }])
+
+    expect(items()[0]?.title).toBe('后台进程')
+    setRuntimeI18nLocale('en')
   })
 
   it('keeps row order stable when a process flips state or the snapshot reorders', () => {

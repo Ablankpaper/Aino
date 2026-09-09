@@ -131,6 +131,13 @@ const ERROR_SUMMARIES: { test: (msg: string) => boolean; summarize: (msg: string
     summarize: () => translateNow('notifications.errors.microphonePermission')
   },
   {
+    // The native file-save bridge has one stable diagnostic. Keep the
+    // user-facing toast localized while retaining the raw detail for any
+    // future/unknown bridge failures.
+    test: msg => /desktop file download bridge is unavailable/i.test(msg),
+    summarize: () => translateNow('desktop.fileDownloadBridgeUnavailable')
+  },
+  {
     test: msg => /Restart required:/i.test(msg),
     summarize: () => translateNow('notifications.errors.codeSkewRestartRequired')
   }

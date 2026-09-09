@@ -9,6 +9,7 @@ from pathlib import Path
 from hermes_constants import get_hermes_home
 
 from hermes_cli.colors import Colors, color
+from hermes_cli.desktop_identity import DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME
 
 
 def _logger(mark: str, col: str):
@@ -25,13 +26,30 @@ def _env_dir(var: str, fallback: Path) -> Path:
 
 
 def desktop_userdata_dir() -> Path:
-    """Electron ``app.getPath('userData')`` for an app named "Hermes" on each platform (GUI-only state)."""
+    """Electron ``app.getPath('userData')`` for the current Aino desktop app."""
     home = Path.home()
     if sys.platform == "darwin":
-        return home / "Library" / "Application Support" / "Hermes"
+        return home / "Library" / "Application Support" / DESKTOP_PRODUCT_NAME
     if sys.platform == "win32":
-        return _env_dir("APPDATA", home / "AppData" / "Roaming") / "Hermes"
-    return _env_dir("XDG_CONFIG_HOME", home / ".config") / "Hermes"
+        return _env_dir("APPDATA", home / "AppData" / "Roaming") / DESKTOP_PRODUCT_NAME
+    return _env_dir("XDG_CONFIG_HOME", home / ".config") / DESKTOP_PRODUCT_NAME
+
+
+def legacy_desktop_userdata_dir() -> Path:
+    """Return the pre-brand Hermes userData directory for migration cleanup."""
+    home = Path.home()
+    if sys.platform == "darwin":
+        return home / "Library" / "Application Support" / LEGACY_DESKTOP_PRODUCT_NAME
+    if sys.platform == "win32":
+        return _env_dir("APPDATA", home / "AppData" / "Roaming") / LEGACY_DESKTOP_PRODUCT_NAME
+    return _env_dir("XDG_CONFIG_HOME", home / ".config") / LEGACY_DESKTOP_PRODUCT_NAME
+
+
+def desktop_userdata_dirs() -> "list[Path]":
+    """Return Aino userData first, followed by the legacy Hermes location."""
+    primary = desktop_userdata_dir()
+    legacy = legacy_desktop_userdata_dir()
+    return [primary] if primary == legacy else [primary, legacy]
 
 
 def source_built_gui_artifacts(hermes_home: Path) -> "list[Path]":
@@ -47,25 +65,39 @@ def source_built_gui_artifacts(hermes_home: Path) -> "list[Path]":
 def packaged_gui_app_paths() -> "list[Path]":
     """Standard install locations of the packaged desktop distributable for the current OS. Every candidate
     is returned; the caller filters to those that exist. Never globs system-wide — only the well-known
-    electron-builder output locations for the "Hermes" product."""
+    electron-builder output locations for Aino and the legacy Hermes product."""
     home = Path.home()
     if sys.platform == "darwin":
-        return [Path("/Applications/Hermes.app"), home / "Applications" / "Hermes.app"]
+        paths = []
+        for product_name in (DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME):
+            paths.extend((Path("/Applications") / f"{product_name}.app",
+                          home / "Applications" / f"{product_name}.app"))
+        return paths
     if sys.platform == "win32":
         local_base = _env_dir("LOCALAPPDATA", home / "AppData" / "Local")
         # NSIS per-user install (perMachine=false), an older/alternate layout, NSIS per-machine (needs admin).
+        paths = []
+        for product_name in (DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME):
+            paths.extend((local_base / "Programs" / product_name,
+                          local_base / f"{product_name.lower()}-desktop"))
         program_files = os.environ.get("ProgramFiles")
-        return [local_base / "Programs" / "Hermes", local_base / "hermes-desktop"] + (
-            [Path(program_files) / "Hermes"] if program_files else [])
+        if program_files:
+            paths.extend(Path(program_files) / product_name
+                         for product_name in (DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME))
+        return paths
     # Linux: an AppImage lives wherever the user put it and deb/rpm files belong to the package manager
     # (see the hint in ``uninstall_gui``), so only the desktop entry + hicolor icons are cleaned here.
     from hermes_cli.linux_desktop_entry import desktop_entry_path
     data_base = _env_dir("XDG_DATA_HOME", home / ".local" / "share")
     icons = data_base / "icons" / "hicolor"
     # "scalable" plus every fixed-size dir the installer may have written (panel sizes + older native copies).
-    return [desktop_entry_path(), data_base / "applications" / "Hermes.desktop"] + [
-        icons / size / "apps" / "hermes.png"
-        for size in ("scalable", "24x24", "32x32", "48x48", "256x256", "512x512", "1024x1024")]
+    paths = [desktop_entry_path()]
+    for product_name in (DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME):
+        paths.append(data_base / "applications" / f"{product_name}.desktop")
+    for size in ("scalable", "24x24", "32x32", "48x48", "256x256", "512x512", "1024x1024"):
+        for icon_name in ("aino.png", "hermes.png"):
+            paths.append(icons / size / "apps" / icon_name)
+    return paths
 
 
 def agent_is_installed(hermes_home: Path) -> bool:
@@ -76,18 +108,22 @@ def agent_is_installed(hermes_home: Path) -> bool:
 
 def gui_is_installed(hermes_home: Path) -> bool:
     """Return True when any desktop GUI artifact exists (built or packaged)."""
-    return any(p.exists() for p in (*source_built_gui_artifacts(hermes_home), *packaged_gui_app_paths(), desktop_userdata_dir()))
+    return any(p.exists() for p in (*source_built_gui_artifacts(hermes_home),
+                                    *packaged_gui_app_paths(),
+                                    *desktop_userdata_dirs()))
 
 
 def gui_install_summary(hermes_home: "Path | None" = None) -> dict:
     """JSON-serializable snapshot of what's installed, for the desktop UI to render via IPC."""
     home: Path = hermes_home if hermes_home is not None else get_hermes_home()
     userdata = desktop_userdata_dir()
+    userdata_paths = [p for p in desktop_userdata_dirs() if p.exists()]
     return {"hermes_home": str(home), "agent_installed": agent_is_installed(home),
             "gui_installed": gui_is_installed(home),
             "source_built_artifacts": [str(p) for p in source_built_gui_artifacts(home) if p.exists()],
             "packaged_app_paths": [str(p) for p in packaged_gui_app_paths() if p.exists()],
-            "userdata_dir": str(userdata), "userdata_exists": userdata.exists(), "platform": sys.platform}
+            "userdata_dir": str(userdata), "userdata_exists": userdata.exists(),
+            "userdata_paths": [str(p) for p in userdata_paths], "platform": sys.platform}
 
 
 def _remove_path(path: Path) -> bool:
@@ -124,9 +160,11 @@ def uninstall_gui(hermes_home: "Path | None" = None, *, remove_userdata: bool = 
     log_info("Removing installed desktop app...")
     if not _remove_existing(packaged_gui_app_paths()):
         log_info("No packaged desktop app found in standard locations")
-    if remove_userdata and (userdata := desktop_userdata_dir()).exists():
-        log_info("Removing desktop app data (Electron userData)...")
-        _remove_existing([userdata])
+    if remove_userdata:
+        for userdata in desktop_userdata_dirs():
+            if userdata.exists():
+                log_info("Removing desktop app data (Electron userData)...")
+                _remove_existing([userdata])
     if not removed:
         log_info("No desktop GUI artifacts found to remove")
     if sys.platform.startswith("linux"):

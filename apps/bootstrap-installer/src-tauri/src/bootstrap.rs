@@ -28,6 +28,12 @@ use crate::AppState;
 
 const MAX_STAGE_ATTEMPTS: usize = 3;
 
+// The installer is a compatibility boundary: new builds are branded Aino,
+// while existing upstream installs may still expose Hermes artifacts. Keep
+// the old names as an explicit, lower-priority migration rung.
+const DESKTOP_PRODUCT_NAME: &str = "Aino";
+const LEGACY_DESKTOP_PRODUCT_NAME: &str = "Hermes";
+
 // ---------------------------------------------------------------------------
 // Public Tauri commands
 // ---------------------------------------------------------------------------
@@ -158,7 +164,7 @@ pub async fn get_bootstrap_status(
     })
 }
 
-/// Spawn the locally-built Hermes desktop binary, then close the installer
+/// Spawn the locally-built Aino desktop binary, then close the installer
 /// window. Caller resolves the binary path from `install_root`.
 ///
 /// Returns Err with a human-readable message if the binary doesn't exist
@@ -172,17 +178,17 @@ pub async fn launch_hermes_desktop(
     let install_root = PathBuf::from(install_root);
     let exe_path = resolve_hermes_desktop_exe(&install_root).ok_or_else(|| {
         format!(
-            "Couldn't find a built Hermes desktop at {}. The desktop build step \
+            "Couldn't find a built Aino desktop at {}. The desktop build step \
              may have been skipped or failed. Run `hermes desktop` from a \
              terminal to build and launch it.",
             install_root.join("apps").join("desktop").join("release").display()
         )
     })?;
 
-    tracing::info!(?exe_path, "launching Hermes desktop");
+    tracing::info!(?exe_path, "launching Aino desktop");
 
     // Detach from us — the installer is about to exit. On macOS launch the
-    // bundle through LaunchServices instead of exec'ing Contents/MacOS/Hermes
+    // bundle through LaunchServices instead of exec'ing Contents/MacOS/Aino
     // directly; this matches user double-click/open behavior and avoids cwd /
     // quarantine oddities after a self-update rebuild.
     let mut cmd = desktop_launch_command(&exe_path, &install_root);
@@ -211,26 +217,48 @@ pub async fn launch_hermes_desktop(
 
 /// Walks the well-known electron-builder unpacked-app paths under
 /// `install_root`. Mirrors the resolver in `cmd_gui` (apps/desktop/release/
-/// <os>-unpacked/<exe>).
+/// <os>-unpacked/<exe>), with Aino-first migration fallback.
 pub(crate) fn resolve_hermes_desktop_exe(install_root: &std::path::Path) -> Option<PathBuf> {
     let release_dir = install_root.join("apps").join("desktop").join("release");
-    let candidates: &[(&str, &str)] = if cfg!(target_os = "windows") {
-        &[
-            ("win-unpacked", "Hermes.exe"),
-            ("win-arm64-unpacked", "Hermes.exe"),
-        ]
-    } else if cfg!(target_os = "macos") {
-        &[
-            ("mac/Hermes.app/Contents/MacOS", "Hermes"),
-            ("mac-arm64/Hermes.app/Contents/MacOS", "Hermes"),
-        ]
-    } else {
-        &[("linux-unpacked", "hermes")]
-    };
-    for (subdir, exe) in candidates {
-        let p = release_dir.join(subdir).join(exe);
-        if p.exists() {
-            return Some(p);
+    let product_names = [DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME];
+
+    for product_name in product_names {
+        let candidates: Vec<PathBuf> = if cfg!(target_os = "windows") {
+            ["win-unpacked", "win-arm64-unpacked", "win-ia32-unpacked"]
+                .into_iter()
+                .map(|dir| release_dir.join(dir).join(format!("{product_name}.exe")))
+                .collect()
+        } else if cfg!(target_os = "macos") {
+            ["mac", "mac-arm64", "mac-x64"]
+                .into_iter()
+                .map(|dir| {
+                    release_dir
+                        .join(dir)
+                        .join(format!("{product_name}.app"))
+                        .join("Contents")
+                        .join("MacOS")
+                        .join(product_name)
+                })
+                .collect()
+        } else {
+            let names = [product_name.to_string(), product_name.to_ascii_lowercase()];
+            let mut candidates = Vec::new();
+            for dir in [
+                "linux-unpacked",
+                "linux-arm64-unpacked",
+                "linux-x64-unpacked",
+            ] {
+                for name in &names {
+                    candidates.push(release_dir.join(dir).join(name));
+                }
+            }
+            candidates
+        };
+
+        for candidate in candidates {
+            if candidate.is_file() {
+                return Some(candidate);
+            }
         }
     }
     None
@@ -240,7 +268,7 @@ pub(crate) fn resolve_hermes_desktop_app(install_root: &std::path::Path) -> Opti
     let exe = resolve_hermes_desktop_exe(install_root)?;
     #[cfg(target_os = "macos")]
     {
-        // .../Hermes.app/Contents/MacOS/Hermes -> .../Hermes.app
+        // .../<Product>.app/Contents/MacOS/<Product> -> .../<Product>.app
         let app = exe.parent()?.parent()?.parent()?.to_path_buf();
         if app.extension().and_then(|e| e.to_str()) == Some("app") && app.is_dir() {
             return Some(app);
@@ -256,7 +284,7 @@ pub(crate) fn resolve_hermes_desktop_app(install_root: &std::path::Path) -> Opti
 
 /// True when a prior install completed (bootstrap-complete marker present) AND a
 /// launchable desktop app exists on disk. Used by the installer's launcher fast
-/// path so a bare re-open just opens Hermes instead of re-running setup.
+/// path so a bare re-open just opens Aino instead of re-running setup.
 pub(crate) fn hermes_is_installed(install_root: &std::path::Path) -> bool {
     install_root.join(".hermes-bootstrap-complete").exists()
         && resolve_hermes_desktop_exe(install_root).is_some()
@@ -368,7 +396,7 @@ fn write_bootstrap_complete_marker(install_root: &Path, pin: &Pin) -> Result<ser
 /// installer UI.
 pub(crate) fn spawn_installed_desktop(install_root: &std::path::Path) -> std::io::Result<()> {
     let exe = resolve_hermes_desktop_exe(install_root).ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::NotFound, "no built Hermes desktop app")
+        std::io::Error::new(std::io::ErrorKind::NotFound, "no built Aino desktop app")
     })?;
     let mut cmd = desktop_launch_command_std(&exe, install_root);
     #[cfg(target_os = "windows")]
@@ -506,6 +534,17 @@ async fn run_bootstrap(
         source_note
     ));
 
+    // Resolve the home once and pass it explicitly to every script invocation.
+    // This is important now that the branded installer defaults to `.aino`
+    // while the standalone CLI intentionally keeps its historical `.hermes`
+    // default: without the explicit environment pin, the script and Rust side
+    // could silently operate on different checkouts.
+    let resolved_hermes_home = args
+        .hermes_home
+        .clone()
+        .filter(|home| !home.trim().is_empty())
+        .unwrap_or_else(|| crate::paths::hermes_home().to_string_lossy().into_owned());
+
     // 2. Fetch manifest
     //
     // -IncludeDesktop MUST be passed to the manifest call too — install.ps1
@@ -525,7 +564,7 @@ async fn run_bootstrap(
         &app,
         &script.path,
         &manifest_args_full,
-        args.hermes_home.as_deref(),
+        Some(resolved_hermes_home.as_str()),
         &mut manifest_cancel_rx,
         Some("__manifest__".to_string()),
     )
@@ -637,7 +676,7 @@ async fn run_bootstrap(
                 &app,
                 &script.path,
                 &stage_args,
-                args.hermes_home.as_deref(),
+                Some(resolved_hermes_home.as_str()),
                 &mut local_cancel_rx,
                 Some(stage.name.clone()),
             )
@@ -779,11 +818,7 @@ async fn run_bootstrap(
     // 4. Resolve install_root. install.ps1 doesn't (yet) report this back
     // explicitly; we infer it from $HermesHome which Stage-Repository clones
     // the repo INTO at $HermesHome\hermes-agent. Mirrors hermes_constants.
-    let hermes_home = args
-        .hermes_home
-        .clone()
-        .unwrap_or_else(|| crate::paths::hermes_home().to_string_lossy().into_owned());
-    let install_root = PathBuf::from(&hermes_home).join("hermes-agent");
+    let install_root = PathBuf::from(&resolved_hermes_home).join("hermes-agent");
 
     // Marker publish is terminal for this run: a write failure must emit Failed
     // so the UI leaves the progress state (it does not poll get_bootstrap_status).
@@ -802,7 +837,8 @@ async fn run_bootstrap(
         }
     };
 
-    // Copy ourselves to HERMES_HOME/hermes-setup.exe so the desktop app can
+    // Copy ourselves to HERMES_HOME/Aino-Setup.exe (or the platform equivalent)
+    // so the desktop app can
     // re-invoke us with `--update` and shortcuts have a stable target. This is
     // a one-shot install concern; an `--update` re-invocation no-ops because
     // we're already running from that path. Best-effort — a failure here must
@@ -1024,22 +1060,22 @@ mod tests {
         if cfg!(target_os = "macos") {
             let macos_dir = release
                 .join("mac-arm64")
-                .join("Hermes.app")
+                .join("Aino.app")
                 .join("Contents")
                 .join("MacOS");
             std::fs::create_dir_all(&macos_dir).unwrap();
-            std::fs::write(macos_dir.join("Hermes"), b"#!/bin/sh\n").unwrap();
-            macos_dir.parent().unwrap().parent().unwrap().to_path_buf() // .../Hermes.app
+            std::fs::write(macos_dir.join("Aino"), b"#!/bin/sh\n").unwrap();
+            macos_dir.parent().unwrap().parent().unwrap().to_path_buf() // .../Aino.app
         } else if cfg!(target_os = "windows") {
             let dir = release.join("win-unpacked");
             std::fs::create_dir_all(&dir).unwrap();
-            let exe = dir.join("Hermes.exe");
+            let exe = dir.join("Aino.exe");
             std::fs::write(&exe, b"stub").unwrap();
             exe
         } else {
             let dir = release.join("linux-unpacked");
             std::fs::create_dir_all(&dir).unwrap();
-            let exe = dir.join("hermes");
+            let exe = dir.join("Aino");
             std::fs::write(&exe, b"stub").unwrap();
             exe
         }
@@ -1081,6 +1117,37 @@ mod tests {
             resolve_hermes_desktop_app(&root).is_none(),
             "no resolved app when nothing has been built"
         );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn resolve_hermes_desktop_app_falls_back_to_legacy_hermes_build() {
+        let root = unique_tmp_dir("app-legacy");
+        let release = root.join("apps").join("desktop").join("release");
+        let expected = if cfg!(target_os = "macos") {
+            let macos_dir = release
+                .join("mac-arm64")
+                .join("Hermes.app")
+                .join("Contents")
+                .join("MacOS");
+            std::fs::create_dir_all(&macos_dir).unwrap();
+            std::fs::write(macos_dir.join("Hermes"), b"#!/bin/sh\n").unwrap();
+            macos_dir.parent().unwrap().parent().unwrap().to_path_buf()
+        } else if cfg!(target_os = "windows") {
+            let dir = release.join("win-unpacked");
+            std::fs::create_dir_all(&dir).unwrap();
+            let exe = dir.join("Hermes.exe");
+            std::fs::write(&exe, b"stub").unwrap();
+            exe
+        } else {
+            let dir = release.join("linux-unpacked");
+            std::fs::create_dir_all(&dir).unwrap();
+            let exe = dir.join("hermes");
+            std::fs::write(&exe, b"stub").unwrap();
+            exe
+        };
+
+        assert_eq!(resolve_hermes_desktop_app(&root), Some(expected));
         let _ = std::fs::remove_dir_all(&root);
     }
 
