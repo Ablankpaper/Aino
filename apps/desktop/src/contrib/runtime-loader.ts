@@ -28,6 +28,7 @@
  * trust seam.
  */
 
+import { translateNow } from '@/i18n'
 import { installPluginSdk, sdkImportMap } from '@/sdk/runtime'
 import { notifyError } from '@/store/notifications'
 
@@ -168,6 +169,7 @@ export async function loadRuntimePlugin(
       id: plugin.id,
       name: plugin.name ?? plugin.id,
       description: plugin.description,
+      localized: plugin.localized,
       kind: options.kind ?? 'disk',
       file: options.file
     }
@@ -194,7 +196,7 @@ export async function loadRuntimePlugin(
     return plugin.id
   } catch (error) {
     console.error(`[plugins] runtime load failed (${origin})`, error)
-    notifyError(error, `Plugin "${origin}" failed to load`)
+    notifyError(error, translateNow('settings.plugins.errors.runtimeLoadFailed', origin))
     publishPlugin({
       id: origin,
       name: origin,
@@ -364,7 +366,7 @@ async function loadDiskPlugin(entry: DiskPlugin): Promise<boolean> {
     // file vanishing mid-read, where false lets the caller reconcile/unload.
     if (error instanceof PluginSourceOversizeError) {
       console.error(`[plugins] ${entry.origin}: ${error.message}`)
-      notifyError(error, `Plugin "${entry.origin}" failed to load`)
+      notifyError(error, translateNow('settings.plugins.errors.runtimeLoadFailed', entry.origin))
       publishPlugin({
         id: entry.origin,
         name: entry.origin,

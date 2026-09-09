@@ -464,13 +464,17 @@ export function friendlyRemoteAttachError(err: unknown, label: string): Error {
   }
 
   const limitBytes = Number(message.match(/limit (\d+) bytes/)?.[1])
-  const cap = Number.isFinite(limitBytes) && limitBytes > 0 ? ` (max ${Math.floor(limitBytes / (1024 * 1024))} MB)` : ''
+  const maxMb = Number.isFinite(limitBytes) && limitBytes > 0 ? Math.floor(limitBytes / (1024 * 1024)) : undefined
 
-  return new Error(`${label} is too large to upload to the remote gateway${cap}.`)
+  return new Error(translateNow('desktop.remoteAttachTooLarge', label, maxMb))
 }
 
-export function renderCommandsCatalog(catalog: CommandsCatalogLike, copy: Translations['desktop']): string {
-  const desktopCatalog = filterDesktopCommandsCatalog(catalog)
+export function renderCommandsCatalog(
+  catalog: CommandsCatalogLike,
+  copy: Translations['desktop'],
+  localizedDescriptions?: Record<string, string>
+): string {
+  const desktopCatalog = filterDesktopCommandsCatalog(catalog, localizedDescriptions)
 
   const sections = desktopCatalog.categories?.length
     ? desktopCatalog.categories
@@ -492,7 +496,7 @@ export function renderCommandsCatalog(catalog: CommandsCatalogLike, copy: Transl
     .filter(Boolean)
     .join('\n')
 
-  return [body || 'No desktop commands available.', tail].filter(Boolean).join('\n\n')
+  return [body || copy.commandResults.noCommands, tail].filter(Boolean).join('\n\n')
 }
 
 export function slashStatusText(command: string, output: string): string {
@@ -547,22 +551,24 @@ export function renderRpcResult(response: unknown, name: string): string {
     const text = typeof r.text === 'string' ? r.text : ''
 
     if (r.status === 'queued') {
-      return text ? `Steered · "${text}" queued for next tool call` : 'Steered next tool call'
+      return text
+        ? translateNow('desktop.commandResults.steerQueued', text)
+        : translateNow('desktop.commandResults.steerQueuedNoText')
     }
 
-    return 'Steer rejected — agent declined input'
+    return translateNow('desktop.commandResults.steerRejected')
   }
 
   // process.stop — { killed: number }
   if ('killed' in r && typeof r.killed === 'number') {
     return r.killed > 0
-      ? `Stopped ${r.killed} background process${r.killed === 1 ? '' : 'es'}.`
-      : 'No background processes to stop.'
+      ? translateNow('desktop.commandResults.stoppedProcesses', r.killed)
+      : translateNow('desktop.commandResults.noBackgroundProcesses')
   }
 
   // session.save — { file }
   if (typeof r.file === 'string' && r.file) {
-    return `Saved transcript to ${r.file}`
+    return translateNow('desktop.commandResults.savedTranscript', r.file)
   }
 
   // session.status — { output }
@@ -578,7 +584,13 @@ export function renderRpcResult(response: unknown, name: string): string {
     const total = Number(r.total ?? 0)
 
     const lines: string[] = [
-      `Usage: ${calls.toLocaleString()} calls · ${input.toLocaleString()} in / ${output.toLocaleString()} out · ${total.toLocaleString()} total`
+      translateNow(
+        'desktop.commandResults.usage',
+        calls.toLocaleString(),
+        input.toLocaleString(),
+        output.toLocaleString(),
+        total.toLocaleString()
+      )
     ]
 
     if (Array.isArray(r.credits_lines)) {
@@ -595,7 +607,7 @@ export function renderRpcResult(response: unknown, name: string): string {
   // agents.list — { processes: [{ session_id, command, status, uptime }] }
   if (Array.isArray(r.processes)) {
     if (r.processes.length === 0) {
-      return 'No background tasks running.'
+      return translateNow('desktop.commandResults.noBackgroundTasks')
     }
 
     return r.processes
@@ -620,9 +632,7 @@ export function renderRpcResult(response: unknown, name: string): string {
           meta.push(sessionId)
         }
 
-        const tail = meta.length ? ` (${meta.join(' · ')})` : ''
-
-        return `• [${status}] ${command}${tail}`
+        return translateNow('desktop.commandResults.processLine', status, command, meta.join(' · '))
       })
       .filter(Boolean)
       .join('\n')

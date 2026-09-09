@@ -89,6 +89,11 @@ export function useHudClickThrough(rootRef: RefObject<HTMLElement | null>): void
     }
 
     let ignoring: boolean | null = null
+    // A HUD can open with the cursor already resting over its bar. Until the
+    // first native pointer update arrives, elementFromPoint() has no answer;
+    // treating that unknown state as transparent makes the very first click
+    // fall through and leaves the bar apparently dead.
+    let pointerKnown = false
     // Where the cursor was last seen, so a focus change can re-decide without
     // waiting for the next move (blurring with the cursor parked on the bar
     // must not make the bar untouchable until you jiggle the mouse).
@@ -101,6 +106,15 @@ export function useHudClickThrough(rootRef: RefObject<HTMLElement | null>): void
     // dialog. Listing those instead is how links and dialogs ended up
     // unclickable, since portalled overlays live outside the shell.
     const apply = () => {
+      if (!pointerKnown) {
+        if (ignoring !== false) {
+          ignoring = false
+          setIgnoreMouse(false)
+        }
+
+        return
+      }
+
       const hit = point ? document.elementFromPoint(point.x, point.y) : null
       const next = hudIgnoresMouse(root, hit, document.activeElement, document.hasFocus())
 
@@ -111,6 +125,7 @@ export function useHudClickThrough(rootRef: RefObject<HTMLElement | null>): void
     }
 
     const onMove = (event: MouseEvent) => {
+      pointerKnown = true
       point = { x: event.clientX, y: event.clientY }
       apply()
     }
@@ -122,6 +137,7 @@ export function useHudClickThrough(rootRef: RefObject<HTMLElement | null>): void
     // this never fires. `null` is the cursor leaving the window, which is the
     // `onLost` answer.
     const offCursor = window.hermesDesktop?.hud?.onCursor?.(next => {
+      pointerKnown = true
       point = next
       apply()
     })
@@ -133,6 +149,7 @@ export function useHudClickThrough(rootRef: RefObject<HTMLElement | null>): void
     // costs nothing to give up — `forward: true` keeps the moves arriving while
     // ignoring, so the bar is solid again well before a click reaches it.
     const onLost = () => {
+      pointerKnown = true
       point = null
       apply()
     }

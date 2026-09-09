@@ -17,20 +17,20 @@ export const HUD_POSITION =
 // (app-shell.tsx), which wins hit-testing over DOM regardless of z-index — so
 // without it the top of the surface (the search input) swallows clicks.
 export const HUD_SURFACE =
-  'rounded-xl border border-(--stroke-nous) bg-(--ui-chat-bubble-background) shadow-nous [-webkit-app-region:no-drag]'
+  'rounded-(--aino-radius-panel) border border-(--ui-stroke-secondary) bg-(--ui-bg-elevated) shadow-nous [-webkit-app-region:no-drag]'
 
 // One row/text size for both HUDs (compact — two notches under `text-sm`).
-export const HUD_TEXT = 'text-xs'
+export const HUD_TEXT = 'text-[length:var(--aino-text-ui)] leading-5'
 
 // Shared item layout + padding for both HUDs. Tight vertical rhythm so rows
 // don't feel chunky; overrides the shadcn `CommandItem` default (`px-2 py-1.5`).
-export const HUD_ITEM = 'gap-2 px-2 py-1'
+export const HUD_ITEM = 'gap-2 rounded-(--aino-radius-row) px-2.5 py-1.5'
 
 // Section headings styled like the sidebar panel labels: brand-tinted, uppercase,
 // tightly tracked — plain text, no sticky chrome bar. Targets the cmdk group
 // heading via the universal-descendant variant.
 export const HUD_HEADING =
-  '**:[[cmdk-group-heading]]:static **:[[cmdk-group-heading]]:bg-transparent **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:pt-2.5 **:[[cmdk-group-heading]]:text-[0.64rem] **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:uppercase **:[[cmdk-group-heading]]:tracking-[0.16em] **:[[cmdk-group-heading]]:text-(--theme-primary)'
+  '**:[[cmdk-group-heading]]:static **:[[cmdk-group-heading]]:bg-transparent **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:pt-2.5 **:[[cmdk-group-heading]]:text-xs **:[[cmdk-group-heading]]:font-medium **:[[cmdk-group-heading]]:normal-case **:[[cmdk-group-heading]]:tracking-normal **:[[cmdk-group-heading]]:text-(--ui-text-secondary)'
 
 // A short note trailing a row's label — a version, a count, a live state. Sits
 // closer than the row's icon-to-label `gap-2` because it reads as a suffix of

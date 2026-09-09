@@ -1,3 +1,4 @@
+import { translateNow } from '@/i18n'
 import type { ChatMessage } from '@/lib/chat-messages'
 import { activeGateway } from '@/store/gateway'
 import { notifyError } from '@/store/notifications'
@@ -62,7 +63,10 @@ export async function toggleMessageReaction(
   const gateway = activeGateway()
 
   if (!sessionId || !gateway) {
-    notifyError(new Error(!sessionId ? 'No active session' : 'Gateway not connected'), 'Could not react')
+    notifyError(
+      new Error(translateNow(!sessionId ? 'assistant.thread.noActiveSession' : 'assistant.thread.gatewayNotConnected')),
+      translateNow('assistant.thread.reactFailed')
+    )
 
     return
   }
@@ -85,6 +89,6 @@ export async function toggleMessageReaction(
     // Be optimistic, THEN honest: a rejected write rolls back visibly and says
     // why, instead of the reaction quietly vanishing (desktop AGENTS.md).
     writeReactions(message.id, snapshot ?? [])
-    notifyError(err, 'Could not react')
+    notifyError(err, translateNow('assistant.thread.reactFailed'))
   }
 }

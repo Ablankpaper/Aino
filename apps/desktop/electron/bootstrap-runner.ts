@@ -38,6 +38,7 @@ import fsp from 'node:fs/promises'
 import https from 'node:https'
 import path from 'node:path'
 
+import { REPOSITORY_PATH, REPOSITORY_SSH_URL, REPOSITORY_URL } from './product-identity'
 import { hiddenWindowsChildOptions } from './windows-child-options'
 
 const IS_WINDOWS = process.platform === 'win32'
@@ -227,91 +228,125 @@ function cachedScriptPath(hermesHome, commit) {
   return path.join(bootstrapCacheDir(hermesHome), `install-${commit}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
 }
 
-function downloadInstallScript(ref, destPath) {
-  // Fetch from GitHub raw at the install ref. Normal production builds pass a
-  // pinned SHA (immutable). Non-git fallback builds pass an unpinned branch
-  // ref so local builds can still bootstrap without pretending the all-zero
-  // placeholder is a real GitHub commit.
-  const scriptName = installScriptName()
-  const url = `https://raw.githubusercontent.com/NousResearch/hermes-agent/${ref}/scripts/${scriptName}`
+const INSTALL_SCRIPT_TIMEOUT_MS = 15_000
 
+function downloadText(url, { headers = {}, redirectCount = 0 } = {}): Promise<string> {
   return new Promise((resolve, reject) => {
-    fs.mkdirSync(path.dirname(destPath), { recursive: true })
-    const tmpPath = destPath + '.tmp'
-    const out = fs.createWriteStream(tmpPath)
-    https
-      .get(url, res => {
-        if (res.statusCode === 301 || res.statusCode === 302) {
-          // GitHub raw shouldn't redirect for a SHA URL, but follow once
-          // defensively.
-          out.close()
-          fs.unlinkSync(tmpPath)
-          https
-            .get(res.headers.location, res2 => {
-              if (res2.statusCode !== 200) {
-                reject(
-                  new Error(
-                    `Failed to download ${scriptName}: HTTP ${res2.statusCode} from redirect ${res.headers.location}`
-                  )
-                )
+    const req = https.get(url, { headers }, res => {
+      const statusCode = res.statusCode || 0
+      const location = res.headers.location
 
-                return
-              }
+      if ([301, 302, 303, 307, 308].includes(statusCode) && location && redirectCount < 2) {
+        res.resume()
+        downloadText(location, { headers, redirectCount: redirectCount + 1 }).then(resolve, reject)
 
-              const out2 = fs.createWriteStream(tmpPath)
-              res2.pipe(out2)
-              out2.on('finish', () => {
-                out2.close()
-                fs.renameSync(tmpPath, destPath)
-                resolve(destPath)
-              })
-              out2.on('error', reject)
-            })
-            .on('error', reject)
+        return
+      }
 
-          return
-        }
+      if (statusCode !== 200) {
+        res.resume()
+        reject(new Error(`HTTP ${statusCode} from ${url}`))
 
-        if (res.statusCode !== 200) {
-          out.close()
+        return
+      }
 
-          try {
-            fs.unlinkSync(tmpPath)
-          } catch {
-            void 0
-          }
+      const chunks = []
+      res.setEncoding('utf8')
+      res.on('data', chunk => chunks.push(chunk))
+      res.on('end', () => resolve(chunks.join('')))
+      res.on('error', reject)
+    })
 
-          reject(new Error(`Failed to download ${scriptName}: HTTP ${res.statusCode} from ${url}`))
-
-          return
-        }
-
-        res.pipe(out)
-        out.on('finish', () => {
-          out.close()
-          fs.renameSync(tmpPath, destPath)
-          resolve(destPath)
-        })
-        out.on('error', err => {
-          try {
-            fs.unlinkSync(tmpPath)
-          } catch {
-            void 0
-          }
-
-          reject(err)
-        })
-      })
-      .on('error', err => {
-        try {
-          fs.unlinkSync(tmpPath)
-        } catch {
-          void 0
-        }
-
-        reject(err)
-      })
+    req.setTimeout(INSTALL_SCRIPT_TIMEOUT_MS, () => {
+      req.destroy(new Error(`request timed out after ${INSTALL_SCRIPT_TIMEOUT_MS}ms: ${url}`))
+    })
+    req.on('error', reject)
   })
+}
+
+function writeDownloadedScript(destPath, content) {
+  if (!content) {
+    throw new Error('downloaded installer is empty')
+  }
+
+  fs.mkdirSync(path.dirname(destPath), { recursive: true })
+  const tmpPath = destPath + '.tmp'
+
+  try {
+    fs.writeFileSync(tmpPath, content, 'utf8')
+    fs.renameSync(tmpPath, destPath)
+  } catch (err) {
+    try {
+      fs.unlinkSync(tmpPath)
+    } catch {
+      void 0
+    }
+
+    throw err
+  }
+
+  return destPath
+}
+
+// Fetch from GitHub raw at the install ref. Normal production builds pass a
+// pinned SHA (immutable). Non-git fallback builds pass an unpinned branch ref
+// so local builds can still bootstrap without pretending the all-zero
+// placeholder is a real GitHub commit.
+async function downloadInstallScriptRaw(ref, destPath) {
+  const scriptName = installScriptName()
+  const url = `https://raw.githubusercontent.com/${REPOSITORY_PATH}/${ref}/scripts/${scriptName}`
+  const content = await downloadText(url)
+
+  return writeDownloadedScript(destPath, content)
+}
+
+// raw.githubusercontent.com is not reachable on some managed networks even
+// when api.github.com is available. GitHub's Contents API returns the same
+// file at the same immutable ref, base64-encoded; use it only as a fallback so
+// ordinary installs keep the lightweight raw path.
+async function downloadInstallScriptFromApi(ref, destPath) {
+  const scriptName = installScriptName()
+  const url =
+    `https://api.github.com/repos/${REPOSITORY_PATH}/contents/scripts/${scriptName}` +
+    `?ref=${encodeURIComponent(ref)}`
+  const payload = JSON.parse(
+    await downloadText(url, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'Aino-Desktop'
+      }
+    })
+  )
+
+  if (!payload || payload.encoding !== 'base64' || typeof payload.content !== 'string') {
+    throw new Error('GitHub Contents API returned no base64 installer content')
+  }
+
+  const content = Buffer.from(payload.content.replace(/\s+/g, ''), 'base64').toString('utf8')
+
+  return writeDownloadedScript(destPath, content)
+}
+
+async function downloadInstallScript(
+  ref,
+  destPath,
+  {
+    _downloadRaw = downloadInstallScriptRaw,
+    _downloadApi = downloadInstallScriptFromApi
+  } = {}
+) {
+  try {
+    return await _downloadRaw(ref, destPath)
+  } catch (rawError) {
+    try {
+      return await _downloadApi(ref, destPath)
+    } catch (apiError) {
+      throw new Error(
+        `GitHub installer download failed (raw: ${rawError?.message || rawError}; ` +
+          `API fallback: ${apiError?.message || apiError})`
+      )
+    }
+  }
 }
 
 async function resolveInstallScript({
@@ -456,6 +491,22 @@ function resolveWindowsPowerShell() {
   return 'powershell.exe'
 }
 
+function buildInstallerEnv(
+  hermesHome: string | null | undefined,
+  baseEnv: NodeJS.ProcessEnv = process.env
+): NodeJS.ProcessEnv {
+  return {
+    ...baseEnv,
+    HERMES_HOME: hermesHome || baseEnv.HERMES_HOME || '',
+    // The installer defaults remain upstream-compatible for direct CLI use.
+    // Desktop bootstrap must install from the same branded repository as the
+    // script/build stamp; otherwise a downstream branch is looked up on the
+    // upstream remote and fresh install fails before the venv stage.
+    HERMES_INSTALL_REPOSITORY_URL: REPOSITORY_URL,
+    HERMES_INSTALL_REPOSITORY_SSH_URL: REPOSITORY_SSH_URL
+  }
+}
+
 function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, hermesHome }: any = {}) {
   return new Promise<any>((resolve, reject) => {
     const ps = process.platform === 'win32' ? resolveWindowsPowerShell() : 'pwsh'
@@ -466,12 +517,7 @@ function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, herme
       fullArgs,
       hiddenWindowsChildOptions({
         stdio: ['ignore', 'pipe', 'pipe'],
-        env: {
-          ...process.env,
-          // Pass HERMES_HOME through so install.ps1 respects the caller's
-          // choice rather than re-computing the default.
-          HERMES_HOME: hermesHome || process.env.HERMES_HOME || ''
-        }
+        env: buildInstallerEnv(hermesHome)
       })
     )
 
@@ -564,10 +610,7 @@ function spawnBash(scriptPath, args, { emit, stageName, abortSignal, hermesHome 
   return new Promise<any>((resolve, reject) => {
     const child = spawn('bash', [scriptPath, ...args], {
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        HERMES_HOME: hermesHome || process.env.HERMES_HOME || ''
-      }
+      env: buildInstallerEnv(hermesHome)
     })
 
     let stdout = ''
@@ -1020,9 +1063,11 @@ async function runBootstrap(opts) {
 }
 
 export {
+  buildInstallerEnv,
   buildPinArgs,
   buildPosixPinArgs,
   cachedScriptPath,
+  downloadInstallScript,
   hasExistingGitCheckout,
   installedAgentInstallScript,
   installRefForStamp,

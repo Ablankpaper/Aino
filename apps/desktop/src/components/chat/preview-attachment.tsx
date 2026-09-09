@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { useSessionView } from '@/app/chat/session-view'
 import { useI18n } from '@/i18n'
+import { localizedPreviewError } from '@/i18n/preview-errors'
 import { Download, MonitorPlay } from '@/lib/icons'
 import { normalizeOrLocalPreviewTarget } from '@/lib/local-preview'
 import { downloadGatewayMediaFile } from '@/lib/media'
@@ -89,7 +90,7 @@ export function PreviewAttachment({ source = 'manual', target }: { source?: Prev
         return
       }
 
-      notifyError(error, t.preview.unavailable)
+      notifyError(new Error(localizedPreviewError(t, error)), t.preview.unavailable)
     } finally {
       if (mountedRef.current && requestTokenRef.current === requestToken) {
         setOpening(false)

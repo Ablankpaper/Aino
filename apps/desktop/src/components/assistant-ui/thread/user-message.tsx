@@ -8,11 +8,13 @@ import { MessageTimelineTimestamp } from '@/components/assistant-ui/thread/timel
 import { type RestoreMessageTarget } from '@/components/assistant-ui/thread/types'
 import { useMessageReactions } from '@/components/assistant-ui/thread/use-message-reactions'
 import { UserMessageText } from '@/components/assistant-ui/thread/user-message-text'
+import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
 import { Codicon } from '@/components/ui/codicon'
+import { CopyButton } from '@/components/ui/copy-button'
 import { useResizeObserver } from '@/hooks/use-resize-observer'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
-import { StopFilled } from '@/lib/icons'
+import { Pencil, StopFilled } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { $gateway } from '@/store/gateway'
 import { notifyThreadEditOpen } from '@/store/thread-scroll'
@@ -25,7 +27,7 @@ export function hasTextSelection(): boolean {
   return Boolean(selection && !selection.isCollapsed && selection.toString().length > 0)
 }
 
-export function StickyHumanMessageContainer({
+export function HumanMessageContainer({
   attachments,
   children,
   messageId
@@ -35,13 +37,13 @@ export function StickyHumanMessageContainer({
   messageId?: string
 }) {
   return (
-    // Fragment, not a wrapper: a wrapping element becomes the sticky's
-    // containing block (it'd stick within its own height = never). The bubble
-    // and attachments are flow siblings so the bubble pins against the scroller
-    // while attachments below it scroll away.
+    // Fragment, not a wrapper: the message root and its attachments stay as
+    // siblings in the transcript's normal flow. Keeping the bubble in that
+    // same flow is important — a sticky root can park a user prompt while the
+    // assistant turn scrolls, making the two sides drift apart.
     <>
       <div
-        className="group/user-message sticky z-40 -mx-4 flex w-[calc(100%+2rem)] min-w-0 max-w-none flex-col items-stretch gap-0 self-end overflow-visible bg-(--ui-chat-surface-background) px-4 pb-(--conversation-turn-gap) pt-1"
+        className="group/user-message -mx-4 flex w-[calc(100%+2rem)] min-w-0 max-w-none flex-col items-stretch gap-0 self-end overflow-visible bg-(--ui-chat-surface-background) px-4 pb-(--conversation-turn-gap) pt-1"
         data-message-id={messageId}
         data-role="user"
         data-slot="aui_user-message-root"
@@ -53,16 +55,19 @@ export function StickyHumanMessageContainer({
   )
 }
 
+// Keep the old export for extensions that imported the helper by its former
+// name. The container no longer applies sticky positioning; it only preserves
+// the message/attachment fragment shape used by the thread primitives.
+export const StickyHumanMessageContainer = HumanMessageContainer
+
 // Shared "user bubble" base. Both the read-only message and the inline
 // edit composer render the same bubble surface (rounded glass card);
 // they only differ in border weight, cursor, and padding-right (the
 // read-only view reserves room for the restore icon).
 //
-// no-drag: sticky bubbles park at --sticky-human-top (~4px), sliding under the
-// titlebar's [-webkit-app-region:drag] strips (app-shell.tsx). Electron resolves
-// drag regions at the compositor level — z-index and pointer-events don't help —
-// so without the carve-out, clicking a stuck bubble drags the window instead of
-// opening the edit composer.
+// no-drag: Electron resolves titlebar [-webkit-app-region:drag] regions at the
+// compositor level — z-index and pointer-events don't help — so keep message
+// actions explicitly outside the drag region when the user edits a prompt.
 export const USER_BUBBLE_BASE_CLASS =
   'composer-human-message standalone-glass relative flex w-full min-w-0 max-w-full flex-col gap-1.5 overflow-y-auto rounded-xl border bg-(--dt-user-bubble) px-3 py-2 text-left [-webkit-app-region:no-drag]'
 
@@ -177,6 +182,7 @@ export async function resolveAgentAvatar(handle: string): Promise<null | string>
 }
 
 const AgentMessageNote: FC<{ text: string }> = ({ text }) => {
+  const { t } = useI18n()
   const match = AGENT_MESSAGE_RE.exec(text)
   const sender = (match?.[1] || match?.[3] || 'agent').trim()
   const handle = (match?.[2] || match?.[3] || sender).trim()
@@ -215,12 +221,12 @@ const AgentMessageNote: FC<{ text: string }> = ({ text }) => {
             🤖
           </span>
         )}
-        <span className="wrap-anywhere">Message from {sender}</span>
+        <span className="wrap-anywhere">{t.assistant.thread.messageFrom(sender)}</span>
       </span>
       {body && (
         <details className="self-center">
           <summary className="cursor-pointer select-none text-center text-muted-foreground/45 hover:text-muted-foreground/70">
-            show message
+            {t.assistant.thread.showMessage}
           </summary>
           <div className="mt-1 max-w-[36rem] rounded-lg border border-(--ui-stroke-tertiary) px-3 py-2 text-left text-[0.75rem] leading-5 text-foreground/85">
             <UserMessageText text={body} />
@@ -232,6 +238,7 @@ const AgentMessageNote: FC<{ text: string }> = ({ text }) => {
 }
 
 const ProcessNotificationNote: FC<{ text: string }> = ({ text }) => {
+  const { t } = useI18n()
   const body = text.replace(/^\[IMPORTANT:\s*/, '').replace(/\]$/, '')
   const newline = body.indexOf('\n')
   const headline = (newline === -1 ? body : body.slice(0, newline)).trim()
@@ -246,7 +253,7 @@ const ProcessNotificationNote: FC<{ text: string }> = ({ text }) => {
       {detail && (
         <details className="pl-[1.3125rem]">
           <summary className="cursor-pointer select-none text-muted-foreground/45 hover:text-muted-foreground/70">
-            output
+            {t.assistant.thread.output}
           </summary>
           <pre
             className="mt-0.5 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-[0.625rem] leading-4 text-muted-foreground/55"
@@ -405,6 +412,14 @@ export const UserMessage: FC<{
   // the live turn before rewinding.
   const showRestore = !readOnly && !showStop && Boolean(onRequestRestoreConfirm) && hasBody
 
+  const requestRestore = () => {
+    triggerHaptic('selection')
+    onRequestRestoreConfirm?.(messageId, {
+      text: messageText,
+      userOrdinal: runtimeUserOrdinal
+    })
+  }
+
   const bubbleClassName = cn(
     USER_BUBBLE_BASE_CLASS,
     'cursor-pointer pr-9 text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground/95 transition-colors',
@@ -430,13 +445,12 @@ export const UserMessage: FC<{
 
   return (
     <MessagePrimitive.Root asChild>
-      <StickyHumanMessageContainer
+      <HumanMessageContainer
         attachments={
-          // Attachments live BELOW the sticky bubble in normal flow, so they
-          // scroll away behind the pinned bubble instead of riding along with
-          // it. Image refs render as thumbnails, file refs as chips; no border.
+          // Attachments stay BELOW the user bubble in normal flow. Image refs
+          // render as thumbnails, file refs as chips; no border.
           attachmentRefs.length > 0 ? (
-            <div className="flex flex-wrap gap-1 -mt-3 mb-2">
+            <div className="flex flex-wrap gap-1 -mt-3 mb-2" data-slot="aui_user-attachments">
               <DirectiveContent text={attachmentRefs.join(' ')} />
             </div>
           ) : null
@@ -480,6 +494,7 @@ export const UserMessage: FC<{
                   <button
                     aria-expanded={bodyClamped ? expanded : undefined}
                     className={cn(bubbleClassName, !bodyClamped && 'cursor-default')}
+                    data-slot="aui_user-bubble"
                     onClick={() => {
                       // Drag-select ends on mouseup→click; don't collapse the
                       // clamp just because the highlight finished.
@@ -502,8 +517,10 @@ export const UserMessage: FC<{
                   // open the editor and throw the selection away.
                   <ActionBarPrimitive.Edit asChild>
                     <button
-                      aria-label={copy.editMessage}
+                      aria-label={messageText ? `${copy.editMessage}: ${messageText}` : copy.editMessage}
                       className={bubbleClassName}
+                      data-has-corner-action={showStop ? '' : undefined}
+                      data-slot="aui_user-bubble"
                       onClick={event => {
                         if (hasTextSelection()) {
                           event.preventDefault()
@@ -528,7 +545,11 @@ export const UserMessage: FC<{
                   </ActionBarPrimitive.Edit>
                 )}
                 {(showStop || showRestore) && (
-                  <div className="pointer-events-none absolute right-2 bottom-2 z-10 flex items-center justify-center opacity-0 transition-opacity group-hover/user-message:opacity-100 group-focus-within/user-message:opacity-100">
+                  <div
+                    className="pointer-events-none absolute right-2 bottom-2 z-10 flex items-center justify-center opacity-0 transition-opacity group-hover/user-message:opacity-100 group-focus-within/user-message:opacity-100"
+                    data-action={showStop ? 'stop' : 'restore'}
+                    data-slot="aui_user-corner-action"
+                  >
                     {showStop ? (
                       <button
                         aria-label={copy.stop}
@@ -550,11 +571,7 @@ export const UserMessage: FC<{
                         onClick={event => {
                           event.preventDefault()
                           event.stopPropagation()
-                          triggerHaptic('selection')
-                          onRequestRestoreConfirm?.(messageId, {
-                            text: messageText,
-                            userOrdinal: runtimeUserOrdinal
-                          })
+                          requestRestore()
                         }}
                         onPointerDown={event => {
                           event.preventDefault()
@@ -578,7 +595,41 @@ export const UserMessage: FC<{
               onRetract={() => react(null)}
               reactions={shownReactions}
             />
-            <MessageTimelineTimestamp className="self-end pr-1.5" />
+            <div
+              className="aino-user-actions-row min-h-6 w-full items-center justify-end gap-0.5 pt-1"
+              data-slot="aui_user-actions-row"
+            >
+              <MessageTimelineTimestamp className="mr-1" />
+              <CopyButton appearance="icon" buttonSize="icon-xs" label={copy.copy} stopPropagation text={messageText} />
+              {!readOnly && (
+                <ActionBarPrimitive.Edit asChild>
+                  <TooltipIconButton
+                    onClick={() => triggerHaptic('selection')}
+                    onPointerDown={() => notifyThreadEditOpen()}
+                    tooltip={copy.editMessage}
+                  >
+                    <Pencil className="size-3.5" />
+                  </TooltipIconButton>
+                </ActionBarPrimitive.Edit>
+              )}
+              {showRestore && (
+                <TooltipIconButton
+                  onClick={event => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    requestRestore()
+                  }}
+                  onPointerDown={event => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                  }}
+                  tooltip={copy.restoreFromHere}
+                >
+                  <Codicon name="discard" size="0.875rem" />
+                </TooltipIconButton>
+              )}
+            </div>
+            <MessageTimelineTimestamp className="aui-user-legacy-timestamp self-end pr-1.5" />
             <BranchPickerPrimitive.Root
               className={cn(
                 'checkpoint-container flex items-center gap-1 pb-0 pt-1 pl-1.5 text-[0.75rem] leading-none text-(--ui-text-tertiary)',
@@ -605,7 +656,7 @@ export const UserMessage: FC<{
             </BranchPickerPrimitive.Root>
           </div>
         </ActionBarPrimitive.Root>
-      </StickyHumanMessageContainer>
+      </HumanMessageContainer>
     </MessagePrimitive.Root>
   )
 }

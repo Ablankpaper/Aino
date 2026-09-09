@@ -80,7 +80,7 @@ export function GroupImageControls({ image, onImage, seedName, seedMembers }: Gr
       })
 
       if (!res?.success) {
-        throw new Error(res?.error || 'generation failed')
+        throw new Error(res?.error || b.group.pictureGenerationFailed)
       }
 
       const img = res.image_data || res.image
@@ -258,7 +258,7 @@ export function GroupMentionInput({ members, onChange, onSubmitDraft, value, ...
   return (
     <div className="relative min-w-0 flex-1">
       {open ? (
-        <div className="absolute bottom-full left-0 z-50 mb-1 max-h-48 w-64 overflow-y-auto rounded-md border border-(--ui-stroke-secondary) bg-(--ui-bg-primary) py-1 shadow-lg">
+        <div className="absolute bottom-full left-0 z-50 mb-1 max-h-48 w-64 overflow-y-auto rounded-lg border border-(--ui-stroke-secondary) bg-(--ui-bg-elevated) py-1 shadow-md">
           {options.map((option, index) => (
             <RowButton
               className={cn(
@@ -541,7 +541,7 @@ export function GroupClarifyCard({ entry, members }: GroupClarifyCardProps) {
                   void submit()
                 }
               }}
-              placeholder={q.choices.length ? 'Or type your own answer…' : 'Type your answer…'}
+              placeholder={q.choices.length ? b.group.answerOwnPlaceholder : b.group.answerPlaceholder}
               value={drafts[q.qid] || ''}
             />
           )}
@@ -549,7 +549,7 @@ export function GroupClarifyCard({ entry, members }: GroupClarifyCardProps) {
       ))}
       <div className="flex justify-end">
         <Button disabled={sending || !allAnswered || !member} onClick={() => void submit()} size="sm">
-          {sending ? 'Sending…' : isApproval ? 'Respond' : 'Answer'}
+          {sending ? b.group.sending : isApproval ? b.group.respond : b.group.answer}
         </Button>
       </div>
     </div>

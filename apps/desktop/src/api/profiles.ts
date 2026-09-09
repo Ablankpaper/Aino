@@ -1,3 +1,4 @@
+import { translateNow } from '@/i18n/runtime'
 import type {
   ProfileCreatePayload,
   ProfileDesktopOverlay,
@@ -50,11 +51,11 @@ export function deleteProfile(name: string, scope?: ProfileScope): Promise<{ ok:
   const scopedProfile = scope && typeof scope === 'object' ? scope.profile?.trim() : undefined
 
   if (!normalized) {
-    return Promise.reject(new Error('Profile name required'))
+    return Promise.reject(new Error(translateNow('profiles.profileNameRequired')))
   }
 
   if (normalized.toLowerCase() === 'default' || scopedProfile?.toLowerCase() === 'default') {
-    return Promise.reject(new Error('The default profile cannot be deleted.'))
+    return Promise.reject(new Error(translateNow('profiles.defaultProfileDeleteBlocked')))
   }
 
   return hermesApi<{ ok: boolean; path: string }>({

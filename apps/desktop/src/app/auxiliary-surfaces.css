@@ -1,0 +1,86 @@
+.aino-auxiliary-panel {
+  background: var(--aino-surface-bg);
+  border: 1px solid var(--aino-surface-stroke);
+  border-radius: var(--aino-radius-panel);
+  box-shadow: var(--shadow-nous);
+  color: var(--ui-text-primary);
+  font-family: var(--aino-landing-font);
+}
+
+.aino-quick-entry-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  width: 100%;
+}
+
+.aino-quick-entry-field {
+  width: 100%;
+}
+
+.aino-quick-entry-field [data-slot='input-group'] {
+  border-radius: var(--aino-radius-control);
+}
+
+.aino-quick-entry-icon {
+  color: var(--ui-text-tertiary);
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
+.aino-quick-entry-target-row {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.aino-quick-entry-label {
+  color: var(--ui-text-secondary);
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  user-select: none;
+}
+
+.aino-quick-entry-select {
+  border-radius: var(--aino-radius-control);
+  max-width: 20rem;
+  width: auto;
+}
+
+.aino-pet-composer {
+  border-radius: var(--aino-radius-control);
+  font-family: var(--aino-landing-font);
+  margin-bottom: 0.5rem;
+  width: 11.5rem;
+}
+
+.aino-pet-bubble {
+  align-items: center;
+  background: var(--aino-surface-bg);
+  border: 1px solid var(--aino-surface-stroke);
+  border-radius: var(--aino-radius-panel);
+  box-shadow: var(--shadow-nous);
+  color: var(--ui-text-primary);
+  display: inline-flex;
+  font-family: var(--aino-landing-font);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.aino-pet-mail {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.aino-pet-ground-shadow {
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--ui-text-primary) 26%, transparent) 0%,
+    transparent 70%
+  );
+}

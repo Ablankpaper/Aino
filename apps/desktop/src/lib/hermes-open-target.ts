@@ -1,20 +1,22 @@
 /**
  * Shared resolver for in-app navigation targets that must stay compatible with
- * `hermes://` deep links and `host.navigate('/path?…')`.
+ * `aino://` (plus legacy `hermes://`) deep links and `host.navigate('/path?…')`.
  *
  * Notification activation, deep-link delivery, and plugin `activate` payloads
  * all funnel through here so a toast click and an OS deep link land on the
  * same hash-router path.
  *
  * Supported deep-link shapes:
- *  - `hermes://index-network/intent/1` → `/index-network/intent/1` (plugin-scoped)
- *  - `hermes://open/my-page?item=x` → `/my-page?item=x` (generic open)
+ *  - `aino://index-network/intent/1` → `/index-network/intent/1` (plugin-scoped)
+ *  - `aino://open/my-page?item=x` → `/my-page?item=x` (generic open)
  *  - `/my-page?item=x` / `#/my-page?item=x` (hash-router paths)
  */
 
+import { LEGACY_PROTOCOL, PRIMARY_PROTOCOL } from './brand'
+
 export type HermesOpenTarget = string | { href: string } | { path: string; params?: Record<string, string> }
 
-const HERMES_PROTOCOL = 'hermes:'
+const APP_PROTOCOL_PREFIXES = [`${PRIMARY_PROTOCOL}://`, `${LEGACY_PROTOCOL}://`]
 
 /** Hostnames owned by core deep-link handlers — never treated as plugin routes. */
 const RESERVED_DEEP_LINK_KINDS = new Set([
@@ -73,7 +75,7 @@ export function normalizeHermesOpenString(raw: string): string | null {
     return null
   }
 
-  if (trimmed.startsWith('hermes://') || trimmed.startsWith(`${HERMES_PROTOCOL}//`)) {
+  if (APP_PROTOCOL_PREFIXES.some(prefix => trimmed.startsWith(prefix))) {
     try {
       const url = new URL(trimmed)
       const host = url.hostname || ''

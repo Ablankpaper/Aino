@@ -27,10 +27,12 @@ const SHORT_LABELS: Record<string, string> = {
   ultra: 'Ultra'
 }
 
-export function reasoningEffortLabel(effort: string): string {
+export type ReasoningEffortLabeler = (effort: string) => string
+
+export function reasoningEffortLabel(effort: string, labeler?: ReasoningEffortLabeler): string {
   const key = normalize(effort)
 
-  return key ? (SHORT_LABELS[key] ?? effort) : ''
+  return key ? (labeler?.(key) ?? SHORT_LABELS[key] ?? effort) : ''
 }
 
 export const isReasoningEffort = (value: string): value is ReasoningEffort =>

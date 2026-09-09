@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/i18n'
 
 interface EmptyHintProps {
   onExample: (prompt: string) => void
@@ -9,6 +10,9 @@ interface EmptyHintProps {
 const EXAMPLE_PROMPTS = ['bubble-tea otter', 'sock elf', 'pixel dragon', 'office cat', 'neon axolotl', 'moss golem']
 
 export function EmptyHint({ onExample }: EmptyHintProps) {
+  const { t } = useI18n()
+  const examples = t.commandCenter.generatePet.examples
+
   return (
     <div className="flex max-w-[300px] flex-wrap place-content-center place-items-center gap-2">
       {EXAMPLE_PROMPTS.map(example => (
@@ -19,7 +23,7 @@ export function EmptyHint({ onExample }: EmptyHintProps) {
           size="xs"
           variant="outline"
         >
-          {example}
+          {examples[example] ?? example}
         </Button>
       ))}
     </div>

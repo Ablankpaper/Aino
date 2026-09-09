@@ -3,6 +3,7 @@ import { useStore } from '@nanostores/react'
 import { useCallback, useEffect } from 'react'
 
 import type { HermesGateway } from '@/hermes'
+import { useI18n } from '@/i18n'
 import { sessionTitle } from '@/lib/chat-runtime'
 import {
   type CommandsCatalogLike,
@@ -66,6 +67,9 @@ export function useSlashCompletions(options: {
   loading: boolean
 } {
   const { gateway, skinThemes, activeSkin } = options
+  const { t } = useI18n()
+  const commandDescriptions = t.composer.commandDescs
+  const browseAllSessions = t.composer.browseAllSessions
   const enabled = Boolean(gateway)
   const epoch = useStore($slashCompletionsEpoch)
 
@@ -77,7 +81,7 @@ export function useSlashCompletions(options: {
 
     void cachedSlashCompletion('catalog', () => gateway.request<CommandsCatalogLike>('commands.catalog'))
       .then(catalog => {
-        filterDesktopCommandsCatalog(catalog)
+        filterDesktopCommandsCatalog(catalog, commandDescriptions)
       })
       .catch(() => {
         // Next keystroke retries; don't block the composer on a warm-up miss.
@@ -142,7 +146,7 @@ export function useSlashCompletions(options: {
         // submitting it (Enter) still opens the overlay if the action is skipped.
         items.push({
           text: '/resume',
-          display: 'Browse all sessions…',
+          display: browseAllSessions,
           meta: '',
           group: 'Sessions',
           action: 'session-picker'
@@ -154,7 +158,8 @@ export function useSlashCompletions(options: {
       try {
         if (!query) {
           const catalog = filterDesktopCommandsCatalog(
-            await cachedSlashCompletion('catalog', () => gateway.request<CommandsCatalogLike>('commands.catalog'))
+            await cachedSlashCompletion('catalog', () => gateway.request<CommandsCatalogLike>('commands.catalog')),
+            commandDescriptions
           )
 
           // Prefer the categorized layout so the popover renders section headers
@@ -167,7 +172,7 @@ export function useSlashCompletions(options: {
               text: command,
               display: command,
               group: section.name || undefined,
-              meta
+              meta: desktopSlashDescription(command, textValue(meta), commandDescriptions)
             }))
           )
 
@@ -228,7 +233,9 @@ export function useSlashCompletions(options: {
             // blurb). Only command rows get the registry description — looking
             // one up for `/personality none` would clobber it with the parent
             // command's text.
-            meta: isArgCompletion ? textValue(item.meta) : desktopSlashDescription(item.text, textValue(item.meta))
+            meta: isArgCompletion
+              ? textValue(item.meta)
+              : desktopSlashDescription(item.text, textValue(item.meta), commandDescriptions)
           }))
 
         // Keep each group contiguous so headers render once: Commands before
@@ -251,7 +258,7 @@ export function useSlashCompletions(options: {
         return { items: [], query }
       }
     },
-    [gateway, skinThemes, activeSkin]
+    [activeSkin, browseAllSessions, commandDescriptions, gateway, skinThemes]
   )
 
   const toItem = useCallback((entry: CompletionEntry, index: number): Unstable_TriggerItem => {

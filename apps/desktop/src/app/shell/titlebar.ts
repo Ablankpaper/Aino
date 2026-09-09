@@ -1,22 +1,26 @@
 import type { HermesConnection } from '@/global'
 
-export const TITLEBAR_HEIGHT = 34
+export const TITLEBAR_HEIGHT = 43
 export const MACOS_TRAFFIC_LIGHTS_HEIGHT = 14
 /** Titlebar tool hit target (both axes). */
 export const TITLEBAR_CONTROL_SIZE = 24
 /** Codicon glyph box in titlebar clusters — optical match to traffic-light row. */
-export const TITLEBAR_ICON_SIZE = 13.9
+export const TITLEBAR_ICON_SIZE = 18
+/** The two controls beside the compact macOS traffic-light group use 15px Figma glyphs. */
+export const TITLEBAR_LEFT_ICON_SIZE = 15
 export const TITLEBAR_ICON_BADGE_SCALE = 0.65
-export const TITLEBAR_CONTROL_OFFSET_X = 74
+export const TITLEBAR_CONTROL_OFFSET_X = 65
 export const TITLEBAR_CONTROL_HEIGHT = TITLEBAR_CONTROL_SIZE
 export const TITLEBAR_CONTROLS_TOP = (TITLEBAR_HEIGHT - TITLEBAR_CONTROL_HEIGHT) / 2
+export const TITLEBAR_TOOL_GAP = 4
+export const TITLEBAR_TOOLS_RIGHT_INSET = 17
 
 /** Inline font-size for titlebar Codicons — beats unlayered codicon.css `font: 16px`. */
 export function titlebarIconSizeCss(scale = 1): string {
   return `${TITLEBAR_ICON_SIZE * scale}px`
 }
 
-export const TITLEBAR_FALLBACK_WINDOW_BUTTON_X = 24
+export const TITLEBAR_FALLBACK_WINDOW_BUTTON_X = 15
 // Edge inset used when no left-side native controls take up that space —
 // Windows/Linux (native overlay is on the right) and macOS fullscreen
 // (traffic lights are hidden). Matches the right-cluster's 0.75rem padding.
@@ -28,7 +32,7 @@ export const MACOS_TAHOE_DARWIN_MAJOR = 25
 // macOS traffic-light row only: nudge the left toolbar cluster down to sit on
 // the same optical center as the native buttons on pre-Tahoe macOS. null
 // windowButtonPosition means Windows/Linux, macOS fullscreen, or Tahoe.
-export const TITLEBAR_MAC_TRAFFIC_LIGHTS_Y_NUDGE = 'calc(var(--spacing) * 0.9)'
+export const TITLEBAR_MAC_TRAFFIC_LIGHTS_Y_NUDGE = '2px'
 
 export interface TitlebarChromeContext {
   darwinMajor?: number
@@ -37,11 +41,10 @@ export interface TitlebarChromeContext {
 }
 
 export function titlebarControlsYNudge({
-  darwinMajor = 0,
   isFullscreen = false,
   windowButtonPosition
 }: TitlebarChromeContext = {}): string {
-  if (isFullscreen || windowButtonPosition === null || darwinMajor >= MACOS_TAHOE_DARWIN_MAJOR) {
+  if (isFullscreen || windowButtonPosition === null) {
     return '0px'
   }
 
@@ -61,7 +64,7 @@ export function titlebarToolsRightCss(
     return `${TITLEBAR_EDGE_INSET}px`
   }
 
-  return '0.75rem'
+  return `${TITLEBAR_TOOLS_RIGHT_INSET}px`
 }
 
 // Titlebar palette only. All sizing/radius/cursor/centering come from the
@@ -74,9 +77,9 @@ export const titlebarButtonClass =
 export const titlebarToolClusterClass =
   'fixed z-70 flex flex-row items-center pointer-events-auto select-none [-webkit-app-region:no-drag]'
 
-/** Width reserved for N abutting titlebar tool buttons. */
+/** Width reserved for N titlebar buttons plus the approved four-pixel visual rhythm. */
 export function titlebarToolsWidthCss(toolCount: number): string {
-  return `calc(${toolCount} * var(--titlebar-control-size))`
+  return `calc(${toolCount} * var(--titlebar-control-size) + ${Math.max(0, toolCount - 1)} * ${TITLEBAR_TOOL_GAP}px)`
 }
 
 export const titlebarHeaderBaseClass =

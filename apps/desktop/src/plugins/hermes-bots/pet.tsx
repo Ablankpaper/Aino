@@ -167,11 +167,7 @@ export function PetTab({ image, onImage }: PetTabProps) {
   }
 
   if (!pets.length) {
-    return (
-      <div className="px-2 py-3 text-center text-xs text-(--ui-text-tertiary)">
-        No pets in the petdex gallery. Run `hermes pets` to explore.
-      </div>
-    )
+    return <div className="px-2 py-3 text-center text-xs text-(--ui-text-tertiary)">{b.avatar.petGalleryEmpty}</div>
   }
 
   const q = query.trim().toLowerCase()
@@ -206,7 +202,7 @@ export function PetTab({ image, onImage }: PetTabProps) {
           setQuery(event.target.value)
           setLimit(24)
         }}
-        placeholder={`Search ${pets.length} pets…`}
+        placeholder={b.avatar.petSearchPlaceholder(pets.length)}
         value={query}
       />
       {image && selectedSlug ? (
@@ -224,7 +220,7 @@ export function PetTab({ image, onImage }: PetTabProps) {
         </Button>
       ) : null}
       {filtered.length === 0 ? (
-        <div className="py-3 text-center text-xs text-(--ui-text-quaternary)">No pets match.</div>
+        <div className="py-3 text-center text-xs text-(--ui-text-quaternary)">{b.avatar.petNoMatch}</div>
       ) : (
         <div
           className="overflow-y-auto"
@@ -267,7 +263,9 @@ export function PetTab({ image, onImage }: PetTabProps) {
             ))}
           </div>
           {limit < ranked.length ? (
-            <div className="py-2 text-center text-[0.65rem] text-(--ui-text-quaternary)">{`Scroll for more (${limit} of ${ranked.length})`}</div>
+            <div className="py-2 text-center text-[0.65rem] text-(--ui-text-quaternary)">
+              {b.avatar.petScrollMore(limit, ranked.length)}
+            </div>
           ) : null}
         </div>
       )}

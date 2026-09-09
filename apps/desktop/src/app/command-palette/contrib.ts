@@ -31,9 +31,16 @@ export interface PaletteContribution {
 }
 
 /** Contributed palette rows, with stable render keys. */
-export function usePaletteContributions(): Array<PaletteContribution & { key: string }> {
+export function usePaletteContributions(): Array<
+  PaletteContribution & { contributionId: string; key: string; source?: string }
+> {
   return useContributions(PALETTE_AREA)
-    .map(c => ({ key: `${c.source ?? 'core'}:${c.id}`, ...(c.data as PaletteContribution) }))
+    .map(c => ({
+      contributionId: c.id,
+      key: `${c.source ?? 'core'}:${c.id}`,
+      source: c.source,
+      ...(c.data as PaletteContribution)
+    }))
     .filter(item => Boolean(item.label && item.run))
 }
 

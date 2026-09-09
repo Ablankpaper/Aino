@@ -38,7 +38,7 @@ export function PetGenerateOverlay() {
   const error = useStore($petGenError)
   const drafts = useStore($petGenDrafts)
 
-  // Yield the screen to a full-screen route overlay (e.g. /settings while the
+  // Yield the screen to a full-screen route-owned surface (e.g. /settings while the
   // user adds an image-gen key) without tearing down — the store keeps us open,
   // and we reappear + re-check on return.
   if (useRouteOverlayActive()) {

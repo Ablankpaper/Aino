@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { useContributions } from '@/contrib/react/use-contributions'
 import type { Contribution } from '@/contrib/types'
 import { useI18n } from '@/i18n'
+import { localizedLayoutTitle } from '@/i18n/contributions'
 import { cn } from '@/lib/utils'
 
 import type { LayoutNode } from '../model'
@@ -69,6 +70,7 @@ function PresetCard({ preset }: { preset: Contribution }) {
   }
 
   const active = preset.id === activeId
+  const title = localizedLayoutTitle(t, preset.id, preset.title ?? preset.id, preset.source)
 
   return (
     <div className="group/preset relative">
@@ -88,12 +90,12 @@ function PresetCard({ preset }: { preset: Contribution }) {
         <span
           className={cn('truncate text-[0.68rem] font-medium', active ? 'text-foreground' : 'text-muted-foreground/80')}
         >
-          {preset.title ?? preset.id}
+          {title}
         </span>
       </button>
       {isUserPreset(preset.id) && (
         <button
-          aria-label={t.zones.deletePreset(preset.title ?? preset.id)}
+          aria-label={t.zones.deletePreset(title)}
           // Hover-reveal (opacity, not display) — stays laid out + clickable,
           // appears on card hover or keyboard focus.
           className="absolute right-1 top-1 z-10 grid size-5 place-items-center rounded-md bg-(--ui-bg-elevated) text-(--ui-text-tertiary) opacity-0 transition-opacity hover:bg-(--ui-control-hover-background) hover:text-foreground focus-visible:opacity-100 group-hover/preset:opacity-100"

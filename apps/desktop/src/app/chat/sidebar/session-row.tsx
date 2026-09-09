@@ -296,7 +296,11 @@ function SidebarSessionRowImpl({
   // shell column would span the card's full height and shave every line,
   // when only the header shares its line with the age and kebab.
   const actionsNode = (
-    <div className="relative z-2 flex shrink-0 items-center justify-end gap-1" data-row-actions>
+    <div
+      className="relative z-2 flex shrink-0 items-center justify-end gap-1"
+      data-row-actions
+      data-sidebar-session-actions=""
+    >
       {trailing.map(({ key, node }, index) => (
         <span
           className={
@@ -369,7 +373,10 @@ function SidebarSessionRowImpl({
           dragging && 'z-10 cursor-grabbing bg-(--ui-sidebar-surface-background)',
           className
         )}
+        data-card={card ? 'true' : 'false'}
         data-glass-opaque={dragging ? '' : undefined}
+        data-selected={isSelected ? 'true' : 'false'}
+        data-sidebar-session-row=""
         data-working={liveTurn ? 'true' : undefined}
         // The row runs BOTH drags off one press, and each declines outside its
         // own region — so no timing/arbitration rule is needed and neither can
@@ -460,7 +467,12 @@ function SidebarSessionRowImpl({
         >
           {(() => {
             const leadNode = reorderable ? (
-              <SidebarRowGrab ariaLabel={handleLabel} dragging={dragging} dragHandleProps={dragHandleProps}>
+              <SidebarRowGrab
+                ariaLabel={handleLabel}
+                className="aino-sidebar-session-lead"
+                dragging={dragging}
+                dragHandleProps={dragHandleProps}
+              >
                 {lead ?? (
                   <SessionStatusDot
                     branchStem={branchStem}
@@ -471,7 +483,7 @@ function SidebarSessionRowImpl({
                 )}
               </SidebarRowGrab>
             ) : (
-              <SidebarRowLead className="overflow-hidden">
+              <SidebarRowLead className="overflow-hidden" data-sidebar-session-lead="">
                 {lead ?? <SessionStatusDot branchStem={branchStem} session={session} storedSessionId={session.id} />}
               </SidebarRowLead>
             )
@@ -495,7 +507,8 @@ function SidebarSessionRowImpl({
                   <span className="min-w-0 flex-1 self-center">
                     <OverflowTip label={title}>
                       <SidebarRowLabel
-                        className="hover-marquee block font-normal group-hover:text-foreground group-data-[working=true]:text-foreground/90"
+                        className="aino-sidebar-session-label hover-marquee block font-normal group-hover:text-foreground group-data-[working=true]:text-foreground/90"
+                        data-sidebar-session-label=""
                         onPointerEnter={armMarquee}
                         onPointerLeave={disarmMarquee}
                       >
@@ -556,9 +569,10 @@ function SidebarSessionRowImpl({
                   <OverflowTip label={title}>
                     <SidebarRowLabel
                       className={cn(
-                        'hover-marquee text-[0.8125rem] font-medium text-(--ui-text-primary) group-data-[working=true]:text-foreground',
+                        'aino-sidebar-session-label hover-marquee text-[0.8125rem] font-medium text-(--ui-text-primary) group-data-[working=true]:text-foreground',
                         SIDEBAR_TRUNCATED_LEADING
                       )}
+                      data-sidebar-session-label=""
                       onPointerEnter={armMarquee}
                       onPointerLeave={disarmMarquee}
                     >

@@ -22,6 +22,8 @@
  * never itself fail on a torn install.
  */
 
+import { nativeLocaleCopy, type NativeLocaleCopy, normalizeNativeLocale } from './native-locale'
+
 export interface RendererLoadErrorDetails {
   /** Chromium error code, e.g. -6 (ERR_FILE_NOT_FOUND) or its name. */
   errorCode?: number | string | undefined
@@ -33,6 +35,10 @@ export interface RendererLoadErrorDetails {
   missingAssets?: string[]
   /** Repair command hint, e.g. `hermes desktop --force-build`. */
   repairHint?: string
+  /** Product name shown in the page title. */
+  appName?: string
+  /** Locale for the page's own recovery copy. */
+  locale?: string
   /**
    * URL to navigate to when the user clicks Reload. On a data: page
    * `location.reload()` would just re-render the error page, so recovery
@@ -58,13 +64,13 @@ function escapeInlineScriptJson(value: string): string {
     .replace(/\u2029/g, '\\u2029')
 }
 
-function reloadButtonJs(details: RendererLoadErrorDetails): string {
+function reloadButtonJs(details: RendererLoadErrorDetails, copy: NativeLocaleCopy['rendererLoadError']): string {
   const target = details.reloadUrl
     ? `location.replace(${escapeInlineScriptJson(JSON.stringify(details.reloadUrl))})`
     : 'location.reload()'
 
   return (
-    '<button id="reload" type="button">Reload</button>\n' +
+    `<button id="reload" type="button">${escapeHtml(copy.reload)}</button>\n` +
     `  <script>document.getElementById("reload").addEventListener("click", () => ${target})</script>`
   )
 }
@@ -77,7 +83,10 @@ function escapeHtml(value: unknown): string {
     .replace(/"/g, '&quot;')
 }
 
-function missingAssetsList(missingAssets?: string[]): string {
+function missingAssetsList(
+  missingAssets: string[] | undefined,
+  copy: NativeLocaleCopy['rendererLoadError']
+): string {
   const assets = (missingAssets ?? []).slice(0, 5)
 
   if (assets.length === 0) {
@@ -86,11 +95,7 @@ function missingAssetsList(missingAssets?: string[]): string {
 
   const items = assets.map(asset => `<li><code>${escapeHtml(asset)}</code></li>`).join('')
 
-  return (
-    `<p>The renderer bundle is missing ${missingAssets!.length} module file(s) ` +
-    `(first ${assets.length} shown) — the last update replaced the app while ` +
-    `its files were locked.</p><ul>${items}</ul>`
-  )
+  return `<p>${escapeHtml(copy.missingAssets(missingAssets!.length, assets.length))}</p><ul>${items}</ul>`
 }
 
 /**
@@ -99,16 +104,26 @@ function missingAssetsList(missingAssets?: string[]): string {
  * origin with zero network access.
  */
 export function buildRendererLoadErrorPage(details: RendererLoadErrorDetails = {}): string {
+  const locale = normalizeNativeLocale(details.locale)
+  const copy = nativeLocaleCopy(locale).rendererLoadError
+  const appName = escapeHtml(details.appName || 'Hermes')
+
   const code =
     details.errorCode === undefined || details.errorCode === null ? '' : ` (${escapeHtml(details.errorCode)})`
 
-  const title = 'Hermes couldn\u2019t start the desktop UI'
-  const description = escapeHtml(details.errorDescription || 'The desktop renderer failed to load.')
+  const title = escapeHtml(copy.title(appName))
+  const description = escapeHtml(details.errorDescription || copy.defaultDescription)
   const url = details.url ? `<p><code>${escapeHtml(details.url)}</code></p>` : ''
-  const repair = details.repairHint ? `<p>Repair with: <code>hermes desktop --force-build</code></p>` : ''
+  const repairCommand = details.repairHint ? escapeHtml(details.repairHint) : ''
+  const repair = details.repairHint ? `<p>${escapeHtml(copy.repairWith)} <code>${repairCommand}</code></p>` : ''
+
+  const persistentHint =
+    `<p>${escapeHtml(copy.persistentPrefix)} <code>logs/desktop.log</code> ` +
+    `${escapeHtml(copy.persistentMiddle)} <code>${escapeHtml(details.repairHint || 'hermes desktop --force-build')}</code>` +
+    `${escapeHtml(copy.persistentSuffix)}</p>`
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${locale}">
 <head>
 <meta charset="utf-8">
 <title>${title}</title>
@@ -161,11 +176,10 @@ export function buildRendererLoadErrorPage(details: RendererLoadErrorDetails = {
   <h1>${title}</h1>
   <p>${description}${code}</p>
   ${url}
-  ${missingAssetsList(details.missingAssets)}
+  ${missingAssetsList(details.missingAssets, copy)}
   ${repair}
-  <p>If this keeps happening, check <code>logs/desktop.log</code> and try
-  <code>hermes desktop --force-build</code>, then restart the app.</p>
-  ${reloadButtonJs(details)}
+  ${persistentHint}
+  ${reloadButtonJs(details, copy)}
 </main>
 </body>
 </html>`

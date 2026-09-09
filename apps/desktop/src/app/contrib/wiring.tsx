@@ -100,6 +100,7 @@ import { ModelPickerOverlay } from '../model-picker-overlay'
 import { ModelVisibilityOverlay } from '../model-visibility-overlay'
 import { mainChatOccupied, openSession } from '../open-session'
 import { PetGenerateOverlay } from '../pet-generate/pet-generate-overlay'
+import { ProfileCreateDialogHost } from '../profiles/create-profile-dialog-host'
 import { FileActionDialogs } from '../right-sidebar/file-actions'
 import { RemoteFolderPicker } from '../right-sidebar/files/remote-picker'
 import { resetProjectTreeState } from '../right-sidebar/files/use-project-tree'
@@ -270,7 +271,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     openStarmap,
     profilesOpen,
     resetOverlayReturnRoute,
-    settingsOpen,
     starmapOpen,
     toggleCommandCenter,
     webhooksOpen
@@ -1114,14 +1114,53 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     [actions, voiceMaxRecordingSeconds]
   )
 
+  // Settings is a route-owned page, not a pane in the tiling tree. Keep its
+  // node separate so the shell can show it full-window while the chat/terminal
+  // tree stays mounted (and therefore preserves scroll, PTYs, and tab state).
+  const settingsNode = useMemo(
+    () => (
+      <Suspense fallback={null}>
+        <SettingsView
+          gateway={gateway}
+          onClose={closeOverlayToPreviousRoute}
+          onConfigSaved={() => {
+            void refreshHermesConfig()
+            void refreshCurrentModel()
+            void queryClient.invalidateQueries({ queryKey: ['model-options'] })
+          }}
+          onMainModelChanged={(provider, model) => {
+            applySavedMainModel(provider, model)
+            void refreshCurrentModel()
+            void queryClient.invalidateQueries({ queryKey: ['model-options'] })
+          }}
+          onOpenCommandCenter={toggleCommandCenter}
+          onOpenCommandCenterSection={openCommandCenterSection}
+          requestGateway={requestGateway}
+        />
+      </Suspense>
+    ),
+    [
+      applySavedMainModel,
+      closeOverlayToPreviousRoute,
+      gateway,
+      openCommandCenterSection,
+      queryClient,
+      refreshCurrentModel,
+      refreshHermesConfig,
+      requestGateway,
+      toggleCommandCenter
+    ]
+  )
+
   const api = useMemo<WiringApi>(
     () => ({
       chatRoutes: chatRoutesNode,
       sidebar: sidebarNode,
+      settings: settingsNode,
       statusbar: statusbarNode,
       terminal: terminalNode
     }),
-    [chatRoutesNode, sidebarNode, statusbarNode, terminalNode]
+    [chatRoutesNode, settingsNode, sidebarNode, statusbarNode, terminalNode]
   )
 
   // The REAL titlebar tool clusters (sidebar/flip toggles, haptics, keybinds,
@@ -1222,30 +1261,12 @@ export function ContribWiring({ children }: { children: ReactNode }) {
       <CommandPalette />
       <PluginInstallModal />
       <PetGenerateOverlay />
+      {!isAuxiliaryWindow() && <ProfileCreateDialogHost />}
       <SessionSwitcher />
       <FileActionDialogs />
       <McpInstallDeepLinkDialog />
       <RemoteFolderPicker />
       <FindBar />
-
-      {settingsOpen && (
-        <Suspense fallback={null}>
-          <SettingsView
-            gateway={gateway}
-            onClose={closeOverlayToPreviousRoute}
-            onConfigSaved={() => {
-              void refreshHermesConfig()
-              void refreshCurrentModel()
-              void queryClient.invalidateQueries({ queryKey: ['model-options'] })
-            }}
-            onMainModelChanged={(provider, model) => {
-              applySavedMainModel(provider, model)
-              void refreshCurrentModel()
-              void queryClient.invalidateQueries({ queryKey: ['model-options'] })
-            }}
-          />
-        </Suspense>
-      )}
 
       {currentView === 'session-import' && (
         <SessionImportView

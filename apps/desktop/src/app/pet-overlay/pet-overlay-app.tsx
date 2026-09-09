@@ -1,3 +1,5 @@
+import '../auxiliary-surfaces.css'
+
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -5,6 +7,11 @@ import { PetHeartField, playVibeHearts } from '@/components/chat/vibe-hearts'
 import { PetBubble } from '@/components/pet/pet-bubble'
 import { PetSprite } from '@/components/pet/pet-sprite'
 import { type PetZoomAnchor, usePetZoomGesture } from '@/components/pet/use-pet-zoom-gesture'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Tip } from '@/components/ui/tooltip'
+import { useI18n } from '@/i18n'
+import { PRODUCT_NAME } from '@/lib/brand'
 import { Mail } from '@/lib/icons'
 import { $petActivity, $petInfo, setPetInfo } from '@/store/pet'
 import { overlayWindowSize } from '@/store/pet-overlay'
@@ -61,6 +68,7 @@ interface DragState {
 }
 
 export function PetOverlayApp() {
+  const { t } = useI18n()
   const info = useStore($petInfo)
   const [composerOpen, setComposerOpen] = useState(false)
   const [draft, setDraft] = useState('')
@@ -387,7 +395,8 @@ export function PetOverlayApp() {
       }}
     >
       {composerOpen && (
-        <input
+        <Input
+          className="aino-pet-composer"
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -397,20 +406,9 @@ export function PetOverlayApp() {
               setComposerOpen(false)
             }
           }}
-          placeholder="Message…"
+          placeholder={t.settings.appearance.pet.messagePlaceholder}
           ref={inputRef}
-          style={{
-            background: 'var(--ui-bg-elevated)',
-            border: '1px solid var(--ui-stroke-secondary)',
-            borderRadius: 2,
-            boxShadow: '0 6px 18px rgba(0,0,0,0.28)',
-            color: 'var(--foreground)',
-            fontSize: 12,
-            marginBottom: 8,
-            outline: 'none',
-            padding: '4px 8px',
-            width: 184
-          }}
+          size="sm"
           value={draft}
         />
       )}
@@ -446,33 +444,19 @@ export function PetOverlayApp() {
               its box so the overlay's click-through hit-test still catches it);
               stopPropagation keeps a click from starting a window drag. */}
           {unread && (
-            <button
-              aria-label="Open in Hermes"
-              onClick={openApp}
-              onPointerDown={e => e.stopPropagation()}
-              onPointerUp={e => e.stopPropagation()}
-              style={{
-                alignItems: 'center',
-                background: 'var(--ui-bg-elevated)',
-                border: '1px solid var(--ui-stroke-secondary)',
-                borderRadius: 999,
-                boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
-                color: 'var(--foreground)',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                height: 24,
-                justifyContent: 'center',
-                padding: 0,
-                position: 'absolute',
-                right: 0,
-                top: 0,
-                width: 24
-              }}
-              title="Open in Hermes"
-              type="button"
-            >
-              <Mail style={{ height: 13, width: 13 }} />
-            </button>
+            <Tip label={t.settings.appearance.pet.openApp(PRODUCT_NAME)} side="left">
+              <Button
+                aria-label={t.settings.appearance.pet.openApp(PRODUCT_NAME)}
+                className="aino-pet-mail"
+                onClick={openApp}
+                onPointerDown={e => e.stopPropagation()}
+                onPointerUp={e => e.stopPropagation()}
+                size="icon-xs"
+                type="button"
+              >
+                <Mail />
+              </Button>
+            </Tip>
           )}
         </div>
       </div>

@@ -316,7 +316,7 @@ export function useSessionTileDelegate({
         const runtimeId = resumed?.session_id
 
         if (!runtimeId) {
-          throw new Error('resume returned no session id')
+          throw new Error(translateNow('desktop.resumeFailed'))
         }
 
         const info = resumed?.info

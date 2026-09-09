@@ -14,6 +14,7 @@ import {
 } from '@hermes/shared'
 import { atom } from 'nanostores'
 
+import { translateNow } from '@/i18n'
 import { notifyError } from '@/store/notifications'
 
 export { clampDataUrlReadMaxMb, DATA_URL_READ_DEFAULT_MAX_MB, DATA_URL_READ_MAX_MAX_MB, DATA_URL_READ_MIN_MAX_MB }
@@ -58,7 +59,7 @@ export async function setDataUrlReadMaxMb(maxMb: number): Promise<number> {
     // Leave the atom at the last known-good value and surface the failure —
     // an optimistic set here would show a cap that was never persisted and
     // silently reverts on restart.
-    notifyError(error, 'Could not save the max attachment size')
+    notifyError(error, translateNow('settings.config.attachmentSizeSaveFailed'))
 
     return $dataUrlReadMaxMb.get()
   }

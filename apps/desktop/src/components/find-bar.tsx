@@ -2,7 +2,7 @@ import { useStore } from '@nanostores/react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router'
 
-import { appViewForPath, isOverlayView } from '@/app/routes'
+import { appViewForPath, isRouteBlockingSurface } from '@/app/routes'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { findBarKeyAction, formatMatchLabel } from '@/lib/find-in-page'
@@ -243,7 +243,7 @@ export function FindBar() {
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
   }, [active])
 
-  if (!active || isOverlayView(appViewForPath(pathname))) {
+  if (!active || isRouteBlockingSurface(appViewForPath(pathname))) {
     return null
   }
 

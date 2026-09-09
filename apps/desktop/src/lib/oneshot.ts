@@ -1,3 +1,4 @@
+import { translateNow } from '@/i18n'
 import { $gateway } from '@/store/gateway'
 import { $activeSessionId } from '@/store/session'
 
@@ -38,7 +39,7 @@ export async function requestOneShot(req: OneShotRequest): Promise<string> {
   const gateway = $gateway.get()
 
   if (!gateway) {
-    throw new Error('Gateway not connected')
+    throw new Error(translateNow('desktop.gatewayNotConnected'))
   }
 
   const sessionId = req.sessionId === undefined ? $activeSessionId.get() : req.sessionId

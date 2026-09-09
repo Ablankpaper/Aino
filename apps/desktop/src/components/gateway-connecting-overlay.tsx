@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { $desktopBoot } from '@/store/boot'
 import { $gatewaySwitching } from '@/store/gateway-switch'
 import { $gatewayState } from '@/store/session'
+import { isHudWindow } from '@/store/windows'
 
 // Decode mechanics live in the shared <DecodeText> primitive
 // (components/ui/decode-text.tsx). "CONN" stays legible via prefix={4}.
@@ -41,6 +42,7 @@ export function GatewayConnectingOverlay() {
   const boot = useStore($desktopBoot)
   const gatewaySwitching = useStore($gatewaySwitching)
   const [previewing] = useState(forcedPreview)
+  const hudWindow = isHudWindow()
   const reduce = prefersReducedMotion()
   // Under reduced motion, skip the multi-phase exit choreography (text-out →
   // hold → overlay fade) and jump straight to gone so the overlay unmounts
@@ -50,6 +52,10 @@ export function GatewayConnectingOverlay() {
   // Once cold boot has completed once, never resurrect the fullscreen overlay
   // — soft gateway switches keep the shell and reskeleton the sidebar instead.
   const coldBootDoneRef = useRef(false)
+  // Keep this ref above every render branch. HUD windows skip the visual
+  // overlay, but they still run the same hook sequence as the main window so
+  // a hot reload or a window-kind re-home cannot leave React with stale slots.
+  const shownRef = useRef(false)
 
   if (!boot.running && boot.progress >= 100 && !boot.error) {
     coldBootDoneRef.current = true
@@ -68,8 +74,6 @@ export function GatewayConnectingOverlay() {
   // Latches once we've actually shown the overlay, so the brief frame where
   // gatewayState flips to "open" (connecting -> false) before the exit phase
   // kicks in doesn't unmount us and cause a flash.
-  const shownRef = useRef(false)
-
   if (previewing || connecting) {
     shownRef.current = true
   }
@@ -77,6 +81,14 @@ export function GatewayConnectingOverlay() {
   // Kick off the exit when connected: real connect, or a faked timer in preview.
   useEffect(() => {
     if (phase !== 'live') {
+      return
+    }
+
+    // HUD is itself the always-available composer. A fullscreen CONNECTING
+    // layer would cover the bar while its private gateway is booting, so the
+    // HUD never runs the visual exit choreography (preview mode remains an
+    // explicit visual-QA opt-in).
+    if (hudWindow && !previewing) {
       return
     }
 
@@ -93,7 +105,7 @@ export function GatewayConnectingOverlay() {
       // rely on this to avoid catching the overlay mid-fade.
       setPhase(reduce ? 'gone' : 'text-out')
     }
-  }, [phase, previewing, gatewayState, reduce])
+  }, [phase, previewing, gatewayState, hudWindow, reduce])
 
   // Advance the exit choreography: text-out -> overlay-out -> gone.
   useEffect(() => {
@@ -119,6 +131,12 @@ export function GatewayConnectingOverlay() {
 
   // Boot failed — BootFailureOverlay owns the screen; don't linger behind it.
   if (boot.error && !previewing) {
+    return null
+  }
+
+  // HUD is itself the always-available composer. Keep this return after all
+  // hooks so switching/reloading window kinds cannot change Hook order.
+  if (hudWindow && !previewing) {
     return null
   }
 

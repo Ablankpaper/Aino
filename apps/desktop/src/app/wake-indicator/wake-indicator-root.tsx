@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { ErrorBoundary } from '@/components/error-boundary'
+import { ThemeProvider } from '@/themes/context'
 
 import { WakeIndicatorApp } from './wake-indicator-app'
 
@@ -19,7 +20,9 @@ export function mountWakeIndicator(): void {
   createRoot(root).render(
     <StrictMode>
       <ErrorBoundary label="wake-indicator">
-        <WakeIndicatorApp />
+        <ThemeProvider auxiliary>
+          <WakeIndicatorApp />
+        </ThemeProvider>
       </ErrorBoundary>
     </StrictMode>
   )

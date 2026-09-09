@@ -1,3 +1,4 @@
+import { translateNow } from '@/i18n'
 import { $gateway } from '@/store/gateway'
 import { $activeSessionId, setYoloActive } from '@/store/session'
 
@@ -69,7 +70,7 @@ export async function setYoloEnabled(enabled: boolean): Promise<boolean> {
   const gateway = $gateway.get()
 
   if (!gateway) {
-    throw new Error('Hermes gateway unavailable')
+    throw new Error(translateNow('desktop.gatewayNotConnected'))
   }
 
   return setSessionYolo((method, params) => gateway.request(method, params), sessionId, enabled)

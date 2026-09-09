@@ -20,6 +20,7 @@ import {
   KEYBINDS_AREA,
   PALETTE_AREA,
   type PaletteContribution,
+  type PluginContext,
   type RouteContribution,
   ROUTES_AREA,
   SIDEBAR_NAV_AREA,
@@ -34,6 +35,14 @@ import { $boardSlug, bindApi, boardKey, fetchBoard } from './api'
 import { KanbanBoardPage } from './board'
 import { KANBAN_LOCALES } from './i18n'
 import { $newTaskLane, useKanban } from './ui'
+
+/** Resolve registration-time copy without leaking a dotted key on an older
+ * host that exposes the i18n door but has not learned this plugin bundle yet. */
+function pluginText(ctx: PluginContext, key: string, fallback: string, ...args: unknown[]): string {
+  const translated = ctx.i18n?.t?.(key, ...args)
+
+  return translated && translated !== key ? translated : fallback
+}
 
 // Live "N running / ready" pill — one glance at fleet activity from anywhere,
 // clicks through to the board. Shares the board query (one cache, one poll with
@@ -81,10 +90,29 @@ const plugin: HermesPlugin = {
   id: 'kanban',
   name: 'Kanban',
   description: 'Multi-agent task board — board page, sidebar entry, and a live in-flight count in the status bar.',
+  localized: {
+    zh: {
+      name: '看板',
+      description: '多智能体任务看板：提供看板页面、侧边栏入口，以及状态栏中的实时进行中任务数量。'
+    },
+    'zh-hant': {
+      name: '看板',
+      description: '多智能體任務看板：提供看板頁面、側邊欄入口，以及狀態列中的即時進行中任務數量。'
+    },
+    ja: {
+      name: 'カンバン',
+      description: 'マルチエージェントのタスクボード。ボード画面、サイドバー入口、ステータスバーの進行中件数を提供します。'
+    }
+  },
   defaultEnabled: false,
   register(ctx) {
     ctx.i18n.register(KANBAN_LOCALES)
-    ctx.onDispose(bindApi(ctx.rest, ctx.storage, ctx.socket, { os: ctx.os, t: ctx.i18n.t }))
+    ctx.onDispose(
+      bindApi(ctx.rest, ctx.storage, ctx.socket, {
+        os: ctx.os,
+        t: (key, ...args) => ctx.i18n?.t?.(key, ...args) ?? key
+      })
+    )
 
     // The plugin command pattern: ONE action id (`kanban.newTask`) wired into
     // two areas — a keybind (dispatch + rebindable panel row) and a palette row
@@ -114,7 +142,11 @@ const plugin: HermesPlugin = {
         id: 'nav',
         area: SIDEBAR_NAV_AREA,
         order: 50,
-        data: { codicon: 'project', label: 'Kanban', path: '/kanban' } satisfies SidebarNavContribution
+        data: {
+          codicon: 'project',
+          label: pluginText(ctx, 'nav', 'Kanban'),
+          path: '/kanban'
+        } satisfies SidebarNavContribution
       },
       {
         id: 'count',
@@ -127,7 +159,7 @@ const plugin: HermesPlugin = {
         area: PALETTE_AREA,
         data: {
           id: 'kanban.open',
-          label: 'Kanban: Open board',
+          label: pluginText(ctx, 'openBoard', 'Kanban: Open board'),
           keywords: ['kanban', 'board', 'tasks', 'agents'],
           run: () => host.navigate('/kanban')
         } satisfies PaletteContribution
@@ -138,7 +170,7 @@ const plugin: HermesPlugin = {
         data: {
           id: 'kanban.newTask',
           action: 'kanban.newTask',
-          label: ctx.i18n.t('newTaskCommand'),
+          label: pluginText(ctx, 'newTaskCommand', 'Kanban: New task'),
           keywords: ['kanban', 'task', 'new', 'create', 'triage'],
           run: newTask
         } satisfies PaletteContribution
@@ -150,7 +182,7 @@ const plugin: HermesPlugin = {
           id: 'kanban.newTask',
           category: 'view',
           defaults: ['mod+alt+n'],
-          label: ctx.i18n.t('newTaskCommand'),
+          label: pluginText(ctx, 'newTaskCommand', 'Kanban: New task'),
           run: newTask
         } satisfies KeybindContribution
       }

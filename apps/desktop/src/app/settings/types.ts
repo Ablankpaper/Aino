@@ -1,7 +1,9 @@
 import type { Dispatch, SetStateAction } from 'react'
 
+import type { CommandCenterSection } from '@/app/command-center'
 import type { HermesGateway } from '@/hermes'
 import type { IconComponent } from '@/lib/icons'
+import type { RuntimeReadinessRequester } from '@/lib/runtime-readiness'
 import type { EnvVarInfo } from '@/types/hermes'
 
 export type SettingsView =
@@ -23,6 +25,9 @@ export interface SettingsPageProps {
   onClose: () => void
   onConfigSaved?: () => void
   onMainModelChanged?: (provider: string, model: string) => void
+  onOpenCommandCenter: () => void
+  onOpenCommandCenterSection: (section: CommandCenterSection) => void
+  requestGateway: RuntimeReadinessRequester
 }
 
 export interface ProviderGroup {

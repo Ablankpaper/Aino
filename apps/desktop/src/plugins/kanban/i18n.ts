@@ -63,6 +63,7 @@ type KanbanMessages = {
   descPlaceholder: string
   priority: string
   workspace: string
+  workspaceKindLabel: (kind: string) => string
   boardDefaultSuffix: string
   workspaceOverride: string
   model: string
@@ -148,6 +149,7 @@ type KanbanMessages = {
   notePosted: string
   activity: (n: number) => string
   runs: (n: number) => string
+  runStatusLabel: (status: string) => string
   workerLog: string
   workerLogTail: string
   attachments: (n: number) => string
@@ -197,6 +199,7 @@ type KanbanMessages = {
   profileDescriptions: string
   profileDescriptionsHint: string
   profileGoodAt: string
+  autoDescribeFailed: string
   auto: string
   // native/toast notifications for terminal worker events (completion-notify)
   notify: {
@@ -210,6 +213,94 @@ type KanbanMessages = {
     artifacts: (n: number) => string
   }
 }
+
+const WORKSPACE_KIND_LABELS = {
+  en: { dir: 'Directory', scratch: 'Scratch sandbox', worktree: 'Worktree' },
+  ja: { dir: 'ディレクトリ', scratch: '一時サンドボックス', worktree: 'ワークツリー' },
+  zh: { dir: '目录', scratch: '临时沙箱', worktree: '工作树' },
+  'zh-hant': { dir: '目錄', scratch: '暫存沙箱', worktree: '工作樹' }
+} as const
+
+const RUN_STATUS_LABELS = {
+  en: {
+    blocked: 'Blocked',
+    changes_requested: 'Changes requested',
+    crashed: 'Crashed',
+    completed: 'Completed',
+    done: 'Done',
+    failed: 'Failed',
+    gave_up: 'Gave up',
+    pending: 'Pending',
+    queued: 'Queued',
+    reclaimed: 'Reclaimed',
+    released: 'Released',
+    review_requested: 'Review requested',
+    running: 'Running',
+    scheduled: 'Scheduled',
+    spawn_failed: 'Spawn failed',
+    stale: 'Stale',
+    timed_out: 'Timed out'
+  },
+  ja: {
+    blocked: 'ブロック中',
+    changes_requested: '変更を要求',
+    crashed: 'クラッシュ',
+    completed: '完了',
+    done: '完了',
+    failed: '失敗',
+    gave_up: '断念',
+    pending: '保留中',
+    queued: 'キュー待ち',
+    reclaimed: '再取得',
+    released: '解放済み',
+    review_requested: 'レビュー要求',
+    running: '実行中',
+    scheduled: 'スケジュール済み',
+    spawn_failed: '起動失敗',
+    stale: '期限切れ',
+    timed_out: 'タイムアウト'
+  },
+  zh: {
+    blocked: '受阻',
+    changes_requested: '已请求修改',
+    crashed: '已崩溃',
+    completed: '已完成',
+    done: '已完成',
+    failed: '失败',
+    gave_up: '已放弃',
+    pending: '待处理',
+    queued: '排队中',
+    reclaimed: '已回收',
+    released: '已释放',
+    review_requested: '已请求审查',
+    running: '运行中',
+    scheduled: '已排期',
+    spawn_failed: '启动失败',
+    stale: '已过期',
+    timed_out: '已超时'
+  },
+  'zh-hant': {
+    blocked: '受阻',
+    changes_requested: '已要求修改',
+    crashed: '已當機',
+    completed: '已完成',
+    done: '已完成',
+    failed: '失敗',
+    gave_up: '已放棄',
+    pending: '待處理',
+    queued: '排隊中',
+    reclaimed: '已回收',
+    released: '已釋放',
+    review_requested: '已要求審查',
+    running: '執行中',
+    scheduled: '已排程',
+    spawn_failed: '啟動失敗',
+    stale: '已過期',
+    timed_out: '已逾時'
+  }
+} as const
+
+const lookupLabel = (value: string, labels: Readonly<Record<string, string>>): string => labels[value] ?? value
 
 export const en: KanbanMessages = {
   nav: 'Kanban',
@@ -276,6 +367,7 @@ export const en: KanbanMessages = {
   descPlaceholder: 'Description (optional)',
   priority: 'Priority',
   workspace: 'Workspace',
+  workspaceKindLabel: kind => lookupLabel(kind, WORKSPACE_KIND_LABELS.en),
   boardDefaultSuffix: ' · board default',
   workspaceOverride: 'Workspace path (optional override)',
   model: 'Model',
@@ -364,6 +456,7 @@ export const en: KanbanMessages = {
   notePosted: 'Note posted — worker requeued',
   activity: n => `Activity · ${n}`,
   runs: n => `Runs · ${n}`,
+  runStatusLabel: status => lookupLabel(status, RUN_STATUS_LABELS.en),
   workerLog: 'Worker log',
   workerLogTail: 'Worker log · tail',
   attachments: n => `Attachments · ${n}`,
@@ -410,6 +503,7 @@ export const en: KanbanMessages = {
   profileDescriptionsHint:
     'Descriptions guide the decomposer’s routing. Auto-generate with the auxiliary model, or write your own.',
   profileGoodAt: 'What is this profile good at?',
+  autoDescribeFailed: 'Auto-description failed',
   auto: 'Auto',
   notify: {
     completedTitle: 'Task completed',
@@ -488,6 +582,7 @@ const ja: KanbanMessages = {
   descPlaceholder: '説明（任意）',
   priority: '優先度',
   workspace: 'ワークスペース',
+  workspaceKindLabel: kind => lookupLabel(kind, WORKSPACE_KIND_LABELS.ja),
   boardDefaultSuffix: '・ボード既定',
   workspaceOverride: 'ワークスペースパス（任意の上書き）',
   model: 'モデル',
@@ -575,6 +670,7 @@ const ja: KanbanMessages = {
   notePosted: 'メモを投稿しました — ワーカーを再キューしました',
   activity: n => `アクティビティ・${n}`,
   runs: n => `実行・${n}`,
+  runStatusLabel: status => lookupLabel(status, RUN_STATUS_LABELS.ja),
   workerLog: 'ワーカーログ',
   workerLogTail: 'ワーカーログ・末尾',
   attachments: n => `添付・${n}`,
@@ -621,6 +717,7 @@ const ja: KanbanMessages = {
   profileDescriptionsHint:
     '説明はデコンポーザーのルーティングを導きます。補助モデルで自動生成するか、自分で書いてください。',
   profileGoodAt: 'このプロフィールの得意分野は？',
+  autoDescribeFailed: '説明の自動生成に失敗しました',
   auto: '自動',
   notify: {
     completedTitle: 'タスク完了',
@@ -640,22 +737,22 @@ const zh: KanbanMessages = {
   newTaskCommand: '看板：新建任务',
   countTip: (running, ready) => `看板 — 运行中 ${running}、就绪 ${ready}`,
   col: {
-    triage: { label: '分诊', help: '原始想法 — 由细化代理整理出规格。' },
+    triage: { label: '分诊', help: '原始想法 — 由细化智能体整理出规格。' },
     todo: { label: '待办', help: '等待依赖，或未分配。' },
     scheduled: { label: '已排期', help: '等待预定时间到来。' },
     ready: { label: '就绪', help: '依赖已满足 — 分配一个配置档，调度器即会运行它。' },
-    running: { label: '运行中', help: '已被工作单元领取 — 有代理在处理。由调度器设置。' },
+    running: { label: '运行中', help: '已被工作单元领取 — 有智能体在处理。由调度器设置。' },
     blocked: { label: '受阻', help: '工作单元需要人工输入。' },
-    review: { label: '审查', help: '审查代理正在检查工作。由调度器设置。' },
+    review: { label: '审查', help: '审查智能体正在检查工作。由调度器设置。' },
     done: { label: '完成', help: '已完成；依赖它的子任务变为就绪。' },
     archived: { label: '已归档', help: '从默认面板视图中隐藏。' }
   },
   locked: {
-    review: '审查状态由调度器在审查代理领取卡片时设置。',
+    review: '审查状态由调度器在审查智能体领取卡片时设置。',
     running: '运行中由调度器在工作单元领取卡片时设置。',
-    scheduled: '排期需要唤醒时间 — 由代理设置；无法拖入。'
+    scheduled: '排期需要唤醒时间 — 由智能体设置；无法拖入。'
   },
-  arcRunning: '有代理正在处理它。',
+  arcRunning: '有智能体正在处理它。',
   arcStale: '已领取，但超过 2 分钟没有工作单元心跳 — 调度器将重新领取。',
   title: '看板',
   orchestrationSettings: '编排设置',
@@ -668,7 +765,7 @@ const zh: KanbanMessages = {
   deselect: '取消选择',
   moveTo: label => `移动到 ${label}`,
   delete: '删除',
-  reviewChecking: '审查代理正在检查已完成的工作。',
+  reviewChecking: '审查智能体正在检查已完成的工作。',
   attachedTip: name => `${name} 已接手 — 调度器将在下一个周期（≤1 分钟）移交。`,
   orchestratorTip: name => `${name}（编排者）将在下一个周期领取并撰写规格。`,
   autoAssignTip: name => `将在下一个调度周期自动分配给“${name}”（kanban.default_assignee）。`,
@@ -693,17 +790,18 @@ const zh: KanbanMessages = {
   clearSelection: '清除选择（Esc）',
   refused: '被拒绝',
   bulkFailed: (failed, total, err) => `${total} 个中有 ${failed} 个失败 — ${err}。失败的卡片仍保持选中。`,
-  titlePlaceholderTriage: '大致想法 — 细化代理会补全',
+  titlePlaceholderTriage: '大致想法 — 细化智能体会补全',
   titlePlaceholder: '标题',
   descPlaceholder: '描述（可选）',
   priority: '优先级',
   workspace: '工作区',
+  workspaceKindLabel: kind => lookupLabel(kind, WORKSPACE_KIND_LABELS.zh),
   boardDefaultSuffix: '・面板默认',
   workspaceOverride: '工作区路径（可选覆盖）',
   model: '模型',
-  modelInherit: '配置文件默认',
+  modelInherit: '工作区默认',
   modelClear: '清除模型覆盖',
-  modelHint: '让该任务使用指定的模型与思考深度。未设置时使用所指派配置文件自身的设置。',
+  modelHint: '让该任务使用指定的模型与思考深度。未设置时使用所指派工作区自身的设置。',
   workspaceInherit: '继承面板的项目目录',
   workspaceInheritDir: dir => `留空则继承 ${dir}`,
   workspaceInheritGeneric: '留空则继承面板的项目目录。',
@@ -714,7 +812,7 @@ const zh: KanbanMessages = {
   skillsPlaceholder: 'translation, github',
   parent: '父任务（完成前会阻塞）',
   noParent: '— 无父任务 —',
-  goalMode: '目标模式（工作单元循环直到评判代理认可完成）',
+  goalMode: '目标模式（工作单元循环直到评审智能体认可完成）',
   creating: '创建中…',
   createTask: '创建任务',
   cancel: '取消',
@@ -731,7 +829,7 @@ const zh: KanbanMessages = {
   couldNotEstimate: '无法估算',
   complexity: { S: '小', M: '中', L: '大' },
   introBody:
-    '卡片不由你运行，而是由代理运行。把带有负责人的卡片放入“就绪”，代理会在一分钟内领取。没有负责人就不会运行。分诊：代理先把想法改写成合适的任务。待办：等待其他卡片。已排期：等待计时器。运行中与审查：这是代理的通道，请勿插手。受阻：正在等你。结果会回到卡片上。',
+    '卡片不由你运行，而是由智能体运行。把带有负责人的卡片放入“就绪”，智能体会在一分钟内领取。没有负责人就不会运行。分诊：智能体先把想法改写成合适的任务。待办：等待其他卡片。已排期：等待计时器。运行中与审查：这是智能体的通道，请勿插手。受阻：正在等你。结果会回到卡片上。',
   introGotIt: '知道了',
   evtCreated: (where, assignee) => `已创建${where ? `（${where}）` : ''}${assignee ? `・分配给 ${assignee}` : ''}`,
   evtMovedTo: col => `移动到 ${col}`,
@@ -739,14 +837,14 @@ const zh: KanbanMessages = {
   evtAssignedTo: assignee => `分配给 ${assignee}`,
   evtUnassigned: '取消分配',
   evtCommentBy: author => `${author} 的评论`,
-  evtClaimedReview: '被审查代理领取',
+  evtClaimedReview: '被审查智能体领取',
   evtClaimedWorker: '被工作单元领取',
   evtWorkerStarted: '工作单元已启动',
   evtCompleted: '已完成',
   evtBlocked: '受阻 — 需要人工输入',
   evtUnblocked: col => `已解除阻塞${col ? ` → ${col}` : ' → 就绪'}`,
   evtReclaimed: '已重新领取 — 已放回队列',
-  evtSpecified: '分诊代理已撰写规格',
+  evtSpecified: '分诊智能体已撰写规格',
   evtPromoted: '依赖已完成 — 提升为就绪',
   evtScheduled: '已排期稍后运行',
   evtArchived: '已归档',
@@ -784,6 +882,7 @@ const zh: KanbanMessages = {
   notePosted: '备注已发布 — 工作单元已重新入队',
   activity: n => `活动・${n}`,
   runs: n => `运行・${n}`,
+  runStatusLabel: status => lookupLabel(status, RUN_STATUS_LABELS.zh),
   workerLog: '工作单元日志',
   workerLogTail: '工作单元日志・末尾',
   attachments: n => `附件・${n}`,
@@ -829,6 +928,7 @@ const zh: KanbanMessages = {
   profileDescriptions: '配置档说明',
   profileDescriptionsHint: '说明用于引导分解器的路由。可用辅助模型自动生成，或自行填写。',
   profileGoodAt: '这个配置档擅长什么？',
+  autoDescribeFailed: '自动生成说明失败',
   auto: '自动',
   notify: {
     completedTitle: '任务已完成',
@@ -906,6 +1006,7 @@ const zhHant: KanbanMessages = {
   descPlaceholder: '描述（選填）',
   priority: '優先順序',
   workspace: '工作區',
+  workspaceKindLabel: kind => lookupLabel(kind, WORKSPACE_KIND_LABELS['zh-hant']),
   boardDefaultSuffix: '・面板預設',
   workspaceOverride: '工作區路徑（選填覆寫）',
   model: '模型',
@@ -992,6 +1093,7 @@ const zhHant: KanbanMessages = {
   notePosted: '備註已發布 — 工作單元已重新排入佇列',
   activity: n => `活動・${n}`,
   runs: n => `執行・${n}`,
+  runStatusLabel: status => lookupLabel(status, RUN_STATUS_LABELS['zh-hant']),
   workerLog: '工作單元日誌',
   workerLogTail: '工作單元日誌・末尾',
   attachments: n => `附件・${n}`,
@@ -1037,6 +1139,7 @@ const zhHant: KanbanMessages = {
   profileDescriptions: '設定檔說明',
   profileDescriptionsHint: '說明用於引導分解器的路由。可用輔助模型自動產生，或自行填寫。',
   profileGoodAt: '這個設定檔擅長什麼？',
+  autoDescribeFailed: '自動產生說明失敗',
   auto: '自動',
   notify: {
     completedTitle: '任務已完成',
@@ -1051,7 +1154,9 @@ const zhHant: KanbanMessages = {
 }
 
 /** Registered via `ctx.i18n.register` at plugin load (disposer tracked). */
-export const KANBAN_LOCALES: PluginLocaleBundles = { en, ja, zh, 'zh-hant': zhHant }
+// Keep the concrete message shape available to tests and local helpers while
+// still checking that the bundle satisfies the SDK's plugin-locale contract.
+export const KANBAN_LOCALES = { en, ja, zh, 'zh-hant': zhHant } satisfies PluginLocaleBundles
 
 // Bind the message SHAPE to a plugin translator: string leaves resolve now,
 // function leaves forward their args through t(path, …). One tiny generic
@@ -1071,10 +1176,22 @@ function bind<T extends object>(t: PluginTranslate, template: T, prefix = ''): B
     const path = prefix ? `${prefix}.${key}` : key
     out[key] =
       typeof value === 'function'
-        ? (...args: unknown[]) => t(path, ...args)
+        ? (...args: unknown[]) => {
+            const translated = t(path, ...args)
+
+            // A component can render before the plugin's locale bundle has
+            // landed (or a host/test may expose only the raw-key resolver).
+            // Keep the English bundle as the last rung so a dotted key never
+            // leaks into the visible UI.
+            return translated === path ? (value as (...a: unknown[]) => string)(...args) : translated
+          }
         : value && typeof value === 'object'
           ? bind(t, value as object, path)
-          : t(path)
+          : (() => {
+              const translated = t(path)
+
+              return translated === path ? value : translated
+            })()
   }
 
   return out as Bound<T>
@@ -1093,3 +1210,4 @@ export function useKanban(): KanbanText {
 export const columnLabel = (k: KanbanText, name: string) => k.col[name as keyof KanbanText['col']]?.label ?? name
 export const columnHelp = (k: KanbanText, name: string) => k.col[name as keyof KanbanText['col']]?.help ?? ''
 export const lockedReason = (k: KanbanText, name: string) => k.locked[name as keyof KanbanText['locked']] ?? ''
+export const laneLabel = (k: KanbanText, name: string) => (name === 'unassigned' ? k.unassigned : name)

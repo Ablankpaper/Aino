@@ -19,6 +19,14 @@ export function getPluginCtx(): PluginContext | null {
   return pluginCtx
 }
 
+/** Resolve plugin copy while keeping an English floor when a handler races
+ * plugin registration (or an older host has no matching key). */
+export function pluginText(key: string, fallback: string, ...args: unknown[]): string {
+  const translated = pluginCtx?.i18n?.t(key, ...args)
+
+  return translated && translated !== key ? translated : fallback
+}
+
 export function setPluginCtx(ctx: PluginContext | null) {
   pluginCtx = ctx
 }

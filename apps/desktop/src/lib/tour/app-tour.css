@@ -2,10 +2,10 @@
 
    driver.js ships a fixed light palette, a heavy drop shadow, and 19px/14px
    type — none of which is how this app draws a floating popover. Repaint it
-   with the popover primitive's own recipe (components/ui/popover.tsx): a glass
-   fill over --ui-bg-elevated, a single --ui-stroke-secondary hairline, and NO
-   shadow. Radius and type follow the app scale, which is near-square
-   (--radius-scalar: 0.2) and 12px-based.
+   with the popover primitive's current elevated-paper recipe
+   (components/ui/popover.tsx): an opaque surface, one shared hairline, and the
+   standard floating shadow. Radius and type follow the shared Aino panel and
+   UI scale.
 
    The scrim and the cutout geometry are config, not CSS — see TOUR_STYLE in
    run-tour.ts.
@@ -14,14 +14,11 @@
    guest page where none of these variables exist. */
 
 .driver-popover {
-  --tour-surface: color-mix(in srgb, var(--ui-bg-elevated) 92%, transparent);
-
-  backdrop-filter: blur(12px);
-  background-color: var(--tour-surface);
-  border: 1px solid var(--ui-stroke-secondary);
-  border-radius: var(--radius-lg);
-  box-shadow: none;
-  color: var(--foreground);
+  background-color: var(--ui-bg-elevated);
+  border: 1px solid var(--aino-surface-stroke);
+  border-radius: var(--aino-radius-panel);
+  box-shadow: var(--shadow-nous);
+  color: var(--ui-text-primary);
   font-family: var(--font-sans);
   max-width: 20rem;
   min-width: 15rem;
@@ -29,7 +26,7 @@
 }
 
 .driver-popover-title {
-  font-size: 0.75rem;
+  font-size: var(--aino-text-ui);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1rem;
@@ -66,12 +63,12 @@
   color: var(--foreground);
 }
 
-/* Matches the Button `secondary` + `xs` shape: 12px/1rem medium, 2.5px radius. */
+/* Matches the Button secondary shape. */
 .driver-popover-footer-btn {
   background-color: var(--ui-bg-quaternary);
   border: none;
-  border-radius: 2.5px;
-  color: var(--foreground);
+  border-radius: var(--aino-radius-control);
+  color: var(--ui-text-primary);
   font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 500;
@@ -90,8 +87,7 @@
   margin-left: 0.25rem;
 }
 
-/* The arrow is a CSS border triangle, so it can't share the body's
-   backdrop-blur — paint it with the opaque token underneath the glass instead.
+/* The arrow is a CSS border triangle, so paint it with the same opaque paper.
    Each variant colors exactly one edge; the rest stay transparent. */
 .driver-popover-arrow-side-left {
   border-left-color: var(--ui-bg-elevated);

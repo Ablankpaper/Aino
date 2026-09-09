@@ -49,6 +49,7 @@ export {
 export {
   type ConnectionState,
   type GatewayClientOptions,
+  type GatewayErrorMessage,
   type GatewayEvent,
   type GatewayEventName,
   type GatewayRequestId,

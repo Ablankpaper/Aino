@@ -7,7 +7,7 @@
  * everything else can dispatch through it without a cycle.
  */
 
-import { host } from '@hermes/plugin-sdk'
+import { host, translateNow } from '@hermes/plugin-sdk'
 
 import type { BotMeta, ProfileRoute, RosterRow } from './types'
 
@@ -99,7 +99,7 @@ export function botWorkspaceOwnerKey(bot: RosterRow) {
 export function setBotsWorkspaceOwner(
   ownerKey: string,
   bot: null | RosterRow = null,
-  blockedMessage = 'Select a Bot or group first.'
+  blockedMessage?: string
 ) {
   // Render-reachable (sidebar listener fires on visibility flips). An
   // orphaned row degrades to the blocked target instead of throwing.
@@ -111,9 +111,9 @@ export function setBotsWorkspaceOwner(
         route
       }
     : {
-        kind: 'blocked',
-        message: blockedMessage
-      }
+      kind: 'blocked',
+      message: blockedMessage ?? translateNow('desktop.botMode.selectBotOrGroup')
+    }
 
   host.setWorkspaceScope?.('bots', ownerKey, target)
 }

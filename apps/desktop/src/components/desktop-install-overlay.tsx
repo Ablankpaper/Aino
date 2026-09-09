@@ -15,6 +15,7 @@ import type {
   DesktopBootstrapState
 } from '@/global'
 import { useI18n } from '@/i18n'
+import { HOME_DIR_NAME } from '@/lib/brand'
 import { AlertCircle, ChevronDown, ChevronRight, Globe, iconSize, Loader2, Monitor } from '@/lib/icons'
 import { capitalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
@@ -58,7 +59,15 @@ interface StageRowProps {
   now: number
 }
 
-function formatStageName(name: string): string {
+function formatStageName(name: string, localizedName?: string, title?: string): string {
+  if (localizedName) {
+    return localizedName
+  }
+
+  if (title) {
+    return title
+  }
+
   // 'system-packages' -> 'System packages'; 'uv' stays 'uv'
   if (name.length <= 3) {
     return name
@@ -142,7 +151,7 @@ function StageRow({ descriptor, result, now }: StageRowProps) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className={cn('truncate text-sm', state === 'running' ? 'font-medium' : 'text-muted-foreground')}>
-            {formatStageName(descriptor.name)}
+            {formatStageName(descriptor.name, copy.stageNames[descriptor.name], descriptor.title)}
           </span>
           {state !== 'running' && <span className="flex size-4 shrink-0 items-center justify-center">{icon}</span>}
         </div>
@@ -567,7 +576,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
               <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
                   {copy.progress(completedCount, totalCount)}
-                  {currentStage && copy.currentStage(formatStageName(currentStage))}
+                  {currentStage && copy.currentStage(formatStageName(currentStage, copy.stageNames[currentStage]))}
                   {currentElapsed && ` (${currentElapsed})`}
                 </span>
                 <span className="tabular-nums">{progressPct}%</span>
@@ -670,7 +679,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs text-muted-foreground">
                 {copy.transcriptSaved}{' '}
-                <code className="font-mono text-(--ui-text-secondary)">%LOCALAPPDATA%\hermes\logs\</code>
+                <code className="font-mono text-(--ui-text-secondary)">%LOCALAPPDATA%\{HOME_DIR_NAME}\logs\</code>
               </span>
               <div className="flex gap-2">
                 <Button

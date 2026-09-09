@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useSessionView } from '@/app/chat/session-view'
 import { useTourMarker } from '@/app/chat/tour-marker'
 import { ModelMenuCloseContext } from '@/app/shell/model-menu-panel'
+import composerChevronIcon from '@/assets/aino-home/composer-chevron.svg'
+import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
@@ -38,13 +40,18 @@ const PILL = cn(
 export function ModelPill({
   compact = false,
   disabled,
+  landing = false,
   model
 }: {
   compact?: boolean
   disabled: boolean
+  /** The approved Aino landing frame names the profile/default resolution
+   *  mode, while the accessible label and tooltip still expose the model. */
+  landing?: boolean
   model: ChatBarState['model']
 }) {
-  const copy = useI18n().t.shell.statusbar
+  const { t } = useI18n()
+  const copy = t.shell.statusbar
   // Two return branches below, one handle: only ever one of them mounts.
   const tourMarker = useTourMarker('model-pill')
   const view = useSessionView()
@@ -95,13 +102,17 @@ export function ModelPill({
   // The model resolves a beat after the gateway/session comes up. Rather than
   // flash a literal "No model", show a quiet loader (inherits the pill text
   // color at half opacity) until a model lands.
+  const landingDefault = landing && !pinnedOverride
+
   const label = compact ? (
     <ChevronDown className="size-3.5 shrink-0 opacity-70" />
   ) : (
     <>
       {currentModel.trim() ? (
         <span className="truncate">
-          {formatModelStatusLabel(currentModel, { defaultEffort, fastMode, reasoningEffort })}
+          {landingDefault
+            ? t.composer.automaticModel
+            : formatModelStatusLabel(currentModel, { defaultEffort, fastMode, reasoningEffort })}
         </span>
       ) : (
         <GlyphSpinner className="opacity-50" spinner="braille" />
@@ -114,7 +125,11 @@ export function ModelPill({
           role="img"
         />
       )}
-      <ChevronDown className="size-2.5 shrink-0 opacity-50" />
+      {landing ? (
+        <AinoDesignIcon className="size-2.5 shrink-0 opacity-50" src={composerChevronIcon} />
+      ) : (
+        <ChevronDown className="size-2.5 shrink-0 opacity-50" />
+      )}
     </>
   )
 
@@ -125,7 +140,7 @@ export function ModelPill({
         'size-(--composer-control-size) shrink-0 justify-center gap-0 rounded-md p-0',
         'text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
       )
-    : PILL
+    : cn(PILL, landingDefault && 'max-w-none')
 
   const baseTitle = currentProvider
     ? copy.modelTitle(currentProvider, currentModel || copy.modelNone)
@@ -139,6 +154,7 @@ export function ModelPill({
         <Button
           aria-label={copy.openModelPicker}
           className={pillClass}
+          data-landing-model={landing ? '' : undefined}
           data-tour={tourMarker}
           disabled={disabled}
           onClick={() => setModelPickerOpen(true)}
@@ -169,6 +185,7 @@ export function ModelPill({
           <Button
             aria-label={title}
             className={pillClass}
+            data-landing-model={landing ? '' : undefined}
             data-tour={tourMarker}
             disabled={disabled}
             type="button"

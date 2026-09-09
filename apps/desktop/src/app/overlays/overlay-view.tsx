@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 // close button (which is absolute at `0.1875rem + titlebar/2`, -translate-y-1/2,
 // so it costs no layout space): a Panel's header and the split layout's left
 // sidebar links. They ride up next to the X on the same line across every
-// overlay (settings, system, agents, cron, …) — change it here, not per-surface.
+// overlay (system, agents, cron, …) — change it here, not per-surface.
 // Main content sits *under* the X (top-right) and keeps its own taller pad.
 export const OVERLAY_TOP_CLEARANCE = 'pt-[calc(var(--titlebar-height)/2-0.4375rem)]'
 
@@ -49,7 +49,8 @@ export function OverlayView({
 
   // Esc dismisses every OverlayView-based overlay. Nested Radix dialogs
   // stop propagation themselves, so opening (e.g.) the model picker inside
-  // Settings still closes the picker first instead of the underlying overlay.
+  // A nested route's dialogs still close the picker first instead of the
+  // underlying surface.
   useEffect(() => {
     const releaseLayer = pushEscapeLayer(ESCAPE_PRIORITY.overlay)
 
@@ -82,12 +83,13 @@ export function OverlayView({
         'p-[calc(var(--titlebar-height)+0.625rem)]',
         'sm:p-[calc(var(--titlebar-height)+0.875rem)]'
       )}
-      // Every OverlayView-based overlay (settings, command-center, agents, cron,
-      // profiles, star map, …) covers the chat while the composer stays mounted
+      // Every OverlayView-based overlay (command-center, agents, cron, profiles,
+      // star map, …) covers the chat while the composer stays mounted
       // beneath it. This marker tells `composerFocusBlockedBySurface` to stand
       // the global type-to-focus / soft `/` / Enter down, so keystrokes don't
       // leak into the hidden composer (and the overlay's own bare-key shortcuts,
       // e.g. star map's Space, keep working).
+      data-aino-overlay=""
       data-overlay-surface=""
       onClick={event => {
         if (event.target === event.currentTarget) {
@@ -111,6 +113,7 @@ export function OverlayView({
           // Marks the card as a RAISED surface for window glass: while the field
           // behind it thins to show the desktop, this card stays near-opaque
           // (see the [data-glass-raised] rules in styles.css). Inert otherwise.
+          data-aino-overlay-card=""
           data-glass-raised=""
         >
           <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[calc(var(--titlebar-height)+0.1875rem)] [-webkit-app-region:drag]">

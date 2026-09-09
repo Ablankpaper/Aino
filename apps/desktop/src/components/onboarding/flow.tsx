@@ -260,7 +260,7 @@ function ConfirmingModelPanel({
         )}
       >
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t.onboarding.defaultModel}
           </span>
           {freeTier === true && (
@@ -274,11 +274,11 @@ function ConfirmingModelPanel({
             </span>
           )}
         </div>
-        <p className="font-mono text-base">
+        <p className="text-base font-medium">
           <GlyphText text={scrambledModel} />
         </p>
         {price && (price.input || price.output) && (
-          <p className="font-mono text-xs text-muted-foreground">
+          <p className="text-xs tabular-nums text-muted-foreground">
             {price.free ? t.onboarding.free : t.onboarding.price(price.input || '?', price.output || '?')}
           </p>
         )}

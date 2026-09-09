@@ -27,7 +27,7 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
   return (
     <DialogPrimitive.Overlay
       className={cn(
-        'fixed inset-0 z-(--z-modal-backdrop) pointer-events-auto bg-black/22 backdrop-blur-[0.125rem] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
+        'fixed inset-0 z-(--z-modal-backdrop) pointer-events-auto bg-(--aino-scrim) backdrop-blur-[1px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
         className
       )}
       data-slot="dialog-overlay"
@@ -44,8 +44,8 @@ type DialogBannerTone = 'error' | 'warn' | 'info'
 // in light mode, deepened 20% toward black in dark mode.
 const DIALOG_BANNER_TONES: Record<DialogBannerTone, string> = {
   error: 'bg-destructive/12 text-destructive',
-  warn: 'bg-primary/12 text-primary',
-  info: 'bg-[color-mix(in_srgb,var(--ui-chat-bubble-background),white_30%)] text-[color-mix(in_srgb,var(--ui-chat-bubble-background),black_60%)] dark:bg-[color-mix(in_srgb,var(--ui-chat-bubble-background),black_20%)] dark:text-[color-mix(in_srgb,var(--ui-chat-bubble-background),white_60%)]'
+  warn: 'bg-(--ui-bg-quaternary) text-(--ui-yellow)',
+  info: 'bg-(--ui-bg-quaternary) text-(--ui-text-secondary)'
 }
 
 // Radix focuses the first focusable element inside Dialog.Content on open. In
@@ -90,7 +90,7 @@ function DialogContent({
 }) {
   const { t } = useI18n()
 
-  const widthClass = fitContent ? 'w-auto max-w-[92vw]' : 'w-full max-w-lg'
+  const widthClass = fitContent ? 'w-auto max-w-[92vw]' : 'w-[calc(100%-2rem)] max-w-lg'
 
   // Publish the dialog's content node so popovers (Select / Popover /
   // DropdownMenu) opened inside it portal INTO the dialog instead of

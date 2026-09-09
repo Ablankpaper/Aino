@@ -4,6 +4,7 @@ import { Codicon } from '@/components/ui/codicon'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { controlVariants } from '@/components/ui/control'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 /**
@@ -42,8 +43,8 @@ export function SearchableSelect({
   value,
   onChange,
   options,
-  placeholder = 'Search…',
-  emptyMessage = 'No results found.',
+  placeholder,
+  emptyMessage,
   clearLabel
 }: {
   value: string
@@ -55,6 +56,9 @@ export function SearchableSelect({
    *  Matches the existing <Select> pattern of EMPTY_SELECT_VALUE + "(none)". */
   clearLabel?: string
 }) {
+  const { t } = useI18n()
+  const resolvedPlaceholder = placeholder ?? t.settings.config.searchPlaceholder
+  const resolvedEmptyMessage = emptyMessage ?? t.settings.config.noResults
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -66,7 +70,7 @@ export function SearchableSelect({
     [onChange]
   )
 
-  const displayValue = value !== '' && value !== undefined ? value : placeholder
+  const displayValue = value !== '' && value !== undefined ? value : resolvedPlaceholder
 
   return (
     <Popover onOpenChange={setOpen} open={open}>
@@ -90,9 +94,9 @@ export function SearchableSelect({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command filter={rankSearchOption}>
-          <CommandInput autoFocus placeholder={placeholder} />
+          <CommandInput autoFocus placeholder={resolvedPlaceholder} />
           <CommandList>
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            <CommandEmpty>{resolvedEmptyMessage}</CommandEmpty>
             <CommandGroup>
               {clearLabel && (
                 <CommandItem onSelect={() => handleSelect('')} value={clearLabel}>

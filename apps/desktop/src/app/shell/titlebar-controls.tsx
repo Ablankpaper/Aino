@@ -3,8 +3,16 @@ import { type ComponentProps, type MouseEvent, type ReactNode, useEffect, useSta
 import { useLocation, useNavigate } from 'react-router'
 
 import { hudTargetSessionId } from '@/app/hud/handoff'
+import titlebarHapticsIcon from '@/assets/aino-home/titlebar-haptics.svg'
+import titlebarHudIcon from '@/assets/aino-home/titlebar-hud.svg'
+import titlebarLayoutIcon from '@/assets/aino-home/titlebar-layout.svg'
+import titlebarRightSidebarIcon from '@/assets/aino-home/titlebar-right-sidebar.svg'
+import titlebarSettingsIcon from '@/assets/aino-home/titlebar-settings.svg'
+import titlebarSidebarToggleIcon from '@/assets/aino-home/titlebar-sidebar-toggle.svg'
+import titlebarSwapIcon from '@/assets/aino-home/titlebar-swap.svg'
+import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
-import { resetLayoutTree } from '@/components/pane-shell/tree/store'
+import { $narrowViewport, $treeSideVisible, resetLayoutTree } from '@/components/pane-shell/tree/store'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
@@ -25,10 +33,11 @@ import {
 } from '@/store/layout'
 import { $unreadSessionCount } from '@/store/session-dot-state'
 
-import { appViewForPath, isOverlayView } from '../routes'
+import { appViewForPath, isRouteBlockingSurface } from '../routes'
 
 import {
   TITLEBAR_ICON_BADGE_SCALE,
+  TITLEBAR_LEFT_ICON_SIZE,
   titlebarButtonClass,
   titlebarIconSizeCss,
   titlebarToolClusterClass
@@ -76,10 +85,10 @@ function LayoutGlyph({ modHeld }: { modHeld: boolean }) {
   return (
     <>
       <span className={cn('inline-flex', modHeld && 'group-hover/tool:hidden')}>
-        <TitlebarIcon name="layout" />
+        <AinoDesignIcon className="size-[18px]" src={titlebarLayoutIcon} />
       </span>
       <span className={cn('relative hidden', modHeld && 'group-hover/tool:inline-flex')}>
-        <TitlebarIcon name="layout" />
+        <AinoDesignIcon className="size-[18px]" src={titlebarLayoutIcon} />
         <span className="absolute -bottom-1 -right-1.5 grid place-items-center rounded-full bg-(--ui-bg-chrome) p-px">
           <TitlebarIcon className="-scale-x-100" name="refresh" size={titlebarIconSizeCss(TITLEBAR_ICON_BADGE_SCALE)} />
         </span>
@@ -136,6 +145,8 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   const modHeld = useModifierHeld()
   const hapticsMuted = useStore($hapticsMuted)
   const fileBrowserOpen = useStore($fileBrowserOpen)
+  const leftSideVisible = useStore($treeSideVisible('left'))
+  const narrowViewport = useStore($narrowViewport)
   const panesFlipped = useStore($panesFlipped)
   const sidebarOpen = useStore($sidebarOpen)
   const unreadCount = useStore($unreadSessionCount)
@@ -159,7 +170,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   // stay correct through flips and rearranges. $sidebarOpen ≙ left side,
   // $fileBrowserOpen ≙ right side. Never an active highlight — plain
   // show/hide affordances.
-  const leftEdge = { open: sidebarOpen, toggle: toggleSidebarOpen }
+  const leftEdge = { open: narrowViewport ? sidebarOpen : leftSideVisible, toggle: toggleSidebarOpen }
   const rightEdge = { open: fileBrowserOpen, toggle: toggleFileBrowserOpen }
   const leftLabel = leftEdge.open ? t.titlebar.hideSidebar : t.titlebar.showSidebar
   const rightLabel = rightEdge.open ? t.titlebar.hideRightSidebar : t.titlebar.showRightSidebar
@@ -168,7 +179,12 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
     {
       actionId: 'view.toggleSidebar',
       badge: panesFlipped ? undefined : unreadBadge,
-      icon: <TitlebarIcon name="layout-sidebar-left" />,
+      icon: (
+        <AinoDesignIcon
+          src={titlebarSidebarToggleIcon}
+          style={{ height: TITLEBAR_LEFT_ICON_SIZE, width: TITLEBAR_LEFT_ICON_SIZE }}
+        />
+      ),
       id: 'sidebar',
       label: `${leftLabel}${panesFlipped ? '' : unreadHint}`,
       onSelect: () => {
@@ -178,7 +194,12 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
     },
     {
       actionId: 'view.flipPanes',
-      icon: <TitlebarIcon name="arrow-swap" />,
+      icon: (
+        <AinoDesignIcon
+          src={titlebarSwapIcon}
+          style={{ height: TITLEBAR_LEFT_ICON_SIZE, width: TITLEBAR_LEFT_ICON_SIZE }}
+        />
+      ),
       id: 'flip-panes',
       label: t.titlebar.swapSidebarSides,
       onSelect: () => {
@@ -192,7 +213,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   const rightSidebarTool: TitlebarTool = {
     actionId: 'view.toggleRightSidebar',
     badge: panesFlipped ? unreadBadge : undefined,
-    icon: <TitlebarIcon name="layout-sidebar-right" />,
+    icon: <AinoDesignIcon className="size-[18px]" src={titlebarRightSidebarIcon} />,
     id: 'right-sidebar',
     label: `${rightLabel}${panesFlipped ? unreadHint : ''}`,
     onSelect: () => {
@@ -230,7 +251,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
       // crowds the ⌘⇧H hint off the tooltip. Label only — the hint is appended
       // from the action registry, same as every other tool here.
       actionId: 'view.toggleHud',
-      icon: <TitlebarIcon name="comment-discussion" />,
+      icon: <AinoDesignIcon className="size-[18px]" src={titlebarHudIcon} />,
       id: 'hud',
       label: t.titlebar.enterHud,
       onSelect: () => {
@@ -240,14 +261,18 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
     },
     {
       active: hapticsMuted,
-      icon: <TitlebarIcon name={hapticsMuted ? 'mute' : 'unmute'} />,
+      icon: hapticsMuted ? (
+        <TitlebarIcon name="mute" />
+      ) : (
+        <AinoDesignIcon className="size-[18px]" src={titlebarHapticsIcon} />
+      ),
       id: 'haptics',
       label: hapticsMuted ? t.titlebar.unmuteHaptics : t.titlebar.muteHaptics,
       onSelect: toggleHaptics
     },
     {
       actionId: 'nav.settings',
-      icon: <TitlebarIcon name="settings-gear" />,
+      icon: <AinoDesignIcon className="size-[18px]" src={titlebarSettingsIcon} />,
       id: 'settings',
       label: t.titlebar.openSettings,
       onSelect: () => {
@@ -257,11 +282,11 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
     }
   ]
 
-  // While a full-screen overlay (settings, command center, …) is open it should
-  // visually own the window. These control clusters are `fixed` at a higher
-  // z-index than the overlay card, so they'd otherwise bleed over it — hide them
-  // and let the overlay's own chrome (close button, drag region) take over.
-  if (isOverlayView(appViewForPath(location.pathname))) {
+  // While a route-owned surface (the full-page Settings workspace or a modal
+  // route such as Command Center) owns the window, these fixed control clusters
+  // must stand down so they cannot bleed over the surface. Native traffic lights
+  // and the surface's own navigation remain available.
+  if (isRouteBlockingSurface(appViewForPath(location.pathname))) {
     return null
   }
 
@@ -276,6 +301,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
           titlebarToolClusterClass,
           'left-(--titlebar-controls-left) top-(--titlebar-controls-top) translate-y-(--titlebar-controls-y-nudge)'
         )}
+        data-slot="titlebar-window-controls"
       >
         {leftToolbarTools
           .filter(tool => !tool.hidden)
@@ -297,8 +323,9 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
           aria-label={t.shell.paneControls}
           className={cn(
             titlebarToolClusterClass,
-            'top-[calc(var(--titlebar-controls-top)+var(--right-rail-top-inset,0px))] right-[calc(var(--titlebar-tools-right)+var(--shell-preview-toolbar-gap,0))]'
+            'right-[calc(var(--titlebar-tools-right)+var(--shell-preview-toolbar-gap,0))] top-[calc(var(--titlebar-controls-top)+var(--right-rail-top-inset,0px))] translate-y-[3.5px] gap-1'
           )}
+          data-slot="titlebar-pane-controls"
         >
           {visiblePaneTools.map(tool => (
             <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
@@ -308,7 +335,11 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
 
       <div
         aria-label={t.shell.appControls}
-        className={cn(titlebarToolClusterClass, 'right-(--titlebar-tools-right) top-(--titlebar-controls-top)')}
+        className={cn(
+          titlebarToolClusterClass,
+          'right-(--titlebar-tools-right) top-(--titlebar-controls-top) translate-y-[3.5px] gap-1'
+        )}
+        data-slot="titlebar-app-controls"
       >
         {visibleSystemTools.map(tool => (
           <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />

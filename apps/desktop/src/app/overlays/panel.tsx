@@ -6,7 +6,7 @@ import { Codicon } from '@/components/ui/codicon'
 import { RowButton } from '@/components/ui/row-button'
 import { SearchField } from '@/components/ui/search-field'
 import { Tip } from '@/components/ui/tooltip'
-import { translateNow } from '@/i18n'
+import { translateNow, useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 import { OVERLAY_TOP_CLEARANCE, OverlayView } from './overlay-view'
@@ -91,6 +91,7 @@ export function PanelBody({ children, className }: { children: ReactNode; classN
         'flex min-h-0 flex-1 flex-col gap-4 overflow-hidden min-[47.5rem]:flex-row min-[47.5rem]:gap-5',
         className
       )}
+      data-aino-panel-body=""
     >
       {children}
     </div>
@@ -125,7 +126,10 @@ export function PanelList({
   return (
     // Full-width and height-capped when stacked (narrow); a fixed 13rem rail
     // beside the detail when wide.
-    <div className={cn('flex w-full shrink-0 flex-col max-[47.5rem]:max-h-[40%] min-[47.5rem]:w-52', className)}>
+    <div
+      className={cn('flex w-full shrink-0 flex-col max-[47.5rem]:max-h-[40%] min-[47.5rem]:w-52', className)}
+      data-aino-panel-list=""
+    >
       {onSearchChange ? (
         <SearchField
           aria-label={searchLabel ?? searchPlaceholder ?? ''}
@@ -186,6 +190,7 @@ export function PanelListRow({
         'group/row row-hover relative flex h-7 w-full items-center rounded-md text-[0.78rem] hover:text-foreground',
         active ? 'bg-(--ui-row-active-background) text-foreground' : 'text-(--ui-text-secondary)'
       )}
+      data-active={active}
       data-panel-row={rowKey}
     >
       <RowButton
@@ -255,15 +260,18 @@ function renderPanelMenuItems(items: PanelMenuItem[]) {
 // (size-5 ghost trigger + kebab-vertical codicon + w-40 content). Hidden until
 // the row is hovered/focused (or the menu is open). Returns null with no items
 // (e.g. the default profile, which can't be renamed/deleted).
-export function PanelRowMenu({ items, label = 'Actions' }: { items: PanelMenuItem[]; label?: string }) {
+export function PanelRowMenu({ items, label }: { items: PanelMenuItem[]; label?: string }) {
+  const { t } = useI18n()
+  const resolvedLabel = label ?? t.common.actions
+
   if (items.length === 0) {
     return null
   }
 
   return (
-    <ActionsMenu ariaLabel={label} contentClassName="w-40" items={renderPanelMenuItems(items)}>
+    <ActionsMenu ariaLabel={resolvedLabel} contentClassName="w-40" items={renderPanelMenuItems(items)}>
       <Button
-        aria-label={label}
+        aria-label={resolvedLabel}
         className="size-5 rounded-[4px] bg-transparent text-(--ui-text-tertiary) opacity-0 transition-colors duration-100 hover:bg-(--ui-control-active-background) hover:text-foreground focus-visible:opacity-100 focus-visible:ring-0 group-hover/row:opacity-100 data-[state=open]:bg-(--ui-control-active-background) data-[state=open]:text-foreground data-[state=open]:opacity-100 [&_svg]:size-3.5!"
         size="icon"
         variant="ghost"
@@ -278,7 +286,7 @@ export function PanelRowMenu({ items, label = 'Actions' }: { items: PanelMenuIte
 // trace inspector), so the content stretches the full available width.
 export function PanelDetail({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', className)}>
+    <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', className)} data-aino-panel-detail="">
       <div className="space-y-4 pb-6 pl-1 pr-2">{children}</div>
     </div>
   )
@@ -294,7 +302,7 @@ interface PanelEmptyProps {
 
 export function PanelEmpty({ action, description, icon = 'inbox', title }: PanelEmptyProps) {
   return (
-    <div className="grid flex-1 place-items-center px-6 py-10 text-center">
+    <div className="grid flex-1 place-items-center px-6 py-10 text-center" data-aino-empty-state="">
       <div className="flex flex-col items-center gap-2">
         <Codicon className="text-muted-foreground/50" name={icon} size="1.25rem" />
         {title ? <p className="text-sm font-medium text-foreground/90">{title}</p> : null}

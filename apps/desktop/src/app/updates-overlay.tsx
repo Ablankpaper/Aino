@@ -231,7 +231,7 @@ function IdleView({
     )
   }
 
-  const groups = buildCommitChangelog(commits)
+  const groups = buildCommitChangelog(commits, { copy: u.changelog })
   const shownItems = totalItems(groups)
   const remaining = Math.max(0, behind - shownItems)
 
@@ -253,7 +253,7 @@ function IdleView({
       <div className="grid gap-3">
         {groups.map(group => (
           <div key={group.id}>
-            <p className="text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">{group.label}</p>
+            <p className="text-xs font-medium tracking-normal text-muted-foreground">{group.label}</p>
             <ul className="mt-1.5 grid gap-1.5 text-xs text-foreground">
               {group.items.map(item => (
                 <li className="flex items-start gap-2" key={item}>

@@ -46,7 +46,7 @@ import { Tip, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@
 import type { DesktopRegistryConnection } from '@/global'
 import { getProfileSoul, updateProfileSoul } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { sortConnectionsForDisplay } from '@/lib/connection-display'
+import { connectionDisplayLabel, sortConnectionsForDisplay } from '@/lib/connection-display'
 import { triggerHaptic } from '@/lib/haptics'
 import { Loader2 } from '@/lib/icons'
 import { PROFILE_SWATCHES, profileColorSoft, resolveProfileColor } from '@/lib/profile-color'
@@ -68,7 +68,6 @@ import { notify, notifyError } from '@/store/notifications'
 import {
   $activeGatewayProfile,
   $profileColors,
-  $profileCreateRequest,
   $profileOrder,
   $profiles,
   $profileScope,
@@ -132,7 +131,7 @@ const stepThroughCells: Modifier = ({ containerNodeRect, draggingNodeRect, trans
   return { ...transform, x: Math.min(maxX, Math.max(minX, snapped)), y: 0 }
 }
 
-// Arc-Spaces-style profile rail at the sidebar foot: a default↔all toggle pinned
+// Arc-Spaces-style profile rail at the Settings navigation foot: a default↔all toggle pinned
 // left, the colored named profiles scrolling between, and Manage pinned right.
 // The active profile pops in its own color — the "where am I" cue.
 //
@@ -190,6 +189,10 @@ export function ProfileRail() {
   // Registry order for the whole strip, active group included — the active
   // gateway keeps its slot instead of jumping to the front on a switch.
   const activeConnection = connections?.find(connection => connection.id === activeConnectionId) ?? null
+
+  const activeConnectionLabel = activeConnection
+    ? connectionDisplayLabel(activeConnection, t.settings.connections.localLabel)
+    : null
 
   const fleetSequence = useMemo(() => {
     const byId = new Map(restGroups.map(group => [group.connectionId, group]))
@@ -333,21 +336,6 @@ export function ProfileRail() {
     void refreshProfileRemoteOverrides(profileNamesKey ? profileNamesKey.split('\u0000') : [])
   }, [profileNamesKey])
 
-  // Open the create dialog when the `profile.create` hotkey fires (the dialog
-  // state lives here, so the global keybind bumps a request atom we watch).
-  const createRequest = useStore($profileCreateRequest)
-  const lastCreateRef = useRef(createRequest)
-
-  // eslint-disable-next-line no-restricted-syntax -- legitimate non-atom ref write (see eslint rule comment)
-  useEffect(() => {
-    if (createRequest === lastCreateRef.current) {
-      return
-    }
-
-    lastCreateRef.current = createRequest
-    setCreateOpen(true)
-  }, [createRequest])
-
   // The sortable strip of the active gateway's named profiles (unchanged
   // from the single-gateway rail; fleet mode only decides where it sits).
   const activeStrip = (
@@ -474,11 +462,11 @@ export function ProfileRail() {
                     <FleetDivider
                       connection={activeConnection}
                       first={index === 0}
-                      label={activeConnection ? p.fleet.gateway(activeConnection.label) : null}
+                      label={activeConnectionLabel ? p.fleet.gateway(activeConnectionLabel) : null}
                       reachable
                     />
                     <span
-                      aria-label={activeConnection ? p.fleet.gateway(activeConnection.label) : undefined}
+                      aria-label={activeConnectionLabel ? p.fleet.gateway(activeConnectionLabel) : undefined}
                       className="flex shrink-0 items-center gap-1"
                       data-active="true"
                       data-connection-id={activeConnection?.id}
@@ -797,34 +785,43 @@ function ProfileDropdown({
             />
           ))}
         </DropdownMenuRadioGroup>
-        {restGroups.map(group => (
-          <div data-connection-id={group.connectionId} data-slot="profile-dropdown-gateway" key={group.connectionId}>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className={cn(dropdownMenuSectionLabel, 'flex items-center gap-1.5')}>
-              <ConnectionGlyph connection={group} />
-              <span className="truncate">{group.label}</span>
-              {!group.reachable && <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-amber-500" />}
-            </DropdownMenuLabel>
-            {[group.defaultAgent, ...group.named].map(agent => (
-              <DropdownMenuItem
-                aria-label={p.fleet.onGateway(agent.profile, group.label)}
-                className="min-w-0"
-                key={agent.profile}
-                onSelect={() => onSelectRest(agent)}
-              >
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <ProfileGlyph
-                    aria-hidden="true"
-                    color={resolveProfileColor(agent.profile, colors)}
-                    isDefault={agent.isDefault}
-                    name={agent.profile}
-                  />
-                  <span className="truncate">{agent.profile}</span>
-                </span>
-              </DropdownMenuItem>
-            ))}
-          </div>
-        ))}
+        {restGroups.map(group => {
+          const label = connectionDisplayLabel(
+            { id: group.connectionId, kind: group.kind, label: group.label },
+            t.settings.connections.localLabel
+          )
+
+          return (
+            <div data-connection-id={group.connectionId} data-slot="profile-dropdown-gateway" key={group.connectionId}>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className={cn(dropdownMenuSectionLabel, 'flex items-center gap-1.5')}>
+                <ConnectionGlyph connection={group} />
+                <span className="truncate">{label}</span>
+                {!group.reachable && (
+                  <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-amber-500" />
+                )}
+              </DropdownMenuLabel>
+              {[group.defaultAgent, ...group.named].map(agent => (
+                <DropdownMenuItem
+                  aria-label={p.fleet.onGateway(agent.profile, label)}
+                  className="min-w-0"
+                  key={agent.profile}
+                  onSelect={() => onSelectRest(agent)}
+                >
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <ProfileGlyph
+                      aria-hidden="true"
+                      color={resolveProfileColor(agent.profile, colors)}
+                      isDefault={agent.isDefault}
+                      name={agent.profile}
+                    />
+                    <span className="truncate">{agent.profile}</span>
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </div>
+          )
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -966,14 +963,20 @@ function FleetRestGroup({
 }) {
   const { t } = useI18n()
   const p = t.profiles
-  const dividerLabel = group.reachable ? p.fleet.gateway(group.label) : p.fleet.gatewayUnreachable(group.label)
+
+  const label = connectionDisplayLabel(
+    { id: group.connectionId, kind: group.kind, label: group.label },
+    t.settings.connections.localLabel
+  )
+
+  const dividerLabel = group.reachable ? p.fleet.gateway(label) : p.fleet.gatewayUnreachable(label)
   const defaultKey = fleetRouteKey(group.connectionId, group.defaultAgent.profile)
 
   return (
     <>
       <FleetDivider connection={group} first={first} label={dividerLabel} reachable={group.reachable} />
       <span
-        aria-label={p.fleet.gateway(group.label)}
+        aria-label={p.fleet.gateway(label)}
         className="flex shrink-0 items-center gap-1"
         data-active="false"
         data-connection-id={group.connectionId}
@@ -985,7 +988,7 @@ function FleetRestGroup({
           active={false}
           connectionId={group.connectionId}
           glyph="home"
-          label={p.fleet.onGateway(group.defaultAgent.profile, group.label)}
+          label={p.fleet.onGateway(group.defaultAgent.profile, label)}
           muted
           onSelect={() => onSelect(group.defaultAgent)}
           pending={pendingRoute === defaultKey}

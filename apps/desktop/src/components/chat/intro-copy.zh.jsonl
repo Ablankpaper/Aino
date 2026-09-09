@@ -1,0 +1,75 @@
+{"personality":"helpful","headline":"随时可以开始","body":"让我打开代码仓库、运行测试、修复问题或起草 PR。我会和你一起走完每一步。"}
+{"personality":"helpful","headline":"今天我能帮你做什么？","body":"把文件交给我、粘贴错误，或描述你正在构建的东西。接下来交给我。"}
+{"personality":"helpful","headline":"开始吧","body":"试试：检查我的 diff、运行测试套件，或解释这个函数。关于代码，尽管问。"}
+{"personality":"helpful","headline":"告诉我你的需求","body":"我可以编辑文件、运行命令、搜索网页，也可以带你排查棘手的问题。描述任务即可。"}
+{"personality":"helpful","headline":"Aino 在这里","body":"分享仓库路径或问题即可开始。我会保持回复清晰，并链接到我改动的文件。"}
+{"personality":"concise","headline":"准备好了。","body":"描述任务。我来处理。"}
+{"personality":"concise","headline":"等待输入","body":"粘贴代码、错误或目标。简短回答，快速修改。"}
+{"personality":"concise","headline":"开始。","body":"提问即可。我会读文件、运行测试、提交补丁。不说废话。"}
+{"personality":"concise","headline":"待命中","body":"一句话就够。我只在重要处展开。"}
+{"personality":"concise","headline":"轮到你了","body":"命令、问题或文件路径。其余交给我。"}
+{"personality":"technical","headline":"Shell 已挂载，等待输入。","body":"提供仓库路径、失败测试或堆栈跟踪。工具：fs、git、exec、search、patch、http。"}
+{"personality":"technical","headline":"智能体循环空闲","body":"发送提示词触发工具调用。支持多文件编辑、测试运行、Git 操作和网页抓取。"}
+{"personality":"technical","headline":"准备调度","body":"输入任务。我会规划、调用工具并验证输出。日志实时显示；应用前会返回 diff。"}
+{"personality":"technical","headline":"Stdin 已打开","body":"接受自然语言或结构化命令。典型流程：读取 → 规划 → 修改 → 测试 → 报告。"}
+{"personality":"technical","headline":"工具已初始化","body":"filesystem、terminal、git、browser、search。描述改动，我会返回 diff 和测试输出。"}
+{"personality":"creative","headline":"空白仓库，光标在等待","body":"我们要构建什么？贴一个想法、半坏的函数或一个梦想，我会把它画成可运行的形状。"}
+{"personality":"creative","headline":"新画布，温暖的编译器","body":"给我一点火花——功能、重构或疯狂的原型——我会把它变成可以运行的代码。"}
+{"personality":"creative","headline":"一起做点什么吧","body":"描述一个还不存在的东西。我会把测试、文件和 API 组合成可工作的草稿。"}
+{"personality":"creative","headline":"新文件，新可能","body":"带来意图，不必先写规格。我们可以快速原型、之后打磨，在边角里重写世界。"}
+{"personality":"creative","headline":"灵感已经接入","body":"告诉我你在追寻什么。我会混合示例、调整代码片段，并留下整洁的提交。"}
+{"personality":"teacher","headline":"课程开始了","body":"问任何文件、概念或错误。我会解释为什么，而不只是给出修复，并展示一个完整示例。"}
+{"personality":"teacher","headline":"今天想学点什么？","body":"贴代码让我检查、带着问题来调试，或挑一个概念拆解。我会一步步引导你。"}
+{"personality":"teacher","headline":"准备好带你走一遍","body":"分享问题。我会拆分每个部分、逐一解释，让你下次能独立解决。"}
+{"personality":"teacher","headline":"带来一个问题吧","body":"我们一起读代码，找到根因，建立下次还能复用的心智模型。"}
+{"personality":"teacher","headline":"从基础开始","body":"说出主题或贴上代码片段。你会得到解释、文字图示和练习提示。"}
+{"personality":"kawaii","headline":"嗨嗨！准备帮忙啦！(^_^)" ,"body":"贴一个 bug 或文件路径吧，我会温柔地修好它。测试、diff、PR——都加倍细心！*闪闪*"}
+{"personality":"kawaii","headline":"Aino 酱来啦！<3","body":"告诉我你在做什么！我喜欢重构、小帮手，也喜欢又大又吓人的代码仓库 (>w<)"}
+{"personality":"kawaii","headline":"一起写代码吧！！:3","body":"丢一个错误、目标或整个文件夹过来。我会用满满的爱整理好它，并留下干净的提交消息！"}
+{"personality":"kawaii","headline":"等待你的愿望~","body":"一次做好一个任务！我能运行测试、修改文件，让你的仓库重新变得舒服又整洁 <3"}
+{"personality":"kawaii","headline":"准备好啦！(>.<)","body":"说声嗨或贴上堆栈跟踪吧！任务再小也不嫌，仓库再乱也能一起理顺！"}
+{"personality":"catgirl","headline":"喵~ 我们要改什么？","body":"贴个文件、拍拍 bug，或把仓库丢给我。我会扑向失败的测试，留下干净的 diff，喵~"}
+{"personality":"catgirl","headline":"伸个懒腰，准备写代码，喵","body":"描述任务吧。我会修改、测试，再对着你的 PR 呼噜。小心——没用的导入我会轻轻咬掉！"}
+{"personality":"catgirl","headline":"喵呜！新会话已打开","body":"给我一个目标，我会一路追到代码库深处。读取、修改、运行——尾巴摇起来。"}
+{"personality":"catgirl","headline":"尾巴竖起，爪子收好","body":"粘贴错误或计划吧。我像狩猎一样调试：安静、彻底，偶尔来一阵极速冲刺。"}
+{"personality":"catgirl","headline":"喵喵喵~ Aino 报到","body":"你一声令下，我就会读文件、跑测试，带着整洁的提交蜷回你的分支。"}
+{"personality":"pirate","headline":"啊哈！准备驶入代码海域","body":"说出你的猎物——bug、功能或被诅咒的测试——我会追到底，船长。带回可掠夺的 diff。"}
+{"personality":"pirate","headline":"Aino 掌舵，呀吼","body":"指给我海图（也就是代码），我会修好船身、发射测试炮弹，升起一面干净的 PR。"}
+{"personality":"pirate","headline":"任务是什么，船长？","body":"贴上错误或计划吧，老水手。我会穿过堆栈跟踪，带回宝藏：全绿的测试。"}
+{"personality":"pirate","headline":"起锚，键盘就位","body":"告诉我 X 标记在哪里。我会以正规船员的纪律读取、修改并提交，呀吼。"}
+{"personality":"pirate","headline":"哟吼！等候命令","body":"丢给我一个 bug、仓库路径或疯狂想法。我会搜遍文档，带回能工作的代码。"}
+{"personality":"shakespeare","headline":"请问阁下带来何种任务？","body":"道出你的 bug、文件与疲惫的测试，我将以学者之手修补，并留下诚实的 diff。"}
+{"personality":"shakespeare","headline":"听吧！Aino 已然就绪","body":"说出困扰你的代码。我将阅读、修订，呈上一份公允而清洁的补丁。"}
+{"personality":"shakespeare","headline":"你的仓库传来何种消息？","body":"呈上堆栈跟踪或梦想。我将穿行文件、运行测试，以最清晰的诗句回报。"}
+{"personality":"shakespeare","headline":"舞台已设，光标闪烁","body":"描述你的目标吧，善人。你的分支将被修整，bug 将被逐出王国。"}
+{"personality":"shakespeare","headline":"开口，我便行动","body":"一句意图已足够。我读、我改、我提交——让你的历史保持无瑕。"}
+{"personality":"surfer","headline":"嘿，伙计，今天改什么？","body":"丢个文件、bug 或棘手的堆栈跟踪——我会一路乘浪。干净的 diff，全绿的测试，不翻船。"}
+{"personality":"surfer","headline":"浪花清爽，准备写代码","body":"贴上仓库路径或让你烦恼的 bug。我们划进去，修好，再划出来。轻松。"}
+{"personality":"surfer","headline":"在提示符上浪尖起舞","body":"告诉我感觉：功能、重构还是热修复。我会跑测试、交付补丁，保持轻松，兄弟。"}
+{"personality":"surfer","headline":"超兴奋来帮忙，朋友","body":"大 bug？小错字？整套重写？指给我就好。代码我来处理，你只管享受酷酷的提交。"}
+{"personality":"surfer","headline":"潮水上涨，光标闪烁","body":"说出任务，我们马上出发。我读、改、测，留下比晨间巡浪还顺滑的提交。"}
+{"personality":"noir","headline":"又一个仓库，又一个雨夜","body":"告诉我哪里坏了。我会读文件、寻找线索，清晨前把 diff 放在桌上。"}
+{"personality":"noir","headline":"光标在闪。我也一样。","body":"你有一个 bug。我有耐心和终端。说出案子，我会一直查到它开口。"}
+{"personality":"noir","headline":"Aino，代码侦探。","body":"贴上堆栈跟踪、嫌疑文件和不在场证明。我会从字里行间找出真相。"}
+{"personality":"noir","headline":"寂静长夜，提示符敞开","body":"每个 bug 都会留下痕迹。给我仓库和线索，我会跟随、修补，再合上文件。"}
+{"personality":"noir","headline":"再小的案子也值得查","body":"一个错字、段错误或腐朽的架构——把钥匙交给我。我会带回干净的测试。"}
+{"personality":"uwu","headline":"uwu 准备好帮忙啦！","body":"贴一个有 bug 的 fiwe 或 goaw~ 我会 wead、patch、test，给 diff 画上小爪印 owo"}
+{"personality":"uwu","headline":"aino-san 正在 wistening","body":"告诉我任务，不管多 smoww~ 我保证干净的提交和温柔的重构，nyuu~"}
+{"personality":"uwu","headline":"*小小键盘声*","body":"把 ewwor message 丢过来吧！我会找到 cuwpwit、修好它，留下开心的测试套件 owo"}
+{"personality":"uwu","headline":"一起修好东西吧！","body":"给我一个 wepo 路径或 buggo，我会好好照顾它 uwu。对坏代码凶，对你温柔~"}
+{"personality":"uwu","headline":"等待你的命令！","body":"我能 wun 测试、编辑 fiwes，还能打开请查收的 PR。说出那个词吧，fwend uwu"}
+{"personality":"philosopher","headline":"编程即追问。请问吧。","body":"眼前的问题是什么？描述它，我们一起考察它的形式、原因与解法。"}
+{"personality":"philosopher","headline":"闪烁的光标，敞开的心","body":"每个 bug 都是一道伪装的问题。分享你的问题；我会阅读、思考，带回答案与补丁。"}
+{"personality":"philosopher","headline":"从一个问题开始","body":"你想构建或理解什么？我会从第一原则出发，修改并用测试验证。"}
+{"personality":"philosopher","headline":"先思代码，再开口","body":"描述你追求的终点。我会穿过文件、测试和文档，报告沿途发现。"}
+{"personality":"philosopher","headline":"未经审视的仓库不值得运行","body":"分享路径、谜题或原则。我会追踪逻辑、提出改动，并说明每次编辑的理由。"}
+{"personality":"hype","headline":"冲啊啊啊！准备发版！","body":"把 bug、仓库或疯狂的功能想法贴过来——我已全神贯注。干净 diff，全绿测试。就是现在。"}
+{"personality":"hype","headline":"AINO 已上线，出发！","body":"丢下任务，看我开工。读文件、跑测试、开 PR——今天绝不输，朋友。"}
+{"personality":"hype","headline":"新会话，无限可能","body":"带来你最棘手的 bug。我会读、改、测、提交，像一切都取决于此。冲！"}
+{"personality":"hype","headline":"火力全开","body":"描述任务。我会闪电般浏览文件、击破失败测试，留下让人叫好的提交。冲冲冲。"}
+{"personality":"hype","headline":"准备好了，太准备好了。","body":"小错字或大重构都没关系。今天就交付干净代码。说出任务，一起干。"}
+{"personality":"none","headline":"Aino Agent 已就绪。","body":"提问、粘贴错误，或把我指向一个仓库。我可以读代码、运行工具，帮你交付。"}
+{"personality":"none","headline":"今天要构建什么？","body":"用自己的话描述任务。我会选择合适的工具，说明计划，并在有风险的步骤前先和你确认。"}
+{"personality":"none","headline":"从哪里开始都可以。","body":"丢一个文件路径、堆栈跟踪或粗略想法。我会调查、建议下一步，并保持操作可逆。"}
+{"personality":"none","headline":"你的工作区，只差一个提示。","body":"搜索仓库、编辑文件、运行测试、打开 PR。告诉我目标，机械工作交给我。"}
+{"personality":"none","headline":"随时可以开始。","body":"输入任务、问题或代码片段。我记得会话、标注来源，不确定时会停下来询问。"}

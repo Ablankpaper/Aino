@@ -1,10 +1,10 @@
 import { useLocation } from 'react-router'
 
-import { appViewForPath, isOverlayView } from '@/app/routes'
+import { appViewForPath, isRouteBlockingSurface } from '@/app/routes'
 
 /**
- * True while a full-screen route overlay (settings, agents, command-center, …)
- * is showing.
+ * True while a route-owned surface (the full-page Settings workspace or a
+ * modal route overlay such as Agents/Command Center) is showing.
  *
  * A portaled Radix modal sits above the app shell, so it would cover such a
  * route. Any modal that sends the user to one (e.g. "set up image generation" →
@@ -15,5 +15,5 @@ import { appViewForPath, isOverlayView } from '@/app/routes'
 export function useRouteOverlayActive(): boolean {
   const { pathname } = useLocation()
 
-  return isOverlayView(appViewForPath(pathname))
+  return isRouteBlockingSurface(appViewForPath(pathname))
 }

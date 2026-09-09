@@ -18,6 +18,7 @@
 import driverCss from 'driver.js/dist/driver.css?raw'
 import driverIife from 'driver.js/dist/driver.js.iife.js?raw'
 
+import { translateNow } from '@/i18n'
 import { collectTourTargets } from '@/lib/tour/collect-targets'
 import { runTourEngine, type TourAction, type TourResult } from '@/lib/tour/engine'
 
@@ -54,13 +55,13 @@ export async function runPreviewTour(action: TourAction): Promise<TourResult> {
   const run = activePreviewScriptRunner()
 
   if (!run) {
-    return { error: 'No live page is open in the preview pane — open one first.', success: false }
+    return { error: translateNow('preview.tour.noLivePage'), success: false }
   }
 
   const raw = await run(buildTourScript(action))
 
   if (typeof raw !== 'string' || !raw) {
-    return { error: 'The page did not answer the tour action.', success: false }
+    return { error: translateNow('preview.tour.noAnswer'), success: false }
   }
 
   return JSON.parse(raw) as TourResult

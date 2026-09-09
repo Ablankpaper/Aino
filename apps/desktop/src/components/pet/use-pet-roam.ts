@@ -53,7 +53,7 @@ interface PetRoamOptions {
   petH: number
   /** Sprite animation loop duration (ms) — paces the walk to the leg cadence. */
   loopMs: number
-  /** A full-screen route overlay (settings/profiles/…) is up: patrol its base. */
+  /** A full-screen route-owned surface (Settings/Profiles/…) is up: patrol its base. */
   overlayOpen: boolean
   /** Persist the resting position back to React state when the loop settles. */
   commit: (point: Point) => void

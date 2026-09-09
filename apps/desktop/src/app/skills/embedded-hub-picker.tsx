@@ -175,6 +175,7 @@ export const EmbeddedHubPicker = memo(function EmbeddedHubPicker({
         'relative flex min-h-9 flex-col overflow-hidden border-t border-(--ui-stroke-secondary)',
         hidden && 'hidden'
       )}
+      data-aino-hub-section=""
       ref={sectionRef}
     >
       {/* Top-edge drag sash — pull the whole hub section up/down. */}
@@ -212,6 +213,7 @@ export const EmbeddedHubPicker = memo(function EmbeddedHubPicker({
               zoomed out — the cross-origin page itself can't be styled, but
               scaling the frame is ours. */}
           <div
+            data-aino-hub-frame=""
             style={{
               border: '1px solid var(--ui-stroke-secondary)',
               borderRadius: 8,

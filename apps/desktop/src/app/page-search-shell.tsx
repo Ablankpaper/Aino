@@ -73,6 +73,7 @@ export function PageSearchShell({
     <section
       {...props}
       className={cn('flex h-full min-w-0 flex-col overflow-hidden bg-(--ui-chat-surface-background)', className)}
+      data-aino-page-shell=""
     >
       {/*
         Header lives in the page body, below the window chrome (the shell floats
@@ -91,7 +92,10 @@ export function PageSearchShell({
       */}
       <div className="shrink-0">
         {(hasTabs || !searchHidden) && (
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3 pb-2 pt-[calc(var(--titlebar-height)+0.5rem)]">
+          <div
+            className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3 pb-2 pt-[calc(var(--titlebar-height)+0.5rem)]"
+            data-aino-page-header=""
+          >
             <div className="flex min-w-0 items-center justify-start">
               {!searchHidden && (
                 <SearchField
@@ -115,7 +119,9 @@ export function PageSearchShell({
         )}
         {filters ? <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-2">{filters}</div> : null}
       </div>
-      <div className="min-h-0 flex-1 overflow-hidden bg-(--ui-chat-surface-background)">{children}</div>
+      <div className="min-h-0 flex-1 overflow-hidden bg-(--ui-chat-surface-background)" data-aino-page-content="">
+        {children}
+      </div>
     </section>
   )
 }

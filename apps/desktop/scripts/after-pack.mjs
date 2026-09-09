@@ -21,14 +21,19 @@
 
 import path from 'node:path'
 
+import BRAND from '../brand.json' with { type: 'json' }
 import { stampExeIdentity } from './set-exe-identity.mjs'
+
+export function resolveProductExeName(context) {
+  return context?.packager?.appInfo?.productFilename || BRAND.productName
+}
 
 export default async function afterPack(context) {
   if (context.electronPlatformName !== 'win32') {
     return
   }
 
-  const productName = context.packager?.appInfo?.productFilename || 'Hermes'
+  const productName = resolveProductExeName(context)
   const exe = path.join(context.appOutDir, `${productName}.exe`)
   const desktopRoot = path.resolve(import.meta.dirname, '..')
 
@@ -36,6 +41,8 @@ export default async function afterPack(context) {
     await stampExeIdentity(exe, desktopRoot)
   } catch (err) {
     // Never fail the build over a cosmetic stamp.
-    console.warn(`[after-pack] exe identity stamp failed (${err.message}); Hermes.exe keeps the stock Electron icon`)
+    console.warn(
+      `[after-pack] exe identity stamp failed (${err.message}); ${productName}.exe keeps the stock Electron icon`
+    )
   }
 }

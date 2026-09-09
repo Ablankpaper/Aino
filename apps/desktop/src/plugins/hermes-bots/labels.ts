@@ -8,8 +8,36 @@
  * of them can own it without the others importing a sibling surface.
  */
 
+import { translateNow } from '@hermes/plugin-sdk'
+
 import { aliasIdentityFor } from './routing'
 import type { BotMeta, RosterRow } from './types'
+
+export function rosterConnectionLabel(bot: Partial<RosterRow>): string {
+  const label = String(bot.connectionLabel || '').trim()
+
+  if (!label) {
+    return ''
+  }
+
+  const connectionId = String(bot.connectionId || '')
+
+  const kind =
+    bot.connectionKind === 'cloud' || bot.connectionKind === 'local' || bot.connectionKind === 'ssh'
+      ? bot.connectionKind
+      : 'remote'
+
+  if (connectionId === 'local' && kind === 'local' && label === 'This device') {
+    const translationKey = 'settings.connections.localLabel'
+    const translated = translateNow(translationKey)
+
+    // Older runtimes may not have the shared key yet. Never expose that raw
+    // key in the roster; preserve the persisted English label instead.
+    return translated === translationKey ? label : translated
+  }
+
+  return label
+}
 
 export function displayName(bot: Partial<RosterRow>, meta?: BotMeta | null): string {
   // A configured alias route claiming this row overrides source-derived
@@ -29,7 +57,7 @@ export function displayName(bot: Partial<RosterRow>, meta?: BotMeta | null): str
     !alias &&
     !meta?.title?.trim()
   ) {
-    return bot.connectionLabel
+    return rosterConnectionLabel(bot)
   }
 
   if (meta?.title?.trim()) {

@@ -50,7 +50,7 @@ interface AuxTaskCopy {
   hint: string
 }
 
-export interface Translations {
+interface UpstreamTranslations {
   sessionImport: {
     title: string
     subtitle: string
@@ -3314,3 +3314,19 @@ export interface Translations {
     }
   }
 }
+
+/**
+ * Keep the upstream contract strongly typed while allowing Aino's additive
+ * locale overlays to carry keys introduced between release trains. Known
+ * upstream keys retain their exact signatures; unknown nested keys resolve
+ * through the runtime locale fallback chain.
+ */
+type DeepTranslationTree<T> = T extends (...args: never[]) => unknown
+  ? T
+  : T extends readonly unknown[]
+    ? T
+    : T extends object
+      ? { [K in keyof T]: DeepTranslationTree<T[K]> } & Record<string, any>
+      : T
+
+export type Translations = DeepTranslationTree<UpstreamTranslations>

@@ -152,7 +152,7 @@ export function activeProfileKey(): string {
 // item all funnel here). Toasts via the shared notification store; strings via
 // translateNow so the flows stay callable from non-React surfaces.
 
-const ARCHIVE_FILTERS = [{ extensions: ['tar.gz', 'tgz'], name: 'Hermes profile' }]
+const archiveFilters = () => [{ extensions: ['tar.gz', 'tgz'], name: translateNow('profiles.archiveFilter') }]
 
 /** Pick a save location and export `profile` (default: the active one).
  *  Returns the archive path, or null when the user cancelled. */
@@ -167,7 +167,7 @@ export async function runExportProfileFlow(profile?: string): Promise<null | str
   const output = await pick({
     title: translateNow('profiles.exportProfile'),
     defaultPath: `${target}.tar.gz`,
-    filters: ARCHIVE_FILTERS
+    filters: archiveFilters()
   })
 
   if (!output) {
@@ -192,7 +192,7 @@ export async function runImportProfileFlow(): Promise<null | string> {
   const paths = await window.hermesDesktop?.selectPaths?.({
     title: translateNow('profiles.importProfile'),
     multiple: false,
-    filters: ARCHIVE_FILTERS
+    filters: archiveFilters()
   })
 
   const archive = paths?.[0]
