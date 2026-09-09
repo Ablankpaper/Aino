@@ -156,6 +156,11 @@ def _is_official_ssh_remote(url: str | None) -> bool:
         _canonical_github_remote(url) == _OFFICIAL_REPO_CANONICAL)
 
 
+def _is_official_remote(url: str | None) -> bool:
+    """Return whether a remote points at the canonical Nous Research repository."""
+    return _canonical_github_remote(url) == _OFFICIAL_REPO_CANONICAL
+
+
 _GIT_TEXT_KW = {"text": True, "encoding": "utf-8", "errors": "replace"}
 
 
@@ -405,15 +410,53 @@ def _baked_banner_state() -> Optional[dict]:
     return {"upstream": baked, "local": baked, "ahead": 0} if baked else None
 
 
+def _resolve_banner_upstream_ref(repo_dir: Path) -> Optional[str]:
+    """Choose a trustworthy baseline ref for the version banner.
+
+    Official Hermes checkouts historically use ``origin/main``.  Aino keeps
+    its own repository as ``origin`` and the Nous repository as a fetch-only
+    remote, so using ``origin/main`` there makes the banner report Aino's fork
+    SHA as "upstream" and count the whole upstream history as local work.  In
+    that topology, prefer the tag that corresponds to the running release;
+    fall back to ``upstream/main`` when the tag is unavailable.  A missing
+    remote URL preserves the legacy ``origin/main`` behavior for older or
+    synthetic checkouts that have no remote metadata.
+    """
+    origin_url = _git_stdout(["remote", "get-url", "origin"], cwd=repo_dir)
+    if not origin_url:
+        return "origin/main"
+    if _is_official_remote(origin_url):
+        return "origin/main"
+
+    release_ref = f"v{RELEASE_DATE}^{{commit}}"
+    if _git_stdout(["rev-parse", "--verify", "--quiet", release_ref], cwd=repo_dir):
+        return release_ref
+
+    upstream_url = _git_stdout(["remote", "get-url", "upstream"], cwd=repo_dir)
+    if _is_official_remote(upstream_url) and _git_stdout(
+        ["rev-parse", "--verify", "--quiet", "upstream/main"], cwd=repo_dir
+    ):
+        return "upstream/main"
+    # We cannot identify a canonical upstream baseline.  Returning None makes
+    # the caller fall back to baked metadata instead of displaying a fork SHA
+    # under the misleading "upstream" label.
+    return None
+
+
 def _compute_git_banner_state(repo_dir: Optional[Path] = None) -> Optional[dict]:
     repo_dir = repo_dir or _resolve_repo_dir()
     if repo_dir is None:
         return _baked_banner_state()
-    upstream, local = (_git_stdout(["rev-parse", "--short=8", rev], cwd=repo_dir) for rev in ("origin/main", "HEAD"))
-    if not upstream or not local:
-        # Live-git lookup failed (e.g. shallow clone without origin/main).
+    baseline_ref = _resolve_banner_upstream_ref(repo_dir)
+    if baseline_ref is None:
         return _baked_banner_state()
-    ahead = _git_count(["rev-list", "--count", "origin/main..HEAD"], cwd=repo_dir) or 0
+    upstream, local = (_git_stdout(["rev-parse", "--short=8", rev], cwd=repo_dir) for rev in (baseline_ref, "HEAD"))
+    if not upstream or not local:
+        # Live-git lookup failed (e.g. shallow clone without the baseline ref).
+        return _baked_banner_state()
+    ahead = _git_count(["rev-list", "--count", f"{baseline_ref}..HEAD"], cwd=repo_dir)
+    if ahead is None:
+        return _baked_banner_state()
     return {"upstream": upstream, "local": local, "ahead": max(ahead, 0)}
 
 
