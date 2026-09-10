@@ -1,11 +1,13 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { group } from '@/components/pane-shell/tree/model'
+import { findGroupOfPane, group, split } from '@/components/pane-shell/tree/model'
+import { startPaneDrag } from '@/components/pane-shell/tree/renderer/drag-session'
 import { $layoutTree } from '@/components/pane-shell/tree/store'
 import { openSessionTile } from '@/store/session-states'
 
 import { requestComposerInsertRefs } from './composer/focus'
+import { startNewProjectDrag, startNewSessionDrag } from './new-session-drag'
 import { startSessionDrag } from './session-drag'
 
 /**
@@ -74,6 +76,35 @@ function dragTo(source: HTMLElement, x: number, y: number) {
   window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: x, clientY: y }))
 }
 
+function mountProjectedHeader() {
+  const row = mountStackedTabs()
+  const header = globalThis.document.createElement('div')
+  header.dataset.zoneTabstrip = 'g1'
+  header.innerHTML = '<span data-tree-tab="workspace">Current conversation</span>'
+  globalThis.document.body.append(header)
+  stubRect(header, { left: 100, top: 0, right: 600, bottom: 40 })
+  stubRect(header.firstElementChild!, { left: 100, top: 0, right: 600, bottom: 40 })
+  stubRect(globalThis.document.querySelector('[data-tree-group]')!, { ...ZONE, top: 43 })
+
+  return row
+}
+
+const headerDragEvent = (source: HTMLElement) =>
+  ({
+    button: 0,
+    clientX: 0,
+    clientY: 0,
+    currentTarget: source,
+    pointerId: 1,
+    preventDefault() {},
+    stopPropagation() {}
+  }) as unknown as ReactPointerEvent<HTMLElement>
+
+function releaseOnHeader() {
+  window.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 150, clientY: 20 }))
+  window.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: 150, clientY: 20 }))
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -84,6 +115,62 @@ afterEach(() => {
 })
 
 describe('session drop targeting across stacked tabs', () => {
+  it('stacks an existing session on its projected header outside the pane body', () => {
+    const row = mountProjectedHeader()
+
+    dragTo(row, 150, 20)
+
+    expect(openSessionTile).toHaveBeenCalledWith('dragged', 'center', 'workspace', 'workspace')
+    expect(requestComposerInsertRefs).not.toHaveBeenCalled()
+  })
+
+  it('creates a new session at a projected header insertion slot', () => {
+    const row = mountProjectedHeader()
+    const onCreate = vi.fn()
+
+    startNewSessionDrag(onCreate, headerDragEvent(row), { cwd: '/project', profile: 'default' })
+    releaseOnHeader()
+
+    expect(onCreate).toHaveBeenCalledWith({
+      anchor: 'workspace',
+      before: 'workspace',
+      cwd: '/project',
+      dir: 'center',
+      profile: 'default',
+      route: undefined
+    })
+  })
+
+  it('arms a new project drop on the projected header before opening its dialog', () => {
+    const row = mountProjectedHeader()
+    const onArm = vi.fn()
+    const onTap = vi.fn()
+
+    startNewProjectDrag(onArm, headerDragEvent(row), { onTap })
+    releaseOnHeader()
+
+    expect(onArm).toHaveBeenCalledWith({ anchor: 'workspace', before: 'workspace', dir: 'center' })
+    expect(onTap).toHaveBeenCalledOnce()
+  })
+
+  it('moves a tool pane into the projected header tab stack', () => {
+    const row = mountProjectedHeader()
+    $layoutTree.set(split('row', [group(['workspace'], { id: 'g1' }), group(['terminal'], { id: 'g-tools' })]))
+    const tools = globalThis.document.createElement('div')
+    tools.dataset.treeGroup = 'g-tools'
+    globalThis.document.body.append(tools)
+    stubRect(tools, { left: 1000, top: 43, right: 1200, bottom: 800 })
+
+    startPaneDrag('terminal', headerDragEvent(row))
+    releaseOnHeader()
+
+    expect(findGroupOfPane($layoutTree.get()!, 'terminal')).toMatchObject({
+      id: 'g1',
+      panes: ['terminal', 'workspace'],
+      active: 'terminal'
+    })
+  })
+
   it('links into the visible tab’s composer, not the tab kept alive behind it', () => {
     const row = mountStackedTabs()
 

@@ -2,7 +2,7 @@ import { atom } from 'nanostores'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { NO_PROJECT_ID, type SidebarProjectTree } from '@/app/chat/sidebar/projects/workspace-groups'
-import { $sidebarAgentsGrouped, setSidebarAgentsGrouped } from '@/store/layout'
+import { $sidebarAgentsGrouped, $sidebarWorkspaceNodeOpen, setSidebarAgentsGrouped } from '@/store/layout'
 import { $activeGatewayProfile, setShowAllProfiles } from '@/store/profile'
 import { $currentCwd, $selectedStoredSessionId, $sessions, applyConfiguredDefaultProjectDir } from '@/store/session'
 
@@ -112,8 +112,10 @@ describe('project scope', () => {
   it('enterProject scopes the sidebar to the project id', () => {
     // setActiveProject fires best-effort (no gateway in test → it rejects and is
     // swallowed); the synchronous scope change is what matters here.
+    $sidebarWorkspaceNodeOpen.set({ 'section:projects': false })
     enterProject('p_123')
     expect($projectScope.get()).toBe('p_123')
+    expect($sidebarWorkspaceNodeOpen.get()['section:projects']).toBe(true)
   })
 
   it('exitProjectScope returns to the overview', () => {

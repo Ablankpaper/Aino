@@ -24,12 +24,12 @@ import { cn } from '@/lib/utils'
 import {
   $sidebarCardRows,
   $sidebarFiltersActive,
-  $sidebarGrouping,
   $sidebarListGroupIds,
   $sidebarOrdering,
   $sidebarPrFilter,
   $sidebarProfileFilter,
   $sidebarProjectFilter,
+  $sidebarRecentGrouping,
   $sidebarRowMeta,
   $sidebarShowArchived,
   $sidebarStatusFilter,
@@ -78,7 +78,6 @@ interface LabeledOption<T extends string = string> extends Omit<Option<T>, 'labe
 
 const GROUPINGS: Option<SidebarGrouping>[] = [
   { icon: 'clock', id: 'date', labelKey: 'updated' },
-  { icon: 'root-folder', id: 'project', labelKey: 'project' },
   { icon: 'pulse', id: 'status', labelKey: 'status' },
   { icon: 'account', id: 'profile', labelKey: 'profile' }
 ]
@@ -125,7 +124,10 @@ function OptionGlyph({ option }: { option: Pick<Option, 'dot' | 'icon'> }) {
   return option.icon ? <Codicon className="text-(--ui-text-tertiary)" name={option.icon} size="0.8125rem" /> : null
 }
 
-export function localizeFilterOption<T extends string>(option: Option<T>, labels: Record<string, string>): LabeledOption<T> {
+export function localizeFilterOption<T extends string>(
+  option: Option<T>,
+  labels: Record<string, string>
+): LabeledOption<T> {
   return { ...option, label: labels[option.labelKey] ?? option.labelKey }
 }
 
@@ -133,7 +135,15 @@ export function localizeFilterOption<T extends string>(option: Option<T>, labels
  *  view can be set up in one pass. Only the actions at the bottom dismiss it. */
 const keepOpen = (event: Event) => event.preventDefault()
 
-function OptionCheckbox({ checked, onCheck, option }: { checked: boolean; onCheck: () => void; option: LabeledOption }) {
+function OptionCheckbox({
+  checked,
+  onCheck,
+  option
+}: {
+  checked: boolean
+  onCheck: () => void
+  option: LabeledOption
+}) {
   return (
     <DropdownMenuCheckboxItem
       checked={checked}
@@ -159,7 +169,7 @@ function OptionRadio({ option }: { option: LabeledOption }) {
 
 export function SidebarFilterMenu({ className }: { className?: string }) {
   const { t } = useI18n()
-  const grouping = useStore($sidebarGrouping)
+  const recentGrouping = useStore($sidebarRecentGrouping)
   const ordering = useStore($sidebarOrdering)
   const rowMeta = useStore($sidebarRowMeta)
   const cardRows = useStore($sidebarCardRows)
@@ -184,19 +194,15 @@ export function SidebarFilterMenu({ className }: { className?: string }) {
   const prAvailable = Boolean(desktopGit()?.review?.prList)
   const filterLabels = t.ui.actions.labels
 
-  // Fold the level in view: project rows, or the date/status buckets. Project
-  // rows default open, so "all collapsed" means every one of them has been
-  // explicitly shut. Never sweeps Pinned or Cron.
-  const foldIds =
-    grouping === 'project'
-      ? projects.map(project => project.id)
-      : grouping === 'date' || grouping === 'status'
-        ? listGroupIds
-        : []
+  // Both sections are visible together. Never sweep Pinned, Messaging or Cron.
+  const foldIds = [
+    ...(!showArchived ? projects.filter(project => !project.isNoProject).map(project => project.id) : []),
+    ...(recentGrouping === 'date' || recentGrouping === 'status' ? listGroupIds : [])
+  ]
 
   const foldCollapsed = foldIds.length > 0 && foldIds.every(id => nodeOpen[id] === false)
 
-  const groupingOption = GROUPINGS.find(option => option.id === grouping)
+  const groupingOption = GROUPINGS.find(option => option.id === recentGrouping)
   const groupingLabel = groupingOption ? filterLabels[groupingOption.labelKey] : undefined
 
   // Two options are conditional: dragging a row is what picks manual, so it
@@ -257,7 +263,7 @@ export function SidebarFilterMenu({ className }: { className?: string }) {
             <DropdownMenuSubContent>
               <DropdownMenuRadioGroup
                 onValueChange={value => setSidebarGrouping(value as SidebarGrouping)}
-                value={grouping}
+                value={recentGrouping}
               >
                 {GROUPINGS.map(option => (
                   <OptionRadio key={option.id} option={localizeFilterOption(option, filterLabels)} />

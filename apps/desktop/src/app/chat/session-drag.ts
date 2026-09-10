@@ -130,7 +130,9 @@ export function startSessionDrag(
     },
 
     resolveMove(x, y): DropHint | null {
-      const zone = zones.find(z => rectContains(z.rect, x, y))
+      // A window-titlebar strip can sit outside its owning pane's body.
+      const strip = strips.find(s => rectContains(s.rect, x, y))
+      const zone = strip ? zones.find(z => z.id === strip.groupId) : zones.find(z => rectContains(z.rect, x, y))
       const host = zone ? zoneHost.get(zone.id) : null
 
       if (!zone || !host) {
@@ -141,8 +143,6 @@ export function startSessionDrag(
       }
 
       // The zone's TAB STRIP stacks the session at the divider's slot.
-      const strip = strips.find(s => s.groupId === zone.id && rectContains(s.rect, x, y))
-
       if (strip) {
         // Exclude the tile's OWN tab from the slots so re-dropping it in its
         // home strip reorders cleanly (a no-op for a sidebar-row drag).

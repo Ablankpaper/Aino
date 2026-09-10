@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   $sidebarGrouping,
   $sidebarOrdering,
+  $sidebarRecentGrouping,
   $sidebarRowMeta,
   $sidebarViewCustomized,
   $sidebarWidth,
   resetSidebarView,
+  setSidebarAgentsGrouped,
   setSidebarGrouping,
   setSidebarOrdering,
   setSidebarWidth,
@@ -21,6 +23,15 @@ beforeEach(() => {
 })
 
 describe('the sidebar as it ships', () => {
+  it('preserves Recent grouping when project navigation activates the legacy project view', () => {
+    setSidebarGrouping('status')
+    setSidebarAgentsGrouped(true)
+    expect($sidebarRecentGrouping.get()).toBe('status')
+    setSidebarGrouping('profile')
+    setSidebarAgentsGrouped(true)
+    expect($sidebarRecentGrouping.get()).toBe('profile')
+  })
+
   it('keeps the sessions rail at the 245px Aino baseline when resized below its minimum', () => {
     setSidebarWidth(0)
 

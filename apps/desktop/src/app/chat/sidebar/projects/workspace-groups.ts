@@ -66,6 +66,9 @@ export interface SidebarProjectTree {
   lastActive?: number
   // Up to N most-recent sessions for the overview preview (set by `projects.tree`).
   previewSessions?: SessionInfo[]
+  // Compact authoritative membership, including rows beyond the preview limit.
+  // Optional for compatibility with older remote backends.
+  sessionIdentities?: Pick<SessionInfo, 'id' | '_lineage_root_id' | 'profile'>[]
 }
 
 /** Path split into segments, ignoring trailing slashes and mixed separators. */

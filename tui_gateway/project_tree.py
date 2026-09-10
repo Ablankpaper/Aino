@@ -36,6 +36,8 @@ def stamp_profile(projects: list[dict], profile: str) -> None:
     """Stamp every session row with the request-scope profile (authoritative even for legacy
     rows whose ``profile_name`` is NULL) for cross-profile routing."""
     for project in projects:
+        for identity in project.get("sessionIdentities") or []:
+            identity["profile"] = profile
         lanes = [g for repo in project.get("repos") or [] for g in repo.get("groups") or []]
         for session in (project.get("previewSessions") or []) + [
                 s for g in lanes for s in g.get("sessions") or []]:
@@ -339,6 +341,10 @@ def _project_node(
         "id": pid, "label": label, "path": path, "color": None, "icon": None,
         "isAuto": False, "isNoProject": False,
         "sessionCount": session_count, "lastActive": last_active,
+        # Membership must outlive the preview window without hydrating transcripts.
+        "sessionIdentities": [
+            {"id": s["id"], "_lineage_root_id": s.get("_lineage_root_id"),
+             "profile": s.get("profile") or "default"} for s in rows if s.get("id")],
         # Totals over the same sessions `sessionCount` counts (billed cost, else estimated).
         "totalTokens": sum(
             (s.get("input_tokens") or 0) + (s.get("output_tokens") or 0) for s in rows),

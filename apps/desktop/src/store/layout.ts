@@ -375,6 +375,13 @@ export const $sidebarGrouping: ReadableAtom<SidebarGrouping> = computed(
   (grouped, flat, allProfiles, showAll) => (grouped ? 'project' : showAll ? allProfiles : flat)
 )
 
+// Projects and Recent coexist. Opening a project must not override Recent's
+// saved grouping, even when an older action still selects the project view.
+export const $sidebarRecentGrouping = computed(
+  [$sidebarFlatGrouping, $sidebarAllProfilesGrouping, $showAllProfiles],
+  (flat, allProfiles, showAll) => (showAll ? allProfiles : flat)
+)
+
 // A hand-dragged order outranks any sort key — dragging IS how you pick manual,
 // so the menu reflects that rather than offering a fourth way to say it.
 export const $sidebarOrdering: ReadableAtom<SidebarOrdering> = computed(

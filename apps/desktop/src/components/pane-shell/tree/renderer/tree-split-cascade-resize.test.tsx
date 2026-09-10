@@ -94,6 +94,34 @@ function row(): SplitNode {
 }
 
 describe('TreeSplit cascading expansion', () => {
+  it.each(['pointerup', 'pointercancel', 'blur', 'lostpointercapture'])(
+    'clears active sash feedback when the gesture ends via %s',
+    eventType => {
+      const tree = split('row', [group(['chat']), group(['browser'])], [1, 1], 'feedback-row')
+      $layoutTree.set(tree)
+      const { container } = render(<TreeSplit node={tree} root rootRow />)
+      const splitRow = container.querySelector<HTMLElement>('[data-tree-split="feedback-row"]')!
+      setWidth(splitRow, 1000)
+
+      for (const child of splitRow.children) {
+        setWidth(child as HTMLElement, 500)
+      }
+
+      const sash = container.querySelector<HTMLElement>('[role="separator"]')!
+
+      try {
+        fireEvent.pointerDown(sash, { button: 0, clientX: 500, pointerId: 1, pointerType: 'mouse' })
+        expect(sash.hasAttribute('data-sash-dragging')).toBe(true)
+        fireEvent(eventType === 'lostpointercapture' ? sash : window, new Event(eventType))
+        expect(sash.hasAttribute('data-sash-dragging')).toBe(false)
+      } finally {
+        if (sash.hasAttribute('data-sash-dragging')) {
+          fireEvent(window, new Event('blur'))
+        }
+      }
+    }
+  )
+
   it('grows Browser through Cron into Chat after Cron reaches its minimum', () => {
     const tree = split(
       'row',

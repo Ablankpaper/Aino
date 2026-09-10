@@ -16,6 +16,128 @@ test.afterAll(async () => {
   fixture = null
 })
 
+test('keeps the primary conversation title beside search without a second header row', async ({}, testInfo) => {
+  const { app, page } = fixture!
+  const title = page.locator('[data-current-session-title]').first()
+  await expect(title).toBeVisible()
+
+  const metrics = () =>
+    page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector)
+
+        if (!element) {
+          throw new Error(`Missing header element: ${selector}`)
+        }
+
+        const { top, right, bottom, left, width } = element.getBoundingClientRect()
+
+        return { top, right, bottom, left, width }
+      }
+      const bar = rect('[data-slot="app-titlebar"]')
+      const heading = rect('[data-current-session-title]')
+      const chat = rect('[data-chat-surface]')
+      const search = document.querySelector('[data-session-search-shell]')?.getBoundingClientRect()
+      const tools = rect('[data-slot="titlebar-app-controls"]')
+      const paneTools = document.querySelector('[data-slot="titlebar-pane-controls"]')?.getBoundingClientRect()
+      const label = document.querySelector<HTMLElement>('[data-current-session-title] > span')!
+
+      return {
+        chatStartsBelowBar: Math.abs(chat.top - bar.bottom) <= 1,
+        titleInsideBar: heading.top >= bar.top && heading.bottom <= bar.bottom,
+        titleReadable: heading.width > 80,
+        titleBeforeSearch: !search || heading.right <= search.left,
+        searchBeforeTools: !search || search.right <= (paneTools?.left ?? tools.left),
+        titleTruncatesCleanly:
+          label.scrollWidth <= label.clientWidth || getComputedStyle(label).textOverflow === 'ellipsis',
+        viewportOverflow: document.documentElement.scrollWidth > window.innerWidth
+      }
+    })
+
+  await expect.poll(async () => (await metrics()).titleInsideBar).toBe(true)
+  expect((await metrics()).chatStartsBelowBar).toBe(true)
+  await expect(page.locator('[data-tree-tab="hermes-bots:pane"]')).toBeVisible()
+
+  const composer = page.locator('[contenteditable="true"]').first()
+  await composer.fill('Check a long conversation heading while keeping search and every window tool available')
+  await composer.press('Enter')
+  await page.waitForFunction(() => document.body.textContent?.includes('mock inference server'), undefined, {
+    timeout: 60_000
+  })
+  await expect(page.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: 'Search sessions' })).toBeVisible()
+  await expect(
+    page.locator('[data-slot="app-titlebar"]').getByRole('button', { name: 'Session actions' })
+  ).toBeVisible()
+
+  for (const width of [1220, 760]) {
+    await app.evaluate(({ BrowserWindow }, nextWidth) => {
+      BrowserWindow.getAllWindows()[0].setSize(nextWidth, 800, false)
+    }, width)
+    await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(width)
+    await expect.poll(metrics).toEqual({
+      chatStartsBelowBar: true,
+      titleInsideBar: true,
+      titleReadable: true,
+      titleBeforeSearch: true,
+      searchBeforeTools: true,
+      titleTruncatesCleanly: true,
+      viewportOverflow: false
+    })
+    await page.screenshot({ path: testInfo.outputPath(`single-titlebar-${width}.png`) })
+  }
+
+  await page.getByRole('button', { name: 'Hide sidebar', exact: true }).click()
+  await expect.poll(async () => (await metrics()).titleInsideBar).toBe(true)
+  await expect(title).toBeVisible()
+  await page.getByRole('button', { name: 'Show sidebar', exact: true }).click()
+  await expect(page.locator('[data-aino-sidebar]')).toBeVisible()
+
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1220, 800, false))
+  const sessionUrl = page.url()
+  const sessionTitle = await title.innerText()
+  await page
+    .locator('[data-slot="titlebar-app-controls"]')
+    .getByRole('button', { name: 'Open settings', exact: true })
+    .click()
+  await expect(page.locator('[data-settings-workspace]')).toBeVisible()
+  await expect(page.locator('[data-window-session-title]')).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: 'Search sessions' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Close settings', exact: true }).click()
+  await expect(page).toHaveURL(sessionUrl)
+  await expect(title).toHaveText(sessionTitle)
+  await expect.poll(async () => (await metrics()).chatStartsBelowBar).toBe(true)
+
+  await page.getByRole('button', { name: 'Swap sidebar sides', exact: true }).click()
+  await expect.poll(async () => (await metrics()).titleInsideBar).toBe(true)
+  await expect(page.locator('[data-aino-sidebar]')).toBeVisible()
+  await page.getByRole('button', { name: 'Swap sidebar sides', exact: true }).click()
+
+  await page.locator('[data-slot="app-titlebar"]').getByRole('button', { name: 'Session actions' }).click()
+  const windowOpened = app.waitForEvent('window')
+  await page.getByRole('menuitem', { name: 'New window', exact: true }).click()
+  const secondary = await windowOpened
+
+  try {
+    await expect(secondary).toHaveURL(/win=secondary/)
+    await expect(secondary.locator('[data-current-session-title]').first()).toBeVisible({ timeout: 30_000 })
+    await expect(secondary.locator('[data-window-session-title]')).toHaveCount(0)
+    await expect(secondary.locator('[data-tree-group] [data-current-session-title]').first()).toBeVisible()
+    await expect(secondary.locator('[data-chat-surface]').first()).toContainText('mock inference server', {
+      timeout: 30_000
+    })
+  } finally {
+    await secondary.close()
+  }
+
+  await page.locator('button:has-text("New session")').first().click()
+  await expect(page.locator('[data-chat-surface][data-home-layout]')).toBeVisible()
+  const row = page.locator('[data-aino-sidebar]').getByRole('button', { name: sessionTitle, exact: true })
+  await row.dragTo(title)
+  await expect(page.locator('[data-window-session-title]')).toContainText(sessionTitle)
+  await expect(page.locator('[data-chat-surface]:visible').first()).toContainText('mock inference server')
+})
+
 test('keeps the main titlebar and tab strip on one surface across chat states', async () => {
   const page = fixture!.page
 
@@ -83,6 +205,10 @@ test('keeps the main titlebar and tab strip on one surface across chat states', 
   await page.reload()
   await waitForAppReady(fixture!, 120_000)
   await page.waitForSelector('[data-pane-surface="main"]', { state: 'visible', timeout: 30_000 })
+  // Reload restores the last stored chat, so establish this test's draft
+  // explicitly instead of inheriting the previous test's session state.
+  await page.locator('button:has-text("New session")').first().click()
+  await expect(page.locator('[data-chat-surface][data-home-layout]')).toBeVisible()
 
   const stackedHome = await topSurfaceMetrics()
 
@@ -90,8 +216,8 @@ test('keeps the main titlebar and tab strip on one surface across chat states', 
   expect(stackedHome.mainStrip, JSON.stringify(stackedHome)).not.toBeNull()
   expect(stackedHome.titlebar, JSON.stringify(stackedHome)).toBe(stackedHome.mainStrip)
   expect(stackedHome.titlebarSeam.borderRightStyle, JSON.stringify(stackedHome)).toBe('solid')
-  // The unified top band has no vertical divider; the rail owns the edge below it.
-  expect(stackedHome.titlebarSeam.borderRightWidth, JSON.stringify(stackedHome)).toBe('0px')
+  // The rail's edge continues through the titlebar as one quiet hairline.
+  expect(stackedHome.titlebarSeam.borderRightWidth, JSON.stringify(stackedHome)).toBe('1px')
   expect(stackedHome.titlebarSeam.boxShadow, JSON.stringify(stackedHome)).toBe('none')
   if (stackedHome.sessionsStrip && !stackedHome.glass) {
     expect(stackedHome.sessionsStrip, JSON.stringify(stackedHome)).not.toBe(stackedHome.titlebar)

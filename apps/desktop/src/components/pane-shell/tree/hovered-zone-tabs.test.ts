@@ -71,6 +71,32 @@ describe('hovered zone retargets the tab verbs', () => {
     expect(activeOf('grp-main')).toBe('workspace')
   })
 
+  it.each(['pointerover', 'pointerdown', 'focusin'])(
+    '%s on a projected header targets its owning chat zone',
+    async eventType => {
+      const { activeOf, tree } = await setup()
+      const header = globalThis.document.createElement('div')
+      header.dataset.zoneTabstrip = 'grp-main'
+      const label = globalThis.document.createElement('span')
+      header.append(label)
+      globalThis.document.body.append(header)
+      tree.noteActiveTreeGroup('grp-side')
+      tree.noteHoveredTreeGroup(null)
+      const stopTracking = tree.trackActiveTreeGroup()
+
+      try {
+        label.dispatchEvent(new Event(eventType, { bubbles: true }))
+
+        expect(tree.activateTreeTabSlot(2)).toBe('session-tile:a')
+        expect(activeOf('grp-main')).toBe('session-tile:a')
+        expect(activeOf('grp-side')).toBe('session-tile:b')
+      } finally {
+        stopTracking()
+        header.remove()
+      }
+    }
+  )
+
   it('⌃Tab and the ⌘T / ⌘W family follow the same hovered zone', async () => {
     const { activeOf, model, tree } = await setup()
 

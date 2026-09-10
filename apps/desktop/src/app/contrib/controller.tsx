@@ -15,6 +15,7 @@ import { IdleMount } from '@/components/idle-mount'
 import { $layoutEditMode, toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
 import { allPaneIds, group, groupLeafIds, split } from '@/components/pane-shell/tree/model'
 import { LayoutTreeRoot } from '@/components/pane-shell/tree/renderer'
+import { WindowTitlebarContext } from '@/components/pane-shell/tree/renderer/header-placement'
 import {
   $layoutTree,
   bindPaneVisibility,
@@ -78,7 +79,7 @@ import { watchSessionPins } from '@/store/session-pin-sync'
 import { $botChatScopes } from '@/store/session-states'
 import { watchUnreadWriteGuard } from '@/store/session-unread-remote'
 import { $statusbarVisible } from '@/store/statusbar-prefs'
-import { isBrowserWindow, isHudWindow } from '@/store/windows'
+import { isAuxiliaryWindow, isBrowserWindow, isHudWindow } from '@/store/windows'
 
 import { BrowserPopoutShell } from '../chat/browser-popout-shell'
 import type { SessionDragPayload } from '../chat/composer/inline-refs'
@@ -813,10 +814,9 @@ registerPaneCloser('files', () =>
 interface TitlebarSlotProps {
   area: 'titleBar.center' | 'titleBar.left' | 'titleBar.right'
   className: string
-  style?: CSSProperties
 }
 
-function TitlebarSlot({ area, className, style }: TitlebarSlotProps) {
+function TitlebarSlot({ area, className }: TitlebarSlotProps) {
   const items = useContributions(area)
 
   if (items.length === 0) {
@@ -824,7 +824,7 @@ function TitlebarSlot({ area, className, style }: TitlebarSlotProps) {
   }
 
   return (
-    <div className={className} style={style}>
+    <div className={className} data-titlebar-slot={area}>
       <Slot area={area} />
     </div>
   )
@@ -834,7 +834,8 @@ export function ContribController() {
   const sidebarOpen = useStore($sidebarOpen)
   const statusbarVisible = useStore($statusbarVisible)
   const location = useLocation()
-  const settingsPage = appViewForPath(location.pathname) === 'settings'
+  const view = appViewForPath(location.pathname)
+  const settingsPage = view === 'settings'
 
   // HUD mode is the SAME app with its frame removed: the wiring (gateway,
   // sessions, streams, submit) mounts identically, and only the shell around
@@ -876,17 +877,9 @@ export function ContribController() {
           data-contrib-shell=""
           style={{ '--titlebar-height': '0px' } as CSSProperties}
         >
-          {/* Title bar: fixed chrome outside the grid, composable via slots.
-              Layout contract (no contribution can break it):
-                - a full-bar DRAG BASE underneath (pointer-events-none, like
-                  AppShell's drag strips) — everywhere without content drags
-                  the window;
-                - each slot region is width-fit, no-drag, pointer-events-auto,
-                  so every contribution is clickable by construction;
-                - LEFT/RIGHT slots align to the MAIN PANE's geometry via the
-                  tree-published --workspace-left/right vars (pure CSS, no rect
-                  threading), clamped to clear the REAL TitlebarControls
-                  clusters (fixed, z-70); center is truly window-centered. */}
+          {/* Slots share one bounded row between the native/tool clusters.
+              Empty space remains draggable; each contribution owns its
+              no-drag hit area. The workspace geometry aligns the title. */}
           <div
             className="relative flex shrink-0 items-center bg-(--ui-sidebar-surface-background) text-xs"
             data-slot="app-titlebar"
@@ -906,28 +899,21 @@ export function ContribController() {
               aria-hidden="true"
               className="pointer-events-none absolute inset-y-0 left-[calc(var(--titlebar-controls-left,14px)+(var(--titlebar-control-size,24px)*2)+0.75rem)] right-[calc(var(--titlebar-tools-right,0.75rem)+var(--titlebar-tools-width,5.5rem)+0.75rem)] [-webkit-app-region:drag]"
             />
-            <TitlebarSlot
-              area="titleBar.left"
-              className="pointer-events-auto absolute z-10 flex w-max items-center gap-2 [-webkit-app-region:no-drag]"
+            <div
+              className="pointer-events-none absolute inset-y-0 z-10 flex min-w-0 items-center justify-center gap-3 [&_[data-titlebar-slot]>*]:pointer-events-auto [&_[data-titlebar-slot]>*]:min-w-0 [&_[data-titlebar-slot]>*]:max-w-full [&_[data-titlebar-slot]>*]:[-webkit-app-region:no-drag]"
+              data-titlebar-content=""
               style={{
-                left: 'max(calc(var(--workspace-left, 0px) + 0.5rem), calc(var(--titlebar-controls-left, 14px) + 2 * var(--titlebar-control-size, 24px) + 1rem))'
+                left: 'max(calc(var(--workspace-left, 0px) + 0.5rem), calc(var(--titlebar-controls-left, 14px) + 2 * var(--titlebar-control-size, 24px) + 1rem))',
+                right: 'calc(var(--titlebar-tools-right, 0.75rem) + var(--titlebar-tools-width, 8.5rem) + 0.75rem)'
               }}
-            />
-            <TitlebarSlot
-              area="titleBar.center"
-              className="pointer-events-auto absolute left-1/2 top-1/2 z-10 flex w-max -translate-x-1/2 -translate-y-1/2 items-center gap-2 [-webkit-app-region:no-drag]"
-            />
-            <TitlebarSlot
-              area="titleBar.right"
-              className="pointer-events-auto absolute z-10 flex w-max items-center gap-2 [-webkit-app-region:no-drag]"
-              style={{
-                right:
-                  // Five static cluster buttons: four systemTools plus the
-                  // always-present right-sidebar toggle (titlebar-controls.tsx).
-                  // Keep in sync with wiring.tsx's SYSTEM_TOOL_COUNT.
-                  'max(calc(var(--workspace-right, 0px) + 0.5rem), calc(var(--titlebar-tools-right, 0.75rem) + var(--titlebar-tools-width, 8.5rem) + 0.5rem))'
-              }}
-            />
+            >
+              <TitlebarSlot area="titleBar.left" className="flex h-full min-w-0 flex-1 items-center gap-2" />
+              <TitlebarSlot
+                area="titleBar.center"
+                className="flex h-full min-w-0 w-[min(20rem,45%)] shrink items-center gap-2"
+              />
+              <TitlebarSlot area="titleBar.right" className="flex h-full min-w-0 shrink-0 items-center gap-2" />
+            </div>
           </div>
 
           {/* Keep the tiling tree mounted while Settings owns the foreground.
@@ -941,7 +927,9 @@ export function ContribController() {
                 : 'relative flex min-h-0 min-w-0 flex-1'
             }
           >
-            <LayoutTreeRoot />
+            <WindowTitlebarContext.Provider value={view === 'chat' && !isAuxiliaryWindow()}>
+              <LayoutTreeRoot />
+            </WindowTitlebarContext.Provider>
           </div>
 
           {settingsPage && (

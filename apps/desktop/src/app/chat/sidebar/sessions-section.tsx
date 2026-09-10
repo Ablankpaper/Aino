@@ -88,6 +88,7 @@ function SidebarSectionHeader({
     >
       {collapsible ? (
         <button
+          aria-expanded={open}
           // min-w-0 lets the label truncate at narrow sidebar widths instead of
           // pushing the header's trailing action icons out of view.
           className="group/section-label flex w-fit min-w-0 items-center gap-1 bg-transparent text-left leading-none"
@@ -95,10 +96,7 @@ function SidebarSectionHeader({
           type="button"
         >
           {labelBody}
-          <DisclosureCaret
-            className="text-(--ui-text-tertiary) opacity-0 transition group-hover/section-label:opacity-100"
-            open={open}
-          />
+          <DisclosureCaret className="text-(--ui-text-tertiary)" open={open} />
         </button>
       ) : (
         <div className="flex w-fit min-w-0 items-center gap-1 leading-none">{labelBody}</div>
@@ -431,7 +429,7 @@ export function SidebarSessionsSection({
   )
 
   useEffect(() => {
-    if (grouping !== 'date' && grouping !== 'status') {
+    if (projectOverview !== undefined || projectContent || (grouping !== 'date' && grouping !== 'status')) {
       return
     }
 
@@ -440,7 +438,7 @@ export function SidebarSessionsSection({
     return () => {
       $sidebarListGroupIds.set([])
     }
-  }, [flatRows, grouping])
+  }, [flatRows, grouping, projectOverview, projectContent])
 
   // Pinned never virtualizes. Virtualization needs a bounded viewport to
   // measure against, and Pinned deliberately has none — however many chats you
@@ -590,7 +588,7 @@ export function SidebarSessionsSection({
 
   const sectionKind = pinned
     ? 'pinned'
-    : projectOverview?.length
+    : projectOverview !== undefined
       ? 'projects'
       : projectContent
         ? 'project'

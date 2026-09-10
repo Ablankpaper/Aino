@@ -1,6 +1,8 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type * as Nanostores from 'nanostores'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { $activeGatewayProfile } from '@/store/profile'
 
 import { ProjectDialog } from './project-dialog'
 
@@ -61,6 +63,7 @@ vi.mock('@/store/projects', () => ({
   closeProjectDialog: vi.fn(),
   createProject: vi.fn(),
   generateProjectIdea: vi.fn(),
+  goToProject: vi.fn(),
   pickProjectFolder: vi.fn(async () => '/Users/test/my-folder'),
   renameProject: vi.fn()
 }))
@@ -166,5 +169,68 @@ describe('ProjectDialog', () => {
     await waitFor(() => expect(createProject).toHaveBeenCalledOnce())
 
     expect(createProject.mock.calls[0]?.[0]).toMatchObject({ dropPlacement: undefined })
+  })
+
+  it('opens a new chat in the created project after a successful plain-click create', async () => {
+    const { createProject, goToProject } = vi.mocked(await import('@/store/projects'))
+    createProject.mockResolvedValueOnce({
+      id: 'p_new',
+      name: 'Skunkworks',
+      slug: 'skunkworks',
+      description: null,
+      icon: null,
+      color: null,
+      board_slug: null,
+      primary_path: '/Users/test/my-folder',
+      archived: false,
+      created_at: 1,
+      folders: [{ path: '/Users/test/my-folder', label: null, is_primary: true, added_at: 1 }]
+    })
+    $newProjectDropPlacement.set(null)
+    render(<ProjectDialog />)
+    await fillCreateForm()
+    await waitFor(() => expect(goToProject).toHaveBeenCalledWith('p_new', { newSession: true }))
+  })
+
+  it.each(['dismissed', 'profile-switched'])('does not open a chat after the create intent is %s', async reason => {
+    const { createProject, goToProject } = vi.mocked(await import('@/store/projects'))
+    let finish!: (result: Awaited<ReturnType<typeof createProject>>) => void
+    createProject.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          finish = resolve
+        })
+    )
+    goToProject.mockClear()
+    $newProjectDropPlacement.set(null)
+    $projectDialog.set({ mode: 'create' })
+    const originalProfile = $activeGatewayProfile.get()
+    render(<ProjectDialog />)
+    await fillCreateForm()
+
+    await act(async () => {
+      if (reason === 'dismissed') {
+        $projectDialog.set(null)
+      } else {
+        $activeGatewayProfile.set('different-profile')
+      }
+
+      finish({
+        id: 'p_delayed',
+        name: 'Delayed',
+        slug: 'delayed',
+        description: null,
+        icon: null,
+        color: null,
+        board_slug: null,
+        primary_path: '/Users/test/my-folder',
+        archived: false,
+        created_at: 1,
+        folders: [{ path: '/Users/test/my-folder', label: null, is_primary: true, added_at: 1 }]
+      })
+    })
+    expect(goToProject).not.toHaveBeenCalled()
+    $activeGatewayProfile.set(originalProfile)
+    $projectDialog.set({ mode: 'create' })
   })
 })

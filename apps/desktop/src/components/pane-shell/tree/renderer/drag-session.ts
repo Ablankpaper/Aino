@@ -516,7 +516,16 @@ export function startPaneDrag(
 
       // The hint updates on highlight-set changes AND on sub-zone position
       // changes (center/edge regions within the same primary zone).
-      const point = { x, y }
+      const hoveredStrip = strips.find(s => rectContains(s.rect, x, y))
+      const stripZone = hoveredStrip ? zones.find(z => z.id === hoveredStrip.groupId) : null
+
+      // Projected headers retain their zone's targeting and Shift-span
+      // semantics even though their visible rectangle is above the body.
+      const point =
+        stripZone && !rectContains(stripZone.rect, x, y)
+          ? { x: (stripZone.rect.left + stripZone.rect.right) / 2, y: (stripZone.rect.top + stripZone.rect.bottom) / 2 }
+          : { x, y }
+
       highlighted.update(zones, point, shift)
       let groupIds = [...highlighted.zones()]
 

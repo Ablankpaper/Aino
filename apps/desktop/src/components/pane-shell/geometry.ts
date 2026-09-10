@@ -198,10 +198,65 @@ export function publishWorkspaceGeometry(): () => void {
   let el: HTMLElement | null = null
   let lastLeft = NaN
   let lastRight = NaN
+  let rail: HTMLElement | null = null
+  let titlebar: HTMLElement | null = null
 
   const ro = new ResizeObserver(() => measure())
 
   const measure = () => {
+    const nextRail = document.querySelector<HTMLElement>('[data-navigation-rail]')
+
+    if (nextRail !== rail) {
+      if (rail) {
+        ro.unobserve(rail)
+      }
+
+      rail = nextRail
+
+      if (rail) {
+        ro.observe(rail)
+      }
+    }
+
+    titlebar = document.querySelector<HTMLElement>('[data-slot="app-titlebar"]')
+
+    if (titlebar) {
+      const r = rail?.getBoundingClientRect()
+      const bar = titlebar.getBoundingClientRect()
+
+      const side =
+        r && r.width > 0 && Math.abs(r.top - bar.bottom) <= 1
+          ? r.left <= 1
+            ? 'left'
+            : Math.abs(r.right - window.innerWidth) <= 1
+              ? 'right'
+              : null
+          : null
+
+      // These vars affect only the titlebar paint, so keep them live during
+      // sash drags without invalidating the root/workspace vars below.
+      if (side && r) {
+        const left = `${r.left}px`
+        const width = `${r.width}px`
+
+        if (titlebar.style.getPropertyValue('--titlebar-rail-left') !== left) {
+          titlebar.style.setProperty('--titlebar-rail-left', left)
+        }
+
+        if (titlebar.style.getPropertyValue('--titlebar-rail-width') !== width) {
+          titlebar.style.setProperty('--titlebar-rail-width', width)
+        }
+
+        if (titlebar.dataset.titlebarRail !== side) {
+          titlebar.dataset.titlebarRail = side
+        }
+      } else {
+        delete titlebar.dataset.titlebarRail
+        titlebar.style.removeProperty('--titlebar-rail-left')
+        titlebar.style.removeProperty('--titlebar-rail-width')
+      }
+    }
+
     // DEFER during a sash drag (see beginSashDrag above) — republished once on
     // release via the onSashDragEnd hook registered below.
     if (sashDragging()) {
@@ -259,6 +314,12 @@ export function publishWorkspaceGeometry(): () => void {
     ro.disconnect()
     root.style.removeProperty('--workspace-left')
     root.style.removeProperty('--workspace-right')
+
+    if (titlebar) {
+      delete titlebar.dataset.titlebarRail
+      titlebar.style.removeProperty('--titlebar-rail-left')
+      titlebar.style.removeProperty('--titlebar-rail-width')
+    }
   }
 }
 

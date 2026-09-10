@@ -156,7 +156,8 @@ export function startNewSessionDrag(
     },
 
     resolveMove(x, y): DropHint | null {
-      const zone = zones.find(z => rectContains(z.rect, x, y))
+      const strip = strips.find(s => rectContains(s.rect, x, y))
+      const zone = strip ? zones.find(z => z.id === strip.groupId) : zones.find(z => rectContains(z.rect, x, y))
       const host = zone ? zoneHost.get(zone.id) : null
 
       if (!zone || !host) {
@@ -166,8 +167,6 @@ export function startNewSessionDrag(
       }
 
       // The zone's TAB STRIP stacks the new session at the divider's slot.
-      const strip = strips.find(s => s.groupId === zone.id && rectContains(s.rect, x, y))
-
       if (strip) {
         const stack = slotBefore(strip.slots, x)
         placement = {
@@ -275,7 +274,8 @@ export function startNewProjectDrag(
     },
 
     resolveMove(x, y): DropHint | null {
-      const zone = zones.find(z => rectContains(z.rect, x, y))
+      const strip = strips.find(s => rectContains(s.rect, x, y))
+      const zone = strip ? zones.find(z => z.id === strip.groupId) : zones.find(z => rectContains(z.rect, x, y))
       const host = zone ? zoneHost.get(zone.id) : null
 
       if (!zone || !host) {
@@ -283,8 +283,6 @@ export function startNewProjectDrag(
 
         return null
       }
-
-      const strip = strips.find(s => s.groupId === zone.id && rectContains(s.rect, x, y))
 
       if (strip) {
         const stack = slotBefore(strip.slots, x)

@@ -81,6 +81,24 @@ def _real_project_ids(tree):
 # ---------------------------------------------------------------------------
 
 
+def test_overview_membership_survives_preview_limit_and_profile_stamping():
+    sessions = [
+        _session('/external/task', id='old-tip', _lineage_root_id='old-root', last_active=1),
+        _session('/repo', id='latest', last_active=2),
+    ]
+    resolve = _resolver({'/external/task': ('/repo', '/external/task'), '/repo': ('/repo', '/repo')})
+    tree = pt.build_tree([], sessions, [], resolve, preview_limit=1, hydrate=False)
+    pt.stamp_profile(tree['projects'], 'worker')
+    project = next(p for p in tree['projects'] if p['id'] == '/repo')
+
+    assert [s['id'] for s in project['previewSessions']] == ['latest']
+    assert _sessions_of(project) == []
+    assert project['sessionIdentities'] == [
+        {'id': 'old-tip', '_lineage_root_id': 'old-root', 'profile': 'worker'},
+        {'id': 'latest', '_lineage_root_id': None, 'profile': 'worker'},
+    ]
+
+
 def test_main_checkout_groups_by_recorded_branch_with_stable_lane_ids():
     resolve = _resolver({"/repo": ("/repo", "/repo")})
     sessions = [

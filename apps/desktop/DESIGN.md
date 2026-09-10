@@ -63,6 +63,17 @@ one-off at the call site.
   per entry point.
 - **Projects own workspace cwd.** Use Sidebar → Projects for local folders and
   worktrees; do not reintroduce a per-session/right-sidebar folder-picker flow.
+- **Conversation navigation has three sections:** Pinned appears only when it
+  contains a session; Projects remains present even when empty; Recent lists
+  ordinary conversations. Pinned and project conversations do not repeat in
+  Recent. Project membership comes from the backend tree with live overlays;
+  unclassified sessions stay reachable while that tree loads. New Project and
+  Open Folder stay visible even when Projects is collapsed. Creating/opening a
+  project starts a draft in its primary folder; the main New Session action
+  starts an ordinary draft without inheriting the previously selected project.
+  Project menus, worktree lanes, session ordering, filters and split drags keep
+  their existing action paths. Messaging and scheduled jobs retain their own
+  sections below Recent.
 
 Navigation must preserve context. A background session finishing, a tool result
 arriving, or a project refresh may update badges and cached data; it must not
@@ -209,6 +220,21 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
 
 ## Layout
 
+- **Navigation rail:** a quiet gray rail continues into its portion of the
+  native titlebar, with one continuous hairline at the content boundary.
+  The tree sash owns the divider and its resize target; panes do not add
+  edge borders or shadows. Titlebar-local geometry follows resizing, hiding
+  and side swaps without per-frame root style invalidation. Glass retains
+  the body field painter plus one subtle rail-tone layer, not stacked fills.
+  Navigation uses bare line icons, primary-ink labels, smaller section labels
+  and soft neutral hover/selection fills without inset outlines.
+- **Primary chat header:** the active conversation title and its existing
+  session menu share the window titlebar with session search. Slots shrink
+  within the native/window-tool boundaries; long titles ellipsize and search
+  results open below the field without resizing the chat. Do not reserve a
+  second header row for a session-only primary group. Mixed pane tabs,
+  secondary chat splits and layout edit mode retain their local strips;
+  Settings and auxiliary windows never borrow the primary window's header.
 - **Gutters:** `PAGE_INSET_X` (`src/app/layout-constants.ts`) for page side
   padding; `PAGE_INSET_NEG_X` to bleed a child to the edge. Don't hardcode
   `px-6`/`px-8` on pages.

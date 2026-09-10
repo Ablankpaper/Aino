@@ -10,7 +10,16 @@
  */
 
 import { useStore } from '@nanostores/react'
-import { type CSSProperties, Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from 'react'
+import {
+  type CSSProperties,
+  Fragment,
+  type ReactNode,
+  type RefObject,
+  useContext,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 
 import { ActionsContextMenu, type MenuKit, renderActionItem } from '@/components/ui/actions-menu'
 import { Codicon } from '@/components/ui/codicon'
@@ -84,6 +93,7 @@ import {
 } from '../tab-selection'
 
 import { startPaneDrag } from './drag-session'
+import { SessionHeaderPlacement, WindowTitlebarContext } from './header-placement'
 import { tabStripVisibleForZone } from './strip-visibility'
 import { useActiveTabVisible } from './tab-strip-scroll'
 import { paneChrome } from './track-model'
@@ -252,6 +262,7 @@ export function TreeGroup({
   // overlay, not every zone's header/body (and not the menuDirections walk).
   const dragging = useStore($treeDragging)
   const editMode = useStore($layoutEditMode)
+  const hasWindowTitlebar = useContext(WindowTitlebarContext)
   const wcOverlap = useWindowControlsOverlap(ref, true)
 
   const hiddenPanes = useStore($hiddenTreePanes)
@@ -379,6 +390,7 @@ export function TreeGroup({
   // single session title with it.
   const hideSessionTabStrip = !isEmpty && !verticalCollapse && !editMode && sessionOnlyZone
   const singleSessionHeader = hideSessionTabStrip
+  const titleInWindowBar = hasWindowTitlebar && singleSessionHeader && shown.includes('workspace') && !node.minimized
   // Chrome of the pane the single-title header names — its headerMenu kebab
   // sits beside the title (the IIFE below re-derives the same chrome for the
   // title's own lead/label/wrap hooks).
@@ -470,10 +482,11 @@ export function TreeGroup({
   return (
     <div
       className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-(--ui-editor-surface-background)"
+      data-navigation-rail={isNavigationRail ? (railSide ?? 'left') : undefined}
       data-tree-group={node.id}
       // Advertises the visible tab strip so panes can drop their own
       // self-naming labels (see [data-pane-self-label] in styles.css).
-      data-zone-header={headerVisible || undefined}
+      data-zone-header={(headerVisible && !titleInWindowBar) || undefined}
       // The zone menu opens from the strip, the rail, the edit veil and the
       // body. Only the strip can name a chip, so resolve the target HERE for
       // every one of them — otherwise a right-click off the strip reused the
@@ -543,103 +556,106 @@ export function TreeGroup({
           session or the workspace's routed session.  Other zones retain the
           shared multi-pane tab strip. */}
       {singleSessionHeader && (
-        <ZoneMenu {...zoneMenu}>
-          <PaneTabStrip
-            className="session-title-header"
-            data-zone-tabstrip={node.id}
-            listRef={tabsRef}
-            onPointerDown={e =>
-              // Clicking the surrounding header still drags the pane. The
-              // active title claims its own pointer below.
-              startPaneDrag(activeId, e, undefined, undefined, paneTitle(activeId))
-            }
-            ref={stripRef}
-            surface={tabSurface}
-            trailing={
-              <>
-                {showMinimizeButton && (
-                  <button
-                    aria-label={node.minimized ? t.zones.restore : t.zones.minimize}
-                    className="mx-1 grid size-5 shrink-0 place-items-center self-center rounded-md text-(--ui-text-tertiary) opacity-0 transition-opacity hover:bg-(--ui-control-hover-background) hover:text-foreground focus-visible:opacity-100 group-hover/pane-header:opacity-100"
-                    onClick={toggleCollapse}
-                    onPointerDown={e => e.stopPropagation()}
-                    type="button"
-                  >
-                    <Codicon name={node.minimized ? 'chevron-up' : 'chevron-down'} size="0.75rem" />
-                  </button>
-                )}
-                <StripDropCaret groupId={node.id} stripRef={stripRef} />
-              </>
-            }
-          >
-            {(() => {
-              const chrome = paneChrome(paneFor(activeId))
+        <SessionHeaderPlacement enabled={titleInWindowBar} groupId={node.id}>
+          <ZoneMenu {...zoneMenu}>
+            <PaneTabStrip
+              className="session-title-header"
+              data-zone-tabstrip={node.id}
+              listRef={tabsRef}
+              onContextMenu={() => setMenuPane(activeId)}
+              onPointerDown={e =>
+                // Clicking the surrounding header still drags the pane. The
+                // active title claims its own pointer below.
+                startPaneDrag(activeId, e, undefined, undefined, paneTitle(activeId))
+              }
+              ref={stripRef}
+              surface={tabSurface}
+              trailing={
+                <>
+                  {showMinimizeButton && (
+                    <button
+                      aria-label={node.minimized ? t.zones.restore : t.zones.minimize}
+                      className="mx-1 grid size-5 shrink-0 place-items-center self-center rounded-md text-(--ui-text-tertiary) opacity-0 transition-opacity hover:bg-(--ui-control-hover-background) hover:text-foreground focus-visible:opacity-100 group-hover/pane-header:opacity-100"
+                      onClick={toggleCollapse}
+                      onPointerDown={e => e.stopPropagation()}
+                      type="button"
+                    >
+                      <Codicon name={node.minimized ? 'chevron-up' : 'chevron-down'} size="0.75rem" />
+                    </button>
+                  )}
+                  <StripDropCaret groupId={node.id} stripRef={stripRef} />
+                </>
+              }
+            >
+              {(() => {
+                const chrome = paneChrome(paneFor(activeId))
 
-              const onTap = () => {
-                clearTabSelection()
+                const onTap = () => {
+                  clearTabSelection()
 
-                if (node.minimized || isCollapsePane(activeId)) {
-                  restoreTreePane(activeId)
+                  if (node.minimized || isCollapsePane(activeId)) {
+                    restoreTreePane(activeId)
+                  }
+
+                  activateTreePane(node.id, activeId)
                 }
 
-                activateTreePane(node.id, activeId)
-              }
+                const title = (
+                  <PaneTab
+                    active={!node.minimized}
+                    aria-selected={!node.minimized}
+                    className="max-w-[min(42rem,100%)]"
+                    data-tree-tab={activeId}
+                    onClose={closeableTab(activeId) ? () => closeTab(activeId) : undefined}
+                    onPointerDown={event => {
+                      event.preventDefault()
+                      event.stopPropagation()
 
-              const title = (
-                <PaneTab
-                  active={!node.minimized}
-                  aria-selected={!node.minimized}
-                  className="max-w-[min(42rem,100%)]"
-                  data-tree-tab={activeId}
-                  onClose={closeableTab(activeId) ? () => closeTab(activeId) : undefined}
-                  onPointerDown={event => {
-                    event.preventDefault()
-                    event.stopPropagation()
-
-                    if (!chrome.tabDrag?.(event, onTap)) {
-                      startPaneDrag(
-                        activeId,
-                        event,
-                        onTap,
-                        stripRef.current ? { groupId: node.id, strip: stripRef.current } : undefined,
-                        paneTitle(activeId)
-                      )
-                    }
-                  }}
-                  role="tab"
-                  // The current-session title follows Codex's compact header:
-                  // actions live in the session menu, not as a hover X. Keep
-                  // the close gesture wired for keyboard/pointer power users.
-                  showCloseButton={false}
-                >
-                  {chrome.tabLead ? (
-                    <span className="ml-2 -mr-1 flex shrink-0 items-center">{chrome.tabLead()}</span>
-                  ) : null}
-                  <PaneTabLabel
-                    className="text-[0.875rem] font-semibold normal-case tracking-normal"
-                    data-current-session-title=""
+                      if (!chrome.tabDrag?.(event, onTap)) {
+                        startPaneDrag(
+                          activeId,
+                          event,
+                          onTap,
+                          stripRef.current ? { groupId: node.id, strip: stripRef.current } : undefined,
+                          paneTitle(activeId)
+                        )
+                      }
+                    }}
+                    role="tab"
+                    // The current-session title follows Codex's compact header:
+                    // actions live in the session menu, not as a hover X. Keep
+                    // the close gesture wired for keyboard/pointer power users.
+                    showCloseButton={false}
                   >
-                    {tabLabel(activeId)}
-                  </PaneTabLabel>
-                </PaneTab>
-              )
+                    {chrome.tabLead ? (
+                      <span className="ml-2 -mr-1 flex shrink-0 items-center">{chrome.tabLead()}</span>
+                    ) : null}
+                    <PaneTabLabel
+                      className="text-[0.875rem] font-semibold normal-case tracking-normal"
+                      data-current-session-title=""
+                    >
+                      {tabLabel(activeId)}
+                    </PaneTabLabel>
+                  </PaneTab>
+                )
 
-              return chrome.tabWrap ? chrome.tabWrap(title) : title
-            })()}
-            {/* Codex pairs the current-session title with a visible ⋯ — the
+                return chrome.tabWrap ? chrome.tabWrap(title) : title
+              })()}
+              {/* Codex pairs the current-session title with a visible ⋯ — the
                 single header carries no hover ✕, so this is the discoverable
                 session-actions entry. Pane drag starts on the strip background
                 and the title, never on the kebab. */}
-            {activeChrome.headerMenu ? (
-              <span
-                className="flex shrink-0 items-center self-center"
-                onPointerDown={event => event.stopPropagation()}
-              >
-                {activeChrome.headerMenu()}
-              </span>
-            ) : null}
-          </PaneTabStrip>
-        </ZoneMenu>
+              {activeChrome.headerMenu ? (
+                <span
+                  className="flex shrink-0 items-center self-center"
+                  onPointerDown={event => event.stopPropagation()}
+                >
+                  {activeChrome.headerMenu()}
+                </span>
+              ) : null}
+            </PaneTabStrip>
+          </ZoneMenu>
+        </SessionHeaderPlacement>
       )}
 
       {/* Header: the shared pane tab strip (PaneTabStrip + PaneTab). */}

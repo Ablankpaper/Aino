@@ -53,11 +53,13 @@ const HEADER_ACTION_BTN =
 // composer instead).
 export function SidebarSectionAddButton({
   ariaLabel,
+  className,
   onNewProjectDrag,
   onNewSessionSplit,
   onPlainClick
 }: {
   ariaLabel: string
+  className?: string
   /** Present when this header "+" creates a PROJECT (the project-overview
    *  mode's "New project" button): dragging it arms where that project should
    *  start and a valid drop opens the same "New project" dialog. `onArm` also
@@ -76,7 +78,7 @@ export function SidebarSectionAddButton({
     <Tip label={ariaLabel}>
       <Button
         aria-label={ariaLabel}
-        className={HEADER_ACTION_BTN}
+        className={cn(HEADER_ACTION_BTN, className)}
         onClick={event => {
           event.stopPropagation()
           onPlainClick()

@@ -2,11 +2,13 @@ import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { Slot } from '@/contrib/react/slot'
 import { registry } from '@/contrib/registry'
 
 import { $layoutEditMode } from '../../edit-mode'
 import { group } from '../model'
 
+import { WindowTitlebarContext } from './header-placement'
 import { TreeGroup } from './tree-group'
 
 let root: null | Root = null
@@ -66,6 +68,70 @@ afterEach(() => {
 })
 
 describe('single-session header', () => {
+  it('moves the primary title and its live menu into the window bar and restores the inline header when needed', () => {
+    let menuClicks = 0
+
+    disposers.push(
+      registry.register({
+        area: 'panes',
+        data: {
+          headerMenu: () => <button onClick={() => menuClicks++}>Session actions</button>,
+          placement: 'main'
+        },
+        id: 'session-tile:promoted',
+        render: () => null,
+        title: 'Promoted conversation'
+      })
+    )
+    const node = group(['workspace', 'session-tile:promoted'], { active: 'session-tile:promoted', id: 'primary' })
+
+    const shell = (enabled: boolean) => (
+      <WindowTitlebarContext.Provider value={enabled}>
+        <div data-test-titlebar="">
+          <Slot area="titleBar.left" />
+        </div>
+        <TreeGroup node={node} parentAxis="row" />
+      </WindowTitlebarContext.Provider>
+    )
+
+    render(shell(true))
+    const bar = () => globalThis.document.querySelector('[data-test-titlebar]')!
+    const inline = () => globalThis.document.querySelector('[data-tree-group="primary"]')!
+
+    expect(bar().textContent).toContain('Promoted conversation')
+    expect(inline().querySelector('[data-current-session-title]')).toBeNull()
+    act(() => bar().querySelector('button')!.click())
+    expect(menuClicks).toBe(1)
+
+    act(() => $layoutEditMode.set(true))
+    expect(bar().querySelector('[data-current-session-title]')).toBeNull()
+    expect(inline().querySelectorAll('[data-tree-tab]')).toHaveLength(2)
+    act(() => $layoutEditMode.set(false))
+    expect(bar().textContent).toContain('Promoted conversation')
+
+    render(shell(false))
+    expect(bar().querySelector('[data-current-session-title]')).toBeNull()
+    expect(inline().textContent).toContain('Promoted conversation')
+  })
+
+  it('keeps secondary conversation headers in their own split pane', () => {
+    render(
+      <WindowTitlebarContext.Provider value>
+        <div data-test-titlebar="">
+          <Slot area="titleBar.left" />
+        </div>
+        <TreeGroup node={group(['workspace'], { id: 'primary' })} parentAxis="row" />
+        <TreeGroup node={group(['session-tile:a'], { id: 'secondary' })} parentAxis="row" />
+      </WindowTitlebarContext.Provider>
+    )
+
+    expect(globalThis.document.querySelector('[data-test-titlebar]')?.textContent).toContain('Workspace')
+    expect(globalThis.document.querySelector('[data-test-titlebar]')?.textContent).not.toContain('Session A')
+    expect(
+      globalThis.document.querySelector('[data-tree-group="secondary"] [data-current-session-title]')?.textContent
+    ).toBe('Session A')
+  })
+
   it('shows only the active session title in a chat-only zone', () => {
     const node = group(['workspace', 'session-tile:a', 'session-tile:b'], {
       active: 'session-tile:b',

@@ -169,6 +169,21 @@ class TestCrossProfileProjectTree:
         assert project["totalTokens"] == 240
         assert project["totalCostUsd"] == pytest.approx(0.5)
 
+    def test_project_membership_retains_profile_twins_beyond_previews(self, client, profiles_on_disk, tmp_path):
+        shared = tmp_path / "shared"
+        shared.mkdir()
+        for home in profiles_on_disk.values():
+            for session_id in ("older", "newer"):
+                _seed_session(home, session_id, source="cli", cwd=shared)
+            _seed_project(home, "Shared", shared)
+
+        payload = client.get("/api/profiles/projects/tree", params={"preview_limit": 1}).json()
+        project = next(p for p in payload["projects"] if not p["isNoProject"])
+        assert len(project["previewSessions"]) == 1
+        assert {(row["profile"], row["id"]) for row in project["sessionIdentities"]} == {
+            ("default", "older"), ("default", "newer"), ("worker", "older"), ("worker", "newer")
+        }
+
     def test_profile_usage_covers_sessions_past_the_window(self, client, profiles_on_disk):
         # The whole point of aggregating in SQL: the total must not be a sum of
         # whichever page the sidebar happens to have asked for.

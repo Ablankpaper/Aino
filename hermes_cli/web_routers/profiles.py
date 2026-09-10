@@ -526,6 +526,8 @@ def _merge_profile_tree(
     a declared project (``p_<hash>``) folds with another profile's auto entry for the same
     folder. Sessions carry the owning profile; a group header never claims a single owner."""
     for project in projects:
+        for identity in project.get("sessionIdentities") or []:
+            identity["profile"] = profile
         lane_sessions = (s for r in project.get("repos") or []
                          for lane in r.get("groups") or []
                          for s in lane.get("sessions") or [])
@@ -551,6 +553,8 @@ def _merge_profile_tree(
         for total_key in ("sessionCount", "totalTokens", "totalCostUsd"):
             existing[total_key] = (existing.get(total_key) or 0) + (project.get(total_key) or 0)
         existing["lastActive"] = max(existing.get("lastActive") or 0, project.get("lastActive") or 0)
+        existing["sessionIdentities"] = (
+            (existing.get("sessionIdentities") or []) + (project.get("sessionIdentities") or []))
         previews = (existing.get("previewSessions") or []) + (project.get("previewSessions") or [])
         previews.sort(key=_recency, reverse=True)
         existing["previewSessions"] = previews[:preview_limit]

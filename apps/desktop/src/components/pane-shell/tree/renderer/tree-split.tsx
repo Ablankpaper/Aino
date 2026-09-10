@@ -420,6 +420,7 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
       // Suppress :root geometry-var writes for the gesture (see geometry.ts —
       // each one restyles the whole document; they republish on release).
       beginSashDrag()
+      handle.dataset.sashDragging = 'true'
 
       // pointermove outpaces 60fps and each write relayouts the whole pane tree,
       // so coalesce to one apply per frame (rafCoalesce commits on cleanup).
@@ -484,6 +485,7 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
         // Geometry vars re-enable AFTER the final store commit above, so the
         // release publishes exactly one fresh measurement.
         endSashDrag()
+        delete handle.dataset.sashDragging
         releaseGuests()
         document.body.style.cursor = restoreCursor
         document.body.style.userSelect = restoreSelect
@@ -714,6 +716,17 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
               <Sash
                 disabled={minimized || tracks[partner].minimized}
                 horizontal={horizontal}
+                // Hidden tracks stay mounted. Paint follows the resolved
+                // visible partners, not the next sibling in the DOM.
+                navigationBoundary={
+                  !horizontal
+                    ? undefined
+                    : rootChildSide(child, paneFor) === 'left'
+                      ? 'start'
+                      : rootChildSide(node.children[partner], paneFor) === 'left'
+                        ? 'end'
+                        : undefined
+                }
                 onDoubleClick={() => resetBoundary(partner, i)}
                 onPointerDown={e => startSash(partner, i, e)}
               />
@@ -736,11 +749,13 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
 function Sash({
   disabled,
   horizontal,
+  navigationBoundary,
   onDoubleClick,
   onPointerDown
 }: {
   disabled?: boolean
   horizontal: boolean
+  navigationBoundary?: 'start' | 'end'
   onDoubleClick?: () => void
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void
 }) {
@@ -758,6 +773,7 @@ function Sash({
       )}
       // Lets shell-level CSS start the resting hairline below the unified top
       // band (vertical seams only) without touching the grab geometry.
+      data-navigation-boundary={navigationBoundary}
       data-sash-axis={horizontal ? 'x' : 'y'}
       onDoubleClick={disabled ? undefined : onDoubleClick}
       onPointerDown={disabled ? undefined : onPointerDown}
@@ -776,7 +792,7 @@ function Sash({
       {!disabled && (
         <span
           className={cn(
-            'absolute bg-(--ui-sash-hover-border) opacity-0 transition-opacity duration-100 group-hover:opacity-100',
+            'absolute bg-(--ui-sash-hover-border) opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-data-[sash-dragging]:opacity-100',
             horizontal
               ? 'inset-y-0 left-[1px] w-(--vscode-sash-hover-size,0.25rem) -translate-x-1/2'
               : 'inset-x-0 top-[1px] h-(--vscode-sash-hover-size,0.25rem) -translate-y-1/2'

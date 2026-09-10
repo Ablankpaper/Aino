@@ -15,7 +15,7 @@ import { isMissingRestEndpoint, isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { isUnderPath } from '@/lib/path-compare'
 import { persistentAtom } from '@/lib/persisted'
 import { $gateway, activeGateway, ensureActiveGatewayOpen } from '@/store/gateway'
-import { setSidebarAgentsGrouped } from '@/store/layout'
+import { setSidebarAgentsGrouped, setWorkspaceNodeOpen } from '@/store/layout'
 import { notify } from '@/store/notifications'
 import {
   $activeGatewayProfile,
@@ -90,6 +90,7 @@ export const $projectScope = persistentAtom<string>(PROJECT_SCOPE_KEY, ALL_PROJE
 // (best-effort — the durable pointer is nice-to-have, the view scope is the
 // point). Never opens a session.
 export function enterProject(id: string): void {
+  setWorkspaceNodeOpen('section:projects', true)
   $projectScope.set(id)
 
   // Only explicit, persisted projects (ids are `p_<hex>`) become active. Auto

@@ -1,12 +1,20 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { group, split } from '@/components/pane-shell/tree/model'
 import { $layoutTree, noteActiveTreeGroup } from '@/components/pane-shell/tree/store'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { registry } from '@/contrib/registry'
+import {
+  $pinnedSessionIds,
+  $sidebarPinsOpen,
+  $sidebarRecentsOpen,
+  $sidebarWorkspaceNodeOpen,
+  setSidebarGrouping
+} from '@/store/layout'
+import { $projectDialog, $projects, $projectScope, $projectTree, ALL_PROJECTS } from '@/store/projects'
 import { $selectedStoredSessionId, $sessions } from '@/store/session'
 import { $removedSessionIds } from '@/store/session-removal'
 import { makeSessionInfo } from '@/test/session-info'
@@ -24,7 +32,7 @@ const sessionRows = [
   makeSessionInfo({ id: 'tile-two', last_active: 2, profile: 'default', started_at: 1, title: 'Tile two' })
 ]
 
-const renderSidebar = (pathname: string, currentView: AppView) =>
+const renderSidebar = (pathname: string, currentView: AppView, onNewSessionInWorkspace = noop) =>
   render(
     <MemoryRouter initialEntries={[pathname]}>
       <SidebarProvider>
@@ -36,7 +44,7 @@ const renderSidebar = (pathname: string, currentView: AppView) =>
           onLoadMoreSessions={noop}
           onManageCronJob={noop}
           onNavigate={noop}
-          onNewSessionInWorkspace={noop}
+          onNewSessionInWorkspace={onNewSessionInWorkspace}
           onNewSessionSplit={noop}
           onResumeSession={noop}
           onTriggerCronJob={noopAsync}
@@ -71,6 +79,15 @@ describe('ChatSidebar navigation activity', () => {
   let disposeContributions: () => void
 
   beforeEach(() => {
+    $pinnedSessionIds.set([])
+    $sidebarPinsOpen.set(true)
+    $sidebarRecentsOpen.set(true)
+    setSidebarGrouping('date')
+    $sidebarWorkspaceNodeOpen.set({})
+    $projects.set([])
+    $projectTree.set([])
+    $projectScope.set(ALL_PROJECTS)
+    $projectDialog.set(null)
     disposeContributions = registry.registerMany([
       { area: ROUTES_AREA, id: 'kanban-page', data: { path: '/kanban' }, render: () => null },
       { area: ROUTES_AREA, id: 'reports-page', data: { path: '/reports' }, render: () => null },
@@ -98,6 +115,10 @@ describe('ChatSidebar navigation activity', () => {
     $removedSessionIds.set(new Set())
     $layoutTree.set(null)
     noteActiveTreeGroup(null)
+    $projects.set([])
+    $projectTree.set([])
+    $projectScope.set(ALL_PROJECTS)
+    $projectDialog.set(null)
   })
 
   it('keeps navigation and session activity coherent with the focused pane', () => {
@@ -160,5 +181,75 @@ describe('ChatSidebar navigation activity', () => {
     expect(screen.queryByRole('button', { name: 'Kanban' })).toBeNull()
     expectOnlyCurrent(null)
     expectOnlySelectedSession(null)
+  })
+
+  it('keeps project entry points visible before any session exists and hides empty pins', () => {
+    $sessions.set([])
+    renderSidebar('/', 'chat')
+
+    expect(screen.queryByRole('button', { name: 'Pinned' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Projects' })).toBeTruthy()
+    expect(
+      screen
+        .getByRole('button', { name: 'Projects' })
+        .closest('[data-sidebar-section]')
+        ?.getAttribute('data-sidebar-section')
+    ).toBe('projects')
+    fireEvent.click(screen.getByRole('button', { name: 'Projects' }))
+    expect(screen.getByRole('button', { name: 'Projects' }).getAttribute('aria-expanded')).toBe('false')
+    expect(screen.getByRole('button', { name: 'Recent' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Open folder as project…' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'New project' }))
+    expect($projectDialog.get()).toEqual({ mode: 'create' })
+  })
+
+  it('separates project sessions from recent chats while preserving empty projects', () => {
+    const projectSession = makeSessionInfo({ id: 'project-chat', cwd: '/work/app', title: 'Build the app' })
+    $projects.set([
+      {
+        id: 'p_app',
+        name: 'App',
+        slug: 'app',
+        description: null,
+        color: null,
+        icon: null,
+        board_slug: null,
+        created_at: 1,
+        folders: [{ path: '/work/app', label: null, is_primary: true, added_at: 1 }],
+        primary_path: '/work/app',
+        archived: false
+      }
+    ])
+    $projectTree.set([
+      { id: 'p_app', label: 'App', path: '/work/app', repos: [], sessionCount: 1, previewSessions: [projectSession] },
+      { id: 'p_empty', label: 'Empty project', path: '/work/empty', repos: [], sessionCount: 0, previewSessions: [] }
+    ])
+    $sessions.set([...sessionRows, projectSession])
+    renderSidebar('/', 'chat')
+
+    const recents = screen.getByRole('button', { name: 'Recent' }).closest('[data-sidebar-section]') as HTMLElement
+    expect(within(recents).queryByText('Build the app')).toBeNull()
+    expect(within(recents).getByText('Tile one')).toBeTruthy()
+    expect(screen.getByText('Build the app')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Open Empty project' })).toBeTruthy()
+
+    act(() => $pinnedSessionIds.set(['project-chat']))
+    const pins = screen.getByRole('button', { name: 'Pinned' }).closest('[data-sidebar-section]') as HTMLElement
+    expect(within(pins).getByText('Build the app')).toBeTruthy()
+    expect(screen.getAllByText('Build the app')).toHaveLength(1)
+
+    act(() => $pinnedSessionIds.set([]))
+    expect(screen.queryByRole('button', { name: 'Pinned' })).toBeNull()
+    expect(screen.getAllByText('Build the app')).toHaveLength(1)
+  })
+
+  it('starts ordinary chat without the previously selected project folder', () => {
+    $projectScope.set('p_previous')
+    const start = vi.fn()
+    const { container } = renderSidebar('/', 'chat', start)
+
+    fireEvent.click(container.querySelector('[data-tour="sidebar-nav-new-session"]')!)
+    expect(start).toHaveBeenCalledWith(null, { openTab: false })
+    expect($projectScope.get()).toBe(ALL_PROJECTS)
   })
 })

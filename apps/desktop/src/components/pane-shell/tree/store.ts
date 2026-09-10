@@ -447,7 +447,9 @@ function tabTargetGroup(eligible: (group: GroupNode) => boolean): GroupNode | nu
 const treeGroupOfEvent = (event: Event): null | string => {
   const el = event.target instanceof HTMLElement ? event.target : null
 
-  return el?.closest<HTMLElement>('[data-tree-group]')?.dataset.treeGroup ?? null
+  const owner = el?.closest<HTMLElement>('[data-tree-group], [data-zone-tabstrip]')
+
+  return owner?.dataset.treeGroup ?? owner?.dataset.zoneTabstrip ?? null
 }
 
 /** Install the zone trackers (call once from the tree root). Records the
@@ -464,8 +466,8 @@ export function trackActiveTreeGroup(): () => void {
   }
 
   // `pointerover` fires on every element boundary crossing (not every mouse
-  // move), so leaving the panes for the titlebar reports null and the override
-  // lifts on its own.
+  // move). Projected title strips still belong to their pane; other window
+  // chrome reports null so the override lifts on its own.
   const trackHover = (event: Event) => noteHoveredTreeGroup(treeGroupOfEvent(event))
   const clearHover = () => noteHoveredTreeGroup(null)
 

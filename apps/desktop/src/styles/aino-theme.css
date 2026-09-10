@@ -31,6 +31,8 @@
   --dt-accent: var(--ui-row-active-background);
   --aino-surface-bg: var(--ui-chat-surface-background);
   --aino-surface-rail: var(--ui-sidebar-surface-background);
+  --aino-navigation-rail: var(--ui-sidebar-surface-background);
+  --aino-navigation-edge: var(--ui-stroke-secondary);
   --aino-surface-stroke: var(--ui-stroke-secondary);
   --aino-surface-hover: var(--ui-row-hover-background);
   --aino-surface-active: var(--ui-row-active-background);
@@ -55,10 +57,20 @@
 :root:not(.dark):not([data-hermes-theme]),
 :root[data-hermes-theme='nous']:not(.dark) {
   --ui-bg-chrome: #fff;
-  --ui-bg-sidebar: #fafafa;
+  --ui-bg-sidebar: #f7f7f7;
   --ui-bg-editor: #fafafa;
   --ui-bg-elevated: #fff;
   --ui-chat-bubble-background: #f3f4f6;
+}
+
+/* One rail-tone layer over the native material, not another field tint on
+   each nested sidebar surface. Zero tint still leaves bare Glass. */
+:root[data-hermes-glass] {
+  --aino-navigation-rail: color-mix(
+    in srgb,
+    var(--ui-base) calc(var(--translucency-glass-keep, 100%) * 0.06),
+    transparent
+  );
 }
 
 /* Palette selection, including imported themes, affects chat and the rest of

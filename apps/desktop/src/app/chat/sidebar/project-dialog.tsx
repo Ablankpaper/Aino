@@ -19,7 +19,9 @@ import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { type ProjectIdeaTemplate, randomIdeaTemplates } from '@/lib/project-idea-templates'
 import { cn } from '@/lib/utils'
+import { activeGateway } from '@/store/gateway'
 import { notifyError } from '@/store/notifications'
+import { $activeGatewayProfile } from '@/store/profile'
 import {
   $newProjectDropPlacement,
   $projectDialog,
@@ -28,6 +30,7 @@ import {
   closeProjectDialog,
   createProject,
   generateProjectIdea,
+  goToProject,
   pickProjectFolder,
   renameProject
 } from '@/store/projects'
@@ -92,21 +95,33 @@ export function ProjectDialog() {
   // optional hook that runs exactly when the write SUCCEEDS (before the close)
   // — the New-project drop arm is consumed there, so a failed attempt keeps
   // its placement for the retry while a successful one can't leak it forward.
-  const runSubmit = async (write: () => Promise<unknown>, onSuccess?: () => void) => {
+  const runSubmit = async <T,>(write: () => Promise<T>, onSuccess?: (result: T) => void) => {
     if (submitting) {
       return
     }
 
+    const invocation = $projectDialog.get()
+    const gateway = activeGateway()
+    const profile = $activeGatewayProfile.get()
+
+    const stillCurrent = () =>
+      $projectDialog.get() === invocation && activeGateway() === gateway && $activeGatewayProfile.get() === profile
+
     setSubmitting(true)
 
     try {
-      await write()
-      onSuccess?.()
-      closeProjectDialog()
+      const result = await write()
+
+      if (stillCurrent()) {
+        onSuccess?.(result)
+        closeProjectDialog()
+      }
     } catch (err) {
       notifyError(err, p.createFailed)
     } finally {
-      setSubmitting(false)
+      if ($projectDialog.get() === invocation) {
+        setSubmitting(false)
+      }
     }
   }
 
@@ -151,8 +166,21 @@ export function ProjectDialog() {
       // create leaves the dialog open for a retry that still lands where it
       // was dropped; the open-state effect discards it on cancel/teardown.
       await runSubmit(
-        () => createProject({ dropPlacement, folders, idea: idea.trim() || undefined, name: trimmed, use: true }),
-        clearNewProjectDropPlacement
+        () =>
+          createProject({
+            dropPlacement,
+            folders,
+            idea: idea.trim() || undefined,
+            name: trimmed,
+            use: true
+          }),
+        created => {
+          clearNewProjectDropPlacement()
+
+          if (created && !dropPlacement) {
+            goToProject(created.id, { newSession: true })
+          }
+        }
       )
     }
   }

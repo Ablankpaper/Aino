@@ -442,8 +442,8 @@
     --dt-user-bubble-border: var(--ui-stroke-tertiary);
 
     --dt-font-sans:
-      'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif,
-      'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', emoji;
+      'PingFang SC', 'Microsoft YaHei UI', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+      sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', emoji;
     /* Key caps always use the native UI face — never theme typography overrides. */
     --dt-font-kbd: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
     /* Menlo/Monaco first — Apple's native monospace faces — so code/diff read
@@ -1315,7 +1315,9 @@ code {
   background: var(--ui-bg-editor);
   border-color: var(--ui-stroke-secondary);
   box-shadow: none;
-  transition: border-color 100ms ease-out, box-shadow 100ms ease-out;
+  transition:
+    border-color 100ms ease-out,
+    box-shadow 100ms ease-out;
 }
 
 .desktop-input-chrome:hover {
@@ -1643,9 +1645,8 @@ body.guest-pointer-lock :is(webview, iframe) {
   --aino-landing-placeholder: #d1d5dc;
   --aino-landing-primary: #364153;
   --aino-landing-secondary: #6a7282;
-  --aino-landing-session-active:
-    color-mix(in srgb, var(--aino-landing-control) 86%, var(--aino-landing-surface));
-  --aino-landing-sidebar: #fafafa;
+  --aino-landing-session-active: color-mix(in srgb, var(--aino-landing-control) 86%, var(--aino-landing-surface));
+  --aino-landing-sidebar: var(--ui-sidebar-surface-background);
   /* The Figma frame renders a slightly darker one-pixel seam than the
      translucent editor border. Keep this token scoped to the landing rail so
      the rest of the tree keeps its native edge treatment. */
@@ -1673,8 +1674,7 @@ body.guest-pointer-lock :is(webview, iframe) {
   --aino-landing-placeholder: var(--ui-text-quaternary);
   --aino-landing-primary: var(--ui-text-primary);
   --aino-landing-secondary: var(--ui-text-secondary);
-  --aino-landing-session-active:
-    color-mix(in srgb, var(--aino-landing-control) 86%, var(--aino-landing-surface));
+  --aino-landing-session-active: color-mix(in srgb, var(--aino-landing-control) 86%, var(--aino-landing-surface));
   --aino-landing-sidebar: var(--dt-sidebar-bg);
   --aino-landing-edge: var(--ui-stroke-tertiary);
   --aino-landing-stroke: var(--ui-stroke-tertiary);
@@ -1690,7 +1690,11 @@ body.guest-pointer-lock :is(webview, iframe) {
    editor tab strip. Scope the Figma-sized navigation treatment to the strip
    that owns the sessions tab so preview/terminal tabs keep their compact
    editor geometry. */
-[data-tree-group]:has([data-tour='sessions-sidebar']),
+[data-navigation-rail] {
+  background: var(--aino-navigation-rail);
+  font-family: var(--aino-landing-font);
+}
+
 [data-zone-tabstrip]:has([data-tree-tab='sessions']) {
   background: var(--aino-landing-sidebar);
   font-family: var(--aino-landing-font);
@@ -1698,13 +1702,13 @@ body.guest-pointer-lock :is(webview, iframe) {
 
 [data-zone-tabstrip]:has([data-tree-tab='sessions']) {
   height: var(--aino-band-row2);
-  padding-left: 1rem;
+  padding-left: 0.5rem;
   border-bottom: 1px solid var(--aino-landing-stroke);
-  /* The top band is one quiet row: the rail paper joins the landing surface
-     (no gray/white step at the sidebar edge) and the active tab reads by
-     color/weight instead of a theme-primary underline. */
-  background: var(--aino-landing-surface);
+  /* The navigation group owns the paint, including under Glass. */
+  background: transparent;
   --pane-tab-active-accent: transparent;
+  --pane-tab-active-bg: transparent;
+  --pane-tab-strip-bg: transparent;
 }
 
 /* Main workspace strips sit directly above the conversation paper. Keep the
@@ -1761,17 +1765,22 @@ body.guest-pointer-lock :is(webview, iframe) {
   --aino-landing-sidebar: var(--ui-sidebar-surface-background);
 }
 
-[data-zone-tabstrip]:has([data-tree-tab='sessions'])
-  > [role='tablist']
-  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane']) {
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab] {
   height: var(--aino-band-row2);
   max-width: none;
   border-left: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab]:hover {
+  background-color: var(--aino-surface-hover);
 }
 
 [data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab='sessions'] {
-  width: 3.5rem;
-  margin-right: 1.25rem;
+  width: max-content;
+  min-width: 3.5rem;
+  margin-right: 0.25rem;
 }
 
 [data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab='hermes-bots:pane'] {
@@ -1799,50 +1808,28 @@ body.guest-pointer-lock :is(webview, iframe) {
   padding-inline: 0.375rem 0.25rem;
 }
 
-[data-zone-tabstrip]:has([data-tree-tab='sessions'])
-  > [role='tablist']
-  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane'])
-  > span:nth-child(2)
-  > span {
-  font-size: 0.875rem;
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab] > span > .truncate {
+  font-size: var(--aino-text-ui);
   font-weight: 500;
   line-height: 1.25rem;
   letter-spacing: 0;
   text-transform: none;
-  transform: translateY(-1px);
 }
 
-[data-zone-tabstrip]:has([data-tree-tab='sessions'])
-  > [role='tablist']
-  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane'])[data-active='true'] {
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab][data-active='true'] {
   /* Calm active state: primary ink, not the brand accent — the band keeps one
      quiet voice (the accent underline is transparent on this strip). */
   color: var(--aino-landing-title);
 }
 
-[data-zone-tabstrip]:has([data-tree-tab='sessions'])
-  > [role='tablist']
-  > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane'])[data-active='false'] {
+[data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab][data-active='false'] {
   color: var(--aino-landing-muted);
 }
 
 [data-tour='sessions-sidebar'] {
   border-color: var(--aino-landing-stroke);
   font-family: var(--aino-landing-font);
-  box-shadow:
-    1px 0 1.5px rgb(0 0 0 / 10%),
-    1px 0 1px rgb(0 0 0 / 10%);
-}
-
-/* The tree neutralizes pane-owned edge borders globally so its sash is the
-   single seam. The approved Aino landing frame intentionally includes that
-   one-pixel sidebar edge in the layout itself; restore it only for this
-   surface, which also gives the sidebar's inner content the Figma 244px track
-   (the outer rail remains 245px). */
-body:has([data-chat-surface][data-home-layout]) [data-tour='sessions-sidebar'] {
-  border-right-width: 1px !important;
-  border-right-style: solid !important;
-  border-right-color: var(--aino-landing-edge) !important;
+  box-shadow: none;
 }
 
 [data-tour='sessions-sidebar'] [data-slot='sidebar-content'] {
@@ -1856,7 +1843,7 @@ body:has([data-chat-surface][data-home-layout]) [data-tour='sessions-sidebar'] {
    Keep the existing row components (and therefore all their actions, DnD and
    status subscriptions), but give their chrome one scoped visual contract. */
 [data-tour='sessions-sidebar'] [data-sidebar-section-header] {
-  /* Keep the existing section rhythm; only the paint below changes. */
+  padding-inline: 0.5rem;
   color: var(--aino-landing-secondary);
 }
 
@@ -1869,7 +1856,7 @@ body:has([data-chat-surface][data-home-layout]) [data-tour='sessions-sidebar'] {
   gap: 0;
   padding-left: 0;
   color: var(--aino-landing-secondary);
-  font-size: 0.8125rem;
+  font-size: var(--aino-text-caption);
   font-weight: 500;
   line-height: 1.25rem;
   letter-spacing: 0;
@@ -1900,7 +1887,9 @@ body:has([data-chat-surface][data-home-layout]) [data-tour='sessions-sidebar'] {
 }
 
 [data-tour='sessions-sidebar'] [data-sidebar-pinned-hint] {
-  /* Preserve the hint's established two-line footprint in narrow rails. */
+  min-height: 0;
+  padding-block: 0;
+  padding-right: 0.5rem;
   color: var(--aino-landing-muted);
   font-size: 0.75rem;
   line-height: 1.35;
@@ -1976,9 +1965,96 @@ body:has([data-chat-surface][data-home-layout]) [data-tour='sessions-sidebar'] {
   background: var(--aino-landing-surface);
 }
 
-/* The band split and its left-segment stroke were removed: the unified top
-   band paints one paper edge-to-edge, and the sidebar's own edge shadow below
-   the band is the only vertical seam on the left. */
+/* Extend only an edge-docked navigation rail into the window bar. The tree's
+   geometry publisher keeps these titlebar-local vars live while resizing. */
+[data-contrib-shell]:not(:has([data-settings-workspace])) > [data-titlebar-rail]::before {
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  left: var(--titlebar-rail-left);
+  width: var(--titlebar-rail-width);
+  background: var(--aino-navigation-rail);
+  pointer-events: none;
+  content: '';
+}
+
+[data-titlebar-rail='left']::before {
+  border-right: 1px solid var(--aino-navigation-edge);
+}
+
+[data-titlebar-rail='right']::before {
+  border-left: 1px solid var(--aino-navigation-edge);
+}
+
+/* The titlebar rail is a separate layer from the sash below it. Mirror the
+   sash's hover and active-drag band here so resizing reads as one continuous
+   boundary across the native chrome and the workspace. */
+[data-contrib-shell]:not(:has([data-settings-workspace])) > [data-titlebar-rail]::after {
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  left: calc(var(--titlebar-rail-left) + var(--titlebar-rail-width));
+  width: var(--vscode-sash-hover-size, 0.25rem);
+  background: var(--ui-sash-hover-border);
+  pointer-events: none;
+  content: '';
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 100ms ease-out;
+}
+
+[data-contrib-shell]:not(:has([data-settings-workspace])) > [data-titlebar-rail='right']::after {
+  left: var(--titlebar-rail-left);
+}
+
+[data-contrib-shell]:has([data-navigation-boundary='end']:is(:hover, [data-sash-dragging]))
+  > [data-titlebar-rail='left']::after,
+[data-contrib-shell]:has([data-navigation-boundary='start']:is(:hover, [data-sash-dragging]))
+  > [data-titlebar-rail='right']::after {
+  opacity: 1;
+}
+
+/* The sash alone owns the rail boundary. Keep its wide pointer target but
+   paint one full-opacity hairline, aligned to the titlebar's inner edge. */
+[data-contrib-shell] [data-tree-split] [data-sash-axis='x'][data-navigation-boundary] > span:first-child {
+  top: 0;
+  left: 0;
+  background: var(--aino-navigation-edge);
+  opacity: 1;
+  transform: none;
+  translate: none;
+}
+
+[data-contrib-shell] [data-tree-split] [data-sash-axis='x'][data-navigation-boundary='start'] > span:first-child {
+  left: 1px;
+}
+
+/* The primary chat projects its existing title/menu into the window bar.
+   Other panes retain their local strips for tab navigation and layout edits. */
+[data-contrib-shell]:has([data-window-session-title]) > [data-slot='app-titlebar'] {
+  border-bottom: 1px solid var(--aino-landing-stroke);
+}
+
+[data-contrib-shell] [data-slot='app-titlebar'] [data-window-session-title] .session-title-header {
+  width: max-content;
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  border-bottom: 0;
+  background: transparent;
+}
+
+[data-window-session-title] [data-tree-tab] {
+  flex-shrink: 1;
+}
+
+[data-window-session-title] [data-current-session-title] > span {
+  text-overflow: ellipsis;
+}
+
+[data-contrib-shell]:has([data-window-session-title]) [role='separator'][data-sash-axis='x'] > span:first-child {
+  top: 0;
+}
 
 body:not(:has([data-settings-workspace])):has([data-chat-surface][data-home-layout])
   :is([data-slot='titlebar-window-controls'], [data-slot='titlebar-app-controls'])
@@ -4521,9 +4597,9 @@ html:has([data-hud-shell]) [data-slot='popover-content'] {
 
 [data-aino-sidebar] [data-sidebar='menu-button'] {
   border: 0 !important;
-  border-radius: 0.625rem !important;
+  border-radius: var(--aino-radius-control) !important;
   box-shadow: none !important;
-  color: var(--aino-surface-muted);
+  color: var(--aino-surface-ink);
 }
 
 [data-aino-sidebar] [data-sidebar='menu-button']:hover,
@@ -4538,8 +4614,8 @@ html:has([data-hud-shell]) [data-slot='popover-content'] {
   box-shadow: none !important;
 }
 
-[data-aino-sidebar] [data-sidebar='menu-button'][data-active='true'] [data-slot='sidebar-nav-icon'] {
-  background: var(--aino-surface-control);
+[data-aino-sidebar] [data-slot='sidebar-nav-icon'] {
+  color: var(--aino-surface-muted);
 }
 
 [data-aino-sidebar] [data-slot='sidebar-identity-footer'] {
@@ -4622,14 +4698,13 @@ html:has([data-hud-shell]) [data-slot='popover-content'] {
   background: var(--aino-surface-hover) !important;
 }
 
-[data-aino-master-detail] :is([data-aino-cap-row][data-active='true'], [data-panel-row][data-active='true'], [data-aino-active='true']) {
+[data-aino-master-detail]
+  :is([data-aino-cap-row][data-active='true'], [data-panel-row][data-active='true'], [data-aino-active='true']) {
   background: var(--aino-surface-active) !important;
   border-color: transparent !important;
   box-shadow: none !important;
   color: var(--aino-surface-ink) !important;
 }
-
-
 
 [data-aino-empty-state] {
   color: var(--aino-surface-ink);

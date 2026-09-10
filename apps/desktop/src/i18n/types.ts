@@ -2498,6 +2498,7 @@ archiveConfirmTitle: (name: string) => string
     noMatch: (query: string) => string
     results: string
     pinned: string
+    recent: string
     sessions: string
     cronJobs: string
     groupAriaGrouped: string
@@ -2515,6 +2516,7 @@ archiveConfirmTitle: (name: string) => string
     noFilterMatches: string
     projects: {
       sectionLabel: string
+      empty: string
       home: string
       newButton: string
       createTitle: string

@@ -2086,6 +2086,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
     noMatch: query => `"${query}" に一致するセッションがありません。`,
     results: '結果',
     pinned: 'ピン留め',
+    recent: '最近',
     sessions: 'セッション',
     cronJobs: 'Cronジョブ',
     groupAriaGrouped: 'セッションを単一リストとして表示',
@@ -2103,6 +2104,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
     noFilterMatches: 'このフィルターに一致するセッションはありません',
     projects: {
       sectionLabel: 'プロジェクト',
+      empty: 'プロジェクトはまだありません',
       home: 'ホーム',
       newButton: '新規プロジェクト',
       createTitle: '新規プロジェクト',

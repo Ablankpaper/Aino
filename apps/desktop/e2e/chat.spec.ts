@@ -159,22 +159,25 @@ test.describe('chat interaction with mock backend', () => {
 
       const fieldRect = field.getBoundingClientRect()
       const titlebarRect = titlebar.getBoundingClientRect()
-      const styles = getComputedStyle(titlebar)
-      const workspaceLeft = Number.parseFloat(styles.getPropertyValue('--workspace-left')) || 0
-      const workspaceRight = Number.parseFloat(styles.getPropertyValue('--workspace-right')) || 0
-      const workspaceCenter = (workspaceLeft + window.innerWidth - workspaceRight) / 2
+      const heading = titlebar.querySelector('[data-window-session-title]')?.getBoundingClientRect()
+      const tools = document.querySelector('[data-slot="titlebar-app-controls"]')?.getBoundingClientRect()
+
+      if (!heading || !tools) {
+        throw new Error('Conversation title or window tools are missing')
+      }
 
       return {
-        centerDelta: Math.abs(fieldRect.left + fieldRect.width / 2 - workspaceCenter),
         containedVertically: fieldRect.top >= titlebarRect.top && fieldRect.bottom <= titlebarRect.bottom,
+        clearsTitle: fieldRect.left >= heading.right,
+        clearsTools: fieldRect.right <= tools.left,
         width: fieldRect.width
       }
     })
 
     expect(placement.containedVertically, JSON.stringify(placement)).toBe(true)
-    expect(placement.centerDelta, JSON.stringify(placement)).toBeLessThanOrEqual(2)
-    expect(placement.width, JSON.stringify(placement)).toBeGreaterThanOrEqual(320)
-    expect(placement.width, JSON.stringify(placement)).toBeLessThanOrEqual(640)
+    expect(placement.clearsTitle, JSON.stringify(placement)).toBe(true)
+    expect(placement.clearsTools, JSON.stringify(placement)).toBe(true)
+    expect(placement.width, JSON.stringify(placement)).toBeGreaterThanOrEqual(120)
 
     const panelPlacement = await results.evaluate(panel => {
       const titlebar = panel.closest<HTMLElement>('[data-slot="app-titlebar"]')
@@ -189,15 +192,17 @@ test.describe('chat interaction with mock backend', () => {
       const titlebarRect = titlebar.getBoundingClientRect()
 
       return {
-        alignedLeft: Math.abs(panelRect.left - shellRect.left),
+        alignedRight: Math.abs(panelRect.right - shellRect.right),
         belowTitlebar: panelRect.top >= titlebarRect.bottom - 1,
-        sameWidth: Math.abs(panelRect.width - shellRect.width)
+        atLeastFieldWidth: panelRect.width >= shellRect.width,
+        insideWindow: panelRect.left >= 0 && panelRect.right <= window.innerWidth
       }
     })
 
     expect(panelPlacement.belowTitlebar, JSON.stringify(panelPlacement)).toBe(true)
-    expect(panelPlacement.alignedLeft, JSON.stringify(panelPlacement)).toBeLessThanOrEqual(2)
-    expect(panelPlacement.sameWidth, JSON.stringify(panelPlacement)).toBeLessThanOrEqual(2)
+    expect(panelPlacement.alignedRight, JSON.stringify(panelPlacement)).toBeLessThanOrEqual(2)
+    expect(panelPlacement.atLeastFieldWidth, JSON.stringify(panelPlacement)).toBe(true)
+    expect(panelPlacement.insideWindow, JSON.stringify(panelPlacement)).toBe(true)
 
     const chatDuringSearch = await chatSurface.boundingBox()
     expect(chatDuringSearch?.y, JSON.stringify({ chatBeforeSearch, chatDuringSearch })).toBe(chatBeforeSearch?.y)
