@@ -658,6 +658,9 @@ function Sash({
       )}
       onDoubleClick={disabled ? undefined : onDoubleClick}
       onPointerDown={disabled ? undefined : onPointerDown}
+      // Lets shell-level CSS start the resting hairline below the unified top
+      // band (vertical seams only) without touching the grab geometry.
+      data-sash-axis={horizontal ? 'x' : 'y'}
       role="separator"
     >
       {/* Persistent hairline: same token as PaneShell's divider sash

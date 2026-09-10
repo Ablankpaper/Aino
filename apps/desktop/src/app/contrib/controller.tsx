@@ -86,6 +86,7 @@ import {
   SessionTileCloseConfirm,
   stackSessionTilesIntoMain,
   watchSessionTiles,
+  WorkspaceHeaderMenu,
   WorkspaceTabMenu
 } from '../chat/session-tile'
 import { AppContextMenu } from '../context-menu/app-context-menu'
@@ -188,6 +189,7 @@ registry.registerMany([
       minWidth: '22vw',
       tabDrag: workspaceTabDrag,
       tabWrap: wrapWorkspaceTab,
+      headerMenu: () => <WorkspaceHeaderMenu />,
       uncloseable: true
     },
     render: renderWorkspacePane
@@ -511,6 +513,9 @@ const syncWorkspaceTitle = () => {
       minWidth: '22vw',
       tabDrag: workspaceTabDrag,
       tabWrap: wrapWorkspaceTab,
+      // The single-session header's visible ⋯ for the routed session; renders
+      // nothing on a fresh draft (no session verbs to offer).
+      headerMenu: () => <WorkspaceHeaderMenu />,
       uncloseable: true
     },
     render: renderWorkspacePane

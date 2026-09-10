@@ -81,6 +81,11 @@ interface PaneChrome extends PaneSizing {
    *  pin/branch/rename/archive/delete). The wrapper must render `tab` as its
    *  interactive child; the zone's own strip menu still owns non-tab space. */
   tabWrap?: (tab: React.ReactElement) => React.ReactNode
+  /** Visible kebab menu rendered beside this pane's title in the Codex-style
+   *  single-session header (tree-group's one-title header only — the multi-tab
+   *  strip keeps right-click as its menu surface). A null/undefined render is
+   *  fine: a fresh draft has no session verbs to offer. */
+  headerMenu?: () => React.ReactNode
   /** Extra rows at the top of the zone tab menu. Called when the menu opens
    *  against the right-clicked pane — a Browser tab's Open-in-external, without
    *  replacing Reload / Close / the strip. */

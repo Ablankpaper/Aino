@@ -124,6 +124,22 @@ describe('PaneTab hover close button', () => {
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
   })
 
+  it('can hide the horizontal ✕ while retaining close gestures', () => {
+    const onClose = vi.fn()
+    render(
+      <PaneTab onClose={onClose} showCloseButton={false}>
+        <PaneTabLabel>session</PaneTabLabel>
+      </PaneTab>
+    )
+
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
+    expect(screen.getByText('session').parentElement?.parentElement?.className).not.toContain('pr-9')
+
+    fireEvent.pointerDown(screen.getByText('session'), { button: 1 })
+    fireEvent.pointerUp(screen.getByText('session'), { button: 1 })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it('reserves a close-button runway only on closeable horizontal tabs', () => {
     const onClose = vi.fn()
 

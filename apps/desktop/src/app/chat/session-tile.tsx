@@ -29,6 +29,7 @@ import { CenteredThreadSpinner } from '@/components/assistant-ui/thread/status'
 import { findGroupOfPane } from '@/components/pane-shell/tree/model'
 import { $layoutTree, closeTreePane, moveTreePane, setTreeGroupTabStrip } from '@/components/pane-shell/tree/store'
 import { Button } from '@/components/ui/button'
+import { Codicon } from '@/components/ui/codicon'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { transcribeAudio } from '@/hermes'
 import { translateNow, useI18n } from '@/i18n'
@@ -69,7 +70,7 @@ import { startSessionDrag } from './session-drag'
 import { SessionStatusDot } from './session-status-dot'
 import { useSessionTileActions } from './session-tile-actions'
 import { type SessionView, SessionViewProvider } from './session-view'
-import { SessionContextMenu } from './sidebar/session-actions-menu'
+import { SessionActionsMenu, SessionContextMenu } from './sidebar/session-actions-menu'
 import { lastVisibleMessageIsUser } from './thread-loading'
 
 import { ChatView } from '.'
@@ -643,6 +644,62 @@ export function WorkspaceTabMenu({ children }: { children: React.ReactElement })
   )
 }
 
+/** The visible ⋯ beside a Codex-style single-session header title: the SAME
+ *  verbs as the tab's context menu (SessionTabMenu) behind a click dropdown.
+ *  The single header carries no hover ✕, so without this the session actions
+ *  would only be reachable by right-click or from the sidebar row. */
+export function SessionHeaderMenu({
+  onClose,
+  storedSessionId
+}: {
+  /** Close this tab (tiles; the main tab passes its own closer). */
+  onClose?: () => void
+  storedSessionId: string
+}) {
+  const { t } = useI18n()
+  const { pinId, profile, title } = useTileMenuRow(storedSessionId)
+  const pinnedSessionIds = useStore($pinnedSessionIds)
+  const pinned = pinnedSessionIds.includes(pinId)
+
+  return (
+    <SessionActionsMenu
+      align="start"
+      onArchive={() => void sessionTileDelegate()?.archiveSession(storedSessionId)}
+      onBranch={() => void sessionTileDelegate()?.branchSession(storedSessionId)}
+      onClose={onClose}
+      onDelete={() => void sessionTileDelegate()?.deleteSession(storedSessionId)}
+      onPin={() => (pinned ? unpinSession(pinId) : pinSession(pinId))}
+      pinned={pinned}
+      profile={profile}
+      sessionId={storedSessionId}
+      sideOffset={8}
+      title={title}
+    >
+      <Button
+        aria-label={t.sidebar.row.sessionActions}
+        className="size-6 rounded-md bg-transparent text-(--ui-text-tertiary) hover:bg-(--ui-control-hover-background) hover:text-foreground focus-visible:text-foreground data-[state=open]:bg-(--ui-control-hover-background) data-[state=open]:text-foreground [&_svg]:size-3.5!"
+        size="icon"
+        variant="ghost"
+      >
+        <Codicon name="ellipsis" size="0.875rem" />
+      </Button>
+    </SessionActionsMenu>
+  )
+}
+
+/** The ⋯ for the primary workspace's single-session header — the tile kebab's
+ *  verbs targeting the routed session. A fresh draft has no session to act on,
+ *  so it renders nothing (the header keeps just its title). */
+export function WorkspaceHeaderMenu() {
+  const selected = useStore($selectedStoredSessionId)
+
+  if (!selected) {
+    return null
+  }
+
+  return <SessionHeaderMenu onClose={() => closeTreePane('workspace')} storedSessionId={selected} />
+}
+
 /** Keep pane contributions mirroring `$sessionTiles` (+ titles from
  *  `$sessions`). Tiles dock against main on the chosen edge, flex width. */
 export const watchSessionTiles = paneMirror<SessionTile>({
@@ -673,6 +730,14 @@ export const watchSessionTiles = paneMirror<SessionTile>({
       <SessionDraftTitle scope={storedSessionId} />
     ),
   render: storedSessionId => <SessionTilePane storedSessionId={storedSessionId} />,
+  // The single-session header's visible ⋯ (see PaneChrome.headerMenu) — the
+  // strip's right-click menu stays, this is the discoverable click surface.
+  headerMenu: storedSessionId => () => (
+    <SessionHeaderMenu
+      onClose={() => requestCloseSessionTile(storedSessionId)}
+      storedSessionId={storedSessionId}
+    />
+  ),
   tabWrap: (storedSessionId, tab) => (
     <SessionTabMenu
       onClose={() => requestCloseSessionTile(storedSessionId)}

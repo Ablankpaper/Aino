@@ -362,11 +362,31 @@ export function TreeGroup({
   // A minimized group IS its header, so it shows one regardless.
   const headerVisible = !isEmpty && !verticalCollapse && (Boolean(node.minimized) || stripVisible)
 
+  // Chat sessions are navigated from the Sessions rail, so a row of session
+  // tabs in the main header is redundant.  Keep the layout tree (and its
+  // active pane) intact, but present one Codex-style title for the pane being
+  // viewed — including the primary workspace, whose contribution title tracks
+  // the routed session (syncWorkspaceTitle), so a routed conversation gets the
+  // same single heading as a tile.  The zone's in-surface ChatHeader stays
+  // display:none inside trees (renderer/index.tsx), so this header is the only
+  // title a chat zone paints.  Layout edit mode deliberately keeps the full
+  // tab strip so every pane remains draggable/reorderable while editing.
+  const sessionOnlyZone = shown.length > 0 && shown.every(isSessionStripPane)
+  // Independent of stripVisible: a workspace-only chat zone (no tiles open —
+  // the default main zone) auto-hides its strip, and that must not take the
+  // single session title with it.
+  const hideSessionTabStrip = !isEmpty && !verticalCollapse && !editMode && sessionOnlyZone
+  const singleSessionHeader = hideSessionTabStrip
+  // Chrome of the pane the single-title header names — its headerMenu kebab
+  // sits beside the title (the IIFE below re-derives the same chrome for the
+  // title's own lead/label/wrap hooks).
+  const activeChrome = paneChrome(paneFor(activeId))
+
   // Keep the activated tab — and, on the last one, the trailing "+" — inside
   // the strip's scroll window. Opening a tab past the right edge otherwise
   // left both the new tab and the button that made it out of view.
   useActiveTabVisible(tabsRef, activeId, {
-    enabled: headerVisible,
+    enabled: headerVisible && !hideSessionTabStrip,
     last: shown[shown.length - 1] === activeId,
     tabCount: shown.length
   })
@@ -394,6 +414,19 @@ export function TreeGroup({
   // The zone hosting the uncloseable workspace never minimizes — collapsing
   // MAIN strands the whole app behind a strip.
   const minimizable = !shown.some(id => paneChrome(paneFor(id)).uncloseable)
+
+  // Sessions and Agent Hub share the left navigation rail.  The titlebar
+  // already owns the rail's hide/show control, so a second chevron in this
+  // strip is redundant and visually competes with the tab labels.  Keep the
+  // zone-level minimize action available through the context menu; this only
+  // removes the duplicate inline button from the navigation rail.
+  const isNavigationRail = shown.some(id => {
+    const chrome = paneChrome(paneFor(id))
+
+    return chrome.hideOnly && chrome.placement === 'left'
+  })
+
+  const showMinimizeButton = minimizable && !isNavigationRail
 
   // Middle-click / ⌘-click on a tab: one routing for every tab kind, the same
   // one the zone menu's Close and ⌘W use.
@@ -504,8 +537,111 @@ export function TreeGroup({
         </ZoneMenu>
       )}
 
+      {/* Header: a chat-only zone shows one current-session title — a tile's
+          session or the workspace's routed session.  Other zones retain the
+          shared multi-pane tab strip. */}
+      {singleSessionHeader && (
+        <ZoneMenu {...zoneMenu}>
+          <PaneTabStrip
+            className="session-title-header"
+            data-zone-tabstrip={node.id}
+            listRef={tabsRef}
+            onPointerDown={e =>
+              // Clicking the surrounding header still drags the pane. The
+              // active title claims its own pointer below.
+              startPaneDrag(activeId, e, undefined, undefined, paneTitle(activeId))
+            }
+            ref={stripRef}
+            surface={tabSurface}
+            trailing={
+              <>
+                {showMinimizeButton && (
+                  <button
+                    aria-label={node.minimized ? t.zones.restore : t.zones.minimize}
+                    className="mx-1 grid size-5 shrink-0 place-items-center self-center rounded-md text-(--ui-text-tertiary) opacity-0 transition-opacity hover:bg-(--ui-control-hover-background) hover:text-foreground focus-visible:opacity-100 group-hover/pane-header:opacity-100"
+                    onClick={toggleCollapse}
+                    onPointerDown={e => e.stopPropagation()}
+                    type="button"
+                  >
+                    <Codicon name={node.minimized ? 'chevron-up' : 'chevron-down'} size="0.75rem" />
+                  </button>
+                )}
+                <StripDropCaret groupId={node.id} stripRef={stripRef} />
+              </>
+            }
+          >
+            {(() => {
+              const chrome = paneChrome(paneFor(activeId))
+
+              const onTap = () => {
+                clearTabSelection()
+
+                if (node.minimized || isCollapsePane(activeId)) {
+                  restoreTreePane(activeId)
+                }
+
+                activateTreePane(node.id, activeId)
+              }
+
+              const title = (
+                <PaneTab
+                  active={!node.minimized}
+                  aria-selected={!node.minimized}
+                  className="max-w-[min(42rem,100%)]"
+                  data-tree-tab={activeId}
+                  onClose={closeableTab(activeId) ? () => closeTab(activeId) : undefined}
+                  onPointerDown={event => {
+                    event.preventDefault()
+                    event.stopPropagation()
+
+                    if (!chrome.tabDrag?.(event, onTap)) {
+                      startPaneDrag(
+                        activeId,
+                        event,
+                        onTap,
+                        stripRef.current ? { groupId: node.id, strip: stripRef.current } : undefined,
+                        paneTitle(activeId)
+                      )
+                    }
+                  }}
+                  role="tab"
+                  // The current-session title follows Codex's compact header:
+                  // actions live in the session menu, not as a hover X. Keep
+                  // the close gesture wired for keyboard/pointer power users.
+                  showCloseButton={false}
+                >
+                  {chrome.tabLead ? (
+                    <span className="ml-2 -mr-1 flex shrink-0 items-center">{chrome.tabLead()}</span>
+                  ) : null}
+                  <PaneTabLabel
+                    className="text-[0.875rem] font-semibold normal-case tracking-normal"
+                    data-current-session-title=""
+                  >
+                    {tabLabel(activeId)}
+                  </PaneTabLabel>
+                </PaneTab>
+              )
+
+              return chrome.tabWrap ? chrome.tabWrap(title) : title
+            })()}
+            {/* Codex pairs the current-session title with a visible ⋯ — the
+                single header carries no hover ✕, so this is the discoverable
+                session-actions entry. Pane drag starts on the strip background
+                and the title, never on the kebab. */}
+            {activeChrome.headerMenu ? (
+              <span
+                className="flex shrink-0 items-center self-center"
+                onPointerDown={event => event.stopPropagation()}
+              >
+                {activeChrome.headerMenu()}
+              </span>
+            ) : null}
+          </PaneTabStrip>
+        </ZoneMenu>
+      )}
+
       {/* Header: the shared pane tab strip (PaneTabStrip + PaneTab). */}
-      {headerVisible && (
+      {headerVisible && !hideSessionTabStrip && (
         <ZoneMenu {...zoneMenu}>
           <PaneTabStrip
             // data-zone-tabstrip: a drop over here STACKS (drag-session reads it).
@@ -531,7 +667,7 @@ export function TreeGroup({
             surface={tabSurface}
             trailing={
               <>
-                {minimizable && (
+                {showMinimizeButton && (
                   <button
                     aria-label={node.minimized ? t.zones.restore : t.zones.minimize}
                     className="mx-1 grid size-5 shrink-0 place-items-center self-center rounded-md text-(--ui-text-tertiary) opacity-0 transition-opacity hover:bg-(--ui-control-hover-background) hover:text-foreground focus-visible:opacity-100 group-hover/pane-header:opacity-100"

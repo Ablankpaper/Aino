@@ -136,6 +136,12 @@ describe('Sessions/Bots strip — #91223', () => {
     expect(tabEl('hermes-bots:pane')).toBeTruthy()
   })
 
+  it('does not render a duplicate minimize button in the navigation rail', () => {
+    render(<LiveTreeGroup parentAxis="row" />)
+
+    expect(globalThis.document.querySelector('[data-tree-group="g-side"] button[aria-label="Minimize"]')).toBeNull()
+  })
+
   it('an explicit never still paints the strip — hide-only chrome has no other handle', () => {
     setTreeGroupTabStrip('g-side', 'never')
     expect(tabStripVisibleForGroup(zoneAt(0))).toBe(true)
