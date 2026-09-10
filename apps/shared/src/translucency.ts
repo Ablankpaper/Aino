@@ -52,7 +52,13 @@ export const GLASS_SCOPES = ['window', 'sidebar'] as const
 
 export type GlassScope = (typeof GLASS_SCOPES)[number]
 
-export const DEFAULT_GLASS_SCOPE: GlassScope = 'window'
+/** Fresh installs use the Finder-style split: glass on the sidebar only. */
+export const DEFAULT_GLASS_SCOPE: GlassScope = 'sidebar'
+
+// Flat v1 payloads predate the sidebar/window choice and always painted the
+// whole window. Keep that behavior when migrating them; fresh books still use
+// DEFAULT_GLASS_SCOPE through the platform defaults below.
+const LEGACY_GLASS_SCOPE: GlassScope = 'window'
 
 /**
  * Electron `setBackgroundMaterial` values. `'auto'` is deliberately absent —
@@ -154,12 +160,12 @@ export type Appearance = 'light' | 'dark'
  */
 const DEFAULT_VALUES: Record<'mac' | 'windows', Record<Appearance, TranslucencyValues>> = {
   mac: {
-    light: { intensity: 66, fade: 1, material: 'header', scope: 'window' },
-    dark: { intensity: 22, fade: 0, material: 'titlebar', scope: 'window' }
+    light: { intensity: 66, fade: 1, material: 'header', scope: DEFAULT_GLASS_SCOPE },
+    dark: { intensity: 22, fade: 0, material: 'titlebar', scope: DEFAULT_GLASS_SCOPE }
   },
   windows: {
-    light: { intensity: 20, fade: 0, material: 'under-window', scope: 'window' },
-    dark: { intensity: 5, fade: 0, material: 'under-window', scope: 'window' }
+    light: { intensity: 20, fade: 0, material: 'under-window', scope: DEFAULT_GLASS_SCOPE },
+    dark: { intensity: 5, fade: 0, material: 'under-window', scope: DEFAULT_GLASS_SCOPE }
   }
 }
 
@@ -269,14 +275,20 @@ export function normalizeMode(value: unknown, glassSupported: boolean, legacyInt
   return legacyIntensity > 0 ? 'clear' : 'glass'
 }
 
-/** Unknown or unsupported values fall back to the default material. */
+/** Unknown or unsupported values fall back to the fresh-install material. */
 export function normalizeMaterial(value: unknown): GlassMaterial {
   return GLASS_MATERIALS.includes(value as GlassMaterial) ? (value as GlassMaterial) : DEFAULT_GLASS_MATERIAL
 }
 
-/** Unknown or unsupported values fall back to whole-window glass. */
+/** Unknown or unsupported values fall back to the fresh-install sidebar scope. */
 export function normalizeScope(value: unknown): GlassScope {
   return GLASS_SCOPES.includes(value as GlassScope) ? (value as GlassScope) : DEFAULT_GLASS_SCOPE
+}
+
+const LEGACY_FLAT_KEYS = ['intensity', 'fade', 'mode', 'material', 'scope'] as const
+
+function isLegacyFlatPayload(record: Record<string, unknown>): boolean {
+  return LEGACY_FLAT_KEYS.some(key => Object.prototype.hasOwnProperty.call(record, key))
 }
 
 /** Parse a persisted translucency.json / IPC payload into a safe state. */
@@ -284,12 +296,15 @@ export function normalizeState(payload: unknown, glassSupported: boolean): Trans
   const record = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {}
   const intensity = clampIntensity(record.intensity)
 
+  const scope =
+    record.scope === undefined && isLegacyFlatPayload(record) ? LEGACY_GLASS_SCOPE : normalizeScope(record.scope)
+
   return {
     intensity,
     fade: clampIntensity(record.fade),
     mode: normalizeMode(record.mode, glassSupported, intensity),
     material: normalizeMaterial(record.material),
-    scope: normalizeScope(record.scope)
+    scope
   }
 }
 
@@ -353,6 +368,13 @@ export function normalizeBook(payload: unknown, glassSupported: boolean): Transl
 
   const base = normalizeValues(migrating ? record : record.base)
   const legacyIntensity = migrating ? clampIntensity(record.intensity) : 0
+
+  // A flat v1 book had no scope key and always painted the whole window. Add
+  // that compatibility value only when there is an actual legacy payload;
+  // null/empty input is the new-install path and must inherit sidebar defaults.
+  if (migrating && isLegacyFlatPayload(record) && base.scope === undefined) {
+    base.scope = LEGACY_GLASS_SCOPE
+  }
 
   return {
     mode: normalizeMode(record.mode, glassSupported, legacyIntensity),
