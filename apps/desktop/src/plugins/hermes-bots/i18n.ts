@@ -505,7 +505,7 @@ type BotsMessages = {
 
 const en: BotsMessages = {
   roster: {
-    title: 'Bots',
+    title: 'Agent Hub',
     search: 'Search bots and group chats',
     searchPlaceholder: 'Search bots and group chats…',
     newBotOrGroup: 'New bot or group chat',
@@ -966,7 +966,7 @@ const en: BotsMessages = {
 
 const ja: BotsMessages = {
   roster: {
-    title: 'ボット',
+    title: 'Agent Hub',
     search: 'ボットとグループチャットを検索',
     searchPlaceholder: 'ボットとグループチャットを検索…',
     newBotOrGroup: '新しいボットまたはグループチャット',
@@ -1426,7 +1426,7 @@ const ja: BotsMessages = {
 
 const zh: BotsMessages = {
   roster: {
-    title: '机器人',
+    title: 'Agent Hub',
     search: '搜索机器人和群聊',
     searchPlaceholder: '搜索机器人和群聊…',
     newBotOrGroup: '新建机器人或群聊',
@@ -1874,7 +1874,7 @@ const zh: BotsMessages = {
 
 const zhHant: BotsMessages = {
   roster: {
-    title: '機器人',
+    title: 'Agent Hub',
     search: '搜尋機器人和群組聊天',
     searchPlaceholder: '搜尋機器人和群組聊天…',
     newBotOrGroup: '新增機器人或群組聊天',

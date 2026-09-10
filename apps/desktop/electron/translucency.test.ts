@@ -433,7 +433,7 @@ describe('normalizeState', () => {
       fade: 0,
       mode: 'clear',
       material: DEFAULT_GLASS_MATERIAL,
-      scope: DEFAULT_GLASS_SCOPE
+      scope: 'window'
     })
   })
 
@@ -665,9 +665,45 @@ describe('the defaults a fresh profile lands on', () => {
     }
   })
 
-  it('opens the whole window, not just the sidebar rail', () => {
-    for (const values of [mac('light'), mac('dark'), win('light'), win('dark')]) {
-      expect(values.scope).toBe('window')
+  it('keeps the chat canvas opaque while applying glass to the sidebar rail', () => {
+    const emptyBook = normalizeBook(null, true)
+
+    for (const appearance of ['light', 'dark'] as const) {
+      for (const isWindows of [false, true]) {
+        expect(defaultTranslucencyValues(appearance, isWindows).scope).toBe('sidebar')
+        expect(defaultTranslucencyState(appearance, true, isWindows).scope).toBe('sidebar')
+        expect(resolveTranslucency(emptyBook, appearance, isWindows).scope).toBe('sidebar')
+      }
+    }
+  })
+
+  it('keeps whole-window as the compatibility fallback for an older saved state without a scope', () => {
+    expect(DEFAULT_GLASS_SCOPE).toBe('sidebar')
+    expect(normalizeState({ intensity: 40, mode: 'glass' }, true).scope).toBe('window')
+  })
+
+  it('preserves an explicitly saved whole-window choice', () => {
+    const saved = { intensity: 40, mode: 'glass', scope: 'window' } as const
+    const mainState = normalizeState(saved, true)
+    const rendererBook = normalizeBook(saved, true)
+
+    expect(mainState.scope).toBe('window')
+
+    for (const appearance of ['light', 'dark'] as const) {
+      for (const isWindows of [false, true]) {
+        expect(resolveTranslucency(rendererBook, appearance, isWindows).scope).toBe('window')
+      }
+    }
+  })
+
+  it('preserves the whole-window treatment while migrating a legacy flat payload without scope', () => {
+    const migrated = normalizeBook({ intensity: 40, mode: 'glass' }, true)
+
+    expect(migrated.base.scope).toBe('window')
+
+    for (const appearance of ['light', 'dark'] as const) {
+      expect(resolveTranslucency(migrated, appearance, false).scope).toBe('window')
+      expect(resolveTranslucency(migrated, appearance, true).scope).toBe('window')
     }
   })
 })

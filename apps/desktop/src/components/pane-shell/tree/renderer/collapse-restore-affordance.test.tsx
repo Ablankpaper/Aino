@@ -12,6 +12,7 @@ import {
   collapseTreePane,
   markCollapsePane,
   registerPaneCloser,
+  registerPaneOpener,
   setTreeGroupMinimized,
   setTreeGroupTabStrip,
   tabStripVisibleForGroup
@@ -135,6 +136,12 @@ describe('Sessions/Bots strip — #91223', () => {
     expect(tabEl('hermes-bots:pane')).toBeTruthy()
   })
 
+  it('does not render a duplicate minimize button in the navigation rail', () => {
+    render(<LiveTreeGroup parentAxis="row" />)
+
+    expect(globalThis.document.querySelector('[data-tree-group="g-side"] button[aria-label="Minimize"]')).toBeNull()
+  })
+
   it('an explicit never still paints the strip — hide-only chrome has no other handle', () => {
     setTreeGroupTabStrip('g-side', 'never')
     expect(tabStripVisibleForGroup(zoneAt(0))).toBe(true)
@@ -199,6 +206,30 @@ describe('docked tool tile — collapsing keeps the restore chip', () => {
     render(<LiveTreeGroup index={1} parentAxis="row" />)
 
     expect(tabEl('hermes-bots:routines')).toBeTruthy()
+  })
+})
+
+describe('tool-panel tab activation', () => {
+  it('reopens a visible tool tab through its owner when the owner is off', () => {
+    const paneId = 'terminal-activation-test'
+    let ownerOpen = false
+
+    registerPane(paneId, { placement: 'bottom' }, 'Terminal')
+    markCollapsePane(paneId)
+    registerPaneOpener(paneId, () => {
+      ownerOpen = true
+    })
+    $layoutTree.set(group([paneId], { active: paneId, id: 'g-terminal-activation-test' }))
+
+    render(<LiveTreeGroup parentAxis="column" />)
+
+    const tab = tabEl(paneId)
+    expect(tab).toBeTruthy()
+    expect(ownerOpen).toBe(false)
+
+    tap(tab!)
+
+    expect(ownerOpen).toBe(true)
   })
 })
 

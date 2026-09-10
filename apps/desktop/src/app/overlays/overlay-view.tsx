@@ -75,7 +75,7 @@ export function OverlayView({
   return (
     <div
       className={cn(
-        'fixed inset-0 z-50 bg-black/22 backdrop-blur-[0.125rem]',
+        'fixed inset-0 z-(--z-modal-backdrop) bg-(--aino-scrim) backdrop-blur-[1px]',
         // Equidistant inset on every side. The top value is driven by the
         // titlebar height so the card clears the OS traffic-lights vertically;
         // since the card top already sits below them, the left needs no extra
@@ -107,7 +107,7 @@ export function OverlayView({
       <div className="relative h-full min-h-0">
         <div
           className={cn(
-            'relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-(--ui-stroke-secondary) bg-(--ui-chat-surface-background) shadow-md',
+            'relative flex h-full min-h-0 flex-col overflow-hidden rounded-(--aino-radius-panel) border border-(--stroke-nous) bg-(--ui-chat-surface-background) shadow-nous',
             rootClassName
           )}
           // Marks the card as a RAISED surface for window glass: while the field

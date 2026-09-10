@@ -17,7 +17,7 @@ export const HUD_POSITION =
 // (app-shell.tsx), which wins hit-testing over DOM regardless of z-index — so
 // without it the top of the surface (the search input) swallows clicks.
 export const HUD_SURFACE =
-  'rounded-(--aino-radius-panel) border border-(--ui-stroke-secondary) bg-(--ui-bg-elevated) shadow-nous [-webkit-app-region:no-drag]'
+  'rounded-(--aino-radius-panel) border border-(--stroke-nous) bg-(--ui-bg-elevated) shadow-nous [-webkit-app-region:no-drag]'
 
 // One row/text size for both HUDs (compact — two notches under `text-sm`).
 export const HUD_TEXT = 'text-[length:var(--aino-text-ui)] leading-5'

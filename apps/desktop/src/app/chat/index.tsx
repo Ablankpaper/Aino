@@ -21,7 +21,7 @@ import { TitleMenuTrigger } from '@/components/ui/title-menu-trigger'
 import { type HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
 import type { ChatMessage } from '@/lib/chat-messages'
-import { NEW_SESSION_TITLE, quickModelOptions, sessionTitle } from '@/lib/chat-runtime'
+import { newSessionTitle, quickModelOptions, sessionTitle } from '@/lib/chat-runtime'
 import { useIncrementalExternalStoreRuntime } from '@/lib/incremental-external-store-runtime'
 import { modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
 import { useStoreSelector } from '@/lib/use-session-slice'
@@ -33,6 +33,7 @@ import { $pinnedSessionIds } from '@/store/layout'
 import { $petActive } from '@/store/pet'
 import { $petOverlayActive } from '@/store/pet-overlay'
 import { $activeGatewayProfile, $gatewaySwapTarget, $hydrationSyncProfile, $profiles } from '@/store/profile'
+import { openFolderAsProject } from '@/store/projects'
 import {
   $connection,
   $contextSuggestions,
@@ -134,7 +135,7 @@ function ChatHeader({
   const activeStoredSession =
     (selectedSessionId && sessions.find(session => sessionMatchesStoredId(session, selectedSessionId))) || null
 
-  const title = activeStoredSession ? sessionTitle(activeStoredSession) : NEW_SESSION_TITLE
+  const title = activeStoredSession ? sessionTitle(activeStoredSession) : newSessionTitle()
 
   // Which agent/persona owns this chat — glanceable in the header once a
   // second profile exists, so the open session's ownership is never ambiguous
@@ -558,6 +559,29 @@ const ChatViewContent = memo(function ChatViewContent({
   const showChatBar = !loadingSession && !resumeExhausted && !isWatchWindow()
   const threadKey = selectedSessionId || activeSessionId || (isRoutedSessionView ? location.pathname : 'new')
 
+  // Landing actions reuse the existing composer and project flows.
+  const onHomeInsertPrompt = useCallback(
+    (text: string) => requestComposerInsert(text, { mode: 'block', target: composerScope.target }),
+    [composerScope.target]
+  )
+
+  const onHomeSelectWorkspace = useCallback(() => void openFolderAsProject(), [])
+
+  const introProps = useMemo(
+    () =>
+      showIntro
+        ? {
+            home: true,
+            onInsertPrompt: onHomeInsertPrompt,
+            onPickFiles,
+            onSelectWorkspace: onHomeSelectWorkspace,
+            personality: introPersonality,
+            seed: introSeed
+          }
+        : undefined,
+    [introPersonality, introSeed, onHomeInsertPrompt, onHomeSelectWorkspace, onPickFiles, showIntro]
+  )
+
   const modelOptionsQuery = useQuery<ModelOptionsResponse>({
     queryKey: modelOptionsQueryKey(
       modelOptionsProfile || activeGatewayProfile,
@@ -591,7 +615,7 @@ const ChatViewContent = memo(function ChatViewContent({
       },
       tools: {
         enabled: true,
-        label: 'Add context',
+        label: t.ui.actions.addContext,
         suggestions: contextSuggestions
       },
       voice: {
@@ -599,7 +623,15 @@ const ChatViewContent = memo(function ChatViewContent({
         active: false
       }
     }),
-    [contextSuggestions, currentModel, currentProvider, gatewayOpen, modelMenuContent, quickModels]
+    [
+      contextSuggestions,
+      currentModel,
+      currentProvider,
+      gatewayOpen,
+      modelMenuContent,
+      quickModels,
+      t.ui.actions.addContext
+    ]
   )
 
   // Drop files anywhere in the conversation area, not just on the composer
@@ -652,6 +684,8 @@ const ChatViewContent = memo(function ChatViewContent({
       data-chat-unfocused={surfaceFocused ? undefined : ''}
       data-composer-surface-id={composerSurfaceId}
       data-composer-target={composerScope.target}
+      data-conversation-layout={!showIntro && showChatBar ? '' : undefined}
+      data-home-layout={showIntro && showChatBar ? '' : undefined}
       data-session-anchor={sessionAnchor}
     >
       <Backdrop />
@@ -689,7 +723,7 @@ const ChatViewContent = memo(function ChatViewContent({
             clampToComposer={showChatBar}
             cwd={currentCwd}
             gateway={gateway}
-            intro={showIntro ? { personality: introPersonality, seed: introSeed } : undefined}
+            intro={introProps}
             loading={threadLoading}
             onBranchInNewChat={onBranchInNewChat}
             onCancel={haltRun}
@@ -713,7 +747,7 @@ const ChatViewContent = memo(function ChatViewContent({
               </ErrorState>
             </div>
           )}
-          {showChatBar && <ScrollToBottomButton sessionId={activeSessionId} />}
+          {showChatBar && !showIntro && <ScrollToBottomButton sessionId={activeSessionId} />}
           {/* Vibe hearts rise from the composer only when no pet is out (else
               they play on the pet). Fired by the core `reaction` event. */}
           {!petPresent && (
@@ -750,6 +784,7 @@ const ChatViewContent = memo(function ChatViewContent({
               disabled={!gatewayOpen}
               focusKey={activeSessionId}
               gateway={gateway}
+              homeLayout={showIntro}
               maxRecordingSeconds={maxVoiceRecordingSeconds}
               onAddContextRef={onAddContextRef}
               onAddUrl={onAddUrl}

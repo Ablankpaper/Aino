@@ -1657,6 +1657,9 @@ body.guest-pointer-lock :is(webview, iframe) {
   --aino-landing-workspace: #efefef;
   --shadow-aino-landing-composer: 0 2px 8px rgb(0 0 0 / 8%);
   --aino-landing-font: var(--dt-font-sans);
+  /* Second row of the unified top band (rail tabs + session title). One token
+     so every zone header, the band hairline, and the sash offset agree. */
+  --aino-band-row2: 2.75rem;
 }
 
 .dark {
@@ -1680,6 +1683,7 @@ body.guest-pointer-lock :is(webview, iframe) {
   --aino-landing-title: var(--ui-text-primary);
   --aino-landing-workspace: var(--ui-bg-quaternary);
   --shadow-aino-landing-composer: var(--shadow-nous);
+  --aino-band-row2: 2.75rem;
 }
 
 /* The standing Sessions/Bots rail is the Aino primary navigation, not an
@@ -1693,16 +1697,74 @@ body.guest-pointer-lock :is(webview, iframe) {
 }
 
 [data-zone-tabstrip]:has([data-tree-tab='sessions']) {
-  height: 2.625rem;
+  height: var(--aino-band-row2);
   padding-left: 1rem;
   border-bottom: 1px solid var(--aino-landing-stroke);
-  --pane-tab-active-accent: var(--aino-landing-accent);
+  /* The top band is one quiet row: the rail paper joins the landing surface
+     (no gray/white step at the sidebar edge) and the active tab reads by
+     color/weight instead of a theme-primary underline. */
+  background: var(--aino-landing-surface);
+  --pane-tab-active-accent: transparent;
+}
+
+/* Main workspace strips sit directly above the conversation paper. Keep the
+   strip, active tab face, and inactive tab gutter on one semantic surface so
+   switching from the landing draft to a live conversation cannot introduce a
+   gray band. Sidebar strips intentionally keep the default rail surface. */
+[data-pane-surface='main'] {
+  background: var(--aino-landing-surface);
+  --pane-tab-active-bg: var(--aino-landing-surface);
+  --pane-tab-strip-bg: var(--aino-landing-surface);
+}
+
+/* One continuous top band (Codex-style): every chat-shell zone header shares
+   the row height, the landing paper, and the same bottom hairline, so the
+   band reads as a single strip instead of boxed cells with competing seams. */
+[data-contrib-shell]:has([data-chat-surface]) [data-pane-surface='main'] {
+  height: var(--aino-band-row2);
+  background: var(--aino-landing-surface);
+  border-bottom: 1px solid var(--aino-landing-stroke);
+}
+
+/* Vertical zone seams start BELOW the band so nothing cuts the top row; the
+   sash keeps its full-height grab band, only the resting hairline moves. */
+[data-contrib-shell]:has([data-chat-surface]) [role='separator'][data-sash-axis='x'] > span:first-child {
+  top: var(--aino-band-row2);
+}
+
+/* A chat tile has one current-session heading, not a row of conversation
+   tabs. Match the Codex-style heading hierarchy while retaining the shared
+   PaneTab interaction/close semantics underneath. */
+/* The single-session header inherits the unified band geometry (height,
+   paper, bottom hairline) from the chat-shell `[data-pane-surface='main']`
+   rule above — one source for the top band's lines. */
+
+[data-pane-surface='main'].session-title-header [data-tree-tab] {
+  max-width: min(42rem, 100%);
+  box-shadow: none;
+}
+
+[data-pane-surface='main'].session-title-header [data-current-session-title] > span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Glass owns the chat/rail aliases below the Aino landing tokens. Rebind the
+   landing aliases at the same (unlayered) contract boundary so the default
+   light and dark presets do not leave an opaque white/card band over the
+   native material. Custom light skins already inherit these aliases, but the
+   explicit rule keeps every preset on one Glass path. */
+:root[data-hermes-glass] {
+  --aino-landing-surface: var(--ui-chat-surface-background);
+  --aino-landing-sidebar: var(--ui-sidebar-surface-background);
 }
 
 [data-zone-tabstrip]:has([data-tree-tab='sessions'])
   > [role='tablist']
   > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane']) {
-  height: 2.625rem;
+  height: var(--aino-band-row2);
   max-width: none;
   border-left: 0;
 }
@@ -1713,7 +1775,12 @@ body.guest-pointer-lock :is(webview, iframe) {
 }
 
 [data-zone-tabstrip]:has([data-tree-tab='sessions']) > [role='tablist'] > [data-tree-tab='hermes-bots:pane'] {
-  width: 4.375rem;
+  /* Agent Hub is longer than the legacy “机器人” label. Let the tab size to
+     its label so the brand name remains readable instead of becoming
+     “Age…” inside the fixed 70px slot. The minimum keeps the rail rhythm
+     stable when a host supplies a shorter fallback label. */
+  width: max-content;
+  min-width: 6.5rem;
 }
 
 [data-zone-tabstrip]:has([data-tree-tab='sessions'])
@@ -1748,7 +1815,9 @@ body.guest-pointer-lock :is(webview, iframe) {
 [data-zone-tabstrip]:has([data-tree-tab='sessions'])
   > [role='tablist']
   > :is([data-tree-tab='sessions'], [data-tree-tab='hermes-bots:pane'])[data-active='true'] {
-  color: var(--aino-landing-accent);
+  /* Calm active state: primary ink, not the brand accent — the band keeps one
+     quiet voice (the accent underline is transparent on this strip). */
+  color: var(--aino-landing-title);
 }
 
 [data-zone-tabstrip]:has([data-tree-tab='sessions'])
@@ -1809,6 +1878,21 @@ body:has([data-chat-surface][data-home-layout]) [data-tour='sessions-sidebar'] {
 
 [data-tour='sessions-sidebar'] [data-sidebar-section-label] > .dither {
   display: none;
+}
+
+/* Search results live in the titlebar contribution slot, outside the sidebar
+   tree that normally supplies the Aino section-label treatment. Keep the
+   neutral heading variant on the primitive so portalled labels do not fall
+   back to the old accent/small-caps styling. */
+[data-sidebar-label-tone='neutral'] {
+  gap: 0;
+  padding-left: 0;
+  color: var(--aino-landing-secondary);
+  font-size: var(--aino-text-ui);
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 [data-tour='sessions-sidebar'] [data-sidebar-section-content] {
@@ -1883,26 +1967,23 @@ body:has([data-chat-surface][data-home-layout]) [data-tour='sessions-sidebar'] {
 }
 
 /* The approved frame splits the native titlebar at the sidebar edge and keeps
-   the main canvas opaque white. Glass remains available everywhere else. */
-[data-contrib-shell]:has([data-chat-surface][data-home-layout]) > [data-slot='app-titlebar'] {
+   the main canvas on the same paper as chat. Apply that contract to both the
+   landing draft and an open conversation; settings keeps its own rail header. */
+[data-contrib-shell]:not(:has([data-settings-workspace])):has([data-chat-surface][data-home-layout])
+  > [data-slot='app-titlebar'],
+[data-contrib-shell]:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversation-layout])
+  > [data-slot='app-titlebar'] {
   background: var(--aino-landing-surface);
 }
 
-[data-contrib-shell]:has([data-chat-surface][data-home-layout]) > [data-slot='app-titlebar']::before {
-  position: absolute;
-  z-index: 0;
-  inset: 0 auto 0 0;
-  width: var(--workspace-left, 245px);
-  border-right: 1px solid var(--aino-landing-stroke);
-  background: var(--aino-landing-sidebar);
-  box-shadow:
-    1px 0 1.5px rgb(0 0 0 / 10%),
-    1px 0 1px rgb(0 0 0 / 10%);
-  content: '';
-  pointer-events: none;
-}
+/* The band split and its left-segment stroke were removed: the unified top
+   band paints one paper edge-to-edge, and the sidebar's own edge shadow below
+   the band is the only vertical seam on the left. */
 
-body:has([data-chat-surface][data-home-layout])
+body:not(:has([data-settings-workspace])):has([data-chat-surface][data-home-layout])
+  :is([data-slot='titlebar-window-controls'], [data-slot='titlebar-app-controls'])
+  button,
+body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversation-layout])
   :is([data-slot='titlebar-window-controls'], [data-slot='titlebar-app-controls'])
   button {
   color: var(--aino-landing-muted) !important;
@@ -4561,14 +4642,14 @@ html:has([data-hud-shell]) [data-slot='popover-content'] {
 /* Route overlays use the same flat elevation rule as chat widgets: one soft
    scrim, one hairline, one downward shadow. */
 [data-aino-overlay] {
-  background: color-mix(in srgb, var(--ui-base) 12%, transparent) !important;
+  background: var(--aino-scrim) !important;
   backdrop-filter: blur(1px) saturate(0.96) !important;
   -webkit-backdrop-filter: blur(1px) saturate(0.96) !important;
 }
 
 [data-aino-overlay-card] {
   border: 1px solid var(--stroke-nous) !important;
-  border-radius: 1rem !important;
+  border-radius: var(--aino-radius-panel) !important;
   background: var(--ui-chat-surface-background) !important;
   box-shadow: var(--shadow-nous) !important;
   font-family: var(--aino-landing-font);

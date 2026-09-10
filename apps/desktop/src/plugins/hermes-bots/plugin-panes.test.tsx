@@ -189,14 +189,14 @@ describe('localized registration labels', () => {
   it('uses the active locale for the pane and palette labels', () => {
     const harness = recordingContext(key =>
       ({
-        'roster.title': '机器人',
+        'roster.title': 'Agent Hub',
         'bot.newCommand': '新建机器人…'
       })[key] ?? key
     )
 
     plugin.register(harness.ctx)
 
-    expect(harness.find('pane')?.title).toBe('机器人')
+    expect(harness.find('pane')?.title).toBe('Agent Hub')
     expect(harness.find('new-agent')?.data?.label).toBe('新建机器人…')
 
     harness.dispose()
@@ -208,7 +208,7 @@ describe('localized registration labels', () => {
 
     plugin.register(harness.ctx)
 
-    expect(harness.find('pane')?.title).toBe('Bots')
+    expect(harness.find('pane')?.title).toBe('Agent Hub')
     expect(harness.find('new-agent')?.data?.label).toBe('New Bot…')
 
     harness.dispose()

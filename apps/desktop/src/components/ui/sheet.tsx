@@ -3,6 +3,7 @@
 import { Dialog as SheetPrimitive } from 'radix-ui'
 import * as React from 'react'
 
+import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
@@ -53,7 +54,7 @@ function SheetContent({
       <SheetOverlay />
       <SheetPrimitive.Content
         className={cn(
-          'fixed z-(--z-modal) flex flex-col gap-3 border-(--ui-stroke-secondary) bg-(--ui-sidebar-surface-background) text-[length:var(--conversation-text-font-size)] shadow-md transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500',
+          'fixed z-(--z-modal) flex flex-col gap-3 border-(--stroke-nous) bg-(--ui-sidebar-surface-background) text-[length:var(--conversation-text-font-size)] shadow-nous transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500',
           side === 'right' &&
             'inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm',
           side === 'left' &&
@@ -69,12 +70,16 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close
-            aria-label={t.common.close}
-            className="absolute top-3 right-3 rounded-md p-1 text-(--ui-text-tertiary) opacity-70 ring-offset-background transition-opacity hover:bg-(--chrome-action-hover) hover:text-foreground hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-secondary"
-          >
-            <Codicon name="close" size="1rem" />
-            <span className="sr-only">{t.common.close}</span>
+          <SheetPrimitive.Close asChild>
+            <Button
+              aria-label={t.common.close}
+              className="absolute top-3 right-3 text-(--ui-text-tertiary) opacity-70 hover:bg-(--chrome-action-hover) hover:text-foreground hover:opacity-100"
+              size="icon-sm"
+              variant="ghost"
+            >
+              <Codicon name="close" size="1rem" />
+              <span className="sr-only">{t.common.close}</span>
+            </Button>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Content>

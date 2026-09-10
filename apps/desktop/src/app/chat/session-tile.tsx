@@ -30,11 +30,12 @@ import { findGroupOfPane } from '@/components/pane-shell/tree/model'
 import { $layoutTree, closeTreePane, moveTreePane, setTreeGroupTabStrip } from '@/components/pane-shell/tree/store'
 import { $workspaceOwnerLabels, workspaceOwnerTitle } from '@/components/pane-shell/workspace-scope'
 import { Button } from '@/components/ui/button'
+import { Codicon } from '@/components/ui/codicon'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { transcribeAudio } from '@/hermes'
-import { useI18n } from '@/i18n'
+import { translateNow, useI18n } from '@/i18n'
 import type { ChatMessage } from '@/lib/chat-messages'
-import { NEW_SESSION_TITLE, sessionTitle } from '@/lib/chat-runtime'
+import { newSessionTitle, sessionTitle } from '@/lib/chat-runtime'
 import { transcribeAudioClientDirect } from '@/lib/voice-client-direct'
 import { createComposerAttachmentScope, draftTitleFor } from '@/store/composer'
 import { $pinnedSessionIds, pinSession, unpinSession } from '@/store/layout'
@@ -73,7 +74,7 @@ import { SessionStatusDot } from './session-status-dot'
 import { useSessionTileActions } from './session-tile-actions'
 import { tileOwnerRoute } from './session-tile-owner'
 import { type SessionView, SessionViewProvider } from './session-view'
-import { SessionContextMenu } from './sidebar/session-actions-menu'
+import { SessionActionsMenu, SessionContextMenu } from './sidebar/session-actions-menu'
 import { lastVisibleMessageIsUser } from './thread-loading'
 
 import { ChatView } from '.'
@@ -94,10 +95,10 @@ export function sessionTileResumeFailure(
   }
 
   if (durableSessionFound) {
-    return 'Session is still available — retry resuming it.'
+    return translateNow('desktop.sessionStillAvailableRetry')
   }
 
-  return 'Session unavailable — you can retry resuming it.'
+  return translateNow('desktop.sessionUnavailableRetry')
 }
 
 /** Should this tile dispatch a `session.resume`?
@@ -333,6 +334,7 @@ function TileChat({
 }
 
 export function SessionTilePane({ storedSessionId }: { storedSessionId: string }) {
+  const { t } = useI18n()
   const tiles = useStore($sessionTiles)
   const tile = tiles.find(t => t.storedSessionId === storedSessionId)
   const ownerRoute = tile?.ownerRoute
@@ -462,10 +464,10 @@ export function SessionTilePane({ storedSessionId }: { storedSessionId: string }
     return (
       <div className="grid h-full place-items-center p-4">
         <div className="max-w-[24rem] space-y-2 text-center font-mono text-[11px]">
-          <div className="text-(--ui-danger,#f87171)">Couldn't open this session</div>
+          <div className="text-(--ui-danger,#f87171)">{t.desktop.resumeStrandedTitle}</div>
           <div className="break-words text-(--ui-text-quaternary)">{tile.error}</div>
           <Button onClick={() => patchSessionTile(storedSessionId, { error: undefined })} size="sm" variant="outline">
-            Retry
+            {t.desktop.resumeRetry}
           </Button>
         </div>
       </div>
@@ -542,7 +544,7 @@ function tileTitle(storedSessionId: string): string {
   const stored = tileStoredRow(storedSessionId)
   const explicit = $sessionTiles.get().find(tile => tile.storedSessionId === storedSessionId)?.workspaceTabTitle
 
-  return stored ? sessionTitle(stored) : explicit || NEW_SESSION_TITLE
+  return stored ? sessionTitle(stored) : explicit || newSessionTitle()
 }
 
 /** The tab's CAPTION: a bot chat's owner name over the canonical stored title
@@ -562,7 +564,7 @@ function tileDragPayload(storedSessionId: string): SessionDragPayload {
 
   const title = stored
     ? sessionTitle(stored)
-    : tile?.workspaceTabTitle || draftTitleFor(storedSessionId) || NEW_SESSION_TITLE
+    : tile?.workspaceTabTitle || draftTitleFor(storedSessionId) || newSessionTitle()
 
   return { id: storedSessionId, profile: stored?.profile ?? '', title: workspaceOwnerTitle(title, tile) }
 }
@@ -744,6 +746,62 @@ export function WorkspaceTabMenu({ children }: { children: React.ReactElement })
   )
 }
 
+/** The visible ⋯ beside a Codex-style single-session header title: the SAME
+ *  verbs as the tab's context menu (SessionTabMenu) behind a click dropdown.
+ *  The single header carries no hover ✕, so without this the session actions
+ *  would only be reachable by right-click or from the sidebar row. */
+export function SessionHeaderMenu({
+  onClose,
+  storedSessionId
+}: {
+  /** Close this tab (tiles; the main tab passes its own closer). */
+  onClose?: () => void
+  storedSessionId: string
+}) {
+  const { t } = useI18n()
+  const { pinId, profile, title } = useTileMenuRow(storedSessionId)
+  const pinnedSessionIds = useStore($pinnedSessionIds)
+  const pinned = pinnedSessionIds.includes(pinId)
+
+  return (
+    <SessionActionsMenu
+      align="start"
+      onArchive={() => void sessionTileDelegate()?.archiveSession(storedSessionId)}
+      onBranch={() => void sessionTileDelegate()?.branchSession(storedSessionId)}
+      onClose={onClose}
+      onDelete={() => void sessionTileDelegate()?.deleteSession(storedSessionId)}
+      onPin={() => (pinned ? unpinSession(pinId) : pinSession(pinId))}
+      pinned={pinned}
+      profile={profile}
+      sessionId={storedSessionId}
+      sideOffset={8}
+      title={title}
+    >
+      <Button
+        aria-label={t.sidebar.row.sessionActions}
+        className="size-6 rounded-md bg-transparent text-(--ui-text-tertiary) hover:bg-(--ui-control-hover-background) hover:text-foreground focus-visible:text-foreground data-[state=open]:bg-(--ui-control-hover-background) data-[state=open]:text-foreground [&_svg]:size-3.5!"
+        size="icon"
+        variant="ghost"
+      >
+        <Codicon name="ellipsis" size="0.875rem" />
+      </Button>
+    </SessionActionsMenu>
+  )
+}
+
+/** The ⋯ for the primary workspace's single-session header — the tile kebab's
+ *  verbs targeting the routed session. A fresh draft has no session to act on,
+ *  so it renders nothing (the header keeps just its title). */
+export function WorkspaceHeaderMenu() {
+  const selected = useStore($selectedStoredSessionId)
+
+  if (!selected) {
+    return null
+  }
+
+  return <SessionHeaderMenu onClose={() => closeTreePane('workspace')} storedSessionId={selected} />
+}
+
 /** Keep pane contributions mirroring `$sessionTiles` (+ titles from
  *  `$sessions`). Tiles dock against main on the chosen edge, flex width. */
 export const watchSessionTiles = paneMirror<SessionTile>({
@@ -774,6 +832,11 @@ export const watchSessionTiles = paneMirror<SessionTile>({
       <SessionDraftTitle scope={storedSessionId} />
     ),
   render: storedSessionId => <SessionTilePane storedSessionId={storedSessionId} />,
+  // The single-session header's visible ⋯ (see PaneChrome.headerMenu) — the
+  // strip's right-click menu stays, this is the discoverable click surface.
+  headerMenu: storedSessionId => (
+    <SessionHeaderMenu onClose={() => requestCloseSessionTile(storedSessionId)} storedSessionId={storedSessionId} />
+  ),
   tabWrap: (storedSessionId, tab) => (
     <SessionTabMenu
       onClose={() => requestCloseSessionTile(storedSessionId)}

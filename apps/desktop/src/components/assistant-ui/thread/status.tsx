@@ -4,10 +4,14 @@ import { type FC, type ReactNode, useEffect, useMemo, useState } from 'react'
 
 import { useSessionView } from '@/app/chat/session-view'
 import { activitySignature, toolNarratesWait, TURN_QUIET_S } from '@/components/assistant-ui/thread/turn-activity'
-import { toolPresentVerb } from '@/components/assistant-ui/tool/run-summary'
+import { toolPresentVerb, type ToolRunCopy } from '@/components/assistant-ui/tool/run-summary'
 import { useElapsedSeconds } from '@/components/chat/activity-timer'
 import { ActivityTimerText } from '@/components/chat/activity-timer-text'
-import { SCAFFOLD_LABEL_CLASS } from '@/components/chat/scaffold-row'
+import {
+  SCAFFOLD_ACTIVITY_GLYPH_CLASS,
+  SCAFFOLD_LABEL_CLASS,
+  SCAFFOLD_META_CLASS
+} from '@/components/chat/scaffold-row'
 import { Codicon } from '@/components/ui/codicon'
 import { Loader } from '@/components/ui/loader'
 import { StatusPulse } from '@/components/ui/status-pulse'
@@ -193,7 +197,8 @@ function useStatusHint(
   compacting: boolean,
   drafting: DraftingTool | null,
   providerWait: string,
-  compactionLabel: string
+  compactionLabel: string,
+  toolCopy: ToolRunCopy
 ): string {
   const [revealed, setRevealed] = useState(false)
   const name = drafting?.name ?? ''
@@ -218,7 +223,7 @@ function useStatusHint(
     return providerWait
   }
 
-  return revealed && name ? toolPresentVerb(name) : ''
+  return revealed && name ? toolPresentVerb(name, toolCopy) : ''
 }
 
 export const CenteredThreadSpinner: FC = () => {
@@ -246,7 +251,13 @@ export const ResponseLoadingIndicator: FC = () => {
   const { t } = useI18n()
   const { compacting, drafting, providerWait, turnStartedAt } = useThreadSessionStatus()
   const elapsed = useElapsedSeconds(true, undefined, turnStartedAt)
-  const hint = useStatusHint(compacting, drafting, providerWait, t.assistant.thread.summarizing)
+  const hint = useStatusHint(
+    compacting,
+    drafting,
+    providerWait,
+    t.assistant.thread.summarizing,
+    t.assistant.tool.runSummary
+  )
   // Renderer-synthesized load bar: covers loads the backend's wait loop
   // can't narrate (gateway still initializing, or an auxiliary call — not
   // the main request — triggered the autoload). A real wait frame wins.
@@ -254,17 +265,13 @@ export const ResponseLoadingIndicator: FC = () => {
 
   return (
     <StatusRow data-slot="aui_response-loading" label={hint || t.assistant.thread.loadingResponse}>
-      <StatusPulse
-        aria-hidden="true"
-        className="dither inline-block size-3 rounded-[2px] text-midground/80"
-        kind="opacity"
-      />
+      <StatusPulse aria-hidden="true" className={SCAFFOLD_ACTIVITY_GLYPH_CLASS} kind="opacity" />
       {hint ? (
         <WaitHint hint={hint} />
       ) : localLoad ? (
         <ProgressHint label={t.assistant.thread.loadingLocalModel(localLoad.model)} percent={localLoad.percent} />
       ) : null}
-      <ActivityTimerText seconds={elapsed} />
+      <ActivityTimerText className={SCAFFOLD_META_CLASS} seconds={elapsed} />
     </StatusRow>
   )
 }
@@ -324,7 +331,13 @@ export const TurnActivityIndicator: FC = () => {
   // the whole turn so far.
   const [quietSince, setQuietSince] = useState<number | undefined>(undefined)
   const { awaitingInput, busy, compacting, drafting, providerWait, turnStartedAt } = useThreadSessionStatus()
-  const hint = useStatusHint(compacting, drafting, providerWait, t.assistant.thread.summarizing)
+  const hint = useStatusHint(
+    compacting,
+    drafting,
+    providerWait,
+    t.assistant.thread.summarizing,
+    t.assistant.tool.runSummary
+  )
 
   // A tool run at the tail already narrates the wait — its summary counts the
   // calls, its ticker names the current one, and it carries its own timer. A
@@ -373,17 +386,13 @@ export const TurnActivityIndicator: FC = () => {
 
   return (
     <StatusRow data-slot="aui_turn-activity" label={hint || t.assistant.thread.working}>
-      <StatusPulse
-        aria-hidden="true"
-        className="dither inline-block size-3 rounded-[2px] text-midground/80"
-        kind="opacity"
-      />
+      <StatusPulse aria-hidden="true" className={SCAFFOLD_ACTIVITY_GLYPH_CLASS} kind="opacity" />
       {hint ? (
         <WaitHint hint={hint} />
       ) : localLoad ? (
         <ProgressHint label={t.assistant.thread.loadingLocalModel(localLoad.model)} percent={localLoad.percent} />
       ) : null}
-      <ActivityTimerText seconds={elapsed} />
+      <ActivityTimerText className={SCAFFOLD_META_CLASS} seconds={elapsed} />
     </StatusRow>
   )
 }

@@ -65,10 +65,15 @@ interface PaneTabProps extends React.ComponentProps<'div'> {
   /** Close verb. Horizontal tabs reveal a hover ✕ on the right (a `--tab-face`
    *  gradient fades it over the label); middle-click and ⌘-click always work,
    *  and stay the only gestures on vertical rails (no room for a chip ✕).
-   *  There is no way to take the ✕ off a tab that HAS this verb: the chip and
-   *  the pointer gestures are one affordance, so a closeable tab always says
-   *  so. Omit `onClose` to make a tab uncloseable. */
+   *  Omit `onClose` to make a tab uncloseable. */
   onClose?: () => void
+  /**
+   *  Hide the horizontal hover close chip while retaining the close gesture.
+   *  Codex-style single-session headers use their session menu as the visible
+   *  action surface, but still keep middle/⌘-click routing for keyboard and
+   *  pointer users. Defaults to `true` for ordinary tab strips.
+   */
+  showCloseButton?: boolean
   /** Part of a multi-tab selection (⌥/Ctrl-click, Shift-click) — an accent
    *  wash marks every tab that a drag would carry, Chrome-style. */
   selected?: boolean
@@ -95,6 +100,7 @@ export const PaneTab = React.forwardRef<HTMLDivElement, PaneTabProps>(function P
     onPointerUp,
     onClickCapture,
     selected = false,
+    showCloseButton = true,
     vertical = false,
     side = 'left',
     children,
@@ -113,7 +119,7 @@ export const PaneTab = React.forwardRef<HTMLDivElement, PaneTabProps>(function P
       className={cn(
         TAB,
         vertical ? TAB_VERTICAL : TAB_HORIZONTAL,
-        !vertical && onClose && TAB_CLOSEABLE,
+        !vertical && onClose && showCloseButton && TAB_CLOSEABLE,
         edge,
         active
           ? cn(TAB_ACTIVE, !vertical && TAB_ACTIVE_UNDERLINE)
@@ -176,7 +182,7 @@ export const PaneTab = React.forwardRef<HTMLDivElement, PaneTabProps>(function P
           <span className="size-2 rounded-full bg-amber-500 shadow-[0_0_0_2px_var(--tab-bg),0_1px_2px_rgba(0,0,0,0.45)] dark:bg-amber-400" />
         </span>
       )}
-      {onClose && !vertical && (
+      {onClose && !vertical && showCloseButton && (
         // Hover ✕, painted OVER the label's right edge as an overlay (no
         // layout shift, tab width never jumps on hover). The runway is a tiny
         // transparent→`--tab-face` gradient, so the button melts into the
@@ -256,6 +262,9 @@ export const PaneTabLabel = React.forwardRef<HTMLElement, PaneTabLabelProps>(fun
 interface PaneTabStripProps extends React.ComponentProps<'div'> {
   /** The scrolling tab list — receives `role="tablist"`. */
   children: React.ReactNode
+  /** Semantic surface the strip belongs to. Main workspace strips share the
+   *  conversation paper with the titlebar; sidebar strips retain the rail. */
+  surface?: 'main' | 'sidebar'
   /** Ref on the scroller itself, for `useActiveTabVisible`. */
   listRef?: React.Ref<HTMLDivElement>
   /** Non-scrolling trailing chrome pinned to the right (the minimize chevron). */
@@ -272,7 +281,7 @@ interface PaneTabStripProps extends React.ComponentProps<'div'> {
  * `data-zone-tabstrip`, drop carets) ride on the usual div props.
  */
 export const PaneTabStrip = React.forwardRef<HTMLDivElement, PaneTabStripProps>(function PaneTabStrip(
-  { children, className, listRef, trailing, ...props },
+  { children, className, listRef, surface, trailing, ...props },
   ref
 ) {
   return (
@@ -284,6 +293,7 @@ export const PaneTabStrip = React.forwardRef<HTMLDivElement, PaneTabStripProps>(
         'group/pane-header relative flex h-7 shrink-0 select-none bg-(--ui-sidebar-surface-background) [-webkit-app-region:no-drag] [--pane-tab-active-bg:var(--ui-sidebar-surface-background)]',
         className
       )}
+      data-pane-surface={surface}
       ref={ref}
       {...props}
     >

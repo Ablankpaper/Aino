@@ -47,6 +47,9 @@ export interface PaneMirror<T> {
   tabMenuPrefix?: (key: string) => ((kit: MenuKit) => ReactNode) | undefined
   /** Wrap the tile's TAB (domain context menu — session verbs). */
   tabWrap?: (key: string, tab: ReactElement) => ReactNode
+  /** Visible kebab menu beside the Codex-style single-session header title
+   *  (see PaneChrome.headerMenu). Return undefined for keys with no verbs. */
+  headerMenu?: (key: string) => ReactNode | undefined
   /** Override the tile's TAB drag (session drop language: stack/split/link).
    *  Returns whether it took the drag (see PaneChrome.tabDrag). */
   tabDrag?: (key: string, event: ReactPointerEvent<HTMLElement>, onTap: () => void) => boolean
@@ -97,7 +100,8 @@ export function paneMirror<T>(cfg: PaneMirror<T>): () => void {
             ? (event: ReactPointerEvent<HTMLElement>, onTap: () => void) => cfg.tabDrag!(key, event, onTap)
             : undefined, // returns boolean (handled) — see PaneChrome.tabDrag
           tabMenuPrefix: cfg.tabMenuPrefix?.(key),
-          tabWrap: cfg.tabWrap ? (tab: ReactElement) => cfg.tabWrap!(key, tab) : undefined
+          tabWrap: cfg.tabWrap ? (tab: ReactElement) => cfg.tabWrap!(key, tab) : undefined,
+          headerMenu: cfg.headerMenu ? () => cfg.headerMenu!(key) : undefined
         },
         render: () => cfg.render(key)
       })

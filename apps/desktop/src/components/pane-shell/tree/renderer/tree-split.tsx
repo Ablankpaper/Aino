@@ -756,6 +756,9 @@ function Sash({
         horizontal ? 'inset-y-0 left-0 w-[8px] -translate-x-[1px]' : 'inset-x-0 top-0 h-[8px] -translate-y-[1px]',
         disabled ? 'pointer-events-none' : horizontal ? 'cursor-col-resize' : 'cursor-row-resize'
       )}
+      // Lets shell-level CSS start the resting hairline below the unified top
+      // band (vertical seams only) without touching the grab geometry.
+      data-sash-axis={horizontal ? 'x' : 'y'}
       onDoubleClick={disabled ? undefined : onDoubleClick}
       onPointerDown={disabled ? undefined : onPointerDown}
       role="separator"

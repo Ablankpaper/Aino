@@ -148,10 +148,10 @@ export function NarrowOverlays() {
       {revealed && (
         <div
           className={cn(
-            'absolute inset-y-0 z-40 flex flex-col overflow-hidden bg-(--ui-sidebar-surface-background) shadow-2xl',
+            'absolute inset-y-0 z-40 flex flex-col overflow-hidden bg-(--ui-sidebar-surface-background) shadow-nous',
             sideOf(revealed) === 'left'
-              ? 'left-0 border-r border-(--ui-stroke-secondary)'
-              : 'right-0 border-l border-(--ui-stroke-secondary)'
+              ? 'left-0 border-r border-(--stroke-nous)'
+              : 'right-0 border-l border-(--stroke-nous)'
           )}
           // Floats OVER the layout, so under glass its surface must mask the
           // panes beneath it — a see-through overlay reads as text bleeding

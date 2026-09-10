@@ -458,7 +458,6 @@ export function ZoneEditor() {
         {mergeAt && selection.length > 1 && (
           <div className="absolute z-20 flex gap-1" style={{ left: mergeAt.x, top: mergeAt.y }}>
             <Button
-              className="shadow-lg"
               onClick={merge}
               onPointerDown={e => e.stopPropagation()}
               size="sm"
