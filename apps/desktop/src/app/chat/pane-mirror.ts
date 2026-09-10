@@ -49,7 +49,7 @@ export interface PaneMirror<T> {
   tabWrap?: (key: string, tab: ReactElement) => ReactNode
   /** Visible kebab menu beside the Codex-style single-session header title
    *  (see PaneChrome.headerMenu). Return undefined for keys with no verbs. */
-  headerMenu?: (key: string) => (() => ReactNode) | undefined
+  headerMenu?: (key: string) => ReactNode | undefined
   /** Override the tile's TAB drag (session drop language: stack/split/link).
    *  Returns whether it took the drag (see PaneChrome.tabDrag). */
   tabDrag?: (key: string, event: ReactPointerEvent<HTMLElement>, onTap: () => void) => boolean

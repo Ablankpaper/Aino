@@ -732,7 +732,7 @@ export const watchSessionTiles = paneMirror<SessionTile>({
   render: storedSessionId => <SessionTilePane storedSessionId={storedSessionId} />,
   // The single-session header's visible ⋯ (see PaneChrome.headerMenu) — the
   // strip's right-click menu stays, this is the discoverable click surface.
-  headerMenu: storedSessionId => () => (
+  headerMenu: storedSessionId => (
     <SessionHeaderMenu
       onClose={() => requestCloseSessionTile(storedSessionId)}
       storedSessionId={storedSessionId}
