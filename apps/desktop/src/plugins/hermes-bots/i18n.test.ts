@@ -53,7 +53,6 @@ describe('BOTS_LOCALES', () => {
 
   it('covers the roster, row, and avatar controls used by the desktop shell', () => {
     const samples = [
-      'roster.title',
       'roster.newMenu',
       'roster.activityToastsOn',
       'roster.filterRoster',
@@ -104,6 +103,14 @@ describe('BOTS_LOCALES', () => {
     for (const path of samples) {
       expect(zhByPath[path], path).toBeDefined()
       expect(zhByPath[path], path).not.toBe(enByPath[path])
+    }
+  })
+
+  it('keeps the Agent Hub brand label stable across locales', () => {
+    for (const locale of [en, ja, zh, zhHant]) {
+      const byPath = Object.fromEntries(leafEntries(locale))
+
+      expect(byPath['roster.title']).toBe('Agent Hub')
     }
   })
 
