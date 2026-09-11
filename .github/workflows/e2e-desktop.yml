@@ -18,10 +18,9 @@ jobs:
   e2e:
     name: Playwright E2E (Linux)
     # This job builds the renderer and the electron bundle, then drives a real
-    # Electron app under xvfb. vite, tsc and the Playwright workers all scale
-    # with the core count.
-    runs-on: ubuntu-latest-32-core
-    timeout-minutes: 20
+    # Electron app under xvfb. Bound browser workers on the standard runner.
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     outputs:
       review_status: ${{ steps.review-status.outputs.review_status }}
     steps:
@@ -111,11 +110,11 @@ jobs:
           if [ "${{ github.ref_name }}" = "main" ]; then
             echo "On main — generating/updating baseline screenshots"
             npm run build && xvfb-run -a --server-args="-screen 0 1280x1024x24" \
-              npx playwright test --reporter=list --update-snapshots
+              npx playwright test --reporter=list --workers=2 --update-snapshots
           else
             echo "On PR — comparing against cached baselines"
             npm run build && xvfb-run -a --server-args="-screen 0 1280x1024x24" \
-              npx playwright test --reporter=list
+              npx playwright test --reporter=list --workers=2
           fi
         env:
           CI: 'true'
