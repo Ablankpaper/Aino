@@ -429,6 +429,7 @@ class _TurnRun:
     prompt_text: str = ""
     marker_key: str = ""
     receipt_attempted: bool = False
+    metrics_start: Any = None
 
 
 def _prepare_turn_input(sid: str, session: dict, st: _TurnRun, text: Any, images: list[str]):
@@ -463,6 +464,8 @@ def _prepare_turn_input(sid: str, session: dict, st: _TurnRun, text: Any, images
         _sync_agent_compression_with_config(sid, session)
     _sync_bot_capabilities(sid, session)  # Bot Chat: adopt Settings->Capabilities edits
     st.agent = agent = session["agent"]
+    from tui_gateway.turn_metrics import begin_turn_metrics
+    st.metrics_start = begin_turn_metrics(agent, session)
     # Snapshot after the model sync: a deferred switch's history mutation belongs to this turn.
     with session["history_lock"]:
         st.history = list(session["history"])
@@ -621,6 +624,10 @@ def _complete_turn_payload(session: dict, st: _TurnRun, status_note: str | None,
     result, agent = st.result, st.agent
     raw, status, last_reasoning = _turn_outcome(result)
     payload = {"text": raw, "usage": _get_usage(agent), "status": status}
+    if st.metrics_start is not None:
+        from tui_gateway.turn_metrics import finish_turn_metrics
+        payload["turn_metrics"] = finish_turn_metrics(
+            agent, session, st.metrics_start, payload["usage"], raw, persist=status == "complete")
     if last_reasoning:
         payload["reasoning"] = last_reasoning
     if status_note:

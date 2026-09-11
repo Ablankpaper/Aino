@@ -78,6 +78,7 @@ vi.mock('./providers-settings', () => ({
   ProvidersSettings: () => null
 }))
 vi.mock('./sessions-settings', () => ({ SessionsSettings: () => null }))
+vi.mock('./system-resources-settings', () => ({ SystemResourcesSettings: () => null }))
 vi.mock('./system-status-controls', () => ({ SettingsSystemControls: () => null }))
 
 afterEach(cleanup)

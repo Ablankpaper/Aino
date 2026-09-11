@@ -12,11 +12,12 @@ import { Switch } from '@/components/ui/switch'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
-import { AudioLines, Ear, EarOff, iconSize, Layers3, Loader2, Square, Volume2, VolumeX } from '@/lib/icons'
+import { AudioLines, Ear, EarOff, iconSize, ListPlus, Loader2, Square, Volume2, VolumeX } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { $hudMode, closeHud, resetHudLayout } from '@/store/hud'
 import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
+import { ComposerApprovalMode } from './approval-mode-menu'
 import { ACTIVE_ICON_BTN, GHOST_ICON_BTN, PRIMARY_ICON_BTN } from './control-classes'
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
@@ -78,14 +79,19 @@ export function ComposerControls({
   const hudMode = useStore($hudMode)
 
   if (conversation.active) {
-    return <ConversationPill {...conversation} disabled={disabled} />
+    return (
+      <div className="ml-auto flex min-w-0 items-center gap-(--composer-control-gap)">
+        {!minimal && <ComposerApprovalMode compact={compactModelPill} disabled={disabled} />}
+        <ConversationPill {...conversation} disabled={disabled} />
+      </div>
+    )
   }
 
-  const showVoicePrimary = !busy && !hasComposerPayload
+  const showVoicePrimary = !busy && !hasComposerPayload && (homeLayout || hudMode)
   // Steer is just send: a payload keeps the Send affordance mid-turn. Stop
   // only when the composer is empty and a turn is running.
   const showStop = busy && !hasComposerPayload
-  const showQueueButton = busyAction !== 'stop' && hasComposerPayload
+  const showQueueButton = busy && busyAction !== 'stop' && hasComposerPayload
   // The HUD is a Spotlight bar a few hundred pixels wide, so the four separate
   // voice toggles fold into one menu there and leave the row to the input. A
   // narrow tile hits the same wall from the other direction and folds for the
@@ -94,36 +100,43 @@ export function ComposerControls({
   // else, which is the one thing that must survive every width.
   const foldedVoice = hudMode || foldVoice
 
-  const modelPill = (
-    <ModelPill compact={compactModelPill} disabled={disabled} landing={homeLayout} model={state.model} />
+  const modelControls = (
+    <>
+      <ModelPill compact={compactModelPill} disabled={disabled} landing={homeLayout} model={state.model} />
+      <ComposerApprovalMode compact={compactModelPill} disabled={disabled} />
+    </>
+  )
+
+  const voiceMenu = (
+    <VoiceMenu
+      autoSpeak={autoSpeak}
+      disabled={disabled}
+      includeDictation={foldedVoice}
+      onDictate={onDictate}
+      onStartConversation={conversation.onStart}
+      onToggleAutoSpeak={onToggleAutoSpeak}
+      state={state}
+      voiceStatus={voiceStatus}
+    />
   )
 
   const secondaryControls = foldedVoice ? (
     <>
-      {modelPill}
-      <VoiceMenu
-        autoSpeak={autoSpeak}
-        disabled={disabled}
-        onDictate={onDictate}
-        onStartConversation={conversation.onStart}
-        onToggleAutoSpeak={onToggleAutoSpeak}
-        state={state}
-        voiceStatus={voiceStatus}
-      />
+      {modelControls}
+      {voiceMenu}
     </>
   ) : homeLayout ? (
     <>
       <WakeWordButton disabled={disabled} landing />
-      {modelPill}
+      {modelControls}
       <AutoSpeakButton active={autoSpeak} disabled={disabled} landing onToggle={onToggleAutoSpeak} />
       <DictationButton disabled={disabled} landing onToggle={onDictate} state={state.voice} status={voiceStatus} />
     </>
   ) : (
     <>
-      {modelPill}
+      {modelControls}
       <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
-      <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
-      <WakeWordButton disabled={disabled} />
+      {voiceMenu}
     </>
   )
 
@@ -141,7 +154,7 @@ export function ComposerControls({
             type="button"
             variant="ghost"
           >
-            <Layers3 className={iconSize.sm} />
+            <ListPlus className={iconSize.sm} />
           </Button>
         </Tip>
       ) : null}
@@ -159,7 +172,11 @@ export function ComposerControls({
               size="icon"
               type="button"
             >
-              {homeLayout ? <AinoDesignIcon className="size-3" src={composerVoiceIcon} /> : <AudioLines className={iconSize.sm} />}
+              {homeLayout ? (
+                <AinoDesignIcon className="size-3" src={composerVoiceIcon} />
+              ) : (
+                <AudioLines className={iconSize.sm} />
+              )}
             </Button>
           </Tip>
           {homeLayout && (

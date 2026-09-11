@@ -171,6 +171,11 @@ def record_response_usage(
     agent.session_cache_read_tokens += canonical_usage.cache_read_tokens
     agent.session_cache_write_tokens += canonical_usage.cache_write_tokens
     agent.session_reasoning_tokens += canonical_usage.reasoning_tokens
+    # Exact lifetime totals let surfaces measure a turn even when it spans more
+    # calls than the rolling speed window. These never enter model context.
+    agent._api_usage_calls = getattr(agent, "_api_usage_calls", 0) + 1
+    agent._api_usage_duration_s = getattr(agent, "_api_usage_duration_s", 0.0) + max(0.0, api_duration)
+    agent._api_usage_output_tokens = getattr(agent, "_api_usage_output_tokens", 0) + aggregator_usage.output_tokens
     # Rolling history for status-bar averages (last 10).
     with suppress(Exception):
         hist = getattr(agent, "_api_latency_history", None)

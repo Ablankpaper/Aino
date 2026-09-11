@@ -1,30 +1,90 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { atom } from 'nanostores'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { HermesRepoStatus } from '@/global'
+import { $revealInTreeRequest } from '@/store/layout'
 import { $notifications, clearNotifications } from '@/store/notifications'
+import { $projectTree, $startWorkSessionRequest } from '@/store/projects'
+
+const repoStatus = atom<HermesRepoStatus | null>(null)
+const desktop = window.hermesDesktop
 
 vi.mock('@/store/coding-status', () => ({
   registerRepoStatusCwd: () => undefined,
-  repoStatusForCwd: () =>
-    atom({
-      added: 12,
-      ahead: 0,
-      behind: 0,
-      branch: 'bb/hitbox',
-      defaultBranch: 'main',
-      detached: false,
-      removed: 3,
-      untracked: 0
-    }),
+  repoStatusForCwd: () => repoStatus,
   repoWorktreesForCwd: () => atom([])
 }))
 
 const { CodingStatusRow } = await import('./coding-row')
 
 describe('CodingStatusRow', () => {
+  beforeEach(() => {
+    repoStatus.set({
+      added: 12,
+      ahead: 0,
+      behind: 0,
+      branch: 'bb/hitbox',
+      defaultBranch: 'main',
+      detached: false,
+      staged: 1,
+      unstaged: 2,
+      conflicted: 0,
+      changed: 3,
+      files: [],
+      removed: 3,
+      untracked: 0
+    })
+    $projectTree.set([
+      { id: 'p_repo', label: 'My project', path: '/repo', repos: [], sessionCount: 0 },
+      { id: 'p_other', label: 'Other project', path: '/Users/someone/www/repo', repos: [], sessionCount: 0 },
+      {
+        id: '/auto-project',
+        label: 'Discovered project',
+        path: '/auto-project',
+        repos: [],
+        sessionCount: 0,
+        isAuto: true
+      },
+      { id: 'home', label: 'No project', path: '/ordinary-chat', repos: [], sessionCount: 0, isNoProject: true }
+    ])
+    $startWorkSessionRequest.set(null)
+    $revealInTreeRequest.set(null)
+    window.hermesDesktop = desktop
+  })
   afterEach(() => {
     cleanup()
+    $projectTree.set([])
+    $startWorkSessionRequest.set(null)
+    $revealInTreeRequest.set(null)
+    window.hermesDesktop = desktop
+    clearNotifications()
+  })
+
+  it('offers project selection instead of incidental git details for an ordinary chat', () => {
+    render(<CodingStatusRow repoPath="/ordinary-chat" />)
+    expect(screen.queryByText('bb/hitbox')).toBeNull()
+    expect(screen.queryByText('12')).toBeNull()
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Select project' }), { button: 0, ctrlKey: false })
+    expect(screen.queryByRole('menuitem', { name: 'Copy path' })).toBeNull()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'My project' }))
+    expect($startWorkSessionRequest.get()).toMatchObject({ path: '/repo', openTab: true })
+  })
+
+  it('shows the project with its branch and keeps the project reachable outside git', () => {
+    const { rerender } = render(<CodingStatusRow repoPath="/repo" />)
+    expect(screen.getByText('My project')).toBeTruthy()
+    expect(screen.getByText('bb/hitbox')).toBeTruthy()
+
+    rerender(<CodingStatusRow repoPath="/auto-project" />)
+    expect(screen.getByText('Discovered project')).toBeTruthy()
+    expect(screen.getByText('bb/hitbox')).toBeTruthy()
+
+    act(() => repoStatus.set(null))
+    rerender(<CodingStatusRow repoPath="/repo" />)
+    expect(screen.getByRole('button', { name: 'My project' })).toBeTruthy()
+    expect(screen.queryByText('bb/hitbox')).toBeNull()
   })
 
   it('opens the review pane from the branch and the diff counts, never the bar itself', () => {
@@ -89,5 +149,30 @@ describe('CodingStatusRow', () => {
     // Confirmation is the button turning into a checkmark, not a notification.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy())
     expect($notifications.get()).toHaveLength(0)
+  })
+
+  it.each([true, false])('keeps directory actions in the owning project menu (git: %s)', async git => {
+    if (!git) {
+      repoStatus.set(null)
+    }
+
+    const cwd = '/Users/someone/www/repo'
+    const revealPath = vi.fn().mockResolvedValue(undefined)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    window.hermesDesktop = { ...desktop, revealPath, writeClipboard: writeText } as typeof window.hermesDesktop
+    render(<CodingStatusRow repoPath={cwd} />)
+
+    const open = () => fireEvent.pointerDown(screen.getByRole('button', { name: 'Other project' }), { button: 0 })
+
+    open()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy path' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(cwd))
+    open()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Open containing folder' }))
+    await waitFor(() => expect(revealPath).toHaveBeenCalledWith(cwd))
+    open()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Reveal in filetree' }))
+    expect($revealInTreeRequest.get()).toBe(cwd)
+    expect($startWorkSessionRequest.get()).toBeNull()
   })
 })

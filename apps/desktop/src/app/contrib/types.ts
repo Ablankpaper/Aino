@@ -78,5 +78,4 @@ export interface WiringApi {
   chatRoutes: ReactNode
   settings: ReactNode
   terminal: ReactNode
-  statusbar: ReactNode
 }

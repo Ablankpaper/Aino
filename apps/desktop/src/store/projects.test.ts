@@ -12,6 +12,7 @@ import {
   $projectScope,
   $projectsRpcAvailable,
   $projectTree,
+  $projectTreeLoading,
   $worktreeRefreshToken,
   ALL_PROJECTS,
   createProject,
@@ -750,6 +751,95 @@ describe('repository discovery policy', () => {
     })
     expect(request).not.toHaveBeenCalledWith('projects.record_repos', expect.objectContaining({ profile: 'coder' }))
     expect($projectTree.get()).toEqual([])
+  })
+})
+
+describe('project tree loading presentation', () => {
+  it.each([false, true])('keeps a resolved empty tree visible during refresh (all profiles: %s)', async allProfiles => {
+    setShowAllProfiles(allProfiles)
+    $activeGatewayProfile.set('default')
+    $projectTree.set([])
+
+    const emptyTree = { active_id: null, projects: [], scoped_session_ids: [] }
+    const cold = deferred<typeof emptyTree>()
+    const warm = deferred<typeof emptyTree>()
+    const scoped = deferred<typeof emptyTree>()
+    const switched = deferred<typeof emptyTree>()
+
+    const read = vi
+      .fn()
+      .mockReturnValueOnce(cold.promise)
+      .mockReturnValueOnce(warm.promise)
+      .mockRejectedValueOnce(new Error('temporary project refresh failure'))
+      .mockReturnValueOnce(scoped.promise)
+      .mockReturnValueOnce(switched.promise)
+
+    const gateway = { connectionState: 'open', request: read }
+
+    activeGateway.mockReturnValue(gateway as never)
+    gatewayAtom.set(gateway as never)
+    vi.mocked(hermes.hermesApi).mockImplementation(read)
+
+    try {
+      const first = refreshProjectTree()
+
+      await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1))
+      expect($projectTreeLoading.get()).toBe(true)
+      cold.resolve(emptyTree)
+      await first
+      expect($projectTreeLoading.get()).toBe(false)
+      const visibleTree = $projectTree.get()
+
+      const refresh = refreshProjectTree()
+      await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(2))
+      expect($projectTreeLoading.get()).toBe(false)
+      expect($projectTree.get()).toBe(visibleTree)
+      warm.resolve(emptyTree)
+      await refresh
+
+      const loadingStates: boolean[] = []
+      const off = $projectTreeLoading.listen(value => loadingStates.push(value))
+
+      try {
+        await refreshProjectTree()
+        expect(loadingStates).toEqual([])
+        expect($projectTree.get()).toEqual([])
+      } finally {
+        off()
+      }
+
+      // Scope changes on the same connection must not reuse this readiness.
+      if (allProfiles) {
+        setShowAllProfiles(false)
+      } else {
+        $activeGatewayProfile.set('coder')
+      }
+
+      const changedScope = refreshProjectTree()
+      await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(4))
+      expect($projectTreeLoading.get()).toBe(true)
+      scoped.resolve(emptyTree)
+      await changedScope
+      expect($projectTreeLoading.get()).toBe(false)
+
+      // A different backend must still get its own initial-loading state.
+      const otherGateway = { connectionState: 'open', request: read }
+      activeGateway.mockReturnValue(otherGateway as never)
+      gatewayAtom.set(otherGateway as never)
+      const next = refreshProjectTree()
+      await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(5))
+      expect($projectTreeLoading.get()).toBe(true)
+      switched.resolve(emptyTree)
+      await next
+      expect($projectTreeLoading.get()).toBe(false)
+    } finally {
+      cold.resolve(emptyTree)
+      warm.resolve(emptyTree)
+      scoped.resolve(emptyTree)
+      switched.resolve(emptyTree)
+      setShowAllProfiles(false)
+      vi.mocked(hermes.hermesApi).mockReset()
+    }
   })
 })
 

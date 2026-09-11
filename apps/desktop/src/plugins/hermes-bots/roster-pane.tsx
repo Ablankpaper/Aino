@@ -725,6 +725,12 @@ export function BotsPane() {
 
   return (
     <div className="flex h-full flex-col">
+      <div className="px-2.5 pt-2">
+        <Button onClick={() => host.navigate('/agents')} size="sm" variant="ghost">
+          <Codicon name="list-tree" />
+          {t.shell.statusbar.subtaskMonitor}
+        </Button>
+      </div>
       <div className="flex items-center justify-between gap-2 px-2.5 pt-2.5 pb-1.5">
         <span className="text-[0.6875rem] font-semibold uppercase tracking-wider text-(--ui-text-quaternary)">
           Bots

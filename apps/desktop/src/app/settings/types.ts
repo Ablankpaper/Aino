@@ -7,6 +7,7 @@ import type { RuntimeReadinessRequester } from '@/lib/runtime-readiness'
 import type { EnvVarInfo } from '@/types/hermes'
 
 export type SettingsView =
+  | 'account'
   | 'about'
   | 'billing'
   | 'connections'
@@ -16,6 +17,7 @@ export type SettingsView =
   | 'notifications'
   | 'plugins'
   | 'providers'
+  | 'resources'
   | 'sessions'
   | `config:${string}`
 export type EnvPatch = Partial<Pick<EnvVarInfo, 'is_set' | 'redacted_value'>>

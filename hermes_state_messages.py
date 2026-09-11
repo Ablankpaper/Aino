@@ -333,6 +333,22 @@ class SessionMessagesMixin:
             return True
         return self._execute_write(_do)
 
+    def merge_reply_display_metadata(self, session_id: str, content: str, *, after_row_id: int,
+                                     metadata: Dict[str, Any]) -> bool:
+        """Merge into a freshly persisted reply, never an earlier identical answer."""
+        def _do(conn):
+            row = conn.execute(
+                "SELECT id, display_metadata FROM messages WHERE session_id = ? "
+                "AND role = 'assistant' AND active = 1 AND id > ? AND content = ? "
+                "ORDER BY id DESC LIMIT 1",
+                (session_id, after_row_id, self._encode_content(content))).fetchone()
+            if row is None:
+                return False
+            merged = {**(self._decode_display_metadata(row[1]) or {}), **metadata}
+            conn.execute(_SET_DISPLAY_META_SQL, (self._encode_display_metadata(merged), row[0]))
+            return True
+        return self._execute_write(_do)
+
     def _reaction_list(self, meta: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Well-formed (dict) reactions stored under ``REACTIONS_METADATA_KEY``."""
         reactions = (meta or {}).get(self.REACTIONS_METADATA_KEY)

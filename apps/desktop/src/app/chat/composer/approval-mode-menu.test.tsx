@@ -1,13 +1,12 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
-import { StatusbarControls } from '@/app/shell/statusbar-controls'
 import { I18nProvider } from '@/i18n'
 import { $approvalModes } from '@/store/approval-mode'
+import { $notifications, clearNotifications } from '@/store/notifications'
 import { stubMenuDomApis, stubResizeObserver } from '@/test/jsdom'
 
-import { useApprovalModeStatusbarItem } from './approval-mode-menu'
+import { ApprovalModeMenu } from './approval-mode-menu'
 
 beforeAll(() => {
   stubResizeObserver()
@@ -17,6 +16,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup()
   $approvalModes.set({})
+  clearNotifications()
 })
 
 function Harness({
@@ -26,23 +26,15 @@ function Harness({
   profile?: string
   requestGateway: (method: string, params?: Record<string, unknown>) => Promise<unknown>
 }) {
-  const item = useApprovalModeStatusbarItem(profile, requestGateway)
-
-  return (
-    <MemoryRouter>
-      <StatusbarControls items={[item]} />
-    </MemoryRouter>
-  )
+  return <ApprovalModeMenu profile={profile} requestGateway={requestGateway} />
 }
 
-describe('approval mode statusbar item', () => {
-  it('uses the shared statusbar menu trigger without a nested bespoke button', async () => {
+describe('composer approval mode', () => {
+  it('offers all existing approval modes from the composer menu', async () => {
     const response = new Promise<never>(() => undefined)
     render(<Harness requestGateway={vi.fn(() => response)} />)
 
-    const statusbar = screen.getByRole('contentinfo')
-    const trigger = within(statusbar).getByRole('button', { name: /smart/i })
-    expect(within(statusbar).getAllByRole('button')).toHaveLength(1)
+    const trigger = screen.getByRole('button', { name: /approval mode.*smart/i })
 
     fireEvent.pointerDown(trigger, { button: 0 })
 
@@ -73,9 +65,40 @@ describe('approval mode statusbar item', () => {
       </I18nProvider>
     )
 
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'スマート' }), { button: 0 })
+    fireEvent.pointerDown(screen.getByRole('button', { name: /スマート/ }), { button: 0 })
 
     expect(await screen.findByText('必要な場合にのみ確認します')).toBeTruthy()
     expect(screen.getByText('承認プロンプトなしで実行します')).toBeTruthy()
+  })
+
+  it('keeps the last confirmed mode and surfaces a failed save', async () => {
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'config.set') {
+        throw new Error('Save failed')
+      }
+
+      return { value: 'smart' }
+    })
+
+    render(<Harness profile="work" requestGateway={requestGateway} />)
+    await waitFor(() => expect($approvalModes.get().work).toBe('smart'))
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: /smart/i }), { button: 0 })
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: /manual/i }))
+
+    await waitFor(() => {
+      expect($approvalModes.get().work).toBe('smart')
+      expect($notifications.get().some(item => item.kind === 'error' && item.message === 'Save failed')).toBe(true)
+      expect((screen.getByRole('button', { name: /smart/i }) as HTMLButtonElement).disabled).toBe(false)
+    })
+  })
+
+  it('keeps the mode accessible in compact layout and disables writes while disconnected', () => {
+    const requestGateway = vi.fn()
+    render(<ApprovalModeMenu compact disabled profile="work" requestGateway={requestGateway} />)
+
+    const button = screen.getByRole('button', { name: /approval mode.*smart/i }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(requestGateway).not.toHaveBeenCalled()
   })
 })

@@ -48,7 +48,7 @@ import { registry } from '@/contrib/registry'
 import { discoverRuntimePlugins } from '@/contrib/runtime-loader'
 import { translateNow } from '@/i18n'
 import { newSessionTitle, sessionTitle as storedSessionTitle } from '@/lib/chat-runtime'
-import { Download, FileText, LayoutDashboard, PanelBottom, PanelTop, Terminal, Upload, Zap } from '@/lib/icons'
+import { Download, FileText, LayoutDashboard, PanelTop, Terminal, Upload, Zap } from '@/lib/icons'
 import { type KeybindContribution, KEYBINDS_AREA } from '@/lib/keybinds/actions'
 import { TRANSCRIPT_DIRECTIVE_AREA, type TranscriptDirectiveContribution } from '@/lib/transcript-directives'
 import { setYoloEnabled } from '@/lib/yolo-session'
@@ -78,7 +78,6 @@ import { $currentCwd, $selectedStoredSessionId, $sessions, $yoloActive, sessionM
 import { watchSessionPins } from '@/store/session-pin-sync'
 import { $botChatScopes } from '@/store/session-states'
 import { watchUnreadWriteGuard } from '@/store/session-unread-remote'
-import { $statusbarVisible } from '@/store/statusbar-prefs'
 import { isAuxiliaryWindow, isBrowserWindow, isHudWindow } from '@/store/windows'
 
 import { BrowserPopoutShell } from '../chat/browser-popout-shell'
@@ -325,17 +324,6 @@ registry.registerMany([
       run: resetLayoutTree
     } satisfies PaletteContribution
   },
-  // Hiding the bar removes the surface that would otherwise offer it back, so
-  // ⌘K is the guaranteed door in (alongside the rebindable ⌘⇧S).
-  paletteToggle({
-    id: 'view.toggleStatusbar',
-    label: 'Toggle status bar',
-    action: 'view.toggleStatusbar',
-    icon: PanelBottom,
-    keywords: ['status bar', 'statusbar', 'bottom bar', 'hide', 'show', 'chrome'],
-    get: () => $statusbarVisible.get(),
-    set: enabled => $statusbarVisible.set(enabled)
-  }),
   paletteToggle({
     id: 'view.toggleTabStrip',
     label: 'Toggle tabs',
@@ -832,7 +820,6 @@ function TitlebarSlot({ area, className }: TitlebarSlotProps) {
 
 export function ContribController() {
   const sidebarOpen = useStore($sidebarOpen)
-  const statusbarVisible = useStore($statusbarVisible)
   const location = useLocation()
   const view = appViewForPath(location.pathname)
   const settingsPage = view === 'settings'
@@ -940,12 +927,6 @@ export function ContribController() {
 
           {/* "Close running tab?" — the busy/input-blocked tile close gate. */}
           {!settingsPage && <SessionTileCloseConfirm />}
-
-          {/* The REAL statusbar (model pill, command center, agents, …) with
-              statusBar.left/right contributions merged in. Unmounted — not
-              just hidden — while toggled off, so its 15s status poll and the
-              per-turn readouts stop with it. */}
-          {statusbarVisible && !settingsPage && <WiredPane part="statusbar" />}
         </div>
       </ContribWiring>
     </SidebarProvider>

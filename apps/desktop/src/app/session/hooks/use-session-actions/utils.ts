@@ -5,6 +5,7 @@ import { normalizePersonalityValue } from '@/lib/chat-runtime'
 import { embeddedImageUrls, textWithoutEmbeddedImages } from '@/lib/embedded-images'
 import { parseErrorSurface } from '@/lib/error-surface'
 import { isMessagingSource, normalizeSessionSource } from '@/lib/session-source'
+import { turnMetricsEquivalent } from '@/lib/turn-metrics'
 import { reconcileApprovalModeForProfile } from '@/store/approval-mode'
 import { requestDesktopOnboardingForCredentialWarning } from '@/store/onboarding'
 import { $activeGatewayProfile, $profiles, normalizeProfileKey } from '@/store/profile'
@@ -166,7 +167,8 @@ const COMPARED_FIELDS = [
   'completedAt',
   // Turn wall-clock duration — stamps the visible "⏱ 38s" badge, so a change
   // must re-render (set once at completion; stable afterwards).
-  'durationS'
+  'durationS',
+  'turnMetrics'
 ] as const
 
 const IGNORED_FIELDS = ['attachmentRefs', 'parts', 'rowId'] as const
@@ -275,6 +277,8 @@ export function chatMessagesEquivalent(a: ChatMessage, b: ChatMessage): boolean 
     a.branchGroupId !== b.branchGroupId ||
     a.timestamp !== b.timestamp ||
     a.completedAt !== b.completedAt ||
+    a.durationS !== b.durationS ||
+    !turnMetricsEquivalent(a.turnMetrics, b.turnMetrics) ||
     // Interim gates the action footer, so flipping it must repaint (e.g. a
     // previewed final settling onto a sealed interim bubble restores the bar).
     (a.interim ?? false) !== (b.interim ?? false) ||

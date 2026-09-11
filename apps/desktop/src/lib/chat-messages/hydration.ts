@@ -2,6 +2,7 @@ import { skillInvocationText } from '@hermes/shared'
 
 import { extractImageRefs } from '@/lib/embedded-images'
 import { dedupeGeneratedImageEchoesInParts } from '@/lib/generated-images'
+import { parseTurnMetrics } from '@/lib/turn-metrics'
 import type { MessageReaction, SessionMessage } from '@/types/hermes'
 
 import { assistantTextPart, chatMessageText, dedupeRepeatedTextInParts, reasoningPart, textPart } from './parts'
@@ -368,6 +369,11 @@ export function toChatMessages(messages: SessionMessage[]): ChatMessage[] {
       return
     }
 
+    const turnMetrics =
+      message.role === 'assistant'
+        ? parseTurnMetrics(parseDisplayMetadata(message.display_metadata)?.turn_metrics)
+        : undefined
+
     if (message.role === 'assistant') {
       if (pendingToolParts.length) {
         if (!appendPartsToActiveAssistant(pendingToolParts, message.timestamp ?? pendingToolTimestamp)) {
@@ -386,6 +392,11 @@ export function toChatMessages(messages: SessionMessage[]): ChatMessage[] {
       const activeHasToolCall = Boolean(activeAssistant?.parts.some(part => part.type === 'tool-call'))
 
       if (activeAssistant && (currentHasToolCall || activeHasToolCall)) {
+        if (turnMetrics) {
+          activeAssistant.turnMetrics = turnMetrics
+          activeAssistant.durationS = turnMetrics.duration_s
+        }
+
         activeAssistant.parts = [...activeAssistant.parts, ...parts]
         activeAssistant.timestamp = earliestTimestamp(
           activeAssistant.timestamp,
@@ -414,6 +425,7 @@ export function toChatMessages(messages: SessionMessage[]): ChatMessage[] {
         : {}),
       timestamp: earliestTimestamp(message.timestamp, ...parts.map(part => part.timestamp)),
       ...(rowId !== undefined ? { rowId } : {}),
+      ...(turnMetrics ? { turnMetrics, durationS: turnMetrics.duration_s } : {}),
       ...(reactions.length ? { reactions } : {}),
       ...(extractedAttachmentRefs ? { attachmentRefs: extractedAttachmentRefs } : {})
     })

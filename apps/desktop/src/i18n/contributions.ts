@@ -33,7 +33,6 @@ const PALETTE_LABELS: Record<string, (t: Translations) => string> = {
   'profile.import': t => t.commandCenter.contributedActions.importProfile,
   'session.yolo': t => t.commandCenter.contributedActions.toggleYolo,
   'view.showTerminal': t => t.commandCenter.contributedActions.toggleTerminal,
-  'view.toggleStatusbar': t => t.commandCenter.contributedActions.toggleStatusbar,
   'view.toggleTabStrip': t => t.commandCenter.contributedActions.toggleTabs,
   'strip-tab.files': t => t.zones.toggleStripTab(t.zones.paneTitles.files),
   'strip-tab.logs': t => t.zones.toggleStripTab(t.zones.paneTitles.logs),

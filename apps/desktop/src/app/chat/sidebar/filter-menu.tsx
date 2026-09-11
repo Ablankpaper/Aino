@@ -167,7 +167,13 @@ function OptionRadio({ option }: { option: LabeledOption }) {
   )
 }
 
-export function SidebarFilterMenu({ className }: { className?: string }) {
+export function SidebarFilterMenu({
+  className,
+  onImportSession
+}: {
+  className?: string
+  onImportSession?: () => void
+}) {
   const { t } = useI18n()
   const recentGrouping = useStore($sidebarRecentGrouping)
   const ordering = useStore($sidebarOrdering)
@@ -233,7 +239,7 @@ export function SidebarFilterMenu({ className }: { className?: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label={t.ui.actions.filters}
+          aria-label={onImportSession ? t.sidebar.sessionOptions : t.ui.actions.filters}
           className={cn(
             className,
             'data-[state=open]:bg-(--ui-control-active-background) data-[state=open]:text-foreground data-[state=open]:opacity-100',
@@ -246,11 +252,20 @@ export function SidebarFilterMenu({ className }: { className?: string }) {
           type="button"
           variant="ghost"
         >
-          <Codicon name="list-filter" size="0.75rem" />
+          <Codicon name={onImportSession ? 'ellipsis' : 'list-filter'} size="0.75rem" />
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="min-w-52">
+        {onImportSession && (
+          <>
+            <DropdownMenuItem onSelect={onImportSession}>
+              <Codicon name="cloud-download" size="0.8125rem" />
+              {t.sidebar.nav['session-import']}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuGroup>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger hideChevron>

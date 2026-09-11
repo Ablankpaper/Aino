@@ -98,4 +98,19 @@ describe('useMessageStream status-bar usage scoping', () => {
 
     expect($currentUsage.get()).toEqual(BASELINE)
   })
+
+  it('attaches per-reply usage only to the completing session without borrowing cumulative usage', () => {
+    mountStream()
+    const metrics = { duration_s: 12, total_tokens: 1320, tokens_per_second: 20 }
+    act(() =>
+      stream.handleEvent({
+        payload: { text: 'done', turn_metrics: metrics, usage: { total: 9999 } },
+        session_id: 'background-session',
+        type: 'message.complete'
+      })
+    )
+    expect(sessionStates.get('background-session')?.messages.at(-1)?.turnMetrics).toEqual(metrics)
+    expect(sessionStates.get(SID)?.messages).toEqual([])
+    expect($currentUsage.get()).toEqual(BASELINE)
+  })
 })

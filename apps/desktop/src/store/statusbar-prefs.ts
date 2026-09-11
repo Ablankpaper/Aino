@@ -17,7 +17,7 @@ const STATUSBAR_VISIBLE_STORAGE_KEY = 'hermes.desktop.statusbarVisible.v2'
 // navigation and system details now live in the sidebar/settings workspace, so
 // the Figma shell starts without a second strip across the bottom. The command
 // palette/keybind still exposes the optional diagnostics bar.
-// Hiding it unmounts the bar (its 15s status poll goes with it), so the way back
+// Hiding it unmounts the bar and its optional diagnostic subscriptions; the way back
 // is the `view.toggleStatusbar` keybind or the ⌘K row, never the bar itself.
 export const $statusbarVisible = persistentAtom(STATUSBAR_VISIBLE_STORAGE_KEY, false, Codecs.bool)
 
@@ -26,11 +26,10 @@ export function toggleStatusbarVisible() {
 }
 
 // Items the bar hides until the user turns them on from its context menu. The
-// bar's job is to answer "is the backend healthy, where am I, what's it doing" —
+// bar's job is to expose optional runtime diagnostics —
 // route shortcuts (cron/webhooks/agents) and the terminal toggle are
-// navigation, not status, so they start out of the way. The approval pill
-// (the yolo zap) stays: whether dangerous commands run unasked is state the
-// user should see at a glance. The per-turn
+// navigation, not status, so they start out of the way. Project directory and
+// approval controls live in the composer; versions live in Settings. The per-turn
 // session readouts (running/session timers, context meter, cache hit rate,
 // tokens/sec) are diagnostics most users don't watch, so they start hidden too
 // and the bar stays quiet mid-turn.

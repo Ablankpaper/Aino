@@ -246,6 +246,7 @@ declare global {
           title: string
         } | null
       } | null>
+      setAccountWindowMode?: (mode: 'login' | 'workspace', height?: number) => Promise<boolean>
       readFileDataUrl: (filePath: string) => Promise<string>
       /** Remote non-image attach: higher dedicated cap than preview/Settings default. */
       readFileDataUrlForAttach?: (filePath: string) => Promise<string>

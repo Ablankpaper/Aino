@@ -30,6 +30,7 @@ import {
   systemPreferences
 } from 'electron'
 
+import { createAccountWindowController } from './account-window'
 import { classifyActiveRuntime } from './active-runtime-state'
 import { destroyKeepaliveAgents, downloadAgentFor, jsonAgentFor, withRetry } from './api-transport'
 import { appIconCandidates, resolveAppIcon } from './app-icon'
@@ -3009,8 +3010,10 @@ function readWindowState() {
 // Persist the window's restored (non-maximized) bounds plus its maximized flag.
 // getNormalBounds() keeps the pre-maximize size, so un-maximizing next session
 // lands back where the user actually sized the window.
+const accountWindowController = createAccountWindowController()
+
 function persistWindowState() {
-  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized()) {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized() || accountWindowController.isLogin(mainWindow)) {
     return
   }
 
@@ -15039,6 +15042,24 @@ ipcMain.handle('hermes:window:openSession', async (_event, sessionId, opts) => {
 
   return { ok: true }
 })
+ipcMain.handle('aino:account:windowMode', (event, mode, height) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+
+  if (!win || win !== mainWindow) {
+    return false
+  }
+
+  if (mode === 'login') {
+    accountWindowController.showLogin(win, typeof height === 'number' && Number.isFinite(height) ? height : undefined)
+  } else if (mode === 'workspace') {
+    accountWindowController.showWorkspace(win)
+  } else {
+    return false
+  }
+
+  return true
+})
+
 ipcMain.handle('hermes:window:openInstance', async () => {
   createInstanceWindow()
 

@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import { dropPlugin, publishPlugin } from '@/contrib/plugins-store'
 
-import { localizedLayoutTitle, localizedPaletteDetail, localizedPaletteLabel, localizedPaneTitle } from './contributions'
+import {
+  localizedLayoutTitle,
+  localizedPaletteDetail,
+  localizedPaletteLabel,
+  localizedPaneTitle
+} from './contributions'
 import { en } from './en'
 import { zh } from './zh'
 
@@ -37,8 +42,12 @@ describe('core contribution display copy', () => {
   })
 
   it('resolves palette labels from the active locale and falls back for plugins', () => {
-    expect(localizedPaletteLabel(zh, 'view.toggleStatusbar', 'Toggle status bar', undefined)).toBe('切换状态栏')
-    expect(localizedPaletteLabel(en, 'view.toggleStatusbar', 'Toggle status bar', 'core')).toBe('Toggle status bar')
+    expect(localizedPaletteLabel(zh, 'view.toggleTabStrip', 'Toggle tabs', undefined)).toBe(
+      zh.commandCenter.contributedActions.toggleTabs
+    )
+    expect(localizedPaletteLabel(en, 'view.toggleTabStrip', 'Toggle tabs', 'core')).toBe(
+      en.commandCenter.contributedActions.toggleTabs
+    )
     expect(localizedPaletteLabel(zh, 'plugin:custom:action', 'Custom action', 'plugin:custom')).toBe('Custom action')
   })
 

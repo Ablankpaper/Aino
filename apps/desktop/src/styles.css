@@ -2402,6 +2402,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
    transcript can never cover or intercept the bottom composer. */
 [data-chat-surface][data-conversation-layout] {
   --composer-width: 780px;
+  --composer-input-min-height: 1.75rem;
   --composer-control-gap: 0.5rem;
   --composer-control-primary-size: 1.75rem;
   --composer-control-size: 1.75rem;
@@ -2448,7 +2449,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='composer-surface'] {
-  min-height: 8.25rem;
+  min-height: 6.75rem;
   border-color: var(--aino-landing-composer-stroke) !important;
   box-shadow:
     0 10px 30px rgb(15 23 42 / 7%),
@@ -2459,14 +2460,14 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
   min-height: 0;
   height: 100%;
   gap: 0;
-  padding: 0.875rem 1rem 0.75rem;
+  padding: 0.75rem 1rem;
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='composer-layout'] {
   flex: 1 1 auto;
   min-height: 0;
   grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: minmax(3rem, 1fr) 1.75rem;
+  grid-template-rows: minmax(var(--composer-input-min-height), 1fr) 1.75rem;
   grid-template-areas:
     'input input'
     'menu controls';
@@ -2482,7 +2483,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 [data-chat-surface][data-conversation-layout] [data-slot='composer-rich-input'] {
   width: 100%;
   height: 100%;
-  min-height: 3rem;
+  min-height: var(--composer-input-min-height);
   padding: 0.125rem 0.25rem;
   color: var(--aino-landing-primary);
   font-size: 0.875rem;
@@ -2507,6 +2508,8 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
    only its live message stack shrinks to a right-aligned content bubble. */
 [data-chat-surface][data-conversation-layout] [data-slot='aui_user-message-root'] {
   align-items: flex-end;
+  /* The turn pair already owns the gap before the assistant's response. */
+  padding-bottom: 0;
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='aui_user-bubble-actions'] {
@@ -2537,7 +2540,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='aui_user-actions-row'] button {
-  color: var(--aino-landing-muted);
+  color: var(--ui-text-secondary);
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='aui_user-bubble'][data-has-corner-action] {
@@ -2569,29 +2572,27 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-disclosure'] {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   padding-bottom: 0;
   border-bottom: 0;
   color: var(--aino-landing-secondary);
   opacity: 1;
 }
 
-/* Thinking follows the same activity treatment as Codex: the disclosure
-   header is a full-width row with one hairline immediately below it. Keep the
-   body outside that header so an expanded reasoning block never moves the
-   divider below the content. */
+/* Thinking is a compact activity row. The shared block gap separates it from
+   the answer; expanding it reveals the existing preview below the toggle. */
 [data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-header'] {
   width: 100%;
-  padding-bottom: 0.625rem;
-  border-bottom: 1px solid var(--aino-landing-stroke);
+  padding-bottom: 0;
+  border-bottom: 0;
   color: var(--aino-landing-secondary);
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-header'] [data-slot='aui_thinking-label'] {
   color: var(--aino-landing-secondary);
-  font-size: var(--conversation-text-font-size);
-  font-weight: 500;
-  line-height: 1.5rem;
+  font-size: var(--aino-text-ui);
+  font-weight: 400;
+  line-height: 1.25rem;
 }
 
 [data-chat-surface][data-conversation-layout]
@@ -2605,7 +2606,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='aui_thinking-body'] {
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
   padding-bottom: 0.25rem;
   color: var(--aino-landing-primary);
   font-size: var(--conversation-text-font-size);
@@ -2635,10 +2636,6 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
   justify-content: flex-start;
 }
 
-[data-chat-surface][data-conversation-layout] [data-slot='aui_turn-duration'] {
-  margin-right: 0;
-}
-
 [data-chat-surface][data-conversation-layout] [data-slot='aui_msg-actions'] {
   justify-content: flex-start;
   opacity: 1;
@@ -2646,8 +2643,19 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 }
 
 [data-chat-surface][data-conversation-layout] button[data-slot='aui_msg-reactions']:not([data-reacted]) {
-  opacity: 0.5;
+  opacity: 0.8;
   pointer-events: auto;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_msg-actions'] button:not(:disabled) {
+  color: var(--ui-text-secondary);
+  opacity: 0.8;
+}
+
+[data-chat-surface][data-conversation-layout] [data-slot='aui_msg-actions'] button:is(:hover, :focus-visible),
+[data-chat-surface][data-conversation-layout] button[data-slot='aui_msg-reactions']:is(:hover, :focus-visible) {
+  color: var(--ui-text-primary);
+  opacity: 1;
 }
 
 @media (max-width: 52rem) {

@@ -584,6 +584,7 @@ spawnFailed: string
     exportFailed: string
     resetFailed: string
     nav: {
+      account: string
       providers: string
       providerAccounts: string
       providerApiKeys: string
@@ -600,6 +601,59 @@ spawnFailed: string
       billing: string
       notifications: string
       plugins: string
+    }
+    account: {
+      displayNameLabel: string
+      editDisplayName: string
+      displayNameHint: string
+      displayNameSaved: string
+      accountIdLabel: string
+      loadingStatus: string
+      refresh: string
+      serviceUnavailable: string
+      termsRequired: string
+      legalDevelopmentNotice: string
+      developmentCodeFor: string
+      errors: {
+        invalid_identifier: string
+        missing_code: string
+        invalid_code: string
+        expired: string
+        attempts_exceeded: string
+        development_disabled: string
+        retry_cooldown: string
+        state_unavailable: string
+        invalid_display_name: string
+        not_authenticated: string
+        unavailable: string
+      }
+      title: string
+      signInTitle: string
+      signInDescription: string
+      codeTitle: string
+      codeDescription: string
+      identifierLabel: string
+      identifierPlaceholder: string
+      codeLabel: string
+      codePlaceholder: string
+      sendCode: string
+      verify: string
+      back: string
+      resend: string
+      resendIn: (seconds: number) => string
+      signOut: string
+      signedInDescription: string
+      developmentHint: string
+      termsLabel: string
+      termsPrefix: string
+      terms: string
+      and: string
+      privacy: string
+      switchWechat: string
+      codeSentTo: string
+      wechatTitle: string
+      wechatUnavailable: string
+      switchIdentifier: string
     }
     plugins: {
       title: string
@@ -2489,6 +2543,7 @@ archiveConfirmTitle: (name: string) => string
   }
 
   sidebar: {
+    sessionOptions: string
     nav: Record<string, string>
     /** Display names for built-in session sources (platform ids remain stable). */
     sources: Record<string, string>
@@ -2925,6 +2980,9 @@ archiveConfirmTitle: (name: string) => string
 backgroundProcess: string
     standingGoal: string
     coding: {
+      selectProject: string
+      startProjectChat: string
+      viewChanges: string
       title: string
       noBranch: string
       detached: string
@@ -3341,7 +3399,10 @@ genericApiKeyDescription: (provider: string) => string
       openStarmap: string
       turnRunning: string
       contextUsage: string
+      subtaskMonitor: string
       systemResources: {
+        backendHost: string
+        unavailable: string
         title: string
         loading: string
         gpuUtilization: string
@@ -3688,6 +3749,16 @@ summarizing: string
       thoughtBriefly: string
       thoughtFor: (duration: string) => string
       turnDuration: (duration: string) => string
+      replyMetrics: {
+        duration: string
+        tokens: string
+        context: string
+        cache: string
+        details: string
+        sessionElapsed: string
+        input: string
+        output: string
+      }
       today: (time: string) => string
       yesterday: (time: string) => string
       copy: string

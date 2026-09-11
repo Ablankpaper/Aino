@@ -1,0 +1,129 @@
+import { useStore } from '@nanostores/react'
+import { useId, useState } from 'react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useI18n } from '@/i18n'
+import { Users } from '@/lib/icons'
+
+import { useAccountActions } from '../account/account-context'
+
+import { ListRow, SectionHeading, SettingsContent } from './primitives'
+
+export function AccountSettings() {
+  const { t } = useI18n()
+  const copy = t.settings.account
+  const actions = useAccountActions()
+  const state = useStore(actions.state)
+  const account = state.account
+  const [editing, setEditing] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
+  const [saved, setSaved] = useState(false)
+  const hintId = useId()
+  const trimmedName = nameDraft.trim()
+
+  const validName =
+    trimmedName.length > 0 && Array.from(trimmedName).length <= 32 && !/[\p{Cc}\p{Cs}]/u.test(trimmedName)
+
+  const saveName = async () => {
+    if (!validName || state.loading) {
+      return
+    }
+
+    const result = await actions.updateProfile(trimmedName)
+
+    if (result) {
+      setEditing(false)
+      setSaved(true)
+    }
+  }
+
+  return (
+    <SettingsContent>
+      <div className="mx-auto w-full max-w-2xl pt-6">
+        <SectionHeading icon={Users} title={copy.title} />
+        <p className="mb-5 text-sm text-(--ui-text-tertiary)">{copy.signedInDescription}</p>
+        <ListRow
+          action={
+            editing ? (
+              <form
+                className="grid min-w-0 gap-2"
+                onSubmit={event => {
+                  event.preventDefault()
+                  void saveName()
+                }}
+              >
+                <Input
+                  aria-describedby={hintId}
+                  aria-label={copy.displayNameLabel}
+                  autoFocus
+                  disabled={state.loading}
+                  onChange={event => setNameDraft(event.target.value)}
+                  value={nameDraft}
+                />
+                <p className="text-xs text-(--ui-text-secondary)" id={hintId}>
+                  {copy.displayNameHint}
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    disabled={state.loading}
+                    onClick={() => setEditing(false)}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    {t.common.cancel}
+                  </Button>
+                  <Button
+                    disabled={state.loading || !validName || trimmedName === account?.display_name}
+                    size="sm"
+                    type="submit"
+                  >
+                    {state.loading ? t.common.saving : t.common.save}
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="min-w-0 break-words">{account?.display_name}</span>
+                <Button
+                  disabled={state.loading}
+                  onClick={() => {
+                    setNameDraft(account?.display_name ?? '')
+                    setSaved(false)
+                    setEditing(true)
+                  }}
+                  size="sm"
+                  variant="ghost"
+                >
+                  {copy.editDisplayName}
+                </Button>
+              </div>
+            )
+          }
+          title={copy.displayNameLabel}
+        />
+        {saved && (
+          <p className="text-sm text-(--ui-text-secondary)" role="status">
+            {copy.displayNameSaved}
+          </p>
+        )}
+        <ListRow action={<span className="break-all">{account?.identifier}</span>} title={copy.identifierLabel} />
+        <ListRow
+          action={<span className="break-all font-mono text-xs">{account?.id}</span>}
+          title={copy.accountIdLabel}
+        />
+        <div className="mt-6">
+          <Button disabled={state.loading} onClick={() => void actions.logout()} variant="outline">
+            {copy.signOut}
+          </Button>
+          {state.error && (
+            <p className="mt-3 text-sm text-destructive" role="alert">
+              {copy.errors[state.error.reason]}
+            </p>
+          )}
+        </div>
+      </div>
+    </SettingsContent>
+  )
+}

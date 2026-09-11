@@ -24,6 +24,7 @@ import {
   stripGeneratedImageEchoes
 } from '@/lib/generated-images'
 import { isTodoToolName, nextTodosFromToolEvent, parseTodoRevision } from '@/lib/todos'
+import { parseTurnMetrics } from '@/lib/turn-metrics'
 import { dispatchNativeNotification } from '@/store/native-notifications'
 import { isDiskFullErrorMessage, notifyError } from '@/store/notifications'
 import { broadcastSessionsChanged } from '@/store/session-sync'
@@ -563,9 +564,11 @@ export function useMessageStream({
       text: string,
       responsePreviewed?: boolean,
       failure?: { error: string; partial: boolean; surface?: ErrorSurface | null },
-      occurredAt = Date.now() / 1000
+      occurredAt = Date.now() / 1000,
+      rawTurnMetrics?: unknown
     ) => {
       let shouldHydrate = false
+      const turnMetrics = parseTurnMetrics(rawTurnMetrics)
 
       const completedState = updateSessionState(sessionId, state => {
         // Late completion from an already-cancelled turn: cancelRun has
@@ -598,9 +601,9 @@ export function useMessageStream({
 
         // Wall-clock seconds this turn actually ran (message.start stamped
         // turnStartedAt). Read BEFORE the state return below nulls it.
-        const durationS = state.turnStartedAt
-          ? Math.max(1, Math.round((Date.now() - state.turnStartedAt) / 1000))
-          : undefined
+        const durationS =
+          turnMetrics?.duration_s ??
+          (state.turnStartedAt ? Math.max(1, Math.round((Date.now() - state.turnStartedAt) / 1000)) : undefined)
 
         const replaceTextPart = (parts: ChatMessagePart[]) => {
           const visibleFinalText = stripGeneratedImageEchoes(finalText, generatedImageEchoSources(parts)).trim()
@@ -618,6 +621,7 @@ export function useMessageStream({
             pending: false,
             interim: false,
             ...(durationS !== undefined ? { durationS } : {}),
+            ...(turnMetrics ? { turnMetrics } : {}),
             ...(completionError && failure?.surface ? { errorSurface: failure.surface } : {})
           }
 
@@ -643,6 +647,7 @@ export function useMessageStream({
           completedAt: occurredAt,
           branchGroupId: state.pendingBranchGroup ?? undefined,
           ...(durationS !== undefined ? { durationS } : {}),
+          ...(turnMetrics ? { turnMetrics } : {}),
           ...(completionError && { error: completionError }),
           ...(completionError && failure?.surface ? { errorSurface: failure.surface } : {})
         })

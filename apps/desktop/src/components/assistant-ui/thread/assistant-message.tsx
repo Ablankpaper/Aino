@@ -25,7 +25,6 @@ import { MessageTimelineTimestamp } from '@/components/assistant-ui/thread/timel
 import { useMessageReactions, useTapbackDoubleClick } from '@/components/assistant-ui/thread/use-message-reactions'
 import { AGENT_MESSAGE_RE } from '@/components/assistant-ui/thread/user-message'
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
-import { formatElapsed } from '@/components/chat/activity-timer'
 import { PreviewAttachment } from '@/components/chat/preview-attachment'
 import { Codicon } from '@/components/ui/codicon'
 import { CopyButton } from '@/components/ui/copy-button'
@@ -44,6 +43,7 @@ import {
 } from '@/lib/icons'
 import { extractPreviewTargets } from '@/lib/preview-targets'
 import { markAssistantIdSpoken } from '@/lib/spoken-reply'
+import type { TurnMetrics } from '@/lib/turn-metrics'
 import { useEnterAnimation } from '@/lib/use-enter-animation'
 import { cn } from '@/lib/utils'
 import { playSpeechText, stopVoicePlayback } from '@/lib/voice-playback'
@@ -51,6 +51,8 @@ import { notifyError } from '@/store/notifications'
 import { requestSendDiagnostics } from '@/store/send-diagnostics'
 import { $connection, $currentModel } from '@/store/session'
 import { $voicePlayback } from '@/store/voice-playback'
+
+import { ReplyMetrics } from './reply-metrics'
 
 // Stable empty identity for the settled-parts selector — a fresh [] per render
 // would re-derive the changed-files card on every message re-render.
@@ -199,6 +201,7 @@ const AssistantMessageBody: FC<AssistantMessageProps & { collapsedNotice?: null 
   // Whole-turn wall-clock seconds (set once at completion — referentially
   // stable across the 30 Hz delta stream, so this adds no per-token renders).
   const turnDurationS = useAuiState(s => s.message.metadata?.custom?.durationS as number | undefined)
+  const turnMetrics = useAuiState(s => s.message.metadata?.custom?.turnMetrics as TurnMetrics | undefined)
 
   const getMessageText = useCallback(() => messageContentText(messageRuntime.getState().content), [messageRuntime])
 
@@ -272,6 +275,7 @@ const AssistantMessageBody: FC<AssistantMessageProps & { collapsedNotice?: null 
               durationS={turnDurationS}
               getMessageText={getMessageText}
               messageId={messageId}
+              metrics={turnMetrics}
               onBranchInNewChat={onBranchInNewChat}
             />
           )}
@@ -583,12 +587,7 @@ const ErrorRecoveryActions: FC = () => {
   )
 }
 
-const AssistantActionBar: FC<MessageActionProps & { durationS?: number }> = ({
-  durationS,
-  messageId,
-  getMessageText,
-  onBranchInNewChat
-}) => {
+const AssistantActionBar: FC<MessageActionProps> = ({ messageId, getMessageText, onBranchInNewChat }) => {
   const { t } = useI18n()
   const copy = t.assistant.thread
 
@@ -608,15 +607,6 @@ const AssistantActionBar: FC<MessageActionProps & { durationS?: number }> = ({
       className="relative flex w-full shrink-0 items-center justify-end gap-1.5"
       data-slot="aui_assistant-actions-row"
     >
-      {durationS !== undefined && (
-        <span
-          className="mr-auto select-none px-0.5 text-[0.6875rem] leading-5 tabular-nums text-muted-foreground"
-          data-slot="aui_turn-duration"
-          title={t.assistant.thread.turnDuration(formatElapsed(durationS))}
-        >
-          ⏱ {formatElapsed(durationS)}
-        </span>
-      )}
       <ActionBarPrimitive.Root
         className={
           // NOTE: intentionally NOT `hideWhenRunning`. That prop unmounts the
@@ -734,7 +724,11 @@ const ReadAloudButton: FC<{ getText: () => string; messageId: string }> = ({ get
   )
 }
 
-const AssistantFooter: FC<MessageActionProps & { durationS?: number }> = ({ durationS, ...props }) => {
+const AssistantFooter: FC<MessageActionProps & { durationS?: number; metrics?: TurnMetrics }> = ({
+  durationS,
+  metrics,
+  ...props
+}) => {
   return (
     <div
       className="flex min-h-6 flex-col items-end gap-1 pr-(--message-text-indent) pl-(--message-text-indent)"
@@ -754,7 +748,8 @@ const AssistantFooter: FC<MessageActionProps & { durationS?: number }> = ({ dura
           <Codicon name="chevron-right" size="0.875rem" />
         </BranchPickerPrimitive.Next>
       </BranchPickerPrimitive.Root>
-      <AssistantActionBar durationS={durationS} {...props} />
+      <ReplyMetrics durationS={durationS} metrics={metrics} />
+      <AssistantActionBar {...props} />
     </div>
   )
 }

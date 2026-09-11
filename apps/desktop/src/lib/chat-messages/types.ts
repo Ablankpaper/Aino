@@ -2,6 +2,7 @@ import type { ThreadMessageLike } from '@assistant-ui/react'
 import { type BillingBlock } from '@hermes/shared'
 
 import type { ErrorSurface } from '@/lib/error-surface'
+import type { TurnMetrics } from '@/lib/turn-metrics'
 import type { MessageReaction, SessionMessage, UsageStats } from '@/types/hermes'
 
 export interface TimelinePartMetadata {
@@ -34,10 +35,11 @@ export type ChatMessage = {
    *  action footer so only the turn's final reply carries copy/refresh, and
    *  the live view matches rehydration (which merges the turn into one bubble). */
   interim?: boolean
-  /** Whole-turn wall-clock seconds (message.start → message.complete),
-   *  stamped by the desktop when it watched the turn run. Absent for
-   *  messages hydrated from history — the backend doesn't persist it. */
+  /** Reply wall-clock seconds. Gateway metrics are authoritative; older
+   * gateways fall back to the desktop's observed start/completion interval. */
   durationS?: number
+  /** Gateway-measured per-reply diagnostics, persisted as display metadata. */
+  turnMetrics?: TurnMetrics
   /** Composer attachment ref strings (`@file:...`, `@image:...`) sent with this user message. */
   attachmentRefs?: string[]
   /** Durable backend `messages.id`. Absent until the row is persisted. */
@@ -90,6 +92,7 @@ export type GatewayEventPayload = {
   install_warning?: string
   personality?: string
   usage?: Partial<UsageStats>
+  turn_metrics?: unknown
   // agent.terminal.output — live chunk for a read-only agent terminal tab
   process_id?: string
   chunk?: string

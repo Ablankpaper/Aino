@@ -214,8 +214,8 @@ export const $removedWorktreeIds = persistentAtom(
   [] as string[],
   Codecs.stringArray
 )
-export const $sidebarPinsOpen = atom(true)
-export const $sidebarRecentsOpen = atom(true)
+export const $sidebarPinsOpen = persistentAtom('hermes.desktop.sidebar.sections.pinned.open', true, Codecs.bool)
+export const $sidebarRecentsOpen = persistentAtom('hermes.desktop.sidebar.sections.recent.open', true, Codecs.bool)
 // Cron-job sessions live in their own section below recents, collapsed by
 // default (it only renders at all when cron sessions exist) so the
 // scheduler's `[IMPORTANT: …]` first-message previews don't spam recents.

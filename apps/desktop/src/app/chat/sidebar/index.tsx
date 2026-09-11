@@ -81,7 +81,6 @@ import {
 } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
 import {
-  $activeProfile,
   $newChatProfile,
   $profileColors,
   $profiles,
@@ -89,7 +88,6 @@ import {
   ALL_PROFILES,
   messagingTotalsKey,
   normalizeProfileKey,
-  profileLabel,
   sidebarProfileForScope
 } from '@/store/profile'
 import {
@@ -237,14 +235,15 @@ const SIDEBAR_NAV: SidebarNavItem[] = [
     icon: props => <AinoDesignIcon src={navCronIcon} {...props} />,
     route: CRON_ROUTE,
     keybindActionId: 'nav.cron'
-  },
-  {
-    id: 'session-import',
-    label: '',
-    icon: props => <Codicon name="cloud-download" {...props} />,
-    route: SESSION_IMPORT_ROUTE
   }
 ]
+
+const SESSION_IMPORT_NAV: SidebarNavItem = {
+  id: 'session-import',
+  label: '',
+  icon: props => <Codicon name="cloud-download" {...props} />,
+  route: SESSION_IMPORT_ROUTE
+}
 
 // Two modes via the `compact` height variant (styles.css):
 //   tall    → each section is shrink-0, capped, its own scroller; Sessions is flex-1.
@@ -417,16 +416,9 @@ export function ChatSidebar({
   const sessionProfilesTruncated = useStore($sessionProfilesTruncated)
   const unreadCount = useStore($unreadFinishedSessionIds).length
   const profiles = useStore($profiles)
-  const activeProfileName = useStore($activeProfile)
   const profileColors = useStore($profileColors)
   const profileScope = useStore($profileScope)
   const activeConnectionId = useStore($activeConnectionId)
-
-  const currentProfile = profiles.find(
-    profile => normalizeProfileKey(profile.name) === normalizeProfileKey(activeProfileName)
-  )
-
-  const identityLabel = currentProfile ? profileLabel(currentProfile) : activeProfileName
 
   // Toggle the persisted read-state watermark from a row menu. The row's own
   // `unread` prop mirrors what the dot paints; flip it and let the backend
@@ -1515,7 +1507,7 @@ export function ChatSidebar({
           <div className="relative flex h-full w-full min-w-0 items-center" data-session-search-shell="">
             <SearchField
               aria-label={s.searchAria}
-              containerClassName="w-full"
+              containerClassName={cn('w-full', !searchQuery && 'opacity-70 hover:opacity-100')}
               inputClassName="flex-1 [field-sizing:fixed]"
               inputRef={searchInputRef}
               onChange={setSearchQuery}
@@ -1572,7 +1564,6 @@ export function ChatSidebar({
                   (item.id === 'messaging' && currentView === 'messaging') ||
                   (item.id === 'artifacts' && currentView === 'artifacts') ||
                   (item.id === 'cron' && currentView === 'cron') ||
-                  (item.id === 'session-import' && currentView === 'session-import') ||
                   // Contributed rows light up at their own route.
                   (currentView === 'extension' && Boolean(item.route) && pathname === item.route)
 
@@ -1589,7 +1580,7 @@ export function ChatSidebar({
                       // resolved region has been observed to swallow clicks on the
                       // top rows. Same carve-out as USER_BUBBLE_BASE_CLASS in
                       // thread.tsx.
-                      'flex h-9 w-full justify-start gap-2.5 rounded-lg border-0 px-2.5 py-2 text-left text-sm leading-5 font-normal transition-colors duration-100 ease-out [-webkit-app-region:no-drag] hover:bg-(--ui-control-hover-background) hover:text-foreground hover:transition-none',
+                      'flex h-8 w-full justify-start gap-2.5 rounded-lg border-0 px-2.5 py-1.5 text-left text-[length:var(--aino-text-ui)] leading-5 font-normal transition-colors duration-100 ease-out [-webkit-app-region:no-drag] hover:bg-(--ui-control-hover-background) hover:text-foreground hover:transition-none',
                       active && 'bg-(--ui-control-active-background) text-foreground',
                       !isInteractive &&
                         'cursor-default hover:border-transparent hover:bg-transparent hover:text-inherit'
@@ -1704,7 +1695,7 @@ export function ChatSidebar({
         </SidebarGroup>
 
         <div
-          className={cn('flex min-h-0 flex-1 flex-col gap-3 pt-3 pb-1.75', SCROLL_Y, SCROLL_GUTTER)}
+          className={cn('flex min-h-0 flex-1 flex-col gap-3 pt-2 pb-1.75', SCROLL_Y, SCROLL_GUTTER)}
           data-sessions-mode={sessionsMode}
           data-sessions-project={inProject ? (enteredProjectId ?? undefined) : undefined}
         >
@@ -1874,7 +1865,7 @@ export function ChatSidebar({
                     onNewSessionInWorkspace(null, { openTab: false })
                   }}
                 />
-                <SidebarFilterMenu className={HEADER_NAV_BTN} />
+                <SidebarFilterMenu className={HEADER_NAV_BTN} onImportSession={() => onNavigate(SESSION_IMPORT_NAV)} />
               </div>
             }
             label={showArchived ? t.ui.actions.labels.archived : s.recent}
@@ -1955,7 +1946,14 @@ export function ChatSidebar({
         </div>
       </SidebarContent>
       <SidebarIdentityFooter
-        label={identityLabel}
+        onOpenAccount={() =>
+          onNavigate({
+            id: 'settings',
+            icon: Settings2,
+            label: t.settings.account.title,
+            route: `${SETTINGS_ROUTE}?tab=account`
+          })
+        }
         onOpenSettings={() =>
           onNavigate({
             id: 'settings',

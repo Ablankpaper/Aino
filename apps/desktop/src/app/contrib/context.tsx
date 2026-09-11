@@ -2,8 +2,6 @@ import { createContext, memo, useContext } from 'react'
 
 import { DecodeText } from '@/components/ui/decode-text'
 
-import { StatusbarControls } from '../shell/statusbar-controls'
-
 import type { WiringApi } from './types'
 
 /** The controller publishes its wired surfaces here; every registered pane
@@ -21,10 +19,6 @@ export const WiredPane = memo(function WiredPane({ part }: { part: keyof WiringA
   const api = useContext(ContribWiringContext)
 
   if (!api) {
-    if (part === 'statusbar') {
-      return <StatusbarControls items={[]} leftItems={[]} />
-    }
-
     return (
       <div className="grid h-full place-items-center">
         <DecodeText className="text-(--ui-text-quaternary)" cursor prefix={1} text="HERMES" />

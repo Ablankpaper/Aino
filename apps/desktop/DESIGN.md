@@ -63,6 +63,11 @@ one-off at the call site.
   per entry point.
 - **Projects own workspace cwd.** Use Sidebar → Projects for local folders and
   worktrees; do not reintroduce a per-session/right-sidebar folder-picker flow.
+- **Sidebar identity is the signed-in account.** Its circular avatar and name
+  open Settings → My account. Use the account display name, falling back to its
+  login identifier; workspace/profile selection must not change this identity.
+  My account edits the nickname through the account backend. The sidebar follows
+  the confirmed account state; a failed save keeps the prior name and editable draft.
 - **Conversation navigation has three sections:** Pinned appears only when it
   contains a session; Projects remains present even when empty; Recent lists
   ordinary conversations. Pinned and project conversations do not repeat in
@@ -74,6 +79,11 @@ one-off at the call site.
   Project menus, worktree lanes, session ordering, filters and split drags keep
   their existing action paths. Messaging and scheduled jobs retain their own
   sections below Recent.
+  Section collapse choices survive restarts. The Recent section's options menu
+  owns Import session; primary navigation stays compact so projects remain in view.
+  A resolved empty project list stays visible during focus and session refreshes.
+  Loading placeholders belong to the first read of a gateway/profile scope, so
+  background refreshes never push the Recent list down and back up.
 
 Navigation must preserve context. A background session finishing, a tool result
 arriving, or a project refresh may update badges and cached data; it must not
@@ -226,6 +236,8 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   edge borders or shadows. Titlebar-local geometry follows resizing, hiding
   and side swaps without per-frame root style invalidation. Glass retains
   the body field painter plus one subtle rail-tone layer, not stacked fills.
+  Glass sidebar scope follows the foreground rail: Settings owns its boundary
+  while open, and its narrow dropdown leaves no vertical glass strip.
   Navigation uses bare line icons, primary-ink labels, smaller section labels
   and soft neutral hover/selection fills without inset outlines.
 - **Primary chat header:** the active conversation title and its existing
@@ -276,6 +288,29 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   existing components under `src/components/assistant-ui` and
   `src/app/chat/composer`; do not fork a second markdown, message, tool-call, or
   approval renderer for one feature.
+- Conversation thinking is a compact disclosure row without a full-width
+  divider. The turn pair owns the user-to-assistant gap. The conversation
+  composer starts compact and grows with its input; dictation stays inline,
+  while spoken replies, wake-word controls and voice conversation share the
+  voice menu. Recording/stop state stays visible, and Send keeps its place.
+- The composer resolves its folder against the sidebar project tree before showing branch and change
+  totals. A backend working directory alone is not a project selection. Ordinary
+  chats offer Select project; it starts a new project conversation through the
+  existing project flow. Change totals still open the current workspace's review
+  pane, and projects without git retain their project entry. The project menu
+  owns directory details and Copy path / Reveal in file manager / Reveal in sidebar;
+  it uses that composer's directory, never an incidental global backend cwd.
+- Workspace approval mode sits beside the model in the composer, using the
+  existing profile-wide setting and authoritative rollback on save failure.
+  Narrow composers reduce it to an accessible icon before dropping secondary
+  controls at the smallest size. There is no bottom statusbar or visibility
+  toggle. Per-reply diagnostics are quiet, wrapping text beneath the answer;
+  expandable details distinguish session elapsed time from reply duration.
+  Only measured data is shown, with new reply metrics persisted as display
+  metadata, never injected into model context. System resources live in Settings
+  and poll only while viewed. Webhooks open from Gateway settings, subtask
+  monitoring from Agent Hub; scheduled jobs and terminal keep their navigation.
+  Versions and updates live in Settings.
 - **Inline widgets** — a tool result that renders as a panel the user reads or
   acts on (clarify, artifact card) wears `WIDGET_SHELL_CLASS`
   (`src/components/chat/widget-shell.ts`): shared radius, the

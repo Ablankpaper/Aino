@@ -217,7 +217,7 @@ function StatusbarHideHint() {
  *  re-rendered every other item in the bar — measured at 1,446 wasted renders
  *  of 2,174 during a five-tab streaming run. `navigate` is stable for the
  *  router's lifetime, so item identity is the only real input. */
-const StatusbarItemView = memo(function StatusbarItemView({
+export const StatusbarItemView = memo(function StatusbarItemView({
   item,
   navigate
 }: {

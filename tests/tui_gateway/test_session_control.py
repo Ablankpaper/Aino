@@ -470,5 +470,8 @@ class TestUpdatePublication:
 
         order = [e[0] for e in emitted]
         assert "message.complete" in order and "session.control.update" in order
+        completion = emitted[order.index("message.complete")][2]
+        assert completion["turn_metrics"]["duration_s"] >= 0
+        assert "total_tokens" not in completion["turn_metrics"]
         assert order.index("message.complete") < order.index("session.control.update")
         assert emitted[order.index("session.control.update")][2]["control"]["goal"]["turns_used"] == 4

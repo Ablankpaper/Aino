@@ -47,6 +47,7 @@ export const $activeProjectId = atom<null | string>(null)
 // fetched lazily on drill-in via `fetchProjectSessions`. This is the single
 // source of project membership — the desktop no longer derives it.
 export const $projectTree = atom<SidebarProjectTree[]>([])
+// Initial read only. A resolved empty tree stays visible during background refreshes.
 export const $projectTreeLoading = atom(false)
 
 // False when the connected backend predates the projects.* JSON-RPC surface
@@ -172,11 +173,14 @@ export function resolveNewSessionCwd(): string {
 // The project (explicit or auto) that owns `cwd`, by longest path match across
 // the live tree. Null when no project covers it (it'll surface as a fresh
 // auto-project on the next tree refresh).
-export function projectIdForCwd(cwd: string): null | string {
+export function projectIdForCwd(
+  cwd: string,
+  projects: readonly SidebarProjectTree[] = $projectTree.get()
+): null | string {
   let best: null | string = null
   let bestLen = -1
 
-  for (const project of $projectTree.get()) {
+  for (const project of projects) {
     // Match project + repo roots AND each worktree-lane path: a linked worktree
     // (e.g. a sibling `repo-retry`) lives OUTSIDE the repo root, so root-prefix
     // matching alone would miss it — but it's still part of the project.
@@ -390,7 +394,23 @@ const PROJECT_TREE_REQUEST_TIMEOUT_MS = 60_000
 
 let projectTreeRefreshGeneration = 0
 
-function applyProjectTreePayload(res: ProjectTreePayload): void {
+interface ProjectTreeContext {
+  gateway: HermesGateway | null
+  profile: string | null
+}
+
+let resolvedProjectTreeContext: ProjectTreeContext | null = null
+
+function beginProjectTreeRead(context: ProjectTreeContext): void {
+  $projectTreeLoading.set(
+    !resolvedProjectTreeContext ||
+      resolvedProjectTreeContext.gateway !== context.gateway ||
+      resolvedProjectTreeContext.profile !== context.profile
+  )
+}
+
+function applyProjectTreePayload(res: ProjectTreePayload, context: ProjectTreeContext): void {
+  resolvedProjectTreeContext = context
   const scoped = new Set(res.scoped_session_ids ?? [])
   $projectTree.set(res.projects ?? [])
   $activeProjectId.set(res.active_id ?? null)
@@ -414,7 +434,7 @@ async function refreshProjectTreeOn(context: ActiveProjectsContext): Promise<voi
   const { gateway, profile } = context
 
   if (activeGateway() === gateway) {
-    $projectTreeLoading.set(true)
+    beginProjectTreeRead(context)
   }
 
   try {
@@ -446,7 +466,7 @@ async function refreshProjectTreeOn(context: ActiveProjectsContext): Promise<voi
       return
     }
 
-    applyProjectTreePayload(res)
+    applyProjectTreePayload(res, context)
     markProjectsRpcSuccess()
   } catch (err) {
     if (generation === projectTreeRefreshGeneration && stillOnProjectsContext(context)) {
@@ -482,7 +502,8 @@ export async function refreshProjectTree(): Promise<void> {
 // us to hold a backend open per profile just to draw lanes.
 async function refreshProjectTreeAcrossProfiles(): Promise<void> {
   const generation = ++projectTreeRefreshGeneration
-  $projectTreeLoading.set(true)
+  const context: ProjectTreeContext = { gateway: activeGateway(), profile: null }
+  beginProjectTreeRead(context)
 
   try {
     const res = await hermesApi<ProjectTreePayload>({
@@ -492,11 +513,15 @@ async function refreshProjectTreeAcrossProfiles(): Promise<void> {
 
     // A profile switch mid-flight leaves this payload describing the wrong
     // scope; the newer refresh owns the tree.
-    if (generation !== projectTreeRefreshGeneration || $profileScope.get() !== ALL_PROFILES) {
+    if (
+      generation !== projectTreeRefreshGeneration ||
+      $profileScope.get() !== ALL_PROFILES ||
+      activeGateway() !== context.gateway
+    ) {
       return
     }
 
-    applyProjectTreePayload(res)
+    applyProjectTreePayload(res, context)
     markProjectsRpcSuccess()
   } catch (err) {
     markProjectsRpcFailure(err)

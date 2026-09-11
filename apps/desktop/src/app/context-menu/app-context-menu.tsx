@@ -23,7 +23,6 @@ import { isRemoteGateway } from '@/lib/media'
 import { reachablePreviewUrl } from '@/lib/preview-reach'
 import { openCommandPalette } from '@/store/command-palette'
 import { openPreview } from '@/store/preview'
-import { toggleStatusbarVisible } from '@/store/statusbar-prefs'
 import { requestActiveUpdate } from '@/store/updates'
 import { canOpenNewWindow, openNewWindow } from '@/store/windows'
 
@@ -567,12 +566,6 @@ function shellSections({ navigate, t }: ShellVerbs): ReactNode[][] {
       <Item icon="search" key="shell-palette" label={t.commandCenter.paletteTitle} onSelect={openCommandPalette} />
     ].filter(Boolean),
     [
-      <Item
-        icon="layout-statusbar"
-        key="shell-statusbar"
-        label={t.keybinds.actions['view.toggleStatusbar']}
-        onSelect={toggleStatusbarVisible}
-      />,
       // The pointer-only way back to a hidden tab strip: right-clicking the
       // shell reaches this menu from anywhere, including a zone that has no
       // chrome left to right-click.

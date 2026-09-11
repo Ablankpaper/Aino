@@ -16,19 +16,16 @@ import { useContributions } from '@/contrib/react/use-contributions'
 import { $activeConnectionId } from '@/store/connections'
 import { $gateway } from '@/store/gateway'
 import { $activeGatewayProfile } from '@/store/profile'
-import { $freshDraftReady, $gatewayState } from '@/store/session'
+import { $gatewayState } from '@/store/session'
 
 import { ChatView } from '../chat'
 import { ChatSidebar } from '../chat/sidebar'
 import { TerminalPaneChrome } from '../right-sidebar/terminal/chrome'
 import { contributedRoutes, NEW_CHAT_ROUTE, ROUTES_AREA, sessionRoute } from '../routes'
-import { useStatusSnapshot } from '../shell/hooks/use-status-snapshot'
-import { useStatusbarItems } from '../shell/hooks/use-statusbar-items'
 import { ModelMenuPanel } from '../shell/model-menu-panel'
-import { StatusbarControls } from '../shell/statusbar-controls'
 
 import { latestChatActions, latestSidebarActions } from './latest-actions'
-import { setStatusbarItemGroup, useStatusbarContributions } from './panes'
+import { setStatusbarItemGroup } from './panes'
 import type { SidebarActions, WiringActions } from './types'
 
 // Same lazy-view split as DesktopController — pages load on demand. The
@@ -62,42 +59,6 @@ export const TerminalSurface = memo(function TerminalSurface() {
       <TerminalPaneChrome />
     </div>
   )
-})
-
-/** Owns the statusbar's own data hooks (status snapshot poll, contributed
- *  items) so its 15s refresh — and any statusbar-only churn — re-renders the
- *  bar alone, never the chat/sidebar/terminal. */
-export const StatusbarSurface = memo(function StatusbarSurface({
-  actions,
-  agentsOpen,
-  chatOpen
-}: {
-  actions: WiringActions
-  agentsOpen: boolean
-  chatOpen: boolean
-}) {
-  const activeConnectionId = useStore($activeConnectionId)
-  const activeGatewayProfile = useStore($activeGatewayProfile)
-  const gatewayState = useStore($gatewayState)
-  const freshDraftReady = useStore($freshDraftReady)
-  const gatewayScope = `${activeConnectionId ?? ''}\0${activeGatewayProfile}`
-  const { statusSnapshot } = useStatusSnapshot(gatewayState, actions.requestGateway, gatewayScope)
-  const extraLeftItems = useStatusbarContributions('left')
-  const extraRightItems = useStatusbarContributions('right')
-
-  const { leftStatusbarItems, statusbarItems } = useStatusbarItems({
-    agentsOpen,
-    chatOpen,
-    extraLeftItems,
-    extraRightItems,
-    freshDraftReady,
-    gatewayState,
-    openAgents: actions.openAgents,
-    requestGateway: actions.requestGateway,
-    statusSnapshot
-  })
-
-  return <StatusbarControls items={statusbarItems} leftItems={leftStatusbarItems} />
 })
 
 /** The workspace pane: the real route table (chat + full-page views + plugin

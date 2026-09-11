@@ -26,6 +26,8 @@ import { selectableCardClass } from '@/lib/selectable-card'
 import { cn } from '@/lib/utils'
 import { notify, notifyError, readableError } from '@/store/notifications'
 
+import { WEBHOOKS_ROUTE } from '../routes'
+
 import { ConnectionsRegistrySection } from './connections-registry'
 import { CONTROL_TEXT } from './constants'
 import { ManagedUpdatesSection } from './managed-updates-section'
@@ -1077,6 +1079,13 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
 
   return (
     <SettingsContent bare={embedded}>
+      {!embedded && (
+        <div className="mb-4 flex justify-end">
+          <Button asChild size="sm" variant="ghost">
+            <a href={`#${WEBHOOKS_ROUTE}`}><Globe />{t.shell.statusbar.webhooks}</a>
+          </Button>
+        </div>
+      )}
       {embedded ? null : (
         <div className="mb-5">
           <div className="flex items-center gap-2 text-[length:var(--conversation-text-font-size)] font-medium">

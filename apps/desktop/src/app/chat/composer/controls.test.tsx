@@ -59,21 +59,22 @@ async function expectShortcutTooltip(label: string, shortcut: string) {
 afterEach(() => {
   cleanup()
   $hudMode.set(false)
+  resetWakeWordState()
 })
 
 // The HUD is a Spotlight bar a few hundred pixels wide: the four voice
 // controls fold into one menu there, and the way out of HUD mode joins the
 // row instead of floating above the bar in a reserved strip. The docked
-// composer keeps every control inline and shows no exit.
+// conversation keeps dictation inline and groups the other voice controls.
 describe('HUD mode', () => {
-  it('keeps the voice controls inline and offers no exit in the docked composer', () => {
+  it('keeps dictation inline and groups the other voice controls in the docked composer', () => {
     renderControls()
 
     expect(screen.getByLabelText('Voice dictation')).toBeTruthy()
-    expect(screen.getByLabelText('Read replies aloud')).toBeTruthy()
+    expect(screen.queryByLabelText('Read replies aloud')).toBeNull()
     expect(screen.queryByLabelText('Exit HUD mode')).toBeNull()
     expect(screen.queryByLabelText('Reset HUD size and position')).toBeNull()
-    expect(screen.queryByLabelText('Voice')).toBeNull()
+    expect(screen.getByLabelText('Voice')).toBeTruthy()
   })
 
   it('folds them into one menu and offers the way out in the HUD', () => {
@@ -97,6 +98,42 @@ describe('HUD mode', () => {
 
     expect(screen.getByLabelText('Stop dictation')).toBeTruthy()
     expect(screen.queryByLabelText('Voice')).toBeNull()
+  })
+})
+
+describe('conversation voice controls', () => {
+  it('keeps dictation direct and the other voice actions reachable through the menu', () => {
+    const onDictate = vi.fn()
+    const onToggleAutoSpeak = vi.fn()
+    const onStart = vi.fn()
+    renderControls({
+      canSubmit: false,
+      hasComposerPayload: false,
+      onDictate,
+      onToggleAutoSpeak,
+      state: { ...state, voice: { active: false, enabled: true } },
+      conversation: {
+        active: false,
+        level: 0,
+        muted: false,
+        onEnd: vi.fn(),
+        onStart,
+        onStopTurn: vi.fn(),
+        onToggleMute: vi.fn(),
+        status: 'idle'
+      }
+    })
+
+    expect((screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Voice dictation' }))
+    expect(onDictate).toHaveBeenCalledOnce()
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Voice' }), { button: 0, ctrlKey: false })
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'Voice dictation' })).toBeNull()
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Wake word: "hey hermes" — off' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Read replies aloud' }))
+    expect(onToggleAutoSpeak).toHaveBeenCalledOnce()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Start voice conversation' }))
+    expect(onStart).toHaveBeenCalledOnce()
   })
 })
 
@@ -132,6 +169,14 @@ describe('narrow tiles', () => {
 })
 
 describe('ComposerControls shortcut tooltips', () => {
+  it('keeps an idle draft sendable without offering a queue action', () => {
+    // The composer derives busyAction='queue' from a non-empty idle draft.
+    renderControls({ busy: false, busyAction: 'queue', hasComposerPayload: true })
+
+    expect(screen.queryByRole('button', { name: 'Queue message' })).toBeNull()
+    expect((screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
   it('keeps both voice and a disabled send affordance visible on the empty home screen', () => {
     renderControls({ canSubmit: false, hasComposerPayload: false, homeLayout: true })
 
@@ -160,21 +205,21 @@ describe('ComposerControls shortcut tooltips', () => {
   it('shows Stop only when the composer is empty mid-turn', async () => {
     renderControls({ busy: true, busyAction: 'stop', canSubmit: true, hasComposerPayload: false })
 
+    expect(screen.queryByRole('button', { name: 'Queue message' })).toBeNull()
     await expectShortcutTooltip('Stop', '↵')
   })
 
   it('shows Ctrl+Enter for Queue as the secondary mid-turn action', async () => {
-    renderControls({ busy: true, busyAction: 'queue' })
+    const onQueue = vi.fn()
+    renderControls({ busy: true, busyAction: 'queue', onQueue })
 
     await expectShortcutTooltip('Queue message', 'Ctrl+↵')
+    fireEvent.click(screen.getByRole('button', { name: 'Queue message' }))
+    expect(onQueue).toHaveBeenCalledOnce()
   })
 })
 
-describe('wake-word ear visibility', () => {
-  afterEach(() => {
-    resetWakeWordState()
-  })
-
+describe('wake-word status and controls', () => {
   it('stays mounted during a busy agent turn', () => {
     applyWakeStatus({ available: true, enabled: true, listening: true, phrase: 'hey hermes' })
     renderControls({ busy: true, busyAction: 'stop' })
@@ -182,31 +227,33 @@ describe('wake-word ear visibility', () => {
     expect(screen.getByLabelText('Wake word: "hey hermes" — listening')).toBeTruthy()
   })
 
-  it('stays mounted (enabled in config) even when a start was refused', () => {
+  it('keeps the wake toggle accessible after a start was refused', () => {
     applyWakeStatus({ available: true, enabled: true, listening: false, phrase: 'hey hermes' })
     // Transient refusal marks available false but enabled keeps it mounted.
     applyWakeStartResult({ hint: 'mic busy', reason: 'unavailable', started: false })
     renderControls()
 
-    expect(screen.getByLabelText('Wake word: "hey hermes" — off')).toBeTruthy()
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Voice' }), { button: 0, ctrlKey: false })
+    const toggle = screen.getByRole('menuitemcheckbox', { name: 'Wake word: "hey hermes" — off' })
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
   })
 
-  it('stays visible (never hides) even when unavailable and not enabled', () => {
+  it('offers the wake toggle in the menu even when unavailable and not enabled', () => {
     applyWakeStatus({ available: false, enabled: false, listening: false, phrase: 'hey hermes' })
     renderControls()
 
-    // The ear ALWAYS shows so the user can click to enable; a failed start
-    // surfaces its reason in the tooltip rather than hiding the control.
-    expect(screen.getByLabelText('Wake word: "hey hermes" — off')).toBeTruthy()
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Voice' }), { button: 0, ctrlKey: false })
+    const toggle = screen.getByRole('menuitemcheckbox', { name: 'Wake word: "hey hermes" — off' })
+    expect(toggle.hasAttribute('data-disabled')).toBe(false)
   })
 
-  it('surfaces the backend refusal reason in the tooltip, still visible', () => {
+  it('surfaces the backend refusal reason on the voice menu trigger', async () => {
     applyWakeStatus({ available: false, enabled: false, listening: false, phrase: 'hey hermes' })
     applyWakeStartResult({ hint: 'run `hermes tools` (Voice section)', reason: 'unavailable', started: false })
     renderControls()
 
-    const ear = screen.getByLabelText('Wake word: "hey hermes" — off')
-    expect(ear).toBeTruthy()
+    fireEvent.pointerMove(screen.getByRole('button', { name: 'Voice' }), { pointerType: 'mouse' })
+    expect((await screen.findByRole('tooltip')).textContent).toContain('run `hermes tools` (Voice section)')
   })
 
   it('shows a disabled paused ear inside the voice-conversation pill', () => {

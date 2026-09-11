@@ -23,6 +23,19 @@ describe('sidebar collapse persistence', () => {
     vi.resetModules()
   })
 
+  it('remembers explicit pinned, projects and recent section choices after a reload', async () => {
+    const { layout } = await loadStores()
+    layout.setSidebarPinsOpen(false)
+    layout.setSidebarRecentsOpen(false)
+    layout.setWorkspaceNodeOpen('section:projects', false)
+
+    reload()
+    const restored = (await loadStores()).layout
+    expect(restored.$sidebarPinsOpen.get()).toBe(false)
+    expect(restored.$sidebarRecentsOpen.get()).toBe(false)
+    expect(restored.$sidebarWorkspaceNodeOpen.get()['section:projects']).toBe(false)
+  })
+
   it('restores a hidden sidebar after a reload', async () => {
     const s1 = await loadStores()
     s1.bind()
@@ -117,6 +130,7 @@ describe('sidebar collapse persistence', () => {
     expect(s.tree.isTreeSideVisible('left')).toBe(true)
     const tree = s.tree.$layoutTree.get()
     expect(tree?.type).toBe('split')
+
     if (tree?.type === 'split') {
       expect(tree.children[0]).toMatchObject({ id: 'grp-sessions', minimized: false })
     }

@@ -165,17 +165,25 @@ export const isChatWindow = (search = typeof window === 'undefined' ? '' : windo
    can split its paint there (glass left of the seam, opaque chrome right of
    it — the Finder shape). The rail is an in-flow div whose WIDTH animates
    (components/ui/sidebar.tsx, collapsible='none' branch), so a
-   ResizeObserver sees every collapse/expand frame; a window resize listener
-   and a re-measure on every store sync cover the rest. RTL flips which side
-   the seam is measured from; styles.css picks the matching gradient
-   direction off html[dir]. */
+   ResizeObserver sees every collapse/expand frame. Settings has its own
+   full-page rail while the chat rail remains mounted but hidden underneath;
+   the route-aware selector below follows whichever rail is visible. A DOM
+   observer reacquires the target when the route swaps, and a window resize
+   listener covers viewport changes. RTL flips which side of the target is
+   measured; styles.css picks the matching gradient direction off html[dir]. */
 let railObserver: null | ResizeObserver = null
+let railDomObserver: null | MutationObserver = null
 let railTarget: Element | null = null
 let railTrackingOn = false
+const RAIL_SELECTOR = '[data-slot="sidebar"], [data-aino-overlay-nav]'
+
+const currentRail = (): Element | null =>
+  document.querySelector('[data-settings-workspace] [data-aino-overlay-nav]') ??
+  document.querySelector('[data-slot="sidebar"]')
 
 const measureRailEdge = (): void => {
   const root = document.documentElement
-  const rail = document.querySelector('[data-slot="sidebar"]')
+  const rail = currentRail()
 
   if (rail !== railTarget) {
     if (railObserver && railTarget) {
@@ -200,7 +208,7 @@ const measureRailEdge = (): void => {
 
   const rect = rail.getBoundingClientRect()
   const rtl = getComputedStyle(root).direction === 'rtl'
-  const edge = rtl ? window.innerWidth - rect.left : rect.right
+  const edge = rect.width === 0 ? 0 : rtl ? window.innerWidth - rect.left : rect.right
 
   root.style.setProperty('--glass-rail-edge', `${Math.max(0, Math.round(edge))}px`)
 }
@@ -208,14 +216,8 @@ const measureRailEdge = (): void => {
 const startRailTracking = (): void => {
   if (railTrackingOn) {
     // Already tracking: the ResizeObserver on the rail and the window resize
-    // listener own every geometry change from here. Re-measuring per store
-    // sync would force a layout read (getBoundingClientRect) right after the
-    // tint's style write, once per slider tick — write/read thrash on the
-    // drag's hot path for a seam that isn't moving. Two exceptions re-acquire:
-    // a rail we haven't FOUND yet (scope enabled before the sidebar mounted),
-    // and a rail that REMOUNTED (layout reset swaps the element) — the
-    // observer sits on the detached node and never fires again. isConnected
-    // is a flag read, so the settled hot path stays a single boolean check.
+    // listener own geometry changes; the DOM observer reacquires mounted
+    // rails. Tint updates must not force another layout read on a slider drag.
     if (!railTarget || !railTarget.isConnected) {
       measureRailEdge()
     }
@@ -227,6 +229,23 @@ const startRailTracking = (): void => {
 
   if (typeof ResizeObserver !== 'undefined' && !railObserver) {
     railObserver = new ResizeObserver(() => measureRailEdge())
+  }
+
+  if (typeof MutationObserver !== 'undefined' && !railDomObserver) {
+    railDomObserver = new MutationObserver(records => {
+      // Streaming text and unrelated UI changes do not move the foreground
+      // rail. Re-query the document only when a rail mounts or unmounts.
+      const railChanged = records.some(record =>
+        [...record.addedNodes, ...record.removedNodes].some(
+          node => node instanceof Element && (node.matches(RAIL_SELECTOR) || node.querySelector(RAIL_SELECTOR))
+        )
+      )
+
+      if (railChanged && currentRail() !== railTarget) {
+        measureRailEdge()
+      }
+    })
+    railDomObserver.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
   }
 
   window.addEventListener('resize', measureRailEdge)
@@ -243,6 +262,9 @@ const stopRailTracking = (): void => {
   if (railObserver && railTarget) {
     railObserver.unobserve(railTarget)
   }
+
+  railDomObserver?.disconnect()
+  railDomObserver = null
 
   railTarget = null
   window.removeEventListener('resize', measureRailEdge)

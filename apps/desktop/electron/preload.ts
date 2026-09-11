@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   openSessionWindow: (sessionId, opts) => ipcRenderer.invoke('hermes:window:openSession', sessionId, opts),
   openSessionInTerminal: (sessionId, opts) => ipcRenderer.invoke('hermes:window:openInTerminal', sessionId, opts),
   openWindow: () => ipcRenderer.invoke('hermes:window:openInstance'),
+  setAccountWindowMode: (mode, height) => ipcRenderer.invoke('aino:account:windowMode', mode, height),
   openBrowserWindow: tabId => ipcRenderer.invoke('hermes:window:openBrowser', tabId),
   onBrowserPopoutClosed: callback => {
     const listener = (_event, tabId) => callback(tabId)

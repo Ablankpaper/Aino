@@ -53,7 +53,6 @@ describe('statusbar item visibility', () => {
       item('webhooks', 'Webhooks'),
       item('agents', 'Agents'),
       item('terminal', 'Terminal'),
-      item('approval-mode', 'Approvals'),
       item('gateway-health', 'Gateway')
     ])
 
@@ -62,7 +61,6 @@ describe('statusbar item visibility', () => {
     }
 
     expect(screen.getByText('Gateway')).toBeTruthy()
-    expect(screen.getByText('Approvals')).toBeTruthy()
   })
 
   it('shows an item once the user enables it from the bar context menu', async () => {
@@ -79,7 +77,7 @@ describe('statusbar item visibility', () => {
     expect(within(statusbar).getByText('Cron')).toBeTruthy()
   })
 
-  it('never lets the user hide a locked item (system icon / update pill)', async () => {
+  it('never lets the user hide a locked item', async () => {
     const statusbar = bar([item('command-center', 'Command Center', { lockedVisible: true })])
 
     openContextMenu(statusbar)

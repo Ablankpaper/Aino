@@ -19,7 +19,10 @@ import { useI18n } from '@/i18n'
 import { displayPath } from '@/lib/display-path'
 import { openWorktreeDialog, registerRepoStatusCwd, repoStatusForCwd, repoWorktreesForCwd } from '@/store/coding-status'
 import { notifyError } from '@/store/notifications'
+import { $projectTree, projectIdForCwd } from '@/store/projects'
 import { $pullRequestsByBranch, branchPrKey, refreshPullRequests } from '@/store/pull-requests'
+
+import { ComposerProjectSelector } from './project-selector'
 
 // Tiny uppercase section header, matching the composer "+" menu's labels.
 const MENU_SECTION = 'text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-tertiary)'
@@ -43,14 +46,15 @@ interface CodingStatusRowProps {
   onSwitchBranch?: (branch: string) => Promise<void>
   /** Repo root path for the worktree dialog. */
   repoPath?: null | string
+  /** The home screen already has its own project entry below the composer. */
+  showProjectSelector?: boolean
 }
 
 /**
- * The always-on coding-context row, the BASE of the composer status stack:
- * current branch, dirty summary (+/-), and ahead/behind. A touch more prominent
- * than the per-turn rows above it (larger branch label, accent glyph), and the
- * entry point to the review pane. Hidden when the active session isn't in a
- * local git repo (the probe returns null).
+ * Explicit project context at the top of the composer. An incidental backend
+ * cwd must not turn an ordinary chat into a coding workspace. Projectless
+ * chats offer the existing project-session flow; sidebar projects show git
+ * details when available, and remain reachable when they are not git repos.
  */
 export const CodingStatusRow = memo(function CodingStatusRow({
   onBranchOff,
@@ -59,13 +63,17 @@ export const CodingStatusRow = memo(function CodingStatusRow({
   onOpen,
   onOpenWorktree,
   onSwitchBranch,
-  repoPath
+  repoPath,
+  showProjectSelector = true
 }: CodingStatusRowProps) {
   const { t } = useI18n()
   const s = t.statusStack.coding
   const p = t.sidebar.projects
   const fileMenu = t.fileMenu
-  const resolvedRepoPath = repoPath?.trim() || undefined
+  const projectTree = useStore($projectTree)
+  const projectId = projectIdForCwd(repoPath || '', projectTree)
+  const projectName = projectTree.find(project => project.id === projectId && !project.isNoProject)?.label
+  const resolvedRepoPath = projectName ? repoPath?.trim() || undefined : undefined
   // This surface's OWN worktree, always — never the primary's. The row used to
   // fall back to the global `$repoStatus` for a blank repoPath, which painted
   // the main pane's branch/± onto a tile whose cwd hadn't resolved yet. That
@@ -114,8 +122,19 @@ export const CodingStatusRow = memo(function CodingStatusRow({
     void openWorktreeDialog({ base, repoPath: resolvedRepoPath })
   }
 
-  if (!status) {
-    return null
+  if (!projectName || !status) {
+    if (!projectName && !showProjectSelector) {
+      return null
+    }
+
+    return (
+      <StatusRow
+        className="coding-status-bar min-h-7 rounded-t-[inherit] rounded-b-none border-b border-(--ui-stroke-tertiary) px-3.5 py-1.5 hover:bg-transparent"
+        leading={<Codicon className="text-(--ui-text-secondary)" name="folder" size="0.875rem" />}
+      >
+        <ComposerProjectSelector cwd={resolvedRepoPath} label={projectName} />
+      </StatusRow>
+    )
   }
 
   const branchLabel = status.detached ? s.detached : status.branch || s.noBranch
@@ -214,12 +233,23 @@ export const CodingStatusRow = memo(function CodingStatusRow({
           // It's a button (not the whole row) so the glyph opens the review pane
           // while the strip around it stays inert; size-3.5 fills the slot exactly.
           leading={
-            <button className="flex size-3.5 items-center justify-center" onClick={onOpen} type="button">
-              <Codicon className="text-(--ui-green)" name="git-branch" size="0.8rem" />
+            <button
+              aria-label={s.viewChanges}
+              className="flex size-3.5 items-center justify-center"
+              onClick={onOpen}
+              type="button"
+            >
+              <Codicon className="text-(--ui-text-secondary)" name="git-branch" size="0.8rem" />
             </button>
           }
         >
           <div className="flex min-w-0 flex-1 items-center gap-1">
+            <div className="min-w-0 max-w-[40%]">
+              <ComposerProjectSelector cwd={resolvedRepoPath} label={projectName} />
+            </div>
+            <span aria-hidden className="text-(--ui-text-tertiary)">
+              ·
+            </span>
             {/* PR number first, right against the leading git glyph — the chip
                 borrows that icon instead of carrying a second one of its own
                 (`showIcon={false}`), so the row reads glyph → #number → branch. */}
@@ -228,7 +258,7 @@ export const CodingStatusRow = memo(function CodingStatusRow({
             {/* Branch name — the other half of the review-pane target. `contents`
                 so the button lays out nothing of its own: the label stays the
                 same flex child it always was, and the hit area is the text. */}
-            <button className="contents" onClick={onOpen} type="button">
+            <button aria-label={s.viewChanges} className="contents" onClick={onOpen} type="button">
               <span className="min-w-0 truncate text-xs font-normal text-muted-foreground/92" title={branchLabel}>
                 {branchLabel}
               </span>

@@ -24,6 +24,8 @@ import type { ChatBarState, VoiceStatus } from './types'
 export interface VoiceMenuProps {
   autoSpeak: boolean
   disabled: boolean
+  /** Narrow composers include dictation here; wider ones keep its button inline. */
+  includeDictation?: boolean
   state: ChatBarState
   voiceStatus: VoiceStatus
   onDictate: () => void
@@ -49,6 +51,7 @@ export interface VoiceMenuProps {
 export function VoiceMenu({
   autoSpeak,
   disabled,
+  includeDictation = true,
   state,
   voiceStatus,
   onDictate,
@@ -60,7 +63,7 @@ export function VoiceMenu({
   const wake = useStore($wakeWord)
 
   const phrase = wake.phrase || 'hey hermes'
-  const dictating = state.voice.active || voiceStatus !== 'idle'
+  const dictating = includeDictation && (state.voice.active || voiceStatus !== 'idle')
   const wakeListening = wake.listening
   // Anything live keeps the trigger lit, so a folded menu can never look idle
   // while the mic is open.
@@ -88,14 +91,16 @@ export function VoiceMenu({
             type="button"
             variant="ghost"
           >
-            {voiceStatus === 'recording' ? (
+            {dictating && voiceStatus === 'recording' ? (
               <Square className={cn('fill-current', iconSize.xs)} />
-            ) : voiceStatus === 'transcribing' ? (
+            ) : dictating && voiceStatus === 'transcribing' ? (
               <Loader2 className={cn('animate-spin', iconSize.sm)} />
             ) : wakeListening ? (
               <Ear className={iconSize.sm} />
-            ) : (
+            ) : includeDictation ? (
               <Codicon name="mic" size="0.875rem" />
+            ) : (
+              <AudioLines className={iconSize.sm} />
             )}
           </Button>
         </DropdownMenuTrigger>
@@ -116,20 +121,21 @@ export function VoiceMenu({
         {/* Checkbox items, because all three are toggles the user is reading
             the CURRENT state of — the reason they were pressed-state buttons
             before. A plain row would fold that state away with the menu. */}
-        <DropdownMenuCheckboxItem
-          checked={dictating}
-          className={dropdownMenuRow}
-          disabled={disabled || !state.voice.enabled || voiceStatus === 'transcribing'}
-          onSelect={event => {
-            // Keep the menu open: dictation is a mode you watch, and closing
-            // on select hides the recording state the trigger just entered.
-            event.preventDefault()
-            triggerHaptic(dictating ? 'close' : 'open')
-            onDictate()
-          }}
-        >
-          {dictationLabel}
-        </DropdownMenuCheckboxItem>
+        {includeDictation && (
+          <DropdownMenuCheckboxItem
+            checked={dictating}
+            className={dropdownMenuRow}
+            disabled={disabled || !state.voice.enabled || voiceStatus === 'transcribing'}
+            onSelect={event => {
+              // Keep the recording state visible while toggling dictation.
+              event.preventDefault()
+              triggerHaptic(dictating ? 'close' : 'open')
+              onDictate()
+            }}
+          >
+            {dictationLabel}
+          </DropdownMenuCheckboxItem>
+        )}
         <DropdownMenuCheckboxItem
           checked={autoSpeak}
           className={dropdownMenuRow}

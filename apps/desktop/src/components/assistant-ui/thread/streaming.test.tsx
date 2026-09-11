@@ -538,7 +538,7 @@ describe('assistant-ui streaming renderer', () => {
     expect(finalRoot?.querySelector('[data-slot="aui_msg-actions"]')).toBeTruthy()
   })
 
-  it('puts the turn duration on the action bar row instead of a line of its own', () => {
+  it('keeps reply diagnostics beneath the answer alongside the existing actions', () => {
     const settled = {
       ...assistantMessage('All done.', false),
       metadata: {
@@ -546,20 +546,20 @@ describe('assistant-ui streaming renderer', () => {
         unstable_annotations: [],
         unstable_data: [],
         steps: [],
-        custom: { durationS: 12 }
+        custom: { durationS: 12, turnMetrics: { duration_s: 12, total_tokens: 1600, session_elapsed_s: 100 } }
       }
     } as ThreadMessage
 
     const { container } = render(<TranscriptHarness messages={[userMessage(), settled]} />)
 
-    const duration = container.querySelector('[data-slot="aui_turn-duration"]')
+    const metrics = container.querySelector('[data-slot="aui_reply-metrics"]')
     const actions = container.querySelector('[data-slot="aui_msg-actions"]')
 
-    // Same row as the (always-mounted) action bar: the footer's height is
-    // already reserved while the turn streams, so landing the duration there
-    // adds no height when the turn settles.
-    expect(duration).toBeTruthy()
-    expect(duration?.parentElement).toBe(actions?.parentElement)
+    expect(metrics?.textContent).toContain('1.6k')
+    expect(metrics?.closest('[data-slot="aui_assistant-footer"]')).toBe(
+      actions?.closest('[data-slot="aui_assistant-footer"]')
+    )
+    expect(metrics?.querySelector('summary')).toBeTruthy()
   })
 
   it('renders assistant provider errors inline', () => {
@@ -712,7 +712,7 @@ describe('assistant-ui streaming renderer', () => {
     )
   })
 
-  it('keeps the thinking divider attached to the header when expanded', () => {
+  it('keeps expanded thinking below its disclosure toggle', () => {
     const { container } = render(<ReasoningHarness />)
     const disclosure = container.querySelector('[data-slot="aui_thinking-disclosure"]')
     const header = container.querySelector('[data-slot="aui_thinking-header"]')

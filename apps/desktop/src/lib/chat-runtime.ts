@@ -497,6 +497,7 @@ export function toRuntimeMessage(message: ChatMessage): ThreadMessage {
         ...timelineMeta,
         ...(message.completedAt !== undefined ? { timelineCompletedAt: message.completedAt } : {}),
         ...(message.durationS !== undefined ? { durationS: message.durationS } : {}),
+        ...(message.turnMetrics ? { turnMetrics: message.turnMetrics } : {}),
         // Structured failure layer for the error card (see lib/error-surface).
         ...(message.errorSurface ? { errorSurface: message.errorSurface } : {}),
         ...reactionMeta
@@ -590,6 +591,8 @@ export function coalesceToolOnlyAssistants(messages: ChatMessage[], cache: ToolM
           ? cached.merged
           : {
               ...prev,
+              turnMetrics: message.turnMetrics ?? prev.turnMetrics,
+              durationS: message.durationS ?? prev.durationS,
               completedAt: [prev.completedAt, message.completedAt, ...message.parts.map(part => part.completedAt)]
                 .filter((value): value is number => value !== undefined)
                 .reduce<number | undefined>(

@@ -21,6 +21,7 @@ import {
   Info,
   Keyboard,
   KeyRound,
+  Mail,
   Package,
   RefreshCw,
   Search,
@@ -46,6 +47,7 @@ import { OverlayMain, OverlayNav, type OverlayNavGroup, OverlaySplitLayout } fro
 import { SKILLS_ROUTE } from '../routes'
 
 import { AboutSettings } from './about-settings'
+import { AccountSettings } from './account-settings'
 import { AppearanceSettings } from './appearance-settings'
 import { BillingSettings } from './billing'
 import { ConfigSettings } from './config-settings'
@@ -57,12 +59,14 @@ import { NotificationsSettings } from './notifications-settings'
 import { PluginsSettings } from './plugins-settings'
 import { PROVIDER_VIEWS, ProvidersSettings, type ProviderView } from './providers-settings'
 import { SessionsSettings } from './sessions-settings'
+import { SystemResourcesSettings } from './system-resources-settings'
 import { SettingsSystemControls } from './system-status-controls'
 import type { SettingsPageProps, SettingsView as SettingsViewId } from './types'
 import { SettingsVersionControl } from './version-control'
 
 const SETTINGS_VIEWS: readonly SettingsViewId[] = [
   ...SECTIONS.map(s => `config:${s.id}` as SettingsViewId),
+  'account',
   'providers',
   'gateway',
   // Legacy alias: the Connections page merged into Gateways. Kept in the enum
@@ -74,6 +78,7 @@ const SETTINGS_VIEWS: readonly SettingsViewId[] = [
   'billing',
   'plugins',
   'sessions',
+  'resources',
   'about'
 ]
 
@@ -208,6 +213,13 @@ export function SettingsView({
 
   const navGroups: OverlayNavGroup[] = useMemo(
     () => [
+      {
+        active: activeView === 'account',
+        icon: Mail,
+        id: 'account',
+        label: t.settings.nav.account,
+        onSelect: () => setActiveView('account')
+      },
       ...SECTIONS.map(s => {
         const view = `config:${s.id}` as SettingsViewId
 
@@ -337,6 +349,13 @@ export function SettingsView({
         id: 'about',
         label: t.settings.nav.about,
         onSelect: () => setActiveView('about')
+      },
+      {
+        active: activeView === 'resources',
+        icon: Cpu,
+        id: 'resources',
+        label: t.shell.statusbar.systemResources.title,
+        onSelect: () => setActiveView('resources')
       }
     ],
     [activeView, keysView, providerView, t, setActiveView, openProviderView, openKeysView]
@@ -439,10 +458,14 @@ export function SettingsView({
   )
 
   const activeSettingsContent =
-    activeView === 'config:appearance' ? (
+    activeView === 'account' ? (
+      <AccountSettings />
+    ) : activeView === 'config:appearance' ? (
       <AppearanceSettings />
     ) : activeView === 'about' ? (
       <AboutSettings />
+    ) : activeView === 'resources' ? (
+      <SystemResourcesSettings />
     ) : activeView === 'gateway' || activeView === 'connections' ? (
       // 'connections' renders the unified page too so the frame before
       // the alias redirect lands doesn't flash the fallback view.
