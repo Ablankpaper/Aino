@@ -21,12 +21,12 @@ import {
   Info,
   Keyboard,
   KeyRound,
-  Mail,
   Package,
   RefreshCw,
   Search,
   Settings2,
   Upload,
+  UserCircle,
   Wrench,
   Zap
 } from '@/lib/icons'
@@ -215,7 +215,7 @@ export function SettingsView({
     () => [
       {
         active: activeView === 'account',
-        icon: Mail,
+        icon: UserCircle,
         id: 'account',
         label: t.settings.nav.account,
         onSelect: () => setActiveView('account')
