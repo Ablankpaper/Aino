@@ -15,9 +15,12 @@ it('keeps the desktop toggle local across config refreshes', async () => {
       localStorage.clear()
       vi.resetModules()
       const prefs = await import('./voice-prefs')
-      // jsdom dispatches Storage writes through the prototype; spying on the
-      // instance method misses the call under Node 26/jsdom.
-      const write = vi.spyOn(Storage.prototype, 'setItem')
+      // Native jsdom Storage dispatches through its prototype, while the
+      // Node 26 fallback installed by vitest.setup.ts owns its methods.
+      const writeTarget = Object.prototype.hasOwnProperty.call(localStorage, 'setItem')
+        ? localStorage
+        : Storage.prototype
+      const write = vi.spyOn(writeTarget, 'setItem')
 
       if (fails) {
         write.mockImplementation(() => {
@@ -46,7 +49,10 @@ it('migrates the legacy preference once, not on every refresh', async () => {
       localStorage.clear()
       vi.resetModules()
       const prefs = await import('./voice-prefs')
-      const write = vi.spyOn(Storage.prototype, 'setItem')
+      const writeTarget = Object.prototype.hasOwnProperty.call(localStorage, 'setItem')
+        ? localStorage
+        : Storage.prototype
+      const write = vi.spyOn(writeTarget, 'setItem')
 
       if (fails) {
         write.mockImplementation(() => {

@@ -20,6 +20,46 @@ from tui_gateway import server
 from tui_gateway.transport import bind_transport, reset_transport
 
 
+def _without_turn_metrics(value):
+    """Compare transcript/event structure while allowing diagnostic sidecars.
+
+    ``turn_metrics`` is display-only and intentionally carries timing data, so
+    exact snapshots must not freeze its value (or require it on older stubs).
+    All durable message fields remain part of the comparison.
+    """
+    if isinstance(value, dict):
+        result = {
+            key: _without_turn_metrics(item)
+            for key, item in value.items()
+            if key != "turn_metrics"
+        }
+        if result.get("display_metadata") == {}:
+            result.pop("display_metadata")
+        return result
+    if isinstance(value, list):
+        return [_without_turn_metrics(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_without_turn_metrics(item) for item in value)
+    return value
+
+
+def _turn_metrics(value):
+    """Return an optional turn-metrics sidecar from an event or history row."""
+    if not isinstance(value, dict):
+        return None
+    direct = value.get("turn_metrics")
+    if isinstance(direct, dict):
+        return direct
+    metadata = value.get("display_metadata")
+    return metadata.get("turn_metrics") if isinstance(metadata, dict) else None
+
+
+def _assert_has_turn_metrics(value):
+    metrics = _turn_metrics(value)
+    assert isinstance(metrics, dict)
+    assert metrics.get("duration_s", -1) >= 0
+
+
 def _dispatch_sync(req: dict, transport=None) -> dict | None:
     """Run one RPC to completion synchronously, regardless of pool routing.
 
@@ -752,7 +792,17 @@ def test_prompt_submit_golden_transcript_matches_flag_off_and_on(monkeypatch):
                 sid = frame["sid"]
                 server._emit("message.start", sid)
                 server._emit("message.delta", sid, {"text": "hi"})
-                server._emit("message.complete", sid, {"text": "hi", "usage": usage, "status": "complete"})
+                # The real compute-host child emits the same diagnostics sidecar
+                # as the in-process path; this stub uses a deterministic value.
+                server._emit(
+                    "message.complete", sid,
+                    {
+                        "text": "hi",
+                        "usage": usage,
+                        "status": "complete",
+                        "turn_metrics": {"duration_s": 0.0},
+                    },
+                )
                 server._emit("session.info", sid, dict(fixed_info))
                 if on_complete is not None:
                     on_complete(
@@ -787,7 +837,15 @@ def test_prompt_submit_golden_transcript_matches_flag_off_and_on(monkeypatch):
         finally:
             server._sessions.pop("sid", None)
 
-    assert run_flag_on() == run_flag_off()
+    flag_on_events = run_flag_on()
+    flag_off_events = run_flag_off()
+    # Timing is intentionally non-deterministic, but both routes must retain
+    # identical user-visible event content and ordering.
+    assert _without_turn_metrics(flag_on_events) == _without_turn_metrics(flag_off_events)
+    for events in (flag_on_events, flag_off_events):
+        complete = [payload for event, _sid, payload in events if event == "message.complete"]
+        assert len(complete) == 1
+        _assert_has_turn_metrics(complete[0])
 
 
 def test_session_context_explicit_cwd_for_ephemeral_task(monkeypatch, tmp_path):
@@ -6989,10 +7047,12 @@ def test_prompt_submit_empty_truncation_allowed_with_confirm(monkeypatch):
         assert seen["prompt"] == "first"
         assert seen["history"] == []
         assert replaced == [("session-key", [])]
-        assert server._sessions["confirm-empty-sid"]["history"] == [
+        history_after = server._sessions["confirm-empty-sid"]["history"]
+        assert _without_turn_metrics(history_after) == [
             {"role": "user", "content": "first"},
             {"role": "assistant", "content": "regenerated"},
         ]
+        _assert_has_turn_metrics(history_after[-1])
     finally:
         server._sessions.pop("confirm-empty-sid", None)
 
@@ -12669,9 +12729,11 @@ def test_prompt_submit_history_version_match_persists_normally(monkeypatch):
         assert resp.get("result")
 
         # History was written
-        assert server._sessions["sid"]["history"] == [
+        history_after = server._sessions["sid"]["history"]
+        assert _without_turn_metrics(history_after) == [
             {"role": "assistant", "content": "reply"}
         ]
+        _assert_has_turn_metrics(history_after[-1])
         assert server._sessions["sid"]["history_version"] == 1
 
         # No warning should be attached
@@ -12727,9 +12789,11 @@ def test_prompt_submit_snapshots_history_after_pending_model_switch(monkeypatch)
         )
 
         assert seen["history"] == [marker]
-        assert server._sessions["sid"]["history"][-1] == {
+        history_after = server._sessions["sid"]["history"]
+        assert _without_turn_metrics(history_after[-1]) == {
             "role": "assistant", "content": "reply"
         }
+        _assert_has_turn_metrics(history_after[-1])
         complete = [a for a in emits if a[0] == "message.complete"]
         assert "warning" not in complete[0][2]
     finally:
@@ -12811,11 +12875,13 @@ def test_prompt_submit_can_truncate_before_user_ordinal(monkeypatch):
 
         assert seen["prompt"] == "edited second"
         assert seen["history"] == original_history[:2]
-        assert server._sessions["sid"]["history"] == [
+        history_after = server._sessions["sid"]["history"]
+        assert _without_turn_metrics(history_after) == [
             *original_history[:2],
             {"role": "user", "content": "edited second"},
             {"role": "assistant", "content": "edited reply"},
         ]
+        _assert_has_turn_metrics(history_after[-1])
         assert server._sessions["sid"]["history_version"] == 2
         assert stub_db.replaced == [("session-key", original_history[:2])]
     finally:
@@ -16782,10 +16848,12 @@ def test_session_activate_returns_inflight_stream_before_completion(monkeypatch)
         )
         assert completed["result"].get("inflight") is None
         assert completed["result"]["turn_started_at"] is None
-        assert completed["result"]["messages"] == [
+        messages = completed["result"]["messages"]
+        assert _without_turn_metrics(messages) == [
             {"role": "user", "text": "write a long answer"},
             {"role": "assistant", "text": "partial answer complete"},
         ]
+        _assert_has_turn_metrics(messages[-1])
     finally:
         release.set()
         done.wait(2)

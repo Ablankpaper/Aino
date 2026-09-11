@@ -88,12 +88,11 @@ def _development_mode() -> bool:
     # development. Packaged builds do not, so the fixed code remains opt-in.
     if os.environ.get("HERMES_DESKTOP_DEV_SERVER"):
         return True
-    path = Path(get_hermes_home()) / "config.yaml"
-    try:
-        import yaml
-        cfg = yaml.safe_load(path.read_text(encoding="utf-8")) if path.is_file() else {}
-    except (OSError, UnicodeError, ValueError, yaml.YAMLError):
-        return False
+    # Behavioral reads must use the canonical loader so managed overlays,
+    # environment expansion, and profile-aware paths stay consistent with
+    # every other gateway surface.
+    from hermes_cli.config import load_config_readonly
+    cfg = load_config_readonly()
     account = cfg.get("account") if isinstance(cfg, dict) else None
     return isinstance(account, dict) and account.get("dev_mode") is True
 
