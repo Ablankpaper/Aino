@@ -633,8 +633,9 @@ export function TreeGroup({
                     <PaneTabLabel
                       className="text-[0.875rem] font-semibold normal-case tracking-normal"
                       data-current-session-title=""
+                      overflowLabel={titleInWindowBar ? paneTitle(activeId) : undefined}
                     >
-                      {tabLabel(activeId)}
+                      {titleInWindowBar ? paneTitle(activeId) : tabLabel(activeId)}
                     </PaneTabLabel>
                   </PaneTab>
                 )

@@ -894,12 +894,9 @@ export function ContribController() {
                 right: 'calc(var(--titlebar-tools-right, 0.75rem) + var(--titlebar-tools-width, 8.5rem) + 0.75rem)'
               }}
             >
-              <TitlebarSlot area="titleBar.left" className="flex h-full min-w-0 flex-1 items-center gap-2" />
-              <TitlebarSlot
-                area="titleBar.center"
-                className="flex h-full min-w-0 w-[min(20rem,45%)] shrink items-center gap-2"
-              />
-              <TitlebarSlot area="titleBar.right" className="flex h-full min-w-0 shrink-0 items-center gap-2" />
+              <TitlebarSlot area="titleBar.left" className="flex h-full min-w-0 items-center gap-2" />
+              <TitlebarSlot area="titleBar.center" className="flex h-full min-w-0 w-full items-center gap-2" />
+              <TitlebarSlot area="titleBar.right" className="flex h-full min-w-0 items-center justify-end gap-2" />
             </div>
           </div>
 

@@ -648,9 +648,15 @@ function RenameSessionDialog({ open, onOpenChange, sessionId, currentTitle, prof
   const [value, setValue] = useState(currentTitle)
   const [submitting, setSubmitting] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const wasOpen = useRef(false)
 
+  // eslint-disable-next-line no-restricted-syntax -- Tracks this dialog's open edge, not a mirrored store value.
   useEffect(() => {
-    if (open) {
+    const justOpened = open && !wasOpen.current
+    wasOpen.current = open
+
+    // Snapshot once per opening; background auto-titles must not replace edits.
+    if (justOpened) {
       setValue(currentTitle)
       window.setTimeout(() => inputRef.current?.select(), 0)
     }

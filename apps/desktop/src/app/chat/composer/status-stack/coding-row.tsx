@@ -46,8 +46,6 @@ interface CodingStatusRowProps {
   onSwitchBranch?: (branch: string) => Promise<void>
   /** Repo root path for the worktree dialog. */
   repoPath?: null | string
-  /** The home screen already has its own project entry below the composer. */
-  showProjectSelector?: boolean
 }
 
 /**
@@ -63,8 +61,7 @@ export const CodingStatusRow = memo(function CodingStatusRow({
   onOpen,
   onOpenWorktree,
   onSwitchBranch,
-  repoPath,
-  showProjectSelector = true
+  repoPath
 }: CodingStatusRowProps) {
   const { t } = useI18n()
   const s = t.statusStack.coding
@@ -123,10 +120,6 @@ export const CodingStatusRow = memo(function CodingStatusRow({
   }
 
   if (!projectName || !status) {
-    if (!projectName && !showProjectSelector) {
-      return null
-    }
-
     return (
       <StatusRow
         className="coding-status-bar min-h-7 rounded-t-[inherit] rounded-b-none border-b border-(--ui-stroke-tertiary) px-3.5 py-1.5 hover:bg-transparent"

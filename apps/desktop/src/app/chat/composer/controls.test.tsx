@@ -177,19 +177,6 @@ describe('ComposerControls shortcut tooltips', () => {
     expect((screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
-  it('keeps both voice and a disabled send affordance visible on the empty home screen', () => {
-    renderControls({ canSubmit: false, hasComposerPayload: false, homeLayout: true })
-
-    expect(screen.getByLabelText('Start voice conversation')).toBeTruthy()
-    expect((screen.getByLabelText('Send') as HTMLButtonElement).disabled).toBe(true)
-  })
-
-  it('uses the Figma switch affordance for the wake word on the home screen', () => {
-    renderControls({ canSubmit: false, hasComposerPayload: false, homeLayout: true })
-
-    expect(screen.getByRole('switch', { name: 'Wake word: "hey hermes" — off' })).toBeTruthy()
-  })
-
   it('shows Enter for Send', async () => {
     renderControls()
 

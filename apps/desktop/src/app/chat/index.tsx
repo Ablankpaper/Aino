@@ -33,7 +33,6 @@ import { $pinnedSessionIds } from '@/store/layout'
 import { $petActive } from '@/store/pet'
 import { $petOverlayActive } from '@/store/pet-overlay'
 import { $activeGatewayProfile, $gatewaySwapTarget, $hydrationSyncProfile, $profiles } from '@/store/profile'
-import { openFolderAsProject } from '@/store/projects'
 import {
   $connection,
   $contextSuggestions,
@@ -565,8 +564,6 @@ const ChatViewContent = memo(function ChatViewContent({
     [composerScope.target]
   )
 
-  const onHomeSelectWorkspace = useCallback(() => void openFolderAsProject(), [])
-
   const introProps = useMemo(
     () =>
       showIntro
@@ -574,12 +571,11 @@ const ChatViewContent = memo(function ChatViewContent({
             home: true,
             onInsertPrompt: onHomeInsertPrompt,
             onPickFiles,
-            onSelectWorkspace: onHomeSelectWorkspace,
             personality: introPersonality,
             seed: introSeed
           }
         : undefined,
-    [introPersonality, introSeed, onHomeInsertPrompt, onHomeSelectWorkspace, onPickFiles, showIntro]
+    [introPersonality, introSeed, onHomeInsertPrompt, onPickFiles, showIntro]
   )
 
   const modelOptionsQuery = useQuery<ModelOptionsResponse>({

@@ -1,7 +1,5 @@
 import { useState } from 'react'
 
-import composerSnippetsIcon from '@/assets/aino-home/composer-snippets.svg'
-import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { composerPanelCard } from '@/components/chat/composer-dock'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
@@ -17,15 +15,7 @@ import {
 import { Kbd } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
-import {
-  Clipboard,
-  FileText,
-  FolderOpen,
-  type IconComponent,
-  ImageIcon,
-  Link,
-  MessageSquareText
-} from '@/lib/icons'
+import { Clipboard, FileText, FolderOpen, type IconComponent, ImageIcon, Link, MessageSquareText } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
 import { useComposerAttachmentProviders } from './contrib'
@@ -35,7 +25,6 @@ import type { ChatBarState } from './types'
 const SNIPPET_KEYS = ['codeReview', 'implementationPlan', 'explainThis']
 
 export function ContextMenu({
-  homeLayout = false,
   state,
   onInsertText,
   onOpenUrlDialog,
@@ -71,13 +60,7 @@ export function ContextMenu({
               type="button"
               variant="ghost"
             >
-              {homeLayout ? (
-                <span aria-hidden className="text-base leading-none font-light">
-                  +
-                </span>
-              ) : (
-                <Codicon name="add" size="0.875rem" />
-              )}
+              <Codicon name="add" size="0.875rem" />
             </Button>
           </DropdownMenuTrigger>
         </Tip>
@@ -132,21 +115,6 @@ export function ContextMenu({
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      {homeLayout && (
-        <Tip label={c.promptSnippets} side="top">
-          <Button
-            aria-label={c.promptSnippets}
-            className={GHOST_ICON_BTN}
-            onClick={() => setSnippetsOpen(true)}
-            size="icon"
-            type="button"
-            variant="ghost"
-          >
-            <AinoDesignIcon className="size-3" src={composerSnippetsIcon} />
-          </Button>
-        </Tip>
-      )}
 
       <PromptSnippetsDialog onInsertText={onInsertText} onOpenChange={setSnippetsOpen} open={snippetsOpen} />
     </>
@@ -217,7 +185,6 @@ interface ContextMenuItemProps {
 }
 
 interface ContextMenuProps {
-  homeLayout?: boolean
   onInsertText: (text: string) => void
   onOpenUrlDialog: () => void
   onPasteClipboardImage?: (opts?: { silent?: boolean }) => Promise<boolean> | void

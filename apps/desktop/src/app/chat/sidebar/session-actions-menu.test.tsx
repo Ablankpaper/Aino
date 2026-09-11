@@ -2,6 +2,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { atom } from 'nanostores'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { renameSession } from '@/hermes'
+
 import { SessionActionsMenu, SessionContextMenu } from './session-actions-menu'
 
 afterEach(cleanup)
@@ -164,6 +166,67 @@ describe('SessionActionsMenu', () => {
     await waitFor(() => expect(document.activeElement).toBe(input))
     // eslint-disable-next-line no-restricted-globals -- asserting real focus requires the live document
     expect(document.activeElement).not.toBe(trigger)
+  })
+
+  it.each([
+    { surface: 'dropdown', Component: SessionActionsMenu },
+    { surface: 'context menu', Component: SessionContextMenu }
+  ])('preserves the rename draft across background title updates in the $surface', async ({ surface, Component }) => {
+    vi.mocked(renameSession).mockClear()
+
+    const view = (title: string) => (
+      <Component sessionId="s1" title={title}>
+        <button aria-label="Session actions" type="button">
+          Menu
+        </button>
+      </Component>
+    )
+
+    const { rerender } = render(view('Initial title'))
+
+    const openRename = async () => {
+      const trigger = screen.getByRole('button', { name: 'Session actions' })
+
+      if (surface === 'context menu') {
+        fireEvent.contextMenu(trigger)
+      } else {
+        fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' })
+        fireEvent.pointerUp(trigger, { button: 0, pointerType: 'mouse' })
+        fireEvent.click(trigger)
+      }
+
+      fireEvent.click(await screen.findByRole('menuitem', { name: /rename/i }))
+      const input = within(await screen.findByRole('dialog')).getByRole('textbox') as HTMLInputElement
+      await waitFor(() => expect(globalThis.document.activeElement).toBe(input))
+
+      return input
+    }
+
+    const input = await openRename()
+    fireEvent.change(input, { target: { value: 'My edited title' } })
+    rerender(view('Background generated title'))
+    expect(input.value).toBe('My edited title')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(renameSession).not.toHaveBeenCalled()
+    rerender(view('Latest saved title'))
+    const reopened = await openRename()
+    expect(reopened.value).toBe('Latest saved title')
+
+    fireEvent.change(reopened, { target: { value: 'My final title' } })
+    rerender(view('Another background title'))
+    expect(reopened.value).toBe('My final title')
+    vi.mocked(renameSession).mockResolvedValueOnce({ ok: true, title: 'My final title' })
+
+    if (surface === 'context menu') {
+      fireEvent.keyDown(reopened, { key: 'Enter' })
+    } else {
+      fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }))
+    }
+
+    await waitFor(() => expect(renameSession).toHaveBeenCalledWith('s1', 'My final title', undefined))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 
   it('confirms before deleting — cancel keeps the session, confirm deletes it', async () => {

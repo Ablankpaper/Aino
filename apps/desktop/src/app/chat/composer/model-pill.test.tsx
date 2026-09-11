@@ -81,26 +81,29 @@ describe('ModelPill pinned-override badge', () => {
 })
 
 describe('ModelPill per-surface model label', () => {
-  it('uses the compact localized automatic label for an unpinned landing-page default', () => {
+  it('shows the resolved default model and follows later model updates', () => {
     setCurrentModelSource('default')
 
-    render(
+    const { rerender } = render(
       <ModelPill
         disabled={false}
-        landing
         model={modelState({ model: 'deepseek/deepseek-v4-pro', modelMenuContent: <div /> })}
       />
     )
 
-    expect(screen.getByText('Auto')).toBeTruthy()
+    expect(screen.getByText(/Deepseek V4 Pro/i)).toBeTruthy()
     expect(screen.getByLabelText(/deepseek-v4-pro/i)).toBeTruthy()
+
+    rerender(<ModelPill disabled={false} model={modelState({ model: 'deepseek/deepseek-v4-flash' })} />)
+    expect(screen.getByText(/Deepseek V4 Flash/i)).toBeTruthy()
+    expect(screen.queryByText(/Deepseek V4 Pro/i)).toBeNull()
   })
 
-  it('keeps a manually pinned model visible on the landing page', () => {
+  it('keeps a manually pinned model visible on a draft', () => {
     setCurrentModel('deepseek/deepseek-v4-flash')
     setCurrentModelSource('manual')
 
-    render(<ModelPill disabled={false} landing model={modelState({ model: 'deepseek/deepseek-v4-flash' })} />)
+    render(<ModelPill disabled={false} model={modelState({ model: 'deepseek/deepseek-v4-flash' })} />)
 
     expect(screen.queryByText('Auto')).toBeNull()
     expect(screen.getByText(/Deepseek V4 Flash/i)).toBeTruthy()

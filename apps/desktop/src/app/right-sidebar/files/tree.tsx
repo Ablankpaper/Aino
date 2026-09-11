@@ -17,10 +17,10 @@ import { FileEntryContextMenu, InlineRenameInput, isRenameShortcut } from '../fi
 import { getFileTreeDndManager } from './dnd-manager'
 import type { TreeNode } from './use-project-tree'
 
-const ROW_HEIGHT = 22
-const INDENT = 10
-/** Fixed base inset (`px-6.5`) layered on top of arborist's depth indent. */
-const TREE_ROW_INSET = '17px'
+const ROW_HEIGHT = 28
+const INDENT = 14
+/** Row inset plus the tree gutter aligns root icons with the section label. */
+const TREE_ROW_INSET = '8px'
 
 function withTreeInset(paddingLeft: number | string | undefined): string {
   if (typeof paddingLeft === 'number') {
@@ -295,8 +295,8 @@ function ProjectTreeRow({
       aria-expanded={isFolder ? node.isOpen : undefined}
       aria-selected={node.isSelected}
       className={cn(
-        'group/row row-hover flex h-full select-none items-center gap-1 border border-transparent px-3 text-xs font-normal leading-(--file-tree-row-height) text-(--ui-text-secondary) hover:text-foreground',
-        node.isSelected && 'bg-(--ui-row-active-background) text-foreground',
+        'group/row row-hover flex h-full select-none items-center gap-2 rounded-lg px-2 text-[length:var(--aino-text-ui)] font-normal leading-5 text-(--ui-text-primary)',
+        node.isSelected && 'bg-(--aino-surface-active)',
         isPlaceholder && 'pointer-events-none italic text-muted-foreground/70'
       )}
       draggable={!isPlaceholder && !editing}
@@ -351,7 +351,7 @@ function ProjectTreeRow({
     >
       {/* No chevron column — the folder icon (open/closed) already carries the
           expand state, so the extra glyph was pure noise. */}
-      <span aria-hidden className="flex w-3.5 items-center justify-center text-(--ui-text-tertiary)">
+      <span aria-hidden className="flex w-3.5 shrink-0 items-center justify-center text-(--ui-text-secondary)">
         {isPlaceholder && !isErrorPlaceholder ? (
           <Codicon name="loading" size="0.75rem" spinning />
         ) : isErrorPlaceholder ? (
@@ -363,7 +363,11 @@ function ProjectTreeRow({
         )}
       </span>
       {editing ? (
-        <InlineRenameInput name={node.data.name} path={node.data.id} />
+        <InlineRenameInput
+          className="text-[length:var(--aino-text-ui)] leading-5"
+          name={node.data.name}
+          path={node.data.id}
+        />
       ) : (
         // Git decoration (VS Code-style): tint changed files; the explicit color
         // wins over the row's hover/selected text color, so it persists.

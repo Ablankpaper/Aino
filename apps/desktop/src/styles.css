@@ -492,7 +492,6 @@
        markdown block and between consecutive prose parts. Single knob; tweak
        freely. */
     --paragraph-gap: 0.7rem;
-    --file-tree-row-height: 1.375rem;
 
     --composer-width: 100%;
     --composer-control-size: 1.5rem;
@@ -2035,6 +2034,35 @@ body.guest-pointer-lock :is(webview, iframe) {
   border-bottom: 1px solid var(--aino-landing-stroke);
 }
 
+/* Keep the three titlebar roles in stable columns. The session title may
+   shorten inside the left column, but it must not push the search field away
+   from the center of the usable titlebar area. */
+[data-titlebar-content] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, clamp(5rem, calc(100% - 16rem), 20rem)) minmax(0, 1fr);
+}
+
+[data-titlebar-content] [data-titlebar-slot='titleBar.left'] {
+  grid-column: 1;
+}
+
+[data-titlebar-content] [data-titlebar-slot='titleBar.center'] {
+  grid-column: 2;
+  justify-self: center;
+}
+
+[data-session-search-shell] input {
+  text-overflow: ellipsis;
+}
+
+[data-titlebar-content] [data-titlebar-slot='titleBar.right'] {
+  grid-column: 3;
+}
+
+[data-window-session-title] {
+  max-width: min(20rem, 100%);
+}
+
 [data-contrib-shell] [data-slot='app-titlebar'] [data-window-session-title] .session-title-header {
   width: max-content;
   min-width: 0;
@@ -2118,59 +2146,16 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
   /* Preserve the Figma baseline; PingFang's antialiasing sits one CSS pixel
      higher than the exported frame without this optical nudge. */
   transform: translateY(1px);
-  white-space: nowrap;
+  white-space: normal;
 }
 
 /* Mirrors the Figma placeholder under the heading. The actual ChatBar is
    absolutely docked over this slot by the home-layout selectors below. */
 .aino-home-composer-slot {
   width: 100%;
-  height: 8.28125rem;
-  flex: 0 0 8.28125rem;
+  height: var(--aino-home-composer-height);
+  flex: 0 0 var(--aino-home-composer-height);
   margin-top: 2.0625rem;
-}
-
-.aino-home-workspace {
-  width: 100%;
-  min-height: 3.125rem;
-  height: 3.125rem;
-  justify-content: flex-start;
-  gap: 0.375rem;
-  margin-top: -0.75rem;
-  padding: 0.625rem 1rem;
-  border: 0;
-  border-radius: 1rem;
-  color: var(--aino-landing-secondary);
-  background: var(--aino-landing-workspace);
-  font-size: 0.8125rem;
-  font-weight: 400;
-  text-align: start;
-}
-
-.aino-home-workspace:hover,
-.aino-home-workspace:focus-visible {
-  color: var(--ui-text-primary);
-  background: var(--ui-control-hover-background);
-}
-
-.aino-home-workspace svg {
-  width: 0.875rem;
-  height: 0.875rem;
-  flex: 0 0 auto;
-}
-
-.aino-home-workspace-chevron {
-  width: 0.6875rem !important;
-  height: 0.6875rem !important;
-  margin-left: 0.125rem;
-  opacity: 0.7;
-}
-
-/* The source frame reserves the English label's 103px track. Keep that track
-   when the visible copy is localized so the chevron stays on the same grid
-   line without changing the button's hit target or behavior. */
-.aino-home-workspace > span:nth-child(2) {
-  min-width: 103px;
 }
 
 .aino-home-actions {
@@ -2240,8 +2225,9 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
    into the visual slot from the design. Keep the selector scoped to the main
    chat surface so HUD, pop-out, tiles, and regular sessions are untouched. */
 [data-chat-surface][data-home-layout] {
+  --aino-home-composer-height: 10.28125rem;
   --composer-width: 780px;
-  --composer-control-gap: 0.375rem;
+  --composer-control-gap: 0.5rem;
   --composer-control-primary-size: 1.75rem;
   --composer-control-size: 1.75rem;
   background: var(--aino-landing-surface);
@@ -2270,8 +2256,8 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 }
 
 [data-chat-surface][data-home-layout] [data-slot='composer-surface'] {
-  height: 8.28125rem;
-  min-height: 8.28125rem;
+  height: var(--aino-home-composer-height);
+  min-height: var(--aino-home-composer-height);
   border-radius: 1rem;
   background: var(--aino-landing-surface);
   border-color: var(--aino-landing-composer-stroke) !important;
@@ -2282,7 +2268,6 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
   height: 100%;
   min-height: 0;
   gap: 0;
-  grid-row: 1 / -1;
   padding: 1rem 1rem 0.75rem;
 }
 
@@ -2324,58 +2309,6 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 
 [data-chat-surface][data-home-layout] [data-slot='composer-trailing-controls'] {
   align-self: end;
-  --composer-control-gap: 0.625rem;
-}
-
-[data-chat-surface][data-home-layout] [data-slot='home-wake-word'] [data-slot='switch'] {
-  width: 2rem;
-  height: 1.125rem;
-  border-color: transparent;
-  background: var(--aino-landing-switch);
-  box-shadow: none;
-}
-
-[data-chat-surface][data-home-layout] [data-slot='home-wake-word'] [data-slot='switch-thumb'] {
-  width: 0.875rem;
-  height: 0.875rem;
-  background: var(--aino-landing-surface);
-  box-shadow:
-    0 1px 3px rgb(0 0 0 / 10%),
-    0 1px 2px rgb(0 0 0 / 10%);
-  translate: 1px 0;
-}
-
-[data-chat-surface][data-home-layout] [data-landing-model] {
-  width: 3.5625rem;
-  min-width: 3.5625rem;
-  max-width: 3.5625rem;
-  height: 1.75rem;
-  gap: 0.125rem;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--aino-landing-model-stroke);
-  border-radius: 0.375rem;
-  color: var(--aino-landing-muted);
-  background: transparent;
-}
-
-[data-chat-surface][data-home-layout] :is([data-slot='home-auto-speak'], [data-slot='home-dictation']) {
-  width: 1.625rem;
-  min-width: 1.625rem;
-  max-width: 1.625rem;
-  margin-inline: -0.3125rem;
-}
-
-[data-chat-surface][data-home-layout]
-  [data-slot='home-wake-word']
-  [data-slot='switch'][data-state='checked']
-  [data-slot='switch-thumb'] {
-  translate: 15px 0;
-}
-
-[data-chat-surface][data-home-layout] [data-home-disabled-send] {
-  color: var(--aino-landing-placeholder) !important;
-  background: var(--aino-landing-control) !important;
-  opacity: 1;
 }
 
 [data-chat-surface][data-home-layout] [data-slot='composer-rich-input'] {
@@ -2389,10 +2322,6 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 
 [data-chat-surface][data-home-layout] [data-slot='composer-rich-input']:is(:empty, [data-empty])::before {
   color: var(--aino-landing-placeholder) !important;
-}
-
-[data-chat-surface][data-home-layout] [data-slot='composer-surface'] > [data-slot='coding-status-row'] {
-  display: none;
 }
 
 /* ── Focused conversation ────────────────────────────────────────────────
@@ -2451,9 +2380,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 [data-chat-surface][data-conversation-layout] [data-slot='composer-surface'] {
   min-height: 6.75rem;
   border-color: var(--aino-landing-composer-stroke) !important;
-  box-shadow:
-    0 10px 30px rgb(15 23 42 / 7%),
-    0 2px 8px rgb(15 23 42 / 6%);
+  box-shadow: var(--shadow-aino-landing-composer);
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='composer-fade'] {
@@ -2649,7 +2576,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 
 [data-chat-surface][data-conversation-layout] [data-slot='aui_msg-actions'] button:not(:disabled) {
   color: var(--ui-text-secondary);
-  opacity: 0.8;
+  opacity: 1;
 }
 
 [data-chat-surface][data-conversation-layout] [data-slot='aui_msg-actions'] button:is(:hover, :focus-visible),
@@ -2674,10 +2601,6 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
 }
 
 @media (max-width: 56rem) {
-  .aino-home-subtitle {
-    white-space: normal;
-  }
-
   .aino-home-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

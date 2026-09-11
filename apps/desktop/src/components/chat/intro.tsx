@@ -1,11 +1,9 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 import actionAnalyzeIcon from '@/assets/aino-home/action-analyze.svg'
 import actionCodeReviewIcon from '@/assets/aino-home/action-code-review.svg'
 import actionReportIcon from '@/assets/aino-home/action-report.svg'
 import actionResearchIcon from '@/assets/aino-home/action-research.svg'
-import workspaceChevronIcon from '@/assets/aino-home/workspace-chevron.svg'
-import workspaceFolderIcon from '@/assets/aino-home/workspace-folder.svg'
 import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { Button } from '@/components/ui/button'
 import { type Locale, useI18n } from '@/i18n'
@@ -31,7 +29,6 @@ export type IntroProps = {
   home?: boolean
   onInsertPrompt?: (text: string) => void
   onPickFiles?: () => void
-  onSelectWorkspace?: () => void
   personality?: string
   seed?: number
 }
@@ -230,14 +227,47 @@ function resolveCopy(personality: string | undefined, seed: number | undefined, 
   return pickCopy(copies, seed) || (locale === 'zh' ? FALLBACK_COPY_ZH[0] : FALLBACK_COPY[0])
 }
 
-export function Intro({ home, onInsertPrompt, onPickFiles, onSelectWorkspace, personality, seed }: IntroProps) {
+export function Intro({ home, onInsertPrompt, onPickFiles, personality, seed }: IntroProps) {
   const { locale, t } = useI18n()
   const [mountSeed] = useState(() => Math.floor(Math.random() * 100000))
   const copy = resolveCopy(personality, mountSeed + (seed ?? 0), locale)
-  const showHome = home ?? Boolean(onInsertPrompt || onPickFiles || onSelectWorkspace)
+  const showHome = home ?? Boolean(onInsertPrompt || onPickFiles)
+  const homeContentRef = useRef<HTMLDivElement>(null)
+  const homeSlotRef = useRef<HTMLDivElement>(null)
+
+  // Own the measurement with the slot: the long-lived composer can mount
+  // before this lazy intro, or survive its replacement on a project switch.
+  // Ordinary positioning avoids Chromium's stale CSS-anchor paint layers.
+  useLayoutEffect(() => {
+    const content = homeContentRef.current
+    const slot = homeSlotRef.current
+    const surface = content?.closest<HTMLElement>('[data-chat-surface]')
+
+    if (!content || !slot || !surface) {
+      return
+    }
+
+    const syncTop = () => {
+      surface.style.setProperty(
+        '--aino-home-composer-top',
+        `${slot.getBoundingClientRect().top - surface.getBoundingClientRect().top}px`
+      )
+    }
+
+    syncTop()
+    const observer = new ResizeObserver(syncTop)
+    observer.observe(surface)
+    observer.observe(content)
+
+    return () => {
+      observer.disconnect()
+      surface.style.removeProperty('--aino-home-composer-top')
+    }
+  }, [showHome])
 
   if (showHome) {
     const homeCopy = t.home
+    const subtitle = locale === 'en' || locale === 'zh' ? copy.body : homeCopy.subtitle
 
     const actions: Array<{
       description: string
@@ -278,27 +308,14 @@ export function Intro({ home, onInsertPrompt, onPickFiles, onSelectWorkspace, pe
 
     return (
       <section className="aino-home-layout" data-home-layout="" data-slot="aui_intro">
-        <div className="aino-home-content">
+        <div className="aino-home-content" ref={homeContentRef}>
           <h1 className="aino-home-title">{WORDMARK}</h1>
-          <p className="aino-home-subtitle">{homeCopy.subtitle}</p>
+          <p className="aino-home-subtitle">{subtitle}</p>
 
           {/* The real composer is positioned over this reserved slot by ChatView.
               Keeping the slot in the intro preserves one source of truth for all
               composer behavior while matching the landing-page rhythm. */}
-          <div aria-hidden="true" className="aino-home-composer-slot" />
-
-          <Button
-            aria-label={homeCopy.workspace}
-            className="aino-home-workspace"
-            onClick={() => onSelectWorkspace?.()}
-            size="default"
-            type="button"
-            variant="ghost"
-          >
-            <AinoDesignIcon className="size-3.5" src={workspaceFolderIcon} />
-            <span>{homeCopy.workspace}</span>
-            <AinoDesignIcon className="aino-home-workspace-chevron" src={workspaceChevronIcon} />
-          </Button>
+          <div aria-hidden="true" className="aino-home-composer-slot" ref={homeSlotRef} />
 
           <div className="aino-home-actions" role="group">
             {actions.map(action => {

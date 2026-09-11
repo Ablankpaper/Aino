@@ -1,3 +1,5 @@
+import './files/styles.css'
+
 import { useStore } from '@nanostores/react'
 import type { ComponentProps } from 'react'
 
@@ -10,7 +12,6 @@ import { useDelayedTrue } from '@/hooks/use-delayed-true'
 import { useI18n } from '@/i18n'
 import { normalizeOrLocalPreviewTarget } from '@/lib/local-preview'
 import { cn } from '@/lib/utils'
-import { $panesFlipped } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
 import { openPreview } from '@/store/preview'
 import { $currentCwd, $selectedStoredSessionId, $workspaceCwdOwner } from '@/store/session'
@@ -28,7 +29,6 @@ interface RightSidebarPaneProps {
 export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSidebarPaneProps) {
   const { t } = useI18n()
   const r = t.rightSidebar
-  const panesFlipped = useStore($panesFlipped)
   const currentCwd = useStore($currentCwd).trim()
   const selectedStoredSessionId = useStore($selectedStoredSessionId)
   const workspaceCwdOwner = useStore($workspaceCwdOwner)
@@ -76,12 +76,8 @@ export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSide
   return (
     <aside
       aria-label={r.aria}
-      className={cn(
-        'before:pointer-events-none relative flex h-full w-full min-w-0 flex-col overflow-hidden border-(--ui-stroke-secondary) bg-(--ui-sidebar-surface-background) pt-(--titlebar-height) text-(--ui-text-tertiary)',
-        panesFlipped
-          ? 'border-r shadow-[inset_-0.0625rem_0_0_color-mix(in_srgb,white_18%,transparent)]'
-          : 'border-l shadow-[inset_0.0625rem_0_0_color-mix(in_srgb,white_18%,transparent)]'
-      )}
+      className="relative flex h-full w-full min-w-0 flex-col overflow-hidden pt-(--titlebar-height)"
+      data-file-browser=""
     >
       <FilesystemTab
         canCollapse={canCollapse}
@@ -113,13 +109,6 @@ interface FilesystemTabProps extends FileTreeBodyProps {
   onRefresh: () => void
 }
 
-// Sidebar palette + hover-reveal: header actions stay reachable while moving
-// from the project label to the action buttons.
-const HEADER_ACTION_CLASS =
-  'text-sidebar-foreground/70 hover:bg-sidebar-accent! hover:text-sidebar-accent-foreground! focus-visible:bg-sidebar-accent! focus-visible:text-sidebar-accent-foreground! focus-visible:ring-sidebar-ring'
-
-const HEADER_ACTION_LABEL_REVEAL = `${HEADER_ACTION_CLASS} pointer-events-none opacity-0 transition-opacity focus-visible:pointer-events-auto focus-visible:opacity-100 group-focus-within/project-header:pointer-events-auto group-focus-within/project-header:opacity-100 group-hover/project-header:pointer-events-auto group-hover/project-header:opacity-100`
-
 function FilesystemTab({
   canCollapse,
   collapseNonce,
@@ -149,32 +138,26 @@ function FilesystemTab({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <RightSidebarSectionHeader>
+      <RightSidebarSectionHeader data-file-browser-header="">
         <div className="flex min-w-0 flex-1">
-          <SidebarPanelLabel>{cwdName}</SidebarPanelLabel>
+          <Tip label={cwd}>
+            <SidebarPanelLabel tone="neutral">{cwdName}</SidebarPanelLabel>
+          </Tip>
         </div>
         <Tip label={r.refreshTree}>
-          <Button
-            aria-label={r.refreshTree}
-            className={HEADER_ACTION_LABEL_REVEAL}
-            disabled={loading}
-            onClick={onRefresh}
-            size="icon-xs"
-            variant="ghost"
-          >
-            <Codicon name="refresh" size="0.8125rem" spinning={loading} />
+          <Button aria-label={r.refreshTree} disabled={loading} onClick={onRefresh} size="icon-xs" variant="ghost">
+            <Codicon name="refresh" size="0.875rem" spinning={loading} />
           </Button>
         </Tip>
         <Tip label={r.collapseAll}>
           <Button
             aria-label={r.collapseAll}
-            className={cn(HEADER_ACTION_CLASS, !canCollapse && 'pointer-events-none opacity-0')}
             disabled={!canCollapse}
             onClick={onCollapseAll}
             size="icon-xs"
             variant="ghost"
           >
-            <Codicon name="collapse-all" size="0.8125rem" />
+            <Codicon name="collapse-all" size="0.875rem" />
           </Button>
         </Tip>
       </RightSidebarSectionHeader>
@@ -250,13 +233,9 @@ function FileTreeBody({
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
         <EmptyState body={r.unreadableBody(error)} title={r.unreadableTitle} />
         {onRetry && (
-          <button
-            className="text-[0.68rem] font-medium text-muted-foreground transition hover:text-foreground"
-            onClick={onRetry}
-            type="button"
-          >
+          <Button onClick={onRetry} size="inline" type="button" variant="text">
             {r.tryAgain}
-          </button>
+          </Button>
         )}
       </div>
     )
@@ -275,13 +254,9 @@ function FileTreeBody({
       fallback={({ reset }) => (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
           <EmptyState body={r.treeErrorBody} title={r.treeErrorTitle} />
-          <button
-            className="text-[0.68rem] font-medium text-muted-foreground transition hover:text-foreground"
-            onClick={reset}
-            type="button"
-          >
+          <Button onClick={reset} size="inline" type="button" variant="text">
             {r.tryAgain}
-          </button>
+          </Button>
         </div>
       )}
       key={cwd}
@@ -312,13 +287,11 @@ function FileTreeLoadingState() {
   )
 }
 
-// Terse pane empty state ("No files" / "No diffs"): the panel label itself —
-// same uppercase/tracking + dither dot — just muted instead of theme-primary,
-// centered. Shared by the file tree and review panes so both read identically.
+// File and review empty states share the same quiet section-label treatment.
 export function PaneEmptyState({ label }: { label: string }) {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center px-4">
-      <SidebarPanelLabel className="pl-0 text-(--ui-text-quaternary)">{label}</SidebarPanelLabel>
+      <SidebarPanelLabel tone="neutral">{label}</SidebarPanelLabel>
     </div>
   )
 }
@@ -327,10 +300,8 @@ export function PaneEmptyState({ label }: { label: string }) {
 export function EmptyState({ body, title }: { body: string; title?: string }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-4 text-center">
-      {title && (
-        <div className="text-xs font-medium tracking-normal text-(--ui-text-secondary)">{title}</div>
-      )}
-      <div className="text-[0.68rem] leading-relaxed text-muted-foreground/65">{body}</div>
+      {title && <div className="text-[length:var(--aino-text-ui)] font-medium text-(--ui-text-primary)">{title}</div>}
+      <div className="text-[length:var(--aino-text-caption)] leading-relaxed text-(--ui-text-secondary)">{body}</div>
     </div>
   )
 }

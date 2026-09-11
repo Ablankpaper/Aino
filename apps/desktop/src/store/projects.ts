@@ -25,6 +25,9 @@ import {
   requestFreshSession
 } from '@/store/profile'
 import {
+  $activeSessionId,
+  $currentCwd,
+  $newChatWorkspaceTargetGeneration,
   $selectedStoredSessionId,
   $sessions,
   sessionMatchesStoredId,
@@ -86,11 +89,13 @@ export const $projectScope = persistentAtom<string>(PROJECT_SCOPE_KEY, ALL_PROJE
   decode: raw => raw || ALL_PROJECTS,
   encode: value => value || ALL_PROJECTS
 })
+let projectNavigationGeneration = 0
 
 // Enter a project: scope the sidebar to it and make it the active project
 // (best-effort — the durable pointer is nice-to-have, the view scope is the
 // point). Never opens a session.
 export function enterProject(id: string): void {
+  projectNavigationGeneration += 1
   setWorkspaceNodeOpen('section:projects', true)
   $projectScope.set(id)
 
@@ -103,6 +108,7 @@ export function enterProject(id: string): void {
 }
 
 export function exitProjectScope(): void {
+  projectNavigationGeneration += 1
   $projectScope.set(ALL_PROJECTS)
 }
 
@@ -250,7 +256,28 @@ export async function followActiveSessionCwd(cwd: string): Promise<void> {
     return
   }
 
+  const gateway = activeGateway()
+  const profile = projectProfile()
+  const sessionId = $activeSessionId.get()
+  const workspaceGeneration = $newChatWorkspaceTargetGeneration.get()
+  const navigationGeneration = projectNavigationGeneration
+  const scope = $projectScope.get()
+
   await Promise.all([refreshProjects(), refreshProjectTree()])
+
+  // The refresh may finish after New Session or a different project wins.
+  // Keep its cached data, but never navigate back over that newer intent.
+  if (
+    activeGateway() !== gateway ||
+    projectProfile() !== profile ||
+    $activeSessionId.get() !== sessionId ||
+    $newChatWorkspaceTargetGeneration.get() !== workspaceGeneration ||
+    projectNavigationGeneration !== navigationGeneration ||
+    $projectScope.get() !== scope ||
+    $currentCwd.get().trim() !== target
+  ) {
+    return
+  }
 
   // Resolve only after the refresh, so a just-created/auto project is in the tree.
   const projectId = projectIdForCwd(target)

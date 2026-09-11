@@ -2,8 +2,10 @@ import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { SessionDraftTitle } from '@/app/chat/session-draft-title'
 import { Slot } from '@/contrib/react/slot'
 import { registry } from '@/contrib/registry'
+import { clearSessionDraft, stashSessionDraft } from '@/store/composer'
 
 import { $layoutEditMode } from '../../edit-mode'
 import { group } from '../model'
@@ -65,9 +67,53 @@ afterEach(() => {
   disposers.splice(0).forEach(dispose => dispose())
   root = null
   container = null
+  clearSessionDraft(null)
 })
 
 describe('single-session header', () => {
+  it('keeps the primary heading independent of unsent text while retaining draft names in the tab strip', () => {
+    disposers.push(
+      registry.register({
+        area: 'panes',
+        data: { placement: 'main', tabTitle: () => <SessionDraftTitle scope={null} /> },
+        id: 'workspace',
+        render: () => null,
+        title: 'New session'
+      })
+    )
+    render(
+      <WindowTitlebarContext.Provider value>
+        <Slot area="titleBar.left" />
+        <TreeGroup node={group(['workspace'], { id: 'primary-draft' })} parentAxis="row" />
+      </WindowTitlebarContext.Provider>
+    )
+
+    act(() => stashSessionDraft(null, 'This message has not been sent', []))
+    expect(
+      globalThis.document.querySelector('[data-window-session-title] [data-current-session-title]')?.textContent
+    ).toBe('New session')
+
+    act(() => $layoutEditMode.set(true))
+    expect(globalThis.document.querySelector('[data-tree-tab="workspace"]')?.textContent).toContain(
+      'This message has not been sent'
+    )
+    act(() => $layoutEditMode.set(false))
+    act(() => {
+      disposers.push(
+        registry.register({
+          area: 'panes',
+          data: { placement: 'main' },
+          id: 'workspace',
+          render: () => null,
+          title: 'The confirmed conversation title'
+        })
+      )
+    })
+    expect(globalThis.document.querySelector('[data-current-session-title]')?.textContent).toBe(
+      'The confirmed conversation title'
+    )
+  })
+
   it('moves the primary title and its live menu into the window bar and restores the inline header when needed', () => {
     let menuClicks = 0
 
@@ -213,6 +259,7 @@ describe('single-session header', () => {
       render: () => null,
       title: 'Preview'
     })
+
     disposers.push(disposePreview)
 
     render(

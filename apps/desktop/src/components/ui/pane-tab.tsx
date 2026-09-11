@@ -3,7 +3,7 @@ import * as React from 'react'
 import { type MenuKit, renderActionItem } from '@/components/ui/actions-menu'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
-import { Tip } from '@/components/ui/tooltip'
+import { OverflowTip, Tip } from '@/components/ui/tooltip'
 import { translateNow } from '@/i18n'
 import { isMetaClose, middleClickHandlers } from '@/lib/middle-click'
 import { cn } from '@/lib/utils'
@@ -229,6 +229,8 @@ interface PaneTabLabelProps extends React.ComponentProps<'button'> {
   /** `button` when the label is the activation target (preview rail);
    *  default `span` defers to the shell (zone drag/activate). */
   as?: 'button' | 'span'
+  /** Reveal the full label only when its text is visually truncated. */
+  overflowLabel?: React.ReactNode
 }
 
 /** Truncating label inside a `PaneTab`. `className` merges into the text span
@@ -236,10 +238,22 @@ interface PaneTabLabelProps extends React.ComponentProps<'button'> {
  *  text clips instead of ellipsizing, so it runs under the hover ✕ fade rather
  *  than stopping short of it with dots. */
 export const PaneTabLabel = React.forwardRef<HTMLElement, PaneTabLabelProps>(function PaneTabLabel(
-  { as = 'span', className, children, ...props },
+  { as = 'span', className, children, overflowLabel, ...props },
   ref
 ) {
   const Comp = as as React.ElementType
+
+  const label = (
+    <span
+      className={cn(
+        'block min-w-0 truncate text-[9px] font-medium tracking-wide uppercase group-data-[closeable]/tab:text-clip',
+        className
+      )}
+      data-slot="pane-tab-label"
+    >
+      {children}
+    </span>
+  )
 
   return (
     <Comp
@@ -247,14 +261,7 @@ export const PaneTabLabel = React.forwardRef<HTMLElement, PaneTabLabelProps>(fun
       ref={ref}
       {...props}
     >
-      <span
-        className={cn(
-          'block min-w-0 truncate text-[9px] font-medium tracking-wide uppercase group-data-[closeable]/tab:text-clip',
-          className
-        )}
-      >
-        {children}
-      </span>
+      {overflowLabel ? <OverflowTip label={overflowLabel}>{label}</OverflowTip> : label}
     </Comp>
   )
 })

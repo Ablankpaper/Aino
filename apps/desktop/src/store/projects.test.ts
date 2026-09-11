@@ -4,7 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NO_PROJECT_ID, type SidebarProjectTree } from '@/app/chat/sidebar/projects/workspace-groups'
 import { $sidebarAgentsGrouped, $sidebarWorkspaceNodeOpen, setSidebarAgentsGrouped } from '@/store/layout'
 import { $activeGatewayProfile, setShowAllProfiles } from '@/store/profile'
-import { $currentCwd, $selectedStoredSessionId, $sessions, applyConfiguredDefaultProjectDir } from '@/store/session'
+import {
+  $activeSessionId,
+  $currentCwd,
+  $selectedStoredSessionId,
+  $sessions,
+  applyConfiguredDefaultProjectDir,
+  setCurrentCwdTransient,
+  setNewChatWorkspaceTarget
+} from '@/store/session'
 
 import {
   $activeProjectId,
@@ -19,6 +27,7 @@ import {
   enterProject,
   exitProjectScope,
   fetchProjectSessions,
+  followActiveSessionCwd,
   openProjectCreate,
   pickProjectFolder,
   projectIdForCwd,
@@ -205,6 +214,96 @@ describe('projects RPC profile forwarding', () => {
 
     expect(request).not.toHaveBeenCalled()
     setShowAllProfiles(false)
+  })
+})
+
+describe('following the active workspace', () => {
+  const project: SidebarProjectTree = {
+    id: '/workspace/project',
+    label: 'Project',
+    path: '/workspace/project',
+    repos: [],
+    sessionCount: 0
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    $activeGatewayProfile.set('default')
+    setShowAllProfiles(false)
+    $activeSessionId.set(null)
+    $projectScope.set(ALL_PROJECTS)
+    setCurrentCwdTransient(project.path!)
+    setNewChatWorkspaceTarget(project.path!)
+  })
+
+  afterEach(() => {
+    $activeSessionId.set(null)
+    $projectScope.set(ALL_PROJECTS)
+    $projectTree.set([])
+    setCurrentCwdTransient('')
+    setNewChatWorkspaceTarget(undefined)
+  })
+
+  it('keeps newer navigation when an earlier project refresh finishes', async () => {
+    const navigations = [
+      () => {
+        exitProjectScope()
+        setNewChatWorkspaceTarget(null)
+        setCurrentCwdTransient('')
+      },
+      () => {
+        enterProject('/workspace/other')
+        exitProjectScope()
+      }
+    ]
+
+    for (const navigate of navigations) {
+      const tree = deferred<unknown>()
+
+      const request = vi.fn(async (method: string) =>
+        method === 'projects.tree' ? tree.promise : { active_id: null, projects: [] }
+      )
+
+      const gateway = { connectionState: 'open', request }
+
+      activeGateway.mockReturnValue(gateway as never)
+      gatewayAtom.set(gateway as never)
+      setCurrentCwdTransient(project.path!)
+      setNewChatWorkspaceTarget(project.path!)
+
+      const pending = followActiveSessionCwd(project.path!)
+
+      await vi.waitFor(() => expect(request).toHaveBeenCalledWith('projects.tree', expect.anything()), {
+        timeout: 2000
+      })
+      navigate()
+      const chosenCwd = $currentCwd.get()
+      tree.resolve({ active_id: null, projects: [project], scoped_session_ids: [] })
+      await pending
+
+      expect($projectTree.get()).toEqual([project])
+      expect($projectScope.get()).toBe(ALL_PROJECTS)
+      expect($currentCwd.get()).toBe(chosenCwd)
+    }
+  })
+
+  it('still follows the current session into its newly discovered project', async () => {
+    const request = vi.fn(async (method: string) =>
+      method === 'projects.tree'
+        ? { active_id: null, projects: [project], scoped_session_ids: [] }
+        : { active_id: null, projects: [] }
+    )
+
+    const gateway = { connectionState: 'open', request }
+
+    activeGateway.mockReturnValue(gateway as never)
+    gatewayAtom.set(gateway as never)
+    $activeSessionId.set('relocated-session')
+
+    await followActiveSessionCwd(project.path!)
+
+    expect($projectScope.get()).toBe(project.id)
+    expect($currentCwd.get()).toBe(project.path)
   })
 })
 

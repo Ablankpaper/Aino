@@ -58,6 +58,16 @@ one-off at the call site.
 - **Panes are working context.** Preview, files, review, and terminal remain
   attached to the current task. Their state survives temporary hiding and chat
   switches where the underlying tool is meant to persist.
+- **The file browser uses conversation chrome.** Its root directory keeps its
+  original spelling in a neutral section label; file rows use the shared UI
+  type scale, clear primary text, secondary icons and soft selection fills.
+  The virtualizer owns row height, and nested names truncate within the pane.
+  A strip containing Files uses neutral tabs without an accent underline,
+  retaining the compact track used by minimization and layout editing. Tab
+  faces mask filenames beneath the hover close chip, including under Glass;
+  primary navigation and other editor strips retain their own geometry.
+  Refresh and collapse actions remain discoverable, and the layout sash alone
+  owns the pane boundary, including when the sidebar changes sides.
 - **One action, one home.** A command may have keyboard, palette, and visible
   affordances, but they invoke the same action and state. Do not fork behavior
   per entry point.
@@ -293,6 +303,23 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   composer starts compact and grows with its input; dictation stays inline,
   while spoken replies, wake-word controls and voice conversation share the
   voice menu. Recording/stop state stays visible, and Send keeps its place.
+  Home and conversation composers share `--shadow-aino-landing-composer` so
+  sending a message does not introduce a heavier floating surface.
+  The home surface keeps its brand and quick tasks around the same composer:
+  the resolved model name, project selector, attachment menu, approval mode,
+  voice menu and send controls do not fork by home/conversation layout. A
+  default model remains visible by name, and projects have one entry at the
+  top of the input instead of a second fixed workspace button below it.
+  Home subtitles reuse the existing locale/personality copy pool and fresh-chat
+  seed, staying stable on ordinary rerenders without a model request. They wrap
+  to the available chat width, including narrow panes in wide windows. Locales
+  without a copy pool retain their translated subtitle. Quick tasks keep their
+  existing action paths.
+- The main window's conversation heading stays `New session` until its first
+  turn is sent; multi-pane tab strips retain draft previews to distinguish tabs.
+  Long titles truncate within the left titlebar column, and the session search
+  stays centered in the usable titlebar area. `PaneTabLabel` can opt into the
+  shared overflow-only tooltip through `overflowLabel` for full title discovery.
 - The composer resolves its folder against the sidebar project tree before showing branch and change
   totals. A backend working directory alone is not a project selection. Ordinary
   chats offer Select project; it starts a new project conversation through the
