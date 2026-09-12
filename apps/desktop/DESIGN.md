@@ -362,8 +362,9 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   pane, and projects without git retain their project entry. The project menu
   owns directory details and Copy path / Reveal in file manager / Reveal in sidebar;
   it uses that composer's directory, never an incidental global backend cwd.
-- Workspace approval mode sits beside the model in the composer, using the
-  existing profile-wide setting and authoritative rollback on save failure.
+- Workspace approval mode sits beside the attachment menu on the composer's
+  left, with its menu opening upward from that edge. It uses the existing
+  profile-wide setting and authoritative rollback on save failure.
   Narrow composers reduce it to an accessible icon before dropping secondary
   controls at the smallest size. There is no bottom statusbar or visibility
   toggle. Per-reply diagnostics are quiet, wrapping text beneath the answer;

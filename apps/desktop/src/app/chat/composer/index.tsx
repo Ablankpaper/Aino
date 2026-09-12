@@ -29,6 +29,7 @@ import { $threadScrolledUp } from '@/store/thread-scroll'
 import { $autoSpeakReplies } from '@/store/voice-prefs'
 import { useTheme } from '@/themes'
 
+import { ComposerApprovalMode } from './approval-mode-menu'
 import { AttachmentList } from './attachments'
 import {
   acceptsTriggerCompletion,
@@ -1387,10 +1388,11 @@ export function ChatBar({
                     data-slot="composer-layout"
                   >
                     <div
-                      className="flex translate-y-[3px] items-start gap-(--composer-control-gap) self-start [grid-area:menu]"
+                      className="flex translate-y-[3px] items-center gap-(--composer-control-gap) self-start [grid-area:menu]"
                       data-slot="composer-leading-controls"
                     >
                       {contextMenu}
+                      {!minimal && <ComposerApprovalMode compact={poppedOut || compactPill} disabled={disabled} />}
                       <ContribSlot area={COMPOSER_AREAS.leading} />
                     </div>
                     <div className="min-w-0 [grid-area:input]" data-slot="composer-input-cell">

@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils'
 import { $hudMode, closeHud, resetHudLayout } from '@/store/hud'
 import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
-import { ComposerApprovalMode } from './approval-mode-menu'
 import { ACTIVE_ICON_BTN, GHOST_ICON_BTN, PRIMARY_ICON_BTN } from './control-classes'
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
@@ -72,7 +71,6 @@ export function ComposerControls({
   if (conversation.active) {
     return (
       <div className="ml-auto flex min-w-0 items-center gap-(--composer-control-gap)">
-        {!minimal && <ComposerApprovalMode compact={compactModelPill} disabled={disabled} />}
         <ConversationPill {...conversation} disabled={disabled} />
       </div>
     )
@@ -95,7 +93,6 @@ export function ComposerControls({
     <>
       {state.contextUsage}
       <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
-      <ComposerApprovalMode compact={compactModelPill} disabled={disabled} />
     </>
   )
 

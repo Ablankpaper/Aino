@@ -2302,7 +2302,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
   translate: none;
 }
 
-[data-chat-surface][data-home-layout] [data-slot='composer-leading-controls'] > button {
+[data-chat-surface][data-home-layout] [data-slot='composer-context-menu'] {
   border-radius: 9999px;
   background: var(--aino-landing-control);
 }
@@ -2422,7 +2422,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
   translate: none;
 }
 
-[data-chat-surface][data-conversation-layout] [data-slot='composer-leading-controls'] > button {
+[data-chat-surface][data-conversation-layout] [data-slot='composer-context-menu'] {
   border-radius: 9999px;
   background: var(--aino-landing-control);
 }
