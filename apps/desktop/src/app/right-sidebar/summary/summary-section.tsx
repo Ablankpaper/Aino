@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 
 export interface SummarySectionProps {
   children?: ReactNode
+  emptyMessage?: ReactNode
   error?: string
   icon: IconComponent
   onRetry?: () => void
@@ -17,7 +18,15 @@ export interface SummarySectionProps {
 }
 
 /** Flat, independently stateful section primitive for the summary rail. */
-export function SummarySection({ children, error, icon: Icon, onRetry, state = 'ready', title }: SummarySectionProps) {
+export function SummarySection({
+  children,
+  emptyMessage,
+  error,
+  icon: Icon,
+  onRetry,
+  state = 'ready',
+  title
+}: SummarySectionProps) {
   const { t } = useI18n()
   const copy = t.summary
 
@@ -41,12 +50,23 @@ export function SummarySection({ children, error, icon: Icon, onRetry, state = '
           )}
         </div>
       ) : state === 'empty' ? (
-        <p className="text-[0.6875rem] text-(--ui-text-tertiary)">{copy.state.noData}</p>
+        <p className="text-[0.6875rem] text-(--ui-text-tertiary)">{emptyMessage ?? copy.state.noData}</p>
       ) : (
         <div className={cn('min-w-0 text-[0.6875rem] text-(--ui-text-secondary)', !children && 'text-(--ui-text-tertiary)')}>
           {children ?? copy.state.noData}
         </div>
       )}
     </section>
+  )
+}
+
+export function SummaryValue({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex min-w-0 items-baseline justify-between gap-3 py-0.5">
+      <span className="shrink-0 text-(--ui-text-tertiary)">{label}</span>
+      <span className="min-w-0 truncate text-right text-foreground" title={typeof value === 'string' ? value : undefined}>
+        {value}
+      </span>
+    </div>
   )
 }

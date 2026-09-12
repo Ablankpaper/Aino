@@ -86,11 +86,11 @@ import {
   openReview,
   REVIEW_PANE_ID
 } from '@/store/review'
-import { $summaryOpen, closeSummary, openSummary, SUMMARY_PANE_ID } from '@/store/summary'
 import { $currentCwd, $selectedStoredSessionId, $sessions, $yoloActive, sessionMatchesStoredId } from '@/store/session'
 import { watchSessionPins } from '@/store/session-pin-sync'
 import { $botChatScopes } from '@/store/session-states'
 import { watchUnreadWriteGuard } from '@/store/session-unread-remote'
+import { $summaryOpen, closeSummary, openSummary, SUMMARY_PANE_ID } from '@/store/summary'
 import { isAuxiliaryWindow, isBrowserWindow, isHudWindow } from '@/store/windows'
 
 import { BrowserPopoutShell } from '../chat/browser-popout-shell'

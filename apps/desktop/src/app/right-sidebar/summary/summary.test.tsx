@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
@@ -5,14 +6,19 @@ import { describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n'
 import { Activity } from '@/lib/icons'
 
-import { SummaryPane } from './index'
 import { SummarySection } from './summary-section'
 
+import { SummaryPane } from './index'
+
 function renderSummary() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+
   return render(
     <I18nProvider configClient={null} initialLocale="zh">
       <MemoryRouter>
-        <SummaryPane requestGateway={vi.fn()} />
+        <QueryClientProvider client={queryClient}>
+          <SummaryPane requestGateway={vi.fn()} />
+        </QueryClientProvider>
       </MemoryRouter>
     </I18nProvider>
   )

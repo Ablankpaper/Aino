@@ -1185,7 +1185,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   // right-sidebar toggle (see titlebar-controls.tsx). A shared width that
   // under-counts leaves the find bar, the titlebar header padding, and the
   // pane-cluster anchor overlapping the last button.
-  const SYSTEM_TOOL_COUNT = 5
+  const SYSTEM_TOOL_COUNT = 6
   const paneToolCount = rightTitlebarTools.filter(tool => !tool.hidden).length
   const systemToolsWidth = titlebarToolsWidthCss(SYSTEM_TOOL_COUNT)
 

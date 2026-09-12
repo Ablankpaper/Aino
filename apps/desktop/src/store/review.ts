@@ -118,11 +118,11 @@ function reviewCtx(): { cwd: string; review: ReviewBridge } | null {
 
 // ── Reads ────────────────────────────────────────────────────────────────────
 
-export async function refreshReview(): Promise<void> {
+export async function refreshReview(options: { allowClosed?: boolean } = {}): Promise<void> {
   const ctx = reviewCtx()
   const seq = (reviewRefreshSeq += 1)
 
-  if (!$reviewOpen.get() || !ctx) {
+  if ((!$reviewOpen.get() && !options.allowClosed) || !ctx) {
     $reviewFiles.set([])
     $reviewIsRepo.set(Boolean(ctx))
 
@@ -381,7 +381,7 @@ export async function openReviewForPath(
 // Run a git mutation then re-sync both the review list and the rail's +/- (the
 // working tree changed). A failure is swallowed by the caller's notify wrapper.
 async function afterMutation(): Promise<void> {
-  await refreshReview()
+  await refreshReview({ allowClosed: true })
   void refreshRepoStatus(repoCwd())
 
   const selected = $reviewSelectedPath.get()
