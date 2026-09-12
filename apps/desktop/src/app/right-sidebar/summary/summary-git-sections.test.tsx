@@ -281,7 +281,7 @@ describe('Summary revert confirmation', () => {
     const { review } = stubGit({ list: async () => ({ base: null, files: [file('danger.ts')] }) })
     renderWithQuery(
       <>
-        <SummaryPane requestGateway={vi.fn()} />
+        <SummaryPane />
         <ReviewRevertDialog />
       </>
     )

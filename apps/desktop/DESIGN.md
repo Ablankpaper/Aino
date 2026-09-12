@@ -62,8 +62,13 @@ one-off at the call site.
   right-sidebar toggle. It opens an ephemeral, scrollable popover aligned with
   the toolbar's outside edge, without resizing chat. Click outside, Escape,
   its close button or the trigger dismisses it. Environment, changes, Git,
-  agents, context and sources retain their existing data and actions. System
+  agents and sources retain their existing data and actions. System
   resources remain in Settings and are not displayed or polled by this card.
+  Context usage lives beside the model in the composer: a neutral progress
+  ring reveals usage on hover and the existing breakdown on click. It reads
+  that composer's session and owner-routed `session.context_breakdown` request,
+  refreshes when idle, and reflects the existing compaction state. Summary
+  no longer fetches or duplicates those details.
   Opening a diff or source preview dismisses the card to uncover that content.
   Older saved layouts retire only the former Summary pane.
 - **Terminal is a bottom workspace.** The default docks it beneath chat while
@@ -201,6 +206,10 @@ Tip unlabeled chrome when the job (or a keybind / truncated path / host /
 other detail) is not already on screen — toolbar / titlebar / statusbar icons,
 `TipKeybindLabel` shortcuts, ownership chips, unlabeled icon grids.
 
+`Tip variant="card"` is a rounded, theme-aware paper surface for multi-line
+informational previews, such as context usage. It keeps the standard hover
+delay and never takes focus; ordinary tooltips retain their inline treatment.
+
 Do **not** tip:
 
 - Menu triggers (kebabs / ⋯ / `ActionsMenu` / `DropdownMenuTrigger`) — the
@@ -290,6 +299,11 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   spacing. When you do need one, it's a single `--ui-stroke-tertiary` hairline.
 
 ## Feedback & empty/error/loading states
+
+- **Progress:** `Progress shape="ring"` reuses the progress primitive's clamped
+  value and accessible range for compact meters. Its `sm` / default / `lg`
+  sizes are 14 / 16 / 20px. Indeterminate animated rings respect reduced motion;
+  the existing bar shape remains the default.
 
 - **Loading:** `Loader` (`src/components/ui/loader.tsx`) — animated math/ascii
   curves (`lemniscate-bloom` for long ops). Never ship the literal text

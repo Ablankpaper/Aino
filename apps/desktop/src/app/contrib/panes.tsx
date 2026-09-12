@@ -12,10 +12,8 @@ import { useStore } from '@nanostores/react'
 import { useQuery } from '@tanstack/react-query'
 import { atom } from 'nanostores'
 
-import type { GatewayRequester } from '@/app/contrib/types'
 import { RightSidebarPane } from '@/app/right-sidebar'
 import { ReviewPane } from '@/app/right-sidebar/review'
-import { SummaryPane } from '@/app/right-sidebar/summary'
 import type { GroupSetter } from '@/app/shell/group-setter'
 import type { StatusbarItem } from '@/app/shell/statusbar-controls'
 import type { TitlebarTool } from '@/app/shell/titlebar-controls'
@@ -112,11 +110,6 @@ export function ReviewPaneContent() {
       <ReviewPane key={cwd || 'no-cwd'} />
     </div>
   )
-}
-
-/** Gateway-backed content shared with the titlebar summary card. */
-export function SummaryPaneContent({ requestGateway }: { requestGateway: GatewayRequester }) {
-  return <SummaryPane requestGateway={requestGateway} />
 }
 
 // ---------------------------------------------------------------------------

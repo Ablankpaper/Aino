@@ -19,7 +19,7 @@ function renderSummary() {
     <I18nProvider configClient={null} initialLocale="zh">
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
-          <SummaryPane requestGateway={vi.fn()} />
+          <SummaryPane />
         </QueryClientProvider>
       </MemoryRouter>
     </I18nProvider>

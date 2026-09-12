@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from 'react-router'
 
 import { AccountGate } from '@/app/account/account-gate'
 import { graftRefreshedTailOntoBackfill } from '@/app/chat/transcript-backfill'
+import { SummaryPane } from '@/app/right-sidebar/summary'
 import { formatRefValue } from '@/components/assistant-ui/directive-text'
 import { BootFailureOverlay } from '@/components/boot-failure-overlay'
 import { ConfirmHost } from '@/components/confirm-host'
@@ -155,7 +156,7 @@ import { usePetBridge } from './hooks/use-pet-bridge'
 import { useQuickEntryBridge } from './hooks/use-quick-entry-bridge'
 import { useSessionTileDelegate } from './hooks/use-session-tile-delegate'
 import { McpInstallDeepLinkDialog } from './mcp-install-deeplink-dialog'
-import { $restartPreviewServer, SummaryPaneContent, useTitlebarToolContributions } from './panes'
+import { $restartPreviewServer, useTitlebarToolContributions } from './panes'
 import { createSessionRpcDispatcher } from './session-rpc-dispatcher'
 import { ChatRoutesSurface, SidebarSurface, TerminalSurface } from './surfaces'
 import type { WiringActions, WiringApi } from './types'
@@ -1097,10 +1098,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
 
   const terminalNode = useMemo(() => <TerminalSurface />, [])
 
-  const summaryNode = useMemo(
-    () => <SummaryPaneContent requestGateway={requestGateway} />,
-    [requestGateway]
-  )
+  const summaryNode = useMemo(() => <SummaryPane />, [])
 
   // The voice cap changes only on config load; the gateway instance + all
   // chat reactivity are subscribed inside ChatRoutesSurface / ChatView.

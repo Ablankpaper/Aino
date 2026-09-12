@@ -3063,6 +3063,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
         toggle: 'システムリソース'
       },
       contextUsagePanel: {
+        compacting: 'コンテキストを圧縮中…',
         categories: {
           conversation: '会話',
           mcp: 'MCP',

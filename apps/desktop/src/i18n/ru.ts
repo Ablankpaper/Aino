@@ -3322,6 +3322,7 @@ export const ru = defineLocale({
       turnRunning: 'Выполняется',
       contextUsage: 'Использование контекста',
       contextUsagePanel: {
+        compacting: 'Сжатие контекста…',
         categories: {
           conversation: 'Диалог',
           mcp: 'MCP',

@@ -4630,6 +4630,7 @@ genericApiKeyDescription: provider => `直接访问 ${provider} 的 API。`,
         toggle: '系统资源'
       },
       contextUsagePanel: {
+        compacting: '正在压缩上下文…',
         categories: {
           conversation: '对话',
           mcp: 'MCP',

@@ -93,6 +93,7 @@ export function ComposerControls({
 
   const modelControls = (
     <>
+      {state.contextUsage}
       <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
       <ComposerApprovalMode compact={compactModelPill} disabled={disabled} />
     </>

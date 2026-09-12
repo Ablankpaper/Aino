@@ -2964,6 +2964,7 @@ archiveConfirmTitle: name => `封存技能「${name}」？`,
         toggle: '系統資源'
       },
       contextUsagePanel: {
+        compacting: '正在壓縮上下文…',
         categories: {
           conversation: '對話',
           mcp: 'MCP',

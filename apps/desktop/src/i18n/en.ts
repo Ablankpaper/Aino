@@ -4290,6 +4290,7 @@ genericApiKeyDescription: provider => `Direct API access to ${provider}.`,
         toggle: 'System resources'
       },
       contextUsagePanel: {
+        compacting: 'Compacting context…',
         categories: {
           conversation: 'Conversation',
           mcp: 'MCP',

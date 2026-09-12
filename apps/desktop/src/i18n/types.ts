@@ -3490,6 +3490,7 @@ interface UpstreamTranslations {
         toggle: string
       }
       contextUsagePanel: {
+        compacting: string
         categories: {
           conversation: string
           mcp: string

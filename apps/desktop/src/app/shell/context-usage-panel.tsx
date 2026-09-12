@@ -6,18 +6,27 @@ import { cn } from '@/lib/utils'
 import type { ContextBreakdown, ContextUsageCategory, UsageStats } from '@/types/hermes'
 
 interface ContextUsagePanelProps {
+  compact?: boolean
+  compacting?: boolean
   breakdown: ContextBreakdown | null
   loading: boolean
   showTitle?: boolean
   usage: UsageStats
 }
 
-/** Presentational: the breakdown is fetched by the statusbar (see
+/** Presentational: the breakdown is fetched by the composer (see
  *  `useContextBreakdown`) because the gauge's own label needs it, so the
  *  popover opens with its numbers already in hand. `usage` is the gauge's
  *  merged figure — measured occupancy when the backend has it, the estimate
  *  otherwise — so the header and the bar can never disagree. */
-export function ContextUsagePanel({ breakdown, loading, showTitle = true, usage }: ContextUsagePanelProps) {
+export function ContextUsagePanel({
+  compact = false,
+  compacting = false,
+  breakdown,
+  loading,
+  showTitle = true,
+  usage
+}: ContextUsagePanelProps) {
   const { t } = useI18n()
   const copy = t.shell.statusbar.contextUsagePanel
   const contextMax = usage.context_max
@@ -39,8 +48,33 @@ export function ContextUsagePanel({ breakdown, loading, showTitle = true, usage 
   const usedLabel = contextUsed == null ? '\u2014' : compactNumber(contextUsed)
   const maxLabel = contextMax == null ? '\u2014' : compactNumber(contextMax)
 
+  if (compact) {
+    return (
+      <div
+        className="flex flex-col items-center gap-1 px-4 py-3 text-[length:var(--aino-text-ui)] leading-5"
+        data-slot="context-usage-hint"
+      >
+        <p className="font-medium text-muted-foreground">{copy.title}</p>
+        <p className="text-muted-foreground">
+          {compacting
+            ? copy.compacting
+            : contextPercent !== null
+              ? `${usage.context_estimated ? '~' : ''}${copy.percentFull(contextPercent)}`
+              : loading
+                ? copy.loading
+                : copy.empty}
+        </p>
+        {contextUsed != null && (
+          <p className="text-foreground">
+            {copy.tokenSummary(`${usage.context_estimated ? '~' : ''}${usedLabel}`, maxLabel)}
+          </p>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="flex w-72 flex-col gap-3 p-3 text-[0.75rem]" data-slot="context-usage-panel">
+    <div className="flex w-full min-w-0 flex-col gap-3 p-3 text-[0.75rem]" data-slot="context-usage-panel">
       <div className="flex items-baseline justify-between gap-2">
         {showTitle && <p className="font-medium text-foreground">{copy.title}</p>}
 
@@ -48,6 +82,12 @@ export function ContextUsagePanel({ breakdown, loading, showTitle = true, usage 
           {copy.tokenSummary(`${usage.context_estimated && contextUsed != null ? '~' : ''}${usedLabel}`, maxLabel)}
         </span>
       </div>
+
+      {compacting && (
+        <p className="text-muted-foreground" role="status">
+          {copy.compacting}
+        </p>
+      )}
 
       {contextPercent !== null && (
         <p className="text-[0.6875rem] text-foreground">
