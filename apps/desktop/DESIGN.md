@@ -62,7 +62,8 @@ one-off at the call site.
   right-sidebar toggle. It opens an ephemeral, scrollable popover aligned with
   the toolbar's outside edge, without resizing chat. Click outside, Escape,
   its close button or the trigger dismisses it. Environment, changes, Git,
-  agents, context, sources and resources retain their existing data and actions.
+  agents, context and sources retain their existing data and actions. System
+  resources remain in Settings and are not displayed or polled by this card.
   Opening a diff or source preview dismisses the card to uncover that content.
   Older saved layouts retire only the former Summary pane.
 - **Terminal is a bottom workspace.** The default docks it beneath chat while

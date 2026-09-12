@@ -9,7 +9,6 @@ import { ChangesSection } from './changes-section'
 import { ContextSection } from './context-section'
 import { EnvironmentSection } from './environment-section'
 import { GitSection } from './git-section'
-import { ResourcesSection } from './resources-section'
 import { SourcesSection } from './sources-section'
 
 interface SummaryPaneProps {
@@ -33,7 +32,6 @@ export function SummaryPane({ requestGateway }: SummaryPaneProps) {
         <AgentsSection />
         <ContextSection requestGateway={requestGateway} />
         <SourcesSection />
-        <ResourcesSection />
       </div>
     </aside>
   )
