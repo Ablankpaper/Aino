@@ -53,6 +53,10 @@ export function ChangesSection() {
 
       const status = await git.repoStatus(cwd)
 
+      if (connection !== $activeConnectionId.get() || profile !== $activeGatewayProfile.get()) {
+        throw new Error('Workspace changed')
+      }
+
       return status ? { files: await reviewFilesForCwd(cwd, git.review), isRepo: true } : { files: [], isRepo: false }
     },
     retry: false
@@ -156,19 +160,20 @@ export function ChangesSection() {
         <div className="grid gap-0.5">
           {files.map(file => (
             <div className="flex min-w-0 items-center gap-1" key={file.path}>
-              <Button
-                className="min-w-0 flex-1 justify-start truncate px-1 font-mono text-[0.66rem]"
-                onClick={() => {
-                  revealReview(cwd)
-                  void selectReviewFile(file)
-                }}
-                size="inline"
-                title={file.path}
-                type="button"
-                variant="text"
-              >
-                {file.path}
-              </Button>
+              <Tip label={file.path}>
+                <Button
+                  className="min-w-0 flex-1 justify-start truncate px-1 font-mono text-[0.66rem]"
+                  onClick={() => {
+                    revealReview(cwd)
+                    void selectReviewFile(file)
+                  }}
+                  size="inline"
+                  type="button"
+                  variant="text"
+                >
+                  {file.path}
+                </Button>
+              </Tip>
               <span className="shrink-0 tabular-nums text-[0.62rem] text-(--ui-text-tertiary)">
                 +{file.added} -{file.removed}
               </span>

@@ -207,8 +207,10 @@ describe('Summary Git scope', () => {
     })
 
     let calls = 0
-    stubGit({ shipInfo: async () => (++calls === 1 ? old : { ghReady: false, pr: null }) })
+    const { review } = stubGit({ shipInfo: async () => (++calls === 1 ? old : { ghReady: false, pr: null }) })
     renderWithQuery(<GitSection />)
+
+    await waitFor(() => expect(review.shipInfo).toHaveBeenCalledOnce())
 
     act(() => $activeGatewayProfile.set('work'))
     expect(await screen.findByText('summary-main')).toBeTruthy()
@@ -224,15 +226,18 @@ describe('Summary Git scope', () => {
       resolveOldStatus = resolve
     })
 
-    stubGit({ repoStatus: async () => oldStatus })
+    let statusCalls = 0
+    const bridge = stubGit({
+      list: async () => ({ base: null, files: [file('new-profile.ts')] }),
+      repoStatus: async () => (++statusCalls === 1 ? oldStatus : cleanStatus)
+    })
     renderWithQuery(<ChangesSection />)
 
-    const next = stubGit({ list: async () => ({ base: null, files: [file('new-profile.ts')] }) })
     act(() => $activeGatewayProfile.set('work'))
     expect(await screen.findByText('new-profile.ts')).toBeTruthy()
 
     await act(async () => resolveOldStatus(cleanStatus))
-    expect(next.review.list).toHaveBeenCalledOnce()
+    expect(bridge.review.list).toHaveBeenCalledOnce()
   })
 })
 

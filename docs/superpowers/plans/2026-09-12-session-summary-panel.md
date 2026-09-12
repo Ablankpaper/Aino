@@ -10,6 +10,33 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-12-session-summary-panel-design.md`
 
+## Execution receipt — 2026-09-12
+
+The implementation is on `aino/ui-terminal-workspace`. The step descriptions below preserve the original plan; this receipt records the actual combined commits and verification.
+
+| Scope | Result |
+| --- | --- |
+| Tasks 1–2: pane registration and shell | Completed in `8ecbeb8c45` |
+| Tasks 3–5: seven data sections, titlebar and localization | Completed in `84232275f9` |
+| Task 6: data scoping, confirmations, context and visibility corrections | Completed in `bbfc3e0a0f`, with a final follow-up guarding confirmations and pending reads across connection/profile changes |
+
+Summary reads the selected conversation's registered project, independently of Review's pinned repository. Ordinary chats do not inherit the app launch directory. Git operations use the existing local/remote facade, and the single shared revert dialog captures its target. Context shows measured usage or the existing backend estimate, leaving missing limits unavailable. The toolbar follows actual column/overlay visibility; narrow first-open, toggle-close and Escape are covered by rendered tests.
+
+Validation:
+
+- Full UI suite after the main acceptance corrections: **839 files / 7,783 tests passed** (`npm run test:ui -- --maxWorkers=4`).
+- Final connection/profile follow-up: **52 tests across 3 files passed**, covering Review, Summary Git behavior and stale revert confirmations. The confirmation regressions were demonstrated failing before the fix. A final complete connection fixture also passed its 2-test rerun and typecheck.
+- Electron regression suite: **156 files / 2,172 tests passed**, with 2 files / 6 tests skipped. No Electron source changed in this feature.
+- Renderer, Electron and E2E TypeScript checks; full ESLint error check plus the final changed-file check; production renderer/Electron build; and `git diff --check` passed.
+- Real Aino Electron renderer at `http://127.0.0.1:5174/`, viewed through its local debug endpoint: 1381×968 and 560×800. Confirmed no-project state, valid context figures, clearing/updating context on session switch, close/reopen, collapsed-column first click, narrow first click, toggle and Escape. Existing terminal and chat composer survive Summary hide/show. No messages were sent, and live push/revert operations were not performed on the user's repository.
+
+Verification limits:
+
+- The existing sidebar-swap path can still trigger assistant-ui's `Tried to unmount a fiber that is already unmounted` after swapping twice. It was also reproduced with Summary closed. The layout returns Summary to the correct side, but this older chat-lifecycle issue remains; the desktop was refreshed back to a working chat afterward.
+- No configured live remote gateway was available for destructive-operation acceptance; remote routing reuses the existing facade and was checked at its typed boundary.
+- An earlier full Python runner invocation reported 45,069 passing and 679 failing tests, 503 skipped, and 5 flaky files under process/socket restrictions. Those failures were not all classified. No Python source changed, so that unrelated full suite was not rerun or claimed green for this UI task.
+- Scratch reports, screenshots, generated output and install stamps are excluded from the submitted source. All feature commits remain local; this task does not push or merge main.
+
 ## Global Constraints
 
 - The summary is an auxiliary workspace: do not change the layout tree, squeeze the chat area, steal focus, or open automatically from background events.

@@ -47,6 +47,10 @@ export function GitSection() {
 
       const status = await git.repoStatus(cwd)
 
+      if (connection !== $activeConnectionId.get() || profile !== $activeGatewayProfile.get()) {
+        throw new Error('Workspace changed')
+      }
+
       if (!status) {
         return { head: null, ship: EMPTY_SHIP_INFO, status: null }
       }

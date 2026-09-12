@@ -5,12 +5,15 @@ import { PANE_TOGGLE_REVEAL_EVENT } from '@/components/pane-shell'
 import { isPaneVisible, revealTreePane } from '@/components/pane-shell/tree/store'
 import type { HermesReviewFile, HermesReviewShipInfo } from '@/global'
 import { matchesQuery } from '@/hooks/use-media-query'
+import { translateNow } from '@/i18n/runtime'
 import { desktopGit } from '@/lib/desktop-git'
 import { isExcludedPath } from '@/lib/excluded-paths'
 import { requestOneShot } from '@/lib/oneshot'
 import { Codecs, persistentAtom } from '@/lib/persisted'
 
 import { refreshRepoStatus, repoStatusForCwd } from './coding-status'
+import { $activeConnectionId } from './connections'
+import { $activeGatewayProfile } from './profile'
 import { stampSessionPrBranch } from './pull-requests'
 import { $busy, $currentCwd, $selectedStoredSessionId, $sessions } from './session'
 import { $workspaceChangeTick, notifyWorkspaceChanged } from './workspace-events'
@@ -448,11 +451,23 @@ export async function revertReviewFile(path: null | string, scopeCwd?: null | st
 // routes through a confirm dialog. The target is `{ path }` where `path === null`
 // means "revert all"; `undefined` means no confirm is open. We wrap the path in
 // an object so the `null` ("all") case is distinguishable from "closed".
-export const $reviewRevertTarget = atom<{ cwd?: string; path: null | string } | undefined>(undefined)
+interface ReviewRevertTarget {
+  connectionId: string | null
+  cwd: string | null
+  path: string | null
+  profile: string | null
+}
+
+export const $reviewRevertTarget = atom<ReviewRevertTarget | undefined>(undefined)
 
 /** Open the revert confirm for a single file, or `null` for all changes. */
 export function requestRevert(path: null | string, cwd?: string): void {
-  $reviewRevertTarget.set({ cwd: cwd?.trim() || undefined, path })
+  $reviewRevertTarget.set({
+    connectionId: $activeConnectionId.get(),
+    cwd: cwd?.trim() || repoCwd(),
+    path,
+    profile: $activeGatewayProfile.get()
+  })
 }
 
 export function cancelRevert(): void {
@@ -465,9 +480,21 @@ export async function confirmRevert(): Promise<void> {
 
   $reviewRevertTarget.set(undefined)
 
-  if (target) {
-    await revertReviewFile(target.path, target.cwd)
+  if (!target) {
+    return
   }
+
+  // A confirmation belongs to the backend where it was requested. Re-resolving
+  // its cwd after a connection/profile switch could discard another repo's edits.
+  if (
+    !target.cwd ||
+    target.connectionId !== $activeConnectionId.get() ||
+    target.profile !== $activeGatewayProfile.get()
+  ) {
+    throw new Error(translateNow('summary.state.unavailable'))
+  }
+
+  await revertReviewFile(target.path, target.cwd)
 }
 
 // ── Ship flow (commit / push / PR) ───────────────────────────────────────────

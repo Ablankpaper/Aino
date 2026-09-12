@@ -373,14 +373,14 @@ describe('mutations', () => {
 describe('revert confirm dialog', () => {
   it('requestRevert opens a target, cancelRevert closes it', () => {
     requestRevert('a.ts')
-    expect($reviewRevertTarget.get()).toEqual({ path: 'a.ts' })
+    expect($reviewRevertTarget.get()).toMatchObject({ cwd: '/repo', path: 'a.ts' })
     cancelRevert()
     expect($reviewRevertTarget.get()).toBeUndefined()
   })
 
   it('requestRevert(null) encodes the "revert all" target distinctly from closed', () => {
     requestRevert(null)
-    expect($reviewRevertTarget.get()).toEqual({ path: null })
+    expect($reviewRevertTarget.get()).toMatchObject({ cwd: '/repo', path: null })
   })
 
   it('confirmRevert closes the dialog then performs the revert', async () => {
