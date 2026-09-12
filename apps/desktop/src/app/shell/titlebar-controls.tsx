@@ -37,11 +37,10 @@ import {
   toggleSidebarOpen
 } from '@/store/layout'
 import { $unreadSessionCount } from '@/store/session-dot-state'
-import { toggleSummary } from '@/store/summary'
-import { $summaryVisible } from '@/store/summary-visibility'
 
 import { appViewForPath, isRouteBlockingSurface } from '../routes'
 
+import { SummaryPopover } from './summary-popover'
 import {
   TITLEBAR_ICON_BADGE_SCALE,
   TITLEBAR_LEFT_ICON_SIZE,
@@ -154,7 +153,6 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
   const sidebarOpen = useStore($sidebarOpen)
   const unreadCount = useStore($unreadSessionCount)
   const terminalVisible = useStore($paneVisible('terminal'))
-  const summaryVisible = useStore($summaryVisible)
   const unreadBadge = unreadCount > 0 ? unreadCount : undefined
   const unreadHint = unreadBadge ? ` · ${t.titlebar.unreadSessions(unreadBadge)}` : ''
 
@@ -272,29 +270,20 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
       id: 'haptics',
       label: hapticsMuted ? t.titlebar.unmuteHaptics : t.titlebar.muteHaptics,
       onSelect: toggleHaptics
-    },
-    {
-      actionId: 'view.showTerminal',
-      active: terminalVisible,
-      icon: <TitlebarIcon name={terminalVisible ? 'layout-panel' : 'layout-panel-off'} />,
-      id: 'terminal',
-      label: terminalVisible ? t.rightSidebar.terminalHide : t.keybinds.actions['view.showTerminal'],
-      onSelect: () => {
-        triggerHaptic('tap')
-        togglePaneVisible('terminal')
-      }
-    },
-    {
-      active: summaryVisible,
-      icon: <TitlebarIcon name="info" />,
-      id: 'summary',
-      label: t.summary.title,
-      onSelect: () => {
-        triggerHaptic('tap')
-        toggleSummary()
-      }
     }
   ]
+
+  const terminalTool: TitlebarTool = {
+    actionId: 'view.showTerminal',
+    active: terminalVisible,
+    icon: <TitlebarIcon name={terminalVisible ? 'layout-panel' : 'layout-panel-off'} />,
+    id: 'terminal',
+    label: terminalVisible ? t.rightSidebar.terminalHide : t.keybinds.actions['view.showTerminal'],
+    onSelect: () => {
+      triggerHaptic('tap')
+      togglePaneVisible('terminal')
+    }
+  }
 
   // While a route-owned surface (the full-page Settings workspace or a modal
   // route such as Command Center) owns the window, these fixed control clusters
@@ -358,6 +347,8 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
         {visibleSystemTools.map(tool => (
           <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
         ))}
+        <SummaryPopover />
+        <TitlebarToolButton navigate={navigate} tool={terminalTool} />
         <TitlebarToolButton navigate={navigate} tool={rightSidebarTool} />
       </div>
     </>

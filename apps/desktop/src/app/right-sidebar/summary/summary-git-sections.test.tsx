@@ -6,16 +6,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { HermesRepoStatus, HermesReviewFile, HermesReviewShipInfo } from '@/global'
 import { I18nProvider } from '@/i18n'
+import { $previewTabs } from '@/store/preview'
+import { $previewStatusBySession } from '@/store/preview-status'
 import { $activeGatewayProfile } from '@/store/profile'
 import { $projectTree } from '@/store/projects'
 import { $reviewFiles, $reviewOpen, $reviewRevertTarget, $reviewScopeCwd, $reviewShipInfo } from '@/store/review'
 import { $currentCwd, $selectedStoredSessionId, $workspaceCwdOwner } from '@/store/session'
+import { $summaryOpen, closeSummary } from '@/store/summary'
 import { $workspaceChangeTick } from '@/store/workspace-events'
 
 import { ReviewRevertDialog } from '../review/revert-dialog'
 
 import { ChangesSection } from './changes-section'
 import { GitSection } from './git-section'
+import { SourcesSection } from './sources-section'
 
 import { SummaryPane } from './index'
 
@@ -94,10 +98,39 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  closeSummary()
+  $previewTabs.set([])
+  $previewStatusBySession.set({})
   delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
 })
 
 describe('Summary Git scope', () => {
+  it('opens the selected project in Review and dismisses the floating summary', async () => {
+    stubGit({ list: async () => ({ base: null, files: [file('changed.ts')] }) })
+    $summaryOpen.set(true)
+    renderWithQuery(<ChangesSection />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'View diff' }))
+
+    expect($reviewOpen.get()).toBe(true)
+    expect($reviewScopeCwd.get()).toBe('/summary-repo')
+    expect($summaryOpen.get()).toBe(false)
+  })
+
+  it('opens a source preview and dismisses the floating summary', async () => {
+    const url = 'https://example.com/guide'
+    $summaryOpen.set(true)
+    $previewStatusBySession.set({
+      'summary-session': [{ cwd: '/summary-repo', id: url, label: 'Guide', target: url }]
+    })
+    renderWithQuery(<SourcesSection />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Guide/ }))
+
+    await waitFor(() => expect($previewTabs.get().some(tab => tab.target.source === url)).toBe(true))
+    expect($summaryOpen.get()).toBe(false)
+  })
+
   it('does not issue Git reads when no project owns the session cwd', async () => {
     const { git, review } = stubGit()
     $projectTree.set([])
@@ -227,10 +260,12 @@ describe('Summary Git scope', () => {
     })
 
     let statusCalls = 0
+
     const bridge = stubGit({
       list: async () => ({ base: null, files: [file('new-profile.ts')] }),
       repoStatus: async () => (++statusCalls === 1 ? oldStatus : cleanStatus)
     })
+
     renderWithQuery(<ChangesSection />)
 
     act(() => $activeGatewayProfile.set('work'))

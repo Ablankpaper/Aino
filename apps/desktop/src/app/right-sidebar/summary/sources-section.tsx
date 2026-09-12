@@ -10,6 +10,7 @@ import { notifyError } from '@/store/notifications'
 import { openPreview } from '@/store/preview'
 import { $previewStatusBySession } from '@/store/preview-status'
 import { $selectedStoredSessionId } from '@/store/session'
+import { closeSummary } from '@/store/summary'
 
 import { formatSummaryPath, sourceItems } from './summary-data'
 import { SummarySection } from './summary-section'
@@ -27,6 +28,7 @@ export function SourcesSection() {
 
       if (preview) {
         openPreview(preview, 'manual')
+        closeSummary()
       }
     } catch (error) {
       notifyError(error, t.summary.state.unavailable)

@@ -114,13 +114,9 @@ export function ReviewPaneContent() {
   )
 }
 
-/** The unified session/workspace summary mounted in the right rail. */
+/** Gateway-backed content shared with the titlebar summary card. */
 export function SummaryPaneContent({ requestGateway }: { requestGateway: GatewayRequester }) {
-  return (
-    <div className={cn(ZONE_CONTENT, 'flex min-h-0 flex-col [&>aside]:min-h-0 [&>aside]:flex-1')}>
-      <SummaryPane requestGateway={requestGateway} />
-    </div>
-  )
+  return <SummaryPane requestGateway={requestGateway} />
 }
 
 // ---------------------------------------------------------------------------

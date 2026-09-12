@@ -1,11 +1,8 @@
 import { useStore } from '@nanostores/react'
 
 import type { GatewayRequester } from '@/app/contrib/types'
-import { Button } from '@/components/ui/button'
-import { Codicon } from '@/components/ui/codicon'
 import { useI18n } from '@/i18n'
 import { $selectedStoredSessionId } from '@/store/session'
-import { closeSummary } from '@/store/summary'
 
 import { AgentsSection } from './agents-section'
 import { ChangesSection } from './changes-section'
@@ -19,26 +16,17 @@ interface SummaryPaneProps {
   requestGateway: GatewayRequester
 }
 
-/** Unified session/workspace summary mounted in the existing right rail. */
+/** Live summary sections; the titlebar owns the floating card and dismissal. */
 export function SummaryPane({ requestGateway }: SummaryPaneProps) {
   const { t } = useI18n()
   const selectedSessionId = useStore($selectedStoredSessionId)
   const copy = t.summary
 
   return (
-    <aside
-      aria-label={copy.aria}
-      className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-(--ui-bg-chrome)"
-      data-slot="summary-pane"
-    >
-      <header className="flex h-9 shrink-0 items-center gap-2 border-b border-(--ui-stroke-secondary) px-3">
-        <h1 className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-foreground">{copy.title}</h1>
-        <Button aria-label={copy.close} onClick={closeSummary} size="icon-xs" type="button" variant="ghost">
-          <Codicon name="close" size="0.875rem" />
-        </Button>
-      </header>
+    <aside aria-label={copy.aria} className="min-w-0 p-4" data-slot="summary-pane">
+      <h1 className="sr-only">{copy.title}</h1>
 
-      <div className="min-h-0 flex-1 overflow-y-auto" data-summary-session={selectedSessionId ?? 'none'}>
+      <div data-summary-session={selectedSessionId ?? 'none'}>
         <EnvironmentSection />
         <ChangesSection />
         <GitSection />

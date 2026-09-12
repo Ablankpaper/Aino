@@ -7,7 +7,7 @@
  */
 
 import { useStore } from '@nanostores/react'
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { PaneTab, PaneTabLabel, PaneTabStrip } from '@/components/ui/pane-tab'
 import { ContribBoundary, ContribRender } from '@/contrib/react/boundary'
@@ -21,7 +21,6 @@ import { cn } from '@/lib/utils'
 
 import { PANE_TOGGLE_REVEAL_EVENT } from '../..'
 import { allPaneIds, findGroupOfPane } from '../model'
-import { $activeNarrowPane } from '../narrow-overlay-state'
 import { $hiddenTreePanes, $layoutTree, $narrowViewport } from '../store'
 
 import { paneChrome } from './track-model'
@@ -117,13 +116,6 @@ export function NarrowOverlays() {
   }, [narrow])
 
   const revealed = reveal ? collapsibles.find(p => p.id === reveal.id) : undefined
-  const visiblePaneId = narrow ? (revealed?.id ?? null) : null
-
-  useLayoutEffect(() => {
-    $activeNarrowPane.set(visiblePaneId)
-
-    return () => $activeNarrowPane.set(null)
-  }, [visiblePaneId])
 
   if (!narrow || collapsibles.length === 0) {
     return null

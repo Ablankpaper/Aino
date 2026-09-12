@@ -27,11 +27,11 @@ function renderSummary() {
 }
 
 describe('SummaryPane', () => {
-  it('renders the title, close button, and stable section headings', () => {
+  it('renders accessible summary and section headings inside the wired content', () => {
     renderSummary()
 
     expect(screen.getByRole('complementary', { name: '会话摘要' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '关闭摘要' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '会话摘要' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: '环境信息' })).toBeTruthy()
   })
 

@@ -90,7 +90,6 @@ import { $currentCwd, $selectedStoredSessionId, $sessions, $yoloActive, sessionM
 import { watchSessionPins } from '@/store/session-pin-sync'
 import { $botChatScopes } from '@/store/session-states'
 import { watchUnreadWriteGuard } from '@/store/session-unread-remote'
-import { $summaryOpen, closeSummary, openSummary, SUMMARY_PANE_ID } from '@/store/summary'
 import { isAuxiliaryWindow, isBrowserWindow, isHudWindow } from '@/store/windows'
 
 import { BrowserPopoutShell } from '../chat/browser-popout-shell'
@@ -266,20 +265,6 @@ registry.registerMany([
       maxWidth: FILE_BROWSER_MAX_WIDTH
     },
     render: () => idle(<ReviewPaneContent />)
-  },
-  {
-    id: SUMMARY_PANE_ID,
-    area: 'panes',
-    title: 'summary',
-    data: {
-      placement: 'right',
-      collapsible: true,
-      revealAliases: [SUMMARY_PANE_ID],
-      width: FILE_BROWSER_DEFAULT_WIDTH,
-      minWidth: FILE_BROWSER_MIN_WIDTH,
-      maxWidth: FILE_BROWSER_MAX_WIDTH
-    },
-    render: () => idle(<WiredPane part="summary" />)
   }
 ])
 
@@ -460,6 +445,12 @@ registry.registerMany([
 ])
 
 declareDefaultTree(DEFAULT_TREE)
+
+// Summary now floats from the titlebar. Retire only its old persisted pane;
+// saved terminal, session and plugin arrangements remain user-owned.
+if ($layoutTree.get() && allPaneIds($layoutTree.get()!).includes('summary')) {
+  removeTreePane('summary')
+}
 
 // Migrate the old default and the legacy navigation tab once. Future custom
 // placements remain user-owned; no other pane or size preference is reset.
@@ -667,10 +658,6 @@ bindPaneVisibility(
   closeReview,
   () => openReview($reviewScopeCwd.get(), $reviewScopeTarget.get())
 )
-// The unified session summary follows the same right-rail visibility contract
-// as Review, but is available without a project so environment/context data
-// can still be inspected in a fresh chat.
-bindPaneVisibility('summary', $summaryOpen, closeSummary, openSummary)
 // The titlebar and terminal's own strip provide the restore/close handles.
 // Hide the entire pane, while PersistentTerminal retains the live shells.
 markCollapsePane('terminal')

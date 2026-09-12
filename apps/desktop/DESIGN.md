@@ -58,6 +58,13 @@ one-off at the call site.
 - **Panes are working context.** Preview, files, review, and terminal remain
   attached to the current task. Their state survives temporary hiding and chat
   switches where the underlying tool is meant to persist.
+- **Summary is a titlebar card.** Its list icon precedes Terminal and the
+  right-sidebar toggle. It opens an ephemeral, scrollable popover aligned with
+  the toolbar's outside edge, without resizing chat. Click outside, Escape,
+  its close button or the trigger dismisses it. Environment, changes, Git,
+  agents, context, sources and resources retain their existing data and actions.
+  Opening a diff or source preview dismisses the card to uncover that content.
+  Older saved layouts retire only the former Summary pane.
 - **Terminal is a bottom workspace.** The default docks it beneath chat while
   navigation and the file/review rails remain full-height. The titlebar toggle,
   palette and shortcut share pane visibility; hiding releases the panel's space
@@ -142,6 +149,11 @@ Menus and popovers use their own shared `shadow-md` +
 dashed targets and local blur. These are semantic surface classes, not licenses
 for call-site shadow or border inventions.
 
+`PopoverContent variant="card"` provides a 320px floating card with 20px corners,
+zero outer padding and the shared `shadow-nous` / `--stroke-nous` elevation.
+Its content owns internal spacing and viewport limits. `showArrow={false}` omits
+the pointer for toolbar cards; other popovers keep their existing arrow.
+
 ## Stroke & color tokens
 
 | Token | Use |
@@ -172,7 +184,8 @@ do **not** pass `h-*`, `px-*`, `py-*`, or icon-size overrides.
 the default non-primary look), `outline` (transparent + 1px inset ring, no
 fill/shadow), `ghost`, `link`, `text` (boxless quiet inline — "Cancel",
 "Clear"), `textStrong` (bold underlined inline affordance — "Change",
-"Open logs").
+"Open logs"), `titlebar-popover` (quiet toolbar trigger with a soft open fill;
+`icon-titlebar` uses the shared control radius).
 
 **Sizes:** `default`, `xs`, `sm`, `lg`, `inline` (flush, zero box — for buttons
 that sit inside a heading/sentence; replaces `h-auto px-0 py-0`), `micro`
@@ -466,7 +479,8 @@ The detailed state contract lives in the scoped
 - `cursor-pointer` at the primitive level (Button, dropdown/select) — don't
   hardcode it per call site.
 - Quiet pointer focus; keyboard-focused controls retain the shared visible
-  focus outline. Titlebar actions have no active-background state.
+  focus outline. Titlebar actions have no active-background state, except an
+  open `titlebar-popover` trigger, which identifies the floating card's owner.
 - `Esc` closes every dismissable overlay/dialog (install/onboarding excluded);
   close is an x-icon, not the word "Close".
 

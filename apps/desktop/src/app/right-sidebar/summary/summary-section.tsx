@@ -17,7 +17,7 @@ export interface SummarySectionProps {
   title: string
 }
 
-/** Flat, independently stateful section primitive for the summary rail. */
+/** Flat, independently stateful groups within the floating summary card. */
 export function SummarySection({
   children,
   emptyMessage,
@@ -32,19 +32,19 @@ export function SummarySection({
 
   return (
     <section
-      className="border-b border-(--ui-stroke-secondary) px-3 py-3 last:border-b-0"
+      className="border-t border-(--ui-stroke-tertiary) py-4 first:border-t-0 first:pt-0 last:pb-0"
       data-slot="summary-section"
       data-state={state}
     >
-      <div className="mb-2 flex min-w-0 items-center gap-2">
+      <div className="mb-3 flex min-w-0 items-center gap-2 pr-6">
         <Icon className="size-4 shrink-0 text-(--ui-text-tertiary)" />
-        <h2 className="min-w-0 flex-1 truncate text-[0.75rem] font-medium text-foreground">{title}</h2>
+        <h2 className="min-w-0 flex-1 truncate text-sm font-medium text-(--ui-text-tertiary)">{title}</h2>
       </div>
 
       {state === 'loading' ? (
         <Loader className="py-2" label={copy.state.loading} />
       ) : state === 'error' ? (
-        <div className="flex min-w-0 items-center gap-2 text-[0.6875rem] text-(--ui-text-tertiary)">
+        <div className="flex min-w-0 items-center gap-2 text-[length:var(--aino-text-ui)] leading-5 text-(--ui-text-tertiary)">
           <Codicon className="shrink-0 text-destructive" name="error" size="0.8rem" />
           <span className="min-w-0 flex-1 break-words">{error ?? copy.state.unavailable}</span>
           {onRetry && (
@@ -54,7 +54,7 @@ export function SummarySection({
           )}
         </div>
       ) : state === 'empty' ? (
-        <div className="flex min-w-0 items-center gap-2 text-[0.6875rem] text-(--ui-text-tertiary)">
+        <div className="flex min-w-0 items-center gap-2 text-[length:var(--aino-text-ui)] leading-5 text-(--ui-text-tertiary)">
           <p className="min-w-0 flex-1">{emptyMessage ?? copy.state.noData}</p>
           {onRetry && (
             <Button aria-label={copy.state.retry} onClick={onRetry} size="inline" type="button" variant="text">
@@ -65,7 +65,7 @@ export function SummarySection({
       ) : (
         <div
           className={cn(
-            'min-w-0 text-[0.6875rem] text-(--ui-text-secondary)',
+            'min-w-0 text-[length:var(--aino-text-ui)] leading-5 text-(--ui-text-secondary)',
             !children && 'text-(--ui-text-tertiary)'
           )}
         >
@@ -78,7 +78,7 @@ export function SummarySection({
 
 export function SummaryValue({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex min-w-0 items-baseline justify-between gap-3 py-0.5">
+    <div className="flex min-w-0 items-baseline justify-between gap-3 py-1">
       <span className="shrink-0 text-(--ui-text-tertiary)">{label}</span>
       <span
         className="min-w-0 truncate text-right text-foreground"

@@ -401,3 +401,24 @@ git commit -m "feat(desktop): complete unified session summary workspace"
 - [ ] **Step 6: Report the branch and verification receipt.**
 
 Report the implementation commits, tests run, any pre-existing failures, and the local desktop start command/URL. Do not merge into `main` or push unless separately requested.
+
+## Follow-up: titlebar summary card (2026-09-12)
+
+The user subsequently requested the Codex-style floating card instead of the
+docked pane described above. The titlebar now presents a list icon before
+Terminal and the right-sidebar toggle. Summary opens as a rounded, scrollable
+popover without changing chat width; outside click, Escape, the trigger and
+the close button dismiss it. The window-local open state is ephemeral and
+is not restored on restart or when returning from a full-page route.
+
+All seven existing data sections and their action paths remain wired through
+`WiringApi.summary`. Startup removes only the old `summary` layout node. The
+former Summary-only visibility store and narrow-overlay observer are retired;
+the generic first-open narrow-pane correction remains intact.
+
+Validation: summary/data/Git, titlebar dismissal and layout/terminal migration
+tests passed, as did TypeScript, scoped ESLint and the desktop build. Real Aino
+Electron checks covered a 1381×968 window and a 760×620 viewport: the card stayed
+within the viewport, its content scrolled, chat width remained unchanged, and
+the live terminal retained its identity. Visual reference comparisons and
+temporary screenshots stay outside the tracked repository.

@@ -21,6 +21,7 @@ import {
   unstageReviewFile
 } from '@/store/review'
 import { $currentCwd, $selectedStoredSessionId, $workspaceCwdOwner } from '@/store/session'
+import { closeSummary } from '@/store/summary'
 import { $workspaceChangeTick } from '@/store/workspace-events'
 
 import { summarizeReviewFiles } from './git-summary'
@@ -136,7 +137,10 @@ export function ChangesSection() {
           <Button
             className="min-w-0 justify-start px-1"
             disabled={busy}
-            onClick={() => revealReview(cwd)}
+            onClick={() => {
+              revealReview(cwd)
+              closeSummary()
+            }}
             size="inline"
             type="button"
             variant="text"
@@ -166,6 +170,7 @@ export function ChangesSection() {
                   onClick={() => {
                     revealReview(cwd)
                     void selectReviewFile(file)
+                    closeSummary()
                   }}
                   size="inline"
                   type="button"
