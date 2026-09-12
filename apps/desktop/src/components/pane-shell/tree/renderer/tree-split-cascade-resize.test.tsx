@@ -258,4 +258,48 @@ describe('TreeSplit cascading expansion', () => {
     expect($paneStates.get().terminal?.heightOverride).toBeUndefined()
     expect(chat.style.flex).toBe(chatFlex)
   })
+
+  it('keeps the terminal sash above its tab strip and persists a vertical resize', () => {
+    markCollapsePane('terminal')
+    disposers.push(
+      registry.register({
+        area: 'panes',
+        data: { height: '200px', placement: 'bottom' },
+        id: 'terminal',
+        render: () => null,
+        title: 'Terminal'
+      })
+    )
+
+    const tree = split(
+      'column',
+      [group(['chat'], { id: 'chat-zone' }), group(['terminal'], { id: 'terminal-zone' })],
+      [3, 1],
+      'root-column'
+    )
+
+    $layoutTree.set(tree)
+    render(<TreeSplit node={tree} root />)
+
+    const container = document.querySelector<HTMLElement>('[data-tree-split="root-column"]')!
+    const [chat, terminal] = [...container.children] as HTMLElement[]
+    setHeight(container, 800)
+    setHeight(chat, 600)
+    setHeight(terminal, 200)
+    setHeight(document.querySelector<HTMLElement>('[data-tree-group="terminal-zone"]')!, 200)
+
+    const terminalSash = document.querySelector<HTMLElement>('[data-sash-tool-zone="true"]')!
+    expect(terminalSash.getAttribute('aria-orientation')).toBe('horizontal')
+    expect(terminalSash.classList.contains('top-9')).toBe(true)
+    expect(terminalSash.classList.contains('h-[8px]')).toBe(true)
+
+    // Pull the boundary upward: the terminal grows while the chat gives up
+    // space, and the fixed terminal track remembers the new height.
+    fireEvent.pointerDown(terminalSash, { button: 0, clientY: 600, pointerId: 1, pointerType: 'mouse' })
+    fireEvent.pointerMove(window, { clientY: 500, pointerId: 1, pointerType: 'mouse' })
+    fireEvent.pointerUp(window, { clientY: 500, pointerId: 1, pointerType: 'mouse' })
+
+    expect($paneStates.get().terminal?.heightOverride).toBe(300)
+    expect(row().weights[0]).toBeCloseTo(2.5)
+  })
 })

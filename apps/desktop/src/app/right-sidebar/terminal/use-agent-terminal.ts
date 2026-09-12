@@ -16,6 +16,7 @@ import { mirrorSelection, terminalClipboardIntent } from './clipboard'
 import { terminalLinkHandler, terminalWebLinksAddon } from './links'
 import { isMacPlatform, resolveSurfaceColor, terminalTheme } from './selection'
 import { registerTerminalContextMenu } from './terminal-context-menu'
+import { focusTerminalForActivation } from './terminal-focus'
 import { prepareTerminalFontFamily } from './terminal-font'
 import { useTerminalFontController } from './use-terminal-font'
 
@@ -223,10 +224,13 @@ export function useAgentTerminal({ active, id, procId }: { active: boolean; id: 
 
         webglRef.current?.clearTextureAtlas()
         term?.refresh(0, term.rows - 1)
+
         // Take focus on activation (parity with the user terminal) so the active
         // agent tab holds focus and ⌘W's isFocusWithin('[data-terminal]') routes
         // the close to this tab rather than to a preview.
-        term?.focus()
+        if (term) {
+          focusTerminalForActivation(term)
+        }
       }
     })
   }, [active])

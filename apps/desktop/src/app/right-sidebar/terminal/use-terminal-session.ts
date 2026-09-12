@@ -28,6 +28,7 @@ import {
   terminalTheme
 } from './selection'
 import { registerTerminalContextMenu } from './terminal-context-menu'
+import { focusTerminalForActivation } from './terminal-focus'
 import { prepareTerminalFontFamily } from './terminal-font'
 import { closeTerminal, updateTerminalRestoreCwd, updateTerminalReviveBuffer } from './terminals'
 import { useTerminalFontController } from './use-terminal-font'
@@ -1044,7 +1045,10 @@ export function useTerminalSession({
 
         webglRef.current?.clearTextureAtlas()
         term?.refresh(0, term.rows - 1)
-        term?.focus()
+
+        if (term) {
+          focusTerminalForActivation(term)
+        }
       }
     })
   }, [active, status])

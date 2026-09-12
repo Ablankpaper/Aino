@@ -684,6 +684,14 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
         const partner = collapsed ? -1 : seamPartner(i)
         const absorbs = i === absorberIndex
 
+        // Tool panes own a tab strip inside the group. Keep the sash above that
+        // strip in the stacking order, but place its visual line at the strip's
+        // lower edge so the visible boundary is the one users drag.
+        const toolZone =
+          !horizontal &&
+          (allPaneIds(child).some(isCollapsePane) ||
+            (partner >= 0 && allPaneIds(node.children[partner]).some(isCollapsePane)))
+
         return (
           <div
             className="relative flex min-h-0 min-w-0"
@@ -729,6 +737,7 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
                 }
                 onDoubleClick={() => resetBoundary(partner, i)}
                 onPointerDown={e => startSash(partner, i, e)}
+                toolZone={toolZone}
               />
             )}
             {!narrowCollapsed && (
@@ -751,30 +760,41 @@ function Sash({
   horizontal,
   navigationBoundary,
   onDoubleClick,
-  onPointerDown
+  onPointerDown,
+  toolZone
 }: {
   disabled?: boolean
   horizontal: boolean
   navigationBoundary?: 'start' | 'end'
   onDoubleClick?: () => void
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void
+  toolZone?: boolean
 }) {
   return (
     <div
+      aria-orientation={horizontal ? 'vertical' : 'horizontal'}
       className={cn(
-        'group absolute z-20 [-webkit-app-region:no-drag]',
+        'group absolute [-webkit-app-region:no-drag]',
+        toolZone ? 'z-50' : 'z-20',
         // Asymmetric grab band: only 1px reaches into the leading pane so its
         // edge-hugging 4px scrollbar stays clickable (the old centered 9px band
         // swallowed it entirely — the pointer got col-resize instead of the
         // thumb). The trailing side keeps a generous 7px reach; total grab
-        // width stays ~8px so the sash is no harder to hit.
-        horizontal ? 'inset-y-0 left-0 w-[8px] -translate-x-[1px]' : 'inset-x-0 top-0 h-[8px] -translate-y-[1px]',
+        // width stays ~8px so the sash is no harder to hit. A tool sash is
+        // offset by the terminal rail's stable h-9 strip and straddles its
+        // lower edge, keeping the upper seam visually quiet.
+        horizontal
+          ? 'inset-y-0 left-0 w-[8px] -translate-x-[1px]'
+          : toolZone
+            ? 'inset-x-0 top-9 h-[8px] -translate-y-[1px]'
+            : 'inset-x-0 top-0 h-[8px] -translate-y-[1px]',
         disabled ? 'pointer-events-none' : horizontal ? 'cursor-col-resize' : 'cursor-row-resize'
       )}
       // Lets shell-level CSS start the resting hairline below the unified top
       // band (vertical seams only) without touching the grab geometry.
       data-navigation-boundary={navigationBoundary}
       data-sash-axis={horizontal ? 'x' : 'y'}
+      data-sash-tool-zone={toolZone || undefined}
       onDoubleClick={disabled ? undefined : onDoubleClick}
       onPointerDown={disabled ? undefined : onPointerDown}
       role="separator"

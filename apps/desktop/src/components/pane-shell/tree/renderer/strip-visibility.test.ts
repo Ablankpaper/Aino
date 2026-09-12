@@ -21,6 +21,29 @@ describe('auto (no stored choice)', () => {
     expect(resolveTabStripVisible({ shown: [sideChrome()] })).toBe(false)
   })
 
+  it("uses a tool pane's own tabs when alone but keeps navigation to stacked siblings", () => {
+    const terminal: Contribution = {
+      area: 'panes',
+      data: { placement: 'bottom', selfManagedTabs: true },
+      id: 'terminal',
+      render: () => null
+    }
+
+    const files: Contribution = { area: 'panes', data: { placement: 'right' }, id: 'files', render: () => null }
+
+    const visible = (shown: string[]) =>
+      tabStripVisibleForZone({
+        active: 'terminal',
+        isCollapsePane: id => id === 'terminal',
+        mode: undefined,
+        paneFor: id => (id === 'terminal' ? terminal : files),
+        shown
+      })
+
+    expect(visible(['terminal'])).toBe(false)
+    expect(visible(['terminal', 'files'])).toBe(true)
+  })
+
   it('has nothing to draw for an empty zone', () => {
     expect(resolveTabStripVisible({ shown: [] })).toBe(false)
   })

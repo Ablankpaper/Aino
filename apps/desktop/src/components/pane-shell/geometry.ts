@@ -200,8 +200,23 @@ export function publishWorkspaceGeometry(): () => void {
   let lastRight = NaN
   let rail: HTMLElement | null = null
   let titlebar: HTMLElement | null = null
+  let workspaceMountObserver: MutationObserver | null = null
 
   const ro = new ResizeObserver(() => measure())
+
+  const stopWorkspaceMountObserver = () => {
+    workspaceMountObserver?.disconnect()
+    workspaceMountObserver = null
+  }
+
+  const watchForWorkspaceMount = () => {
+    if (workspaceMountObserver || !document.body) {
+      return
+    }
+
+    workspaceMountObserver = new MutationObserver(() => measure())
+    workspaceMountObserver.observe(document.body, { childList: true, subtree: true })
+  }
 
   const measure = () => {
     const nextRail = document.querySelector<HTMLElement>('[data-navigation-rail]')
@@ -274,10 +289,18 @@ export function publishWorkspaceGeometry(): () => void {
 
       if (el) {
         ro.observe(el)
+        stopWorkspaceMountObserver()
+      } else {
+        // The tree root can mount before the lazy workspace pane. Watch only
+        // until that anchor appears; once found, the element ResizeObserver
+        // and existing tree/resize subscriptions own subsequent measurements.
+        watchForWorkspaceMount()
       }
     }
 
     if (!el) {
+      watchForWorkspaceMount()
+
       return
     }
 
@@ -312,6 +335,7 @@ export function publishWorkspaceGeometry(): () => void {
     onSashDragEnd = null
     window.removeEventListener('resize', measure)
     ro.disconnect()
+    stopWorkspaceMountObserver()
     root.style.removeProperty('--workspace-left')
     root.style.removeProperty('--workspace-right')
 

@@ -259,8 +259,8 @@ interface UpstreamTranslations {
       openaiRejectedApiKey: string
       openaiRejectedApiKeyWithStatus: (status: string) => string
       openaiTtsNeedsKey: string
-      codeSkewRestartRequired: string,
-spawnFailed: string
+      codeSkewRestartRequired: string
+      spawnFailed: string
     }
     voice: {
       configureSpeechToText: string
@@ -1777,8 +1777,8 @@ spawnFailed: string
     skillArchivedTitle: string
     skillArchivedMessage: string
     officialCatalog: string
-    officialPill: string,
-archiveConfirmTitle: (name: string) => string
+    officialPill: string
+    archiveConfirmTitle: (name: string) => string
     archiveConfirmDescription: string
     hub: {
       searchPlaceholder: string
@@ -2976,8 +2976,8 @@ archiveConfirmTitle: (name: string) => string
       controlUnavailable: (msg: string) => string
       dismissError: string
       add: string
-    },
-backgroundProcess: string
+    }
+    backgroundProcess: string
     standingGoal: string
     coding: {
       selectProject: string
@@ -3206,8 +3206,8 @@ backgroundProcess: string
     connectedProvider: (provider: string) => string
     connectedPicking: (provider: string) => string
     signInFailed: string
-    signInExpired: string,
-genericApiKeyDescription: (provider: string) => string
+    signInExpired: string
+    genericApiKeyDescription: (provider: string) => string
     pickDifferentProvider: string
     signInWith: (provider: string) => string
     openedBrowser: (provider: string) => string
@@ -3740,8 +3740,8 @@ genericApiKeyDescription: (provider: string) => string
       showEarlier: string
       loadingResponse: string
       loadingLocalModel: (model: string) => string
-      processingPrompt: string,
-summarizing: string
+      processingPrompt: string
+      summarizing: string
       working: string
       resumeWhenBackgroundDone: (count: number) => string
       thinking: string

@@ -13,13 +13,23 @@ import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { InlinePreviewDirective } from '@/components/assistant-ui/inline-preview-directive'
 import { IdleMount } from '@/components/idle-mount'
 import { $layoutEditMode, toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
-import { allPaneIds, group, groupLeafIds, split } from '@/components/pane-shell/tree/model'
+import {
+  allPaneIds,
+  findGroupOfPane,
+  group,
+  groupLeafIds,
+  movePane,
+  setActivePane,
+  split
+} from '@/components/pane-shell/tree/model'
 import { LayoutTreeRoot } from '@/components/pane-shell/tree/renderer'
 import { WindowTitlebarContext } from '@/components/pane-shell/tree/renderer/header-placement'
 import {
+  $activePresetId,
   $layoutTree,
+  $userPlacedPanes,
+  activateTreePane,
   bindPaneVisibility,
-  bindToolPaneCollapse,
   bindTreeSideVisibility,
   declareDefaultTree,
   dismissTreePane,
@@ -27,6 +37,7 @@ import {
   markCollapsePane,
   mirrorLayoutTree,
   paneRootSide,
+  persistTree,
   registerLayoutResetHandler,
   registerPaneCloser,
   registerPaneOpener,
@@ -50,6 +61,7 @@ import { translateNow } from '@/i18n'
 import { newSessionTitle, sessionTitle as storedSessionTitle } from '@/lib/chat-runtime'
 import { Download, FileText, LayoutDashboard, PanelTop, Terminal, Upload, Zap } from '@/lib/icons'
 import { type KeybindContribution, KEYBINDS_AREA } from '@/lib/keybinds/actions'
+import { readKey, writeKey } from '@/lib/storage'
 import { TRANSCRIPT_DIRECTIVE_AREA, type TranscriptDirectiveContribution } from '@/lib/transcript-directives'
 import { setYoloEnabled } from '@/lib/yolo-session'
 import { pruneComposerPopoutZones } from '@/store/composer-popout'
@@ -204,7 +216,7 @@ registry.registerMany([
     title: 'terminal',
     // revealOnPreset: choosing a layout that places the terminal (e.g.
     // "Terminal deck") turns takeover on so the zone actually shows, instead of
-    // staying collapsed behind the ⌃` toggle. height sizes the fixed track (a
+    // staying hidden behind the ⌃` toggle. height sizes the fixed track (a
     // single-pane zone declaring a height is a fixed track — the preset weight
     // is moot): a short deck, not a third of the window.
     //
@@ -213,10 +225,12 @@ registry.registerMany([
     // its rail there). A real floor left a sliver of unusable terminal.
     data: {
       placement: 'bottom',
+      dock: { pane: 'workspace', pos: 'bottom' },
       height: '20vh',
       maxHeight: '80vh',
       revealOnPreset: true,
-      lifecycleKeepAlive: true
+      lifecycleKeepAlive: true,
+      selfManagedTabs: true
     },
     render: () => <WiredPane part="terminal" />
   },
@@ -378,9 +392,8 @@ registry.registerMany([
 // Layout presets — CHAT (main) always dominates.
 // ---------------------------------------------------------------------------
 
-// The REAL default: sessions left, chat main, and the right sidebars in column
-// order main | … | review | file-browser (files outermost). Each is its OWN
-// zone. Review collapses to nothing while its pane is hidden (⌘G off).
+// Navigation and file/review rails stay full-height. Only the chat workspace
+// shares its height with the terminal deck.
 //
 // Preview tiles are DYNAMIC panes (like session tiles), so no preset names one:
 // they're registered by watchPreviewTiles as tabs open, and dockPaneBeside lands
@@ -391,21 +404,13 @@ const DEFAULT_TREE = split(
   'row',
   [
     group(['sessions'], { id: 'grp-sessions' }),
-    group(['workspace'], { id: 'grp-main' }),
     split(
       'column',
-      [
-        split(
-          'row',
-          [group(['review'], { id: 'grp-review' }), group(['files'], { id: 'grp-files' })],
-          [1, 1.2],
-          'spl-rail'
-        ),
-        group(['terminal'], { id: 'grp-terminal' })
-      ],
-      [1.6, 1],
-      'spl-right'
-    )
+      [group(['workspace'], { id: 'grp-main' }), group(['terminal'], { id: 'grp-terminal' })],
+      [3, 1],
+      'spl-workspace'
+    ),
+    split('row', [group(['review'], { id: 'grp-review' }), group(['files'], { id: 'grp-files' })], [1, 1.2], 'spl-rail')
   ],
   [1, 3.4, 1.25],
   'spl-root'
@@ -414,12 +419,13 @@ const DEFAULT_TREE = split(
 const FOCUS_TREE = split('row', [group(['sessions']), group(['workspace', 'files', 'review', 'terminal'])], [1, 4.6])
 
 const TERMINAL_TREE = split(
-  'column',
+  'row',
   [
-    split('row', [group(['sessions']), group(['workspace']), group(['files', 'review'])], [1, 3.2, 1.2]),
-    group(['terminal'])
+    group(['sessions']),
+    split('column', [group(['workspace']), group(['terminal'])], [3, 1]),
+    group(['files', 'review'])
   ],
-  [3, 1]
+  [1, 3.2, 1.2]
 )
 
 const QUAD_TREE = split(
@@ -439,6 +445,35 @@ registry.registerMany([
 ])
 
 declareDefaultTree(DEFAULT_TREE)
+
+// Migrate the old default and the legacy navigation tab once. Future custom
+// placements remain user-owned; no other pane or size preference is reset.
+const TERMINAL_WORKSPACE_MIGRATION = 'aino.desktop.terminalWorkspace.v1'
+
+if (!isAuxiliaryWindow() && !readKey(TERMINAL_WORKSPACE_MIGRATION)) {
+  const tree = $layoutTree.get()
+  const workspace = tree && findGroupOfPane(tree, 'workspace')
+  const terminal = tree && findGroupOfPane(tree, 'terminal')
+  const legacyNavigationTab = terminal?.panes.includes('sessions') || terminal?.panes.includes('hermes-bots:pane')
+  const oldDefault = $activePresetId.get() === 'default' && !$userPlacedPanes.get().has('terminal')
+
+  if (tree && workspace && (legacyNavigationTab || oldDefault)) {
+    let next = movePane(tree, 'terminal', { groupId: workspace.id, pos: 'bottom' })
+
+    // Removing the active terminal must not activate the adjacent Agent Hub
+    // tab and change the user's workspace as a side effect of migration.
+    if (terminal?.active === 'terminal' && terminal.panes.includes('sessions')) {
+      next = setActivePane(next, terminal.id, 'sessions')
+    }
+
+    if (next !== tree) {
+      $layoutTree.set(next)
+      persistTree()
+    }
+  }
+
+  writeKey(TERMINAL_WORKSPACE_MIGRATION, '1')
+}
 
 // Bundled plugins load AFTER core, so a same-id contribution from a plugin
 // deliberately overrides the core default (last writer wins). Third-party
@@ -617,14 +652,32 @@ bindPaneVisibility(
   closeReview,
   () => openReview($reviewScopeCwd.get(), $reviewScopeTarget.get())
 )
-// ⌃` / statusbar toggle — the terminal COLLAPSES to a rail (tab stays), not
-// hides; PTYs stay alive while collapsed (see PersistentTerminal).
-bindToolPaneCollapse(
+// The titlebar and terminal's own strip provide the restore/close handles.
+// Hide the entire pane, while PersistentTerminal retains the live shells.
+markCollapsePane('terminal')
+bindPaneVisibility(
   'terminal',
   $terminalTakeover,
-  () => setTerminalTakeover(false),
+  () => {
+    setTerminalTakeover(false)
+
+    // Focus remains in the chat when terminal shares a tab group (Focus /
+    // user-stacked layouts). A hidden terminal must never become the target
+    // of Cmd+W or session actions just because it was active before hiding.
+    const tree = $layoutTree.get()
+    const group = tree && findGroupOfPane(tree, 'terminal')
+
+    if (group?.panes.includes('workspace')) {
+      activateTreePane(group.id, 'workspace')
+    }
+  },
   () => setTerminalTakeover(true)
 )
+$terminalTakeover.listen(open => {
+  if (open) {
+    revealTreePane('terminal')
+  }
+})
 // ⌘K door onto the same pane the keybind and statusbar pill flip — was a
 // one-way "open" row under Go to, so it never showed on/off and couldn't hide.
 // Reads the TREE like every other pane toggle: `$terminalTakeover` stays true

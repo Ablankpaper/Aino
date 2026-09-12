@@ -1,5 +1,8 @@
 import { useStore } from '@nanostores/react'
+import { type KeyboardEvent, useRef } from 'react'
 
+import { useActiveTabVisible } from '@/components/pane-shell/tree/renderer/tab-strip-scroll'
+import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import {
   ContextMenu,
@@ -28,12 +31,8 @@ import {
   type TerminalEntry
 } from './terminals'
 
-const RAIL_ACTION =
-  'grid size-6 place-items-center rounded text-(--ui-text-tertiary) transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground focus-visible:bg-(--chrome-action-hover) focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring [-webkit-app-region:no-drag]'
-
-/** Thin icon "bookmark" strip blended into the terminal surface, shown whenever a
- *  terminal exists. Each square is a tab (name + hotkey on hover); close via the
- *  shell's `exit`, middle-click, or the context menu. */
+/** Named terminal tabs stay above the persistent terminal body; hiding the
+ *  panel preserves its shells, while each tab keeps an explicit close action. */
 export function TerminalRail() {
   const { t } = useI18n()
   const terminals = useStore($terminals)
@@ -41,19 +40,54 @@ export function TerminalRail() {
   const bindings = useStore($bindings)
   const toggleHint = bindings['view.showTerminal']?.[0]
   const newHint = bindings['view.newTerminal']?.[0]
+  const tabsRef = useRef<HTMLDivElement>(null)
+
+  useActiveTabVisible(tabsRef, activeId ?? '', {
+    enabled: activeId !== null,
+    last: terminals.at(-1)?.id === activeId,
+    tabCount: terminals.length
+  })
+
+  function handleTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!(event.target instanceof HTMLElement) || event.target.getAttribute('role') !== 'tab') {
+      return
+    }
+
+    const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+    const index = tabs.indexOf(event.target as HTMLButtonElement)
+
+    const indexByKey: Record<string, number> = {
+      ArrowLeft: (index - 1 + tabs.length) % tabs.length,
+      ArrowRight: (index + 1) % tabs.length,
+      Home: 0,
+      End: tabs.length - 1
+    }
+
+    const nextIndex = indexByKey[event.key]
+
+    if (nextIndex === undefined || event.altKey || event.ctrlKey || event.metaKey) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    tabs[nextIndex].focus()
+    selectTerminal(terminals[nextIndex].id)
+  }
 
   return (
     <div
-      className="group/rail relative z-40 flex h-full w-9 shrink-0 flex-col items-center border-l border-(--ui-stroke-quaternary) bg-(--ui-terminal-surface-background)"
-      // The rail sits at the pane's outer edge, under the collapsed sidebars'
-      // hover-reveal triggers; mark it so those triggers go pointer-transparent
-      // while it's hovered (see the suppression rules in styles.css) and a reach
-      // for a tab can't drag in the file-browser/review panel.
+      className="relative z-40 flex h-9 min-w-0 shrink-0 items-center border-b border-(--ui-stroke-tertiary) bg-(--aino-surface-bg) [-webkit-app-region:no-drag]"
+      // Keep collapsed sidebars from revealing over terminal tab controls.
       data-suppress-pane-reveal=""
     >
-      <ul
+      <div
         aria-label={t.rightSidebar.terminalsAria}
-        className="flex min-h-0 flex-1 flex-col items-center gap-0.5 self-stretch overflow-y-auto overflow-x-hidden overscroll-contain py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-orientation="horizontal"
+        className="flex h-full min-w-0 flex-1 items-center overflow-x-auto overflow-y-hidden overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        data-terminal-tabs=""
+        onKeyDown={handleTabKeyDown}
+        ref={tabsRef}
         role="tablist"
       >
         {terminals.map((term, index) => (
@@ -66,33 +100,35 @@ export function TerminalRail() {
             toggleHint={toggleHint}
           />
         ))}
-        <li className="flex w-full justify-center">
+        <div className="flex shrink-0 items-center px-1">
           <Tip
             label={<TipHintLabel hint={newHint && formatCombo(newHint)} text={t.rightSidebar.terminalNew} />}
-            side="left"
+            side="bottom"
           >
-            <button
+            <Button
               aria-label={t.rightSidebar.terminalNew}
-              className={cn(RAIL_ACTION, 'size-7 text-(--ui-text-quaternary)')}
-              onClick={() => createTerminal()}
+              onClick={() => void createTerminal()}
+              size="icon-xs"
               type="button"
+              variant="ghost"
             >
               <Codicon name="add" size="0.8125rem" />
-            </button>
+            </Button>
           </Tip>
-        </li>
-      </ul>
+        </div>
+      </div>
 
-      <div className="flex shrink-0 flex-col items-center pb-1.5">
-        <Tip label={t.rightSidebar.terminalHide} side="left">
-          <button
+      <div className="flex shrink-0 items-center px-1">
+        <Tip label={t.rightSidebar.terminalHide} side="bottom">
+          <Button
             aria-label={t.rightSidebar.terminalHide}
-            className={cn(RAIL_ACTION, 'opacity-0 transition-opacity group-hover/rail:opacity-100')}
             onClick={() => setTerminalTakeover(false)}
+            size="icon-xs"
             type="button"
+            variant="ghost"
           >
             <Codicon name="chevron-down" size="0.8125rem" />
-          </button>
+          </Button>
         </Tip>
       </div>
     </div>
@@ -118,37 +154,43 @@ function TerminalRailItem({ active, canCloseOthers, index, term, toggleHint }: T
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <li className="relative flex w-full justify-center [-webkit-app-region:no-drag]">
-          {active && (
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-0.5 right-0 w-0.5 rounded-l-sm bg-(--ui-stroke-primary)"
-            />
+        <div
+          className={cn(
+            'flex h-full max-w-56 shrink-0 items-center gap-1 px-2',
+            active ? 'bg-(--aino-surface-active)' : 'hover:bg-(--aino-surface-hover)'
           )}
-          <Tip label={<TipHintLabel hint={toggleHint && formatCombo(toggleHint)} text={label} />} side="left">
+          data-tree-tab={term.id}
+          {...middleClickHandlers(() => closeTerminal(term.id))}
+          role="presentation"
+        >
+          <Tip label={<TipHintLabel hint={toggleHint && formatCombo(toggleHint)} text={label} />} side="bottom">
             <button
               aria-label={label}
               aria-selected={active}
               className={cn(
-                'grid size-7 place-items-center rounded-md transition-colors',
-                active
-                  ? 'bg-(--chrome-action-hover) text-foreground'
-                  : 'text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
+                'flex h-full min-w-0 items-center gap-2 text-[length:var(--aino-text-ui)] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--aino-focus-ring)',
+                active ? 'text-(--ui-text-primary)' : 'text-(--ui-text-secondary)'
               )}
-              {...middleClickHandlers(() => closeTerminal(term.id))}
               // ⌘-click closes (the pane-tab gesture); a plain click selects.
               onClick={event => (isMetaClose(event) ? closeTerminal(term.id) : selectTerminal(term.id))}
               role="tab"
+              tabIndex={active ? 0 : -1}
               type="button"
             >
-              <Codicon
-                className={cn(term.kind === 'agent' && !active && 'text-primary')}
-                name={term.kind === 'agent' ? 'agent' : 'terminal'}
-                size="0.875rem"
-              />
+              <Codicon className="shrink-0" name={term.kind === 'agent' ? 'agent' : 'terminal'} size="0.875rem" />
+              <span className="min-w-0 truncate">{title}</span>
             </button>
           </Tip>
-        </li>
+          <Button
+            aria-label={`${t.common.close}: ${label}`}
+            onClick={() => closeTerminal(term.id)}
+            size="icon-xs"
+            type="button"
+            variant="ghost"
+          >
+            <Codicon name="close" size="0.6875rem" />
+          </Button>
+        </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onSelect={() => closeTerminal(term.id)}>{t.common.close}</ContextMenuItem>

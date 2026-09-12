@@ -58,6 +58,13 @@ one-off at the call site.
 - **Panes are working context.** Preview, files, review, and terminal remain
   attached to the current task. Their state survives temporary hiding and chat
   switches where the underlying tool is meant to persist.
+- **Terminal is a bottom workspace.** The default docks it beneath chat while
+  navigation and the file/review rails remain full-height. The titlebar toggle,
+  palette and shortcut share pane visibility; hiding releases the panel's space
+  without closing shells. Its own horizontal name tabs provide New, Close and
+  Hide, so a lone terminal does not need a second zone header. Mixed zones keep
+  their navigation strip. The old navigation-tab placement migrates once;
+  subsequent custom terminal placement remains user-owned.
 - **The file browser uses conversation chrome.** Its root directory keeps its
   original spelling in a neutral section label; file rows use the shared UI
   type scale, clear primary text, secondary icons and soft selection fills.
