@@ -8,6 +8,7 @@ import type { ContextBreakdown, ContextUsageCategory, UsageStats } from '@/types
 interface ContextUsagePanelProps {
   breakdown: ContextBreakdown | null
   loading: boolean
+  showTitle?: boolean
   usage: UsageStats
 }
 
@@ -16,12 +17,14 @@ interface ContextUsagePanelProps {
  *  popover opens with its numbers already in hand. `usage` is the gauge's
  *  merged figure — measured occupancy when the backend has it, the estimate
  *  otherwise — so the header and the bar can never disagree. */
-export function ContextUsagePanel({ breakdown, loading, usage }: ContextUsagePanelProps) {
+export function ContextUsagePanel({ breakdown, loading, showTitle = true, usage }: ContextUsagePanelProps) {
   const { t } = useI18n()
   const copy = t.shell.statusbar.contextUsagePanel
-  const contextMax = usage.context_max ?? 0
-  const contextUsed = usage.context_used ?? 0
-  const contextPercent = Math.max(0, Math.min(100, Math.round(usage.context_percent ?? 0)))
+  const contextMax = usage.context_max
+  const contextUsed = usage.context_used
+
+  const contextPercent =
+    usage.context_percent == null ? null : Math.max(0, Math.min(100, Math.round(usage.context_percent)))
 
   const categories = useMemo(
     () =>
@@ -33,18 +36,25 @@ export function ContextUsagePanel({ breakdown, loading, usage }: ContextUsagePan
   )
 
   const segmentTotal = categories.reduce((sum, category) => sum + category.tokens, 0) || contextUsed || 1
+  const usedLabel = contextUsed == null ? '\u2014' : compactNumber(contextUsed)
+  const maxLabel = contextMax == null ? '\u2014' : compactNumber(contextMax)
 
   return (
     <div className="flex w-72 flex-col gap-3 p-3 text-[0.75rem]" data-slot="context-usage-panel">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="font-medium text-foreground">{copy.title}</p>
+        {showTitle && <p className="font-medium text-foreground">{copy.title}</p>}
 
         <span className="text-[0.6875rem] text-muted-foreground">
-          {copy.tokenSummary(`${usage.context_estimated ? "~" : ""}${compactNumber(contextUsed)}`, compactNumber(contextMax))}
+          {copy.tokenSummary(`${usage.context_estimated && contextUsed != null ? '~' : ''}${usedLabel}`, maxLabel)}
         </span>
       </div>
 
-      <p className="text-[0.6875rem] text-foreground">{usage.context_estimated ? '~' : ''}{copy.percentFull(contextPercent)}</p>
+      {contextPercent !== null && (
+        <p className="text-[0.6875rem] text-foreground">
+          {usage.context_estimated ? '~' : ''}
+          {copy.percentFull(contextPercent)}
+        </p>
+      )}
 
       <ContextUsageBar categories={categories} segmentTotal={segmentTotal} />
 

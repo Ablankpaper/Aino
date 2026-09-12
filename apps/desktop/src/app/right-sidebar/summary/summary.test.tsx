@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 
 import { I18nProvider } from '@/i18n'
 import { Activity } from '@/lib/icons'
+import { $projectTree } from '@/store/projects'
+import { $currentBranch, $currentModel, $selectedStoredSessionId } from '@/store/session'
 
 import { SummarySection } from './summary-section'
 
@@ -31,6 +33,24 @@ describe('SummaryPane', () => {
     expect(screen.getByRole('complementary', { name: '会话摘要' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '关闭摘要' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: '环境信息' })).toBeTruthy()
+  })
+
+  it('keeps model information visible when no project owns the session cwd', () => {
+    $projectTree.set([])
+    $selectedStoredSessionId.set('session-without-project')
+    $currentBranch.set('launch-directory-branch')
+    $currentModel.set('test-model')
+
+    renderSummary()
+
+    expect(screen.getAllByText('未打开项目').length).toBeGreaterThan(0)
+    expect(screen.getByText('test-model')).toBeTruthy()
+    const environment = screen.getByRole('heading', { name: '环境信息' }).closest('section')
+
+    expect(environment).toBeTruthy()
+    expect(within(environment!).queryByText('工作目录')).toBeNull()
+    expect(within(environment!).queryByText('分支')).toBeNull()
+    expect(within(environment!).queryByText('launch-directory-branch')).toBeNull()
   })
 })
 

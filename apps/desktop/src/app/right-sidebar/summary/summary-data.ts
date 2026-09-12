@@ -1,16 +1,19 @@
 import { compactPath } from '@/lib/statusbar'
 import type { PreviewArtifact } from '@/store/preview-status'
-import type { LocalHardware } from '@/types/hermes'
+import type { ContextBreakdown, LocalHardware, UsageStats } from '@/types/hermes'
 
-export type SummaryEnvironmentState = { kind: 'empty' | 'no-session' } | { cwd: string; kind: 'ready' }
+export type SummaryEnvironmentState =
+  { kind: 'empty' | 'no-session' } | { cwd: string; kind: 'ready'; projectName: string }
 
 export function summaryEnvironmentState({
   cwd,
   cwdOwner,
+  projectName,
   selectedSession
 }: {
   cwd: string
   cwdOwner: null | string
+  projectName: null | string
   selectedSession: null | string
 }): SummaryEnvironmentState {
   if (!selectedSession) {
@@ -19,11 +22,26 @@ export function summaryEnvironmentState({
 
   const trimmedCwd = cwd.trim()
 
-  if (!trimmedCwd || cwdOwner !== selectedSession) {
+  if (!trimmedCwd || cwdOwner !== selectedSession || !projectName) {
     return { kind: 'empty' }
   }
 
-  return { cwd: trimmedCwd, kind: 'ready' }
+  return { cwd: trimmedCwd, kind: 'ready', projectName }
+}
+
+export function summaryContextUsage(usage: UsageStats, breakdown: ContextBreakdown | null): UsageStats {
+  if (!breakdown) {
+    return usage
+  }
+
+  return {
+    ...usage,
+    context_estimated: usage.context_estimated ?? breakdown.context_estimated,
+    context_max: usage.context_max ?? breakdown.context_max,
+    context_percent: usage.context_percent ?? breakdown.context_percent,
+    context_source: usage.context_source ?? breakdown.context_source,
+    context_used: usage.context_used ?? breakdown.context_used
+  }
 }
 
 export function formatSummaryPath(path: string): string {
@@ -35,8 +53,7 @@ export function formatHardwareBytes(bytes: number | null | undefined): string {
 }
 
 export type HardwareMeters =
-  | { kind: 'unavailable' }
-  | { kind: 'ready'; ramPercent: number | null; vramPercent: number | null }
+  { kind: 'unavailable' } | { kind: 'ready'; ramPercent: number | null; vramPercent: number | null }
 
 export function hardwareMeters(hardware: LocalHardware | null): HardwareMeters {
   if (!hardware) {

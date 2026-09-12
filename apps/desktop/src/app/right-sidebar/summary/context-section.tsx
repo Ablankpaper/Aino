@@ -7,6 +7,7 @@ import { useI18n } from '@/i18n'
 import { BarChart3 } from '@/lib/icons'
 import { $activeSessionId, $busy, $currentUsage } from '@/store/session'
 
+import { summaryContextUsage } from './summary-data'
 import { SummarySection } from './summary-section'
 
 export function ContextSection({ requestGateway }: { requestGateway: GatewayRequester }) {
@@ -30,13 +31,22 @@ export function ContextSection({ requestGateway }: { requestGateway: GatewayRequ
   }
 
   if (!hasUsage) {
-    return <SummarySection emptyMessage={t.summary.context.noData} icon={BarChart3} state="empty" title={t.summary.context.title} />
+    return (
+      <SummarySection
+        emptyMessage={t.summary.context.noData}
+        icon={BarChart3}
+        state="empty"
+        title={t.summary.context.title}
+      />
+    )
   }
+
+  const resolvedUsage = summaryContextUsage(usage, breakdown)
 
   return (
     <SummarySection icon={BarChart3} title={t.summary.context.title}>
       <div className="min-w-0 overflow-hidden [&_[data-slot='context-usage-panel']]:w-full [&_[data-slot='context-usage-panel']]:p-0">
-        <ContextUsagePanel breakdown={breakdown} loading={loading} usage={usage} />
+        <ContextUsagePanel breakdown={breakdown} loading={loading} showTitle={false} usage={resolvedUsage} />
       </div>
     </SummarySection>
   )

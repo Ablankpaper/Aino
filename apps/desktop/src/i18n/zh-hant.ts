@@ -283,6 +283,84 @@ export const zhHant = defineLocale({
     resetHudLayout: '重設 HUD 大小和位置'
   },
 
+  summary: {
+    aria: '工作階段摘要',
+    title: '工作階段摘要',
+    close: '關閉摘要',
+    environment: {
+      title: '環境資訊',
+      project: '專案',
+      workingDirectory: '工作目錄',
+      model: '模型',
+      provider: '提供方',
+      profile: '設定檔',
+      branch: '分支',
+      connection: '連線狀態',
+      noProject: '未開啟專案',
+      noSession: '未選擇工作階段'
+    },
+    changes: {
+      title: '程式碼變更',
+      files: count => `${count} 個檔案`,
+      additions: '新增',
+      deletions: '刪除',
+      staged: count => `${count} 個已暫存`,
+      noChanges: '沒有未提交的變更',
+      unavailable: '暫時無法取得程式碼變更',
+      viewDiff: '檢視差異',
+      refresh: '重新整理變更',
+      stage: '暫存檔案',
+      unstage: '取消暫存',
+      revert: '還原檔案'
+    },
+    git: {
+      title: 'Git 狀態',
+      branch: '分支',
+      tracking: '遠端追蹤',
+      ahead: count => `領先 ${count}`,
+      behind: count => `落後 ${count}`,
+      commit: '最近提交',
+      pullRequest: '提取要求',
+      push: '推送',
+      clean: '工作樹乾淨',
+      unavailable: '此工作區暫時無法使用 Git',
+      noRepository: '此工作區不是 Git 儲存庫'
+    },
+    agents: {
+      title: '子代理',
+      running: count => `執行中 ${count}`,
+      completed: count => `已完成 ${count}`,
+      failed: count => `失敗 ${count}`,
+      viewAll: '檢視所有代理',
+      none: '此工作階段沒有子代理'
+    },
+    context: {
+      title: '上下文用量',
+      noData: '尚無上下文資料'
+    },
+    sources: {
+      title: '來源與預覽',
+      attachments: '附件',
+      previews: '預覽',
+      links: '連結',
+      none: '此工作階段沒有來源',
+      open: '開啟來源'
+    },
+    resources: {
+      title: '系統資源',
+      ram: '記憶體',
+      gpu: 'GPU',
+      unavailable: '系統資源暫時無法使用',
+      retry: '重試資源查詢'
+    },
+    state: {
+      loading: '載入中…',
+      unavailable: '暫時無法使用',
+      noData: '尚無資料',
+      retry: '重試'
+    }
+  },
+
   language: {
     label: '語言',
     description: '選擇桌面介面的語言。',

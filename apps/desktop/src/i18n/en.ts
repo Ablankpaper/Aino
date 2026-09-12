@@ -561,6 +561,7 @@ spawnFailed: 'Could not start the background operation.'
       deletions: 'Removed',
       staged: count => `${count} staged`,
       noChanges: 'No uncommitted changes',
+      unavailable: 'Changes are temporarily unavailable',
       viewDiff: 'View diff',
       refresh: 'Refresh changes',
       stage: 'Stage file',

@@ -18,7 +18,7 @@ export function SourcesSection() {
   const { t } = useI18n()
   const selectedSessionId = useStore($selectedStoredSessionId)
   const previewsBySession = useStore($previewStatusBySession)
-  const records = selectedSessionId ? previewsBySession[selectedSessionId] ?? [] : []
+  const records = selectedSessionId ? (previewsBySession[selectedSessionId] ?? []) : []
   const items = sourceItems(records)
 
   const openSource = async (target: string, cwd: string) => {
@@ -34,7 +34,12 @@ export function SourcesSection() {
   }
 
   return (
-    <SummarySection emptyMessage={t.summary.sources.none} icon={Link} state={items.length ? 'ready' : 'empty'} title={t.summary.sources.title}>
+    <SummarySection
+      emptyMessage={t.summary.sources.none}
+      icon={Link}
+      state={items.length ? 'ready' : 'empty'}
+      title={t.summary.sources.title}
+    >
       <div className="grid gap-1">
         {items.map(item => (
           <Tip key={item.id} label={item.target}>

@@ -289,6 +289,84 @@ export const ja = defineLocale({
     resetHudLayout: 'HUD のサイズと位置をリセット'
   },
 
+  summary: {
+    aria: 'セッション概要',
+    title: 'セッション概要',
+    close: '概要を閉じる',
+    environment: {
+      title: '環境',
+      project: 'プロジェクト',
+      workingDirectory: '作業ディレクトリ',
+      model: 'モデル',
+      provider: 'プロバイダー',
+      profile: 'プロファイル',
+      branch: 'ブランチ',
+      connection: '接続',
+      noProject: 'プロジェクトが開かれていません',
+      noSession: 'セッションが選択されていません'
+    },
+    changes: {
+      title: 'コード変更',
+      files: count => `${count} ファイル`,
+      additions: '追加',
+      deletions: '削除',
+      staged: count => `${count} 件をステージ済み`,
+      noChanges: '未コミットの変更はありません',
+      unavailable: '変更を一時的に取得できません',
+      viewDiff: '差分を表示',
+      refresh: '変更を更新',
+      stage: 'ファイルをステージ',
+      unstage: 'ステージを解除',
+      revert: 'ファイルを元に戻す'
+    },
+    git: {
+      title: 'Git の状態',
+      branch: 'ブランチ',
+      tracking: '追跡',
+      ahead: count => `${count} 件先行`,
+      behind: count => `${count} 件遅延`,
+      commit: '最新のコミット',
+      pullRequest: 'プルリクエスト',
+      push: 'プッシュ',
+      clean: '作業ツリーはクリーンです',
+      unavailable: 'このワークスペースでは Git を利用できません',
+      noRepository: 'このワークスペースは Git リポジトリではありません'
+    },
+    agents: {
+      title: 'サブエージェント',
+      running: count => `${count} 件実行中`,
+      completed: count => `${count} 件完了`,
+      failed: count => `${count} 件失敗`,
+      viewAll: 'すべてのエージェントを表示',
+      none: 'このセッションにサブエージェントはありません'
+    },
+    context: {
+      title: 'コンテキスト使用量',
+      noData: 'コンテキストデータはまだありません'
+    },
+    sources: {
+      title: 'ソースとプレビュー',
+      attachments: '添付ファイル',
+      previews: 'プレビュー',
+      links: 'リンク',
+      none: 'このセッションにソースはありません',
+      open: 'ソースを開く'
+    },
+    resources: {
+      title: 'システムリソース',
+      ram: 'RAM',
+      gpu: 'GPU',
+      unavailable: 'システムリソースを利用できません',
+      retry: 'リソース確認を再試行'
+    },
+    state: {
+      loading: '読み込み中…',
+      unavailable: '一時的に利用できません',
+      noData: 'データはまだありません',
+      retry: '再試行'
+    }
+  },
+
   language: {
     label: '言語',
     description: 'デスクトップインターフェイスの言語を選択します。',

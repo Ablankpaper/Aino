@@ -542,6 +542,7 @@ export const zh: Translations = {
       deletions: '删除',
       staged: count => `${count} 个已暂存`,
       noChanges: '没有未提交的变更',
+      unavailable: '暂时无法获取代码变更',
       viewDiff: '查看差异',
       refresh: '刷新变更',
       stage: '暂存文件',

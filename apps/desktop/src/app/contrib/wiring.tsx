@@ -105,6 +105,7 @@ import { ProfileCreateDialogHost } from '../profiles/create-profile-dialog-host'
 import { FileActionDialogs } from '../right-sidebar/file-actions'
 import { RemoteFolderPicker } from '../right-sidebar/files/remote-picker'
 import { resetProjectTreeState } from '../right-sidebar/files/use-project-tree'
+import { ReviewRevertDialog } from '../right-sidebar/review/revert-dialog'
 import { PersistentTerminal } from '../right-sidebar/terminal/persistent'
 import { closeAllTerminals } from '../right-sidebar/terminal/terminals'
 import {
@@ -1252,6 +1253,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
         {!isAuxiliaryWindow() && <ProfileCreateDialogHost />}
         <SessionSwitcher />
         <FileActionDialogs />
+        <ReviewRevertDialog />
         <McpInstallDeepLinkDialog />
         <RemoteFolderPicker />
         <FindBar />

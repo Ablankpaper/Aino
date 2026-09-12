@@ -568,6 +568,7 @@ interface UpstreamTranslations {
       deletions: string
       staged: (count: number) => string
       noChanges: string
+      unavailable: string
       viewDiff: string
       refresh: string
       stage: string

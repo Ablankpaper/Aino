@@ -14,13 +14,15 @@ export function AgentsSection() {
   const navigate = useNavigate()
   const selectedSessionId = useStore($selectedStoredSessionId)
   const bySession = useStore($subagentsBySession)
-  const items = selectedSessionId ? bySession[selectedSessionId] ?? [] : []
+  const items = selectedSessionId ? (bySession[selectedSessionId] ?? []) : []
   const running = activeSubagentCount(items)
   const failed = failedSubagentCount(items)
   const completed = items.filter(item => item.status === 'completed').length
 
   if (!selectedSessionId || items.length === 0) {
-    return <SummarySection emptyMessage={t.summary.agents.none} icon={Users} state="empty" title={t.summary.agents.title} />
+    return (
+      <SummarySection emptyMessage={t.summary.agents.none} icon={Users} state="empty" title={t.summary.agents.title} />
+    )
   }
 
   return (

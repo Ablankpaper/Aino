@@ -13,7 +13,7 @@ import { Codecs, persistentAtom } from '@/lib/persisted'
 import { refreshRepoStatus, repoStatusForCwd } from './coding-status'
 import { stampSessionPrBranch } from './pull-requests'
 import { $busy, $currentCwd, $selectedStoredSessionId, $sessions } from './session'
-import { $workspaceChangeTick } from './workspace-events'
+import { $workspaceChangeTick, notifyWorkspaceChanged } from './workspace-events'
 
 // State for the review pane: the working-tree changed-file list, the selected
 // file's diff, and the git mutations (stage / unstage / revert). The active
@@ -109,11 +109,27 @@ let shipInfoLastCheckedAt = 0
 
 // The two things every review op needs: the repo cwd + the IPC bridge. Null when
 // either is missing (no session, remote backend), so callers bail in one line.
-function reviewCtx(): { cwd: string; review: ReviewBridge } | null {
-  const cwd = repoCwd()
+function reviewCtx(scopeCwd?: null | string): { cwd: string; review: ReviewBridge } | null {
+  const cwd = scopeCwd?.trim() || repoCwd()
   const review = desktopGit()?.review
 
   return cwd && review ? { cwd, review } : null
+}
+
+/** Read one repo's review list without publishing into ReviewPane's pinned cache. */
+export async function reviewFilesForCwd(
+  cwd: string,
+  review: ReviewBridge | undefined = desktopGit()?.review
+): Promise<HermesReviewFile[]> {
+  const target = cwd.trim()
+
+  if (!target || !review) {
+    throw new Error('Git review is unavailable')
+  }
+
+  const result = await review.list(target, 'uncommitted', null)
+
+  return result.files.filter(file => !isExcludedPath(file.path))
 }
 
 // ── Reads ────────────────────────────────────────────────────────────────────
@@ -136,13 +152,13 @@ export async function refreshReview(options: { allowClosed?: boolean } = {}): Pr
     return
   }
 
-  const { cwd, review } = ctx
+  const { cwd } = ctx
 
   $reviewIsRepo.set(true)
   $reviewLoading.set(true)
 
   try {
-    const result = await review.list(cwd, 'uncommitted', null)
+    const files = await reviewFilesForCwd(cwd, ctx.review)
 
     // Ignore a result that resolved after the cwd moved on.
     if (seq !== reviewRefreshSeq || repoCwd() !== cwd) {
@@ -151,8 +167,6 @@ export async function refreshReview(options: { allowClosed?: boolean } = {}): Pr
 
     // Hide dep/build/cache dirs and OS noise even when the repo tracks them —
     // .gitignored paths are already dropped upstream by `git status`.
-    const files = result.files.filter(file => !isExcludedPath(file.path))
-
     $reviewFiles.set(files)
 
     // Drop the selection if the file is gone (staged away, reverted) so the diff
@@ -380,12 +394,16 @@ export async function openReviewForPath(
 
 // Run a git mutation then re-sync both the review list and the rail's +/- (the
 // working tree changed). A failure is swallowed by the caller's notify wrapper.
-async function afterMutation(): Promise<void> {
-  await refreshReview({ allowClosed: true })
-  void refreshRepoStatus(repoCwd())
+async function afterMutation(cwd: string): Promise<void> {
+  if (repoCwd() === cwd) {
+    await refreshReview({ allowClosed: true })
+  }
+
+  void refreshRepoStatus(cwd)
+  notifyWorkspaceChanged()
 
   const selected = $reviewSelectedPath.get()
-  const file = selected ? $reviewFiles.get().find(f => f.path === selected) : null
+  const file = repoCwd() === cwd && selected ? $reviewFiles.get().find(f => f.path === selected) : null
 
   // Re-fetch the open diff (staging flips which diff — cached vs worktree).
   if (file) {
@@ -393,30 +411,48 @@ async function afterMutation(): Promise<void> {
   }
 }
 
-export async function stageReviewFile(path: null | string): Promise<void> {
-  await desktopGit()?.review?.stage(repoCwd() ?? '', path)
-  await afterMutation()
+export async function stageReviewFile(path: null | string, scopeCwd?: null | string): Promise<void> {
+  const ctx = reviewCtx(scopeCwd)
+
+  if (!ctx) {
+    throw new Error('Git review is unavailable')
+  }
+
+  await ctx.review.stage(ctx.cwd, path)
+  await afterMutation(ctx.cwd)
 }
 
-export async function unstageReviewFile(path: null | string): Promise<void> {
-  await desktopGit()?.review?.unstage(repoCwd() ?? '', path)
-  await afterMutation()
+export async function unstageReviewFile(path: null | string, scopeCwd?: null | string): Promise<void> {
+  const ctx = reviewCtx(scopeCwd)
+
+  if (!ctx) {
+    throw new Error('Git review is unavailable')
+  }
+
+  await ctx.review.unstage(ctx.cwd, path)
+  await afterMutation(ctx.cwd)
 }
 
-export async function revertReviewFile(path: null | string): Promise<void> {
-  await desktopGit()?.review?.revert(repoCwd() ?? '', path)
-  await afterMutation()
+export async function revertReviewFile(path: null | string, scopeCwd?: null | string): Promise<void> {
+  const ctx = reviewCtx(scopeCwd)
+
+  if (!ctx) {
+    throw new Error('Git review is unavailable')
+  }
+
+  await ctx.review.revert(ctx.cwd, path)
+  await afterMutation(ctx.cwd)
 }
 
 // Revert is destructive (discards working-tree edits with no undo), so it always
 // routes through a confirm dialog. The target is `{ path }` where `path === null`
 // means "revert all"; `undefined` means no confirm is open. We wrap the path in
 // an object so the `null` ("all") case is distinguishable from "closed".
-export const $reviewRevertTarget = atom<{ path: null | string } | undefined>(undefined)
+export const $reviewRevertTarget = atom<{ cwd?: string; path: null | string } | undefined>(undefined)
 
 /** Open the revert confirm for a single file, or `null` for all changes. */
-export function requestRevert(path: null | string): void {
-  $reviewRevertTarget.set({ path })
+export function requestRevert(path: null | string, cwd?: string): void {
+  $reviewRevertTarget.set({ cwd: cwd?.trim() || undefined, path })
 }
 
 export function cancelRevert(): void {
@@ -430,7 +466,7 @@ export async function confirmRevert(): Promise<void> {
   $reviewRevertTarget.set(undefined)
 
   if (target) {
-    await revertReviewFile(target.path)
+    await revertReviewFile(target.path, target.cwd)
   }
 }
 
@@ -510,8 +546,8 @@ export async function generateCommitMessage(previous = ''): Promise<string> {
   }
 }
 
-export async function pushChanges(): Promise<void> {
-  const ctx = reviewCtx()
+export async function pushChanges(scopeCwd?: null | string): Promise<void> {
+  const ctx = reviewCtx(scopeCwd)
 
   if (!ctx) {
     return
@@ -519,7 +555,10 @@ export async function pushChanges(): Promise<void> {
 
   await runShip(async () => {
     await ctx.review.push(ctx.cwd)
-    void refreshShipInfo()
+
+    if (repoCwd() === ctx.cwd) {
+      void refreshShipInfo()
+    }
   })
 }
 

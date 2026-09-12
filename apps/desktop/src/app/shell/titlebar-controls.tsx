@@ -15,9 +15,7 @@ import {
   $narrowViewport,
   $paneVisible,
   $treeSideVisible,
-  isPaneVisible,
   resetLayoutTree,
-  revealTreePane,
   togglePaneVisible
 } from '@/components/pane-shell/tree/store'
 import { Badge } from '@/components/ui/badge'
@@ -39,7 +37,8 @@ import {
   toggleSidebarOpen
 } from '@/store/layout'
 import { $unreadSessionCount } from '@/store/session-dot-state'
-import { $summaryOpen, closeSummary, openSummary } from '@/store/summary'
+import { toggleSummary } from '@/store/summary'
+import { $summaryVisible } from '@/store/summary-visibility'
 
 import { appViewForPath, isRouteBlockingSurface } from '../routes'
 
@@ -155,7 +154,7 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
   const sidebarOpen = useStore($sidebarOpen)
   const unreadCount = useStore($unreadSessionCount)
   const terminalVisible = useStore($paneVisible('terminal'))
-  const summaryOpen = useStore($summaryOpen)
+  const summaryVisible = useStore($summaryVisible)
   const unreadBadge = unreadCount > 0 ? unreadCount : undefined
   const unreadHint = unreadBadge ? ` · ${t.titlebar.unreadSessions(unreadBadge)}` : ''
 
@@ -286,19 +285,13 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
       }
     },
     {
-      active: summaryOpen,
+      active: summaryVisible,
       icon: <TitlebarIcon name="info" />,
       id: 'summary',
       label: t.summary.title,
       onSelect: () => {
         triggerHaptic('tap')
-
-        if ($summaryOpen.get() && isPaneVisible('summary')) {
-          closeSummary()
-        } else {
-          openSummary()
-          revealTreePane('summary')
-        }
+        toggleSummary()
       }
     }
   ]

@@ -44,7 +44,13 @@ export function ResourcesSection() {
   const connection = useStore($activeConnectionId)
   const profile = useStore($activeGatewayProfile)
 
-  const { data: hardware, error, isFetching, isPending, refetch } = useQuery({
+  const {
+    data: hardware,
+    error,
+    isFetching,
+    isPending,
+    refetch
+  } = useQuery({
     queryKey: ['system-resources', connection, profile],
     queryFn: getLocalHardware,
     refetchOnWindowFocus: false,
@@ -80,13 +86,22 @@ export function ResourcesSection() {
     )
   }
 
-  const ramUsed = hardware.ram_total_bytes > 0 ? Math.max(0, hardware.ram_total_bytes - hardware.ram_available_bytes) : null
+  const ramUsed =
+    hardware.ram_total_bytes > 0 ? Math.max(0, hardware.ram_total_bytes - hardware.ram_available_bytes) : null
 
   return (
     <SummarySection icon={Cpu} title={copy.title}>
       <div className="grid gap-2.5">
-        <Meter label={copy.ram} percent={meters.ramPercent} value={`${formatHardwareBytes(ramUsed)} / ${formatHardwareBytes(hardware.ram_total_bytes)}`} />
-        {hardwareLabel(hardware) && <p className="truncate text-(--ui-text-secondary)" title={hardwareLabel(hardware)}>{hardwareLabel(hardware)}</p>}
+        <Meter
+          label={copy.ram}
+          percent={meters.ramPercent}
+          value={`${formatHardwareBytes(ramUsed)} / ${formatHardwareBytes(hardware.ram_total_bytes)}`}
+        />
+        {hardwareLabel(hardware) && (
+          <p className="truncate text-(--ui-text-secondary)" title={hardwareLabel(hardware)}>
+            {hardwareLabel(hardware)}
+          </p>
+        )}
         {(hardware.gpu_name || hardware.vram_total_bytes > 0) && (
           <Meter
             label={copy.gpu}

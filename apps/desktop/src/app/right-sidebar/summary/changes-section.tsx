@@ -1,26 +1,27 @@
 import { useStore } from '@nanostores/react'
-import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
+import { desktopGit } from '@/lib/desktop-git'
 import { Code } from '@/lib/icons'
+import { $activeConnectionId } from '@/store/connections'
 import { notifyError } from '@/store/notifications'
+import { $activeGatewayProfile } from '@/store/profile'
+import { $projectTree, projectIdForCwd } from '@/store/projects'
 import {
-  $reviewFiles,
-  $reviewIsRepo,
-  $reviewLoading,
-  $reviewScopeCwd,
-  $reviewShipBusy,
-  refreshReview,
   requestRevert,
   revealReview,
+  reviewFilesForCwd,
   selectReviewFile,
   stageReviewFile,
   unstageReviewFile
 } from '@/store/review'
 import { $currentCwd, $selectedStoredSessionId, $workspaceCwdOwner } from '@/store/session'
+import { $workspaceChangeTick } from '@/store/workspace-events'
 
 import { summarizeReviewFiles } from './git-summary'
 import { SummarySection, SummaryValue } from './summary-section'
@@ -30,39 +31,95 @@ export function ChangesSection() {
   const cwd = useStore($currentCwd).trim()
   const selectedSessionId = useStore($selectedStoredSessionId)
   const cwdOwner = useStore($workspaceCwdOwner)
-  const files = useStore($reviewFiles)
-  const loading = useStore($reviewLoading)
-  const isRepo = useStore($reviewIsRepo)
-  const reviewScopeCwd = useStore($reviewScopeCwd)
-  const busy = useStore($reviewShipBusy)
+  const connection = useStore($activeConnectionId)
+  const profile = useStore($activeGatewayProfile)
+  const projects = useStore($projectTree)
+  const workspaceTick = useStore($workspaceChangeTick)
+  const [mutationBusy, setMutationBusy] = useState(false)
   const copy = t.summary.changes
-  const ownsWorkspace = Boolean(cwd && selectedSessionId && cwdOwner === selectedSessionId)
+  const projectId = projectIdForCwd(cwd, projects)
+  const hasProject = projects.some(project => project.id === projectId && !project.isNoProject)
+  const ownsWorkspace = Boolean(cwd && selectedSessionId && cwdOwner === selectedSessionId && hasProject)
 
-  useEffect(() => {
-    if (!ownsWorkspace || (reviewScopeCwd && reviewScopeCwd !== cwd)) {
-      return
+  const changesQuery = useQuery({
+    enabled: ownsWorkspace,
+    queryKey: ['summary-changes', connection, profile, selectedSessionId, cwd, workspaceTick],
+    queryFn: async () => {
+      const git = desktopGit()
+
+      if (!git?.repoStatus) {
+        throw new Error('Git is unavailable')
+      }
+
+      const status = await git.repoStatus(cwd)
+
+      return status ? { files: await reviewFilesForCwd(cwd, git.review), isRepo: true } : { files: [], isRepo: false }
+    },
+    retry: false
+  })
+
+  const runMutation = async (action: () => Promise<void>, label: string) => {
+    setMutationBusy(true)
+
+    try {
+      await action()
+    } catch (error) {
+      notifyError(error, label)
+    } finally {
+      setMutationBusy(false)
     }
-
-    void refreshReview({ allowClosed: true })
-  }, [cwd, ownsWorkspace, reviewScopeCwd])
-
-  if (!ownsWorkspace) {
-    return <SummarySection emptyMessage={t.summary.environment.noProject} icon={Code} state="empty" title={copy.title} />
   }
 
-  if (loading && files.length === 0) {
+  if (!ownsWorkspace) {
+    return (
+      <SummarySection emptyMessage={t.summary.environment.noProject} icon={Code} state="empty" title={copy.title} />
+    )
+  }
+
+  if (changesQuery.isPending) {
     return <SummarySection icon={Code} state="loading" title={copy.title} />
   }
 
-  if (!isRepo) {
-    return <SummarySection emptyMessage={t.summary.git.noRepository} icon={Code} state="empty" title={copy.title} />
+  if (changesQuery.error) {
+    return (
+      <SummarySection
+        error={copy.unavailable}
+        icon={Code}
+        onRetry={() => void changesQuery.refetch()}
+        state="error"
+        title={copy.title}
+      />
+    )
   }
 
+  if (!changesQuery.data.isRepo) {
+    return (
+      <SummarySection
+        emptyMessage={t.summary.git.noRepository}
+        icon={Code}
+        onRetry={() => void changesQuery.refetch()}
+        state="empty"
+        title={copy.title}
+      />
+    )
+  }
+
+  const files = changesQuery.data.files
+
   if (files.length === 0) {
-    return <SummarySection emptyMessage={copy.noChanges} icon={Code} state="empty" title={copy.title} />
+    return (
+      <SummarySection
+        emptyMessage={copy.noChanges}
+        icon={Code}
+        onRetry={() => void changesQuery.refetch()}
+        state="empty"
+        title={copy.title}
+      />
+    )
   }
 
   const totals = summarizeReviewFiles(files)
+  const busy = mutationBusy || changesQuery.isFetching
 
   return (
     <SummarySection icon={Code} title={copy.title}>
@@ -84,8 +141,15 @@ export function ChangesSection() {
             <span className="truncate">{copy.viewDiff}</span>
           </Button>
           <Tip label={copy.refresh}>
-            <Button aria-label={copy.refresh} disabled={loading} onClick={() => void refreshReview({ allowClosed: true })} size="icon-xs" type="button" variant="ghost">
-              <Codicon name="refresh" size="0.8rem" spinning={loading} />
+            <Button
+              aria-label={copy.refresh}
+              disabled={busy}
+              onClick={() => void changesQuery.refetch()}
+              size="icon-xs"
+              type="button"
+              variant="ghost"
+            >
+              <Codicon name="refresh" size="0.8rem" spinning={changesQuery.isFetching} />
             </Button>
           </Tip>
         </div>
@@ -113,8 +177,9 @@ export function ChangesSection() {
                   aria-label={`${file.staged ? copy.unstage : copy.stage}: ${file.path}`}
                   disabled={busy}
                   onClick={() =>
-                    void (file.staged ? unstageReviewFile(file.path) : stageReviewFile(file.path)).catch(error =>
-                      notifyError(error, file.staged ? copy.unstage : copy.stage)
+                    void runMutation(
+                      () => (file.staged ? unstageReviewFile(file.path, cwd) : stageReviewFile(file.path, cwd)),
+                      file.staged ? copy.unstage : copy.stage
                     )
                   }
                   size="icon-xs"
@@ -128,7 +193,7 @@ export function ChangesSection() {
                 <Button
                   aria-label={`${copy.revert}: ${file.path}`}
                   disabled={busy}
-                  onClick={() => requestRevert(file.path)}
+                  onClick={() => requestRevert(file.path, cwd)}
                   size="icon-xs"
                   type="button"
                   variant="ghost"

@@ -9,12 +9,13 @@ import {
   $dismissedPanes,
   $hiddenTreePanes,
   $layoutTree,
+  bindPaneVisibility,
   bindToolPaneCollapse,
   isPaneVisible,
   togglePaneVisible
 } from '@/components/pane-shell/tree/store'
 import { I18nProvider } from '@/i18n'
-import { $summaryOpen, closeSummary } from '@/store/summary'
+import { $summaryOpen, closeSummary, openSummary } from '@/store/summary'
 import { stubResizeObserver } from '@/test/jsdom'
 
 import { TitlebarControls } from './titlebar-controls'
@@ -27,6 +28,7 @@ beforeAll(() => {
     () => setTerminalTakeover(false),
     () => setTerminalTakeover(true)
   )
+  bindPaneVisibility('summary', $summaryOpen, closeSummary, openSummary)
 })
 
 afterEach(() => {
@@ -73,6 +75,10 @@ describe('titlebar terminal toggle', () => {
 
 describe('titlebar summary toggle', () => {
   it('reflects the summary workspace state in aria-pressed', () => {
+    $layoutTree.set(
+      split('row', [group(['workspace'], { active: 'workspace' }), group(['summary'], { active: 'workspace' })])
+    )
+    $summaryOpen.set(true)
     $summaryOpen.set(false)
 
     render(

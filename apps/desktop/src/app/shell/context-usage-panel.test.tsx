@@ -106,6 +106,7 @@ describe('ContextUsagePanel', () => {
       const { container, unmount } = render(
         <ContextUsagePanel breakdown={breakdown} loading={false} usage={{ ...usage, context_estimated: estimated }} />
       )
+
       const header = container.querySelector('[data-slot="context-usage-panel"] > div')?.textContent ?? ''
 
       expect(header.includes('~')).toBe(estimated)
@@ -119,6 +120,20 @@ describe('ContextUsagePanel', () => {
 
     expect(screen.getByText('47% Full')).toBeTruthy()
     expect(screen.getByText('Conversation')).toBeTruthy()
+  })
+
+  it('can omit its own title when embedded under a section heading', () => {
+    render(<ContextUsagePanel breakdown={breakdown} loading={false} showTitle={false} usage={usage} />)
+
+    expect(screen.queryByText('Context Usage')).toBeNull()
+    expect(screen.getByText('47% Full')).toBeTruthy()
+  })
+
+  it('does not present missing occupancy as zero usage', () => {
+    render(<ContextUsagePanel breakdown={null} loading={false} usage={{ calls: 0, input: 0, output: 0, total: 0 }} />)
+
+    expect(screen.queryByText('0 / 0')).toBeNull()
+    expect(screen.queryByText('0% Full')).toBeNull()
   })
 
   it('says so when there is no breakdown rather than painting an empty bar', () => {
