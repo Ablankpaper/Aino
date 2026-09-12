@@ -86,6 +86,7 @@ import {
   openReview,
   REVIEW_PANE_ID
 } from '@/store/review'
+import { $summaryOpen, closeSummary, openSummary, SUMMARY_PANE_ID } from '@/store/summary'
 import { $currentCwd, $selectedStoredSessionId, $sessions, $yoloActive, sessionMatchesStoredId } from '@/store/session'
 import { watchSessionPins } from '@/store/session-pin-sync'
 import { $botChatScopes } from '@/store/session-states'
@@ -265,6 +266,20 @@ registry.registerMany([
       maxWidth: FILE_BROWSER_MAX_WIDTH
     },
     render: () => idle(<ReviewPaneContent />)
+  },
+  {
+    id: SUMMARY_PANE_ID,
+    area: 'panes',
+    title: 'summary',
+    data: {
+      placement: 'right',
+      collapsible: true,
+      revealAliases: [SUMMARY_PANE_ID],
+      width: FILE_BROWSER_DEFAULT_WIDTH,
+      minWidth: FILE_BROWSER_MIN_WIDTH,
+      maxWidth: FILE_BROWSER_MAX_WIDTH
+    },
+    render: () => idle(<WiredPane part="summary" />)
   }
 ])
 
@@ -652,6 +667,10 @@ bindPaneVisibility(
   closeReview,
   () => openReview($reviewScopeCwd.get(), $reviewScopeTarget.get())
 )
+// The unified session summary follows the same right-rail visibility contract
+// as Review, but is available without a project so environment/context data
+// can still be inspected in a fresh chat.
+bindPaneVisibility('summary', $summaryOpen, closeSummary, openSummary)
 // The titlebar and terminal's own strip provide the restore/close handles.
 // Hide the entire pane, while PersistentTerminal retains the live shells.
 markCollapsePane('terminal')

@@ -519,6 +519,83 @@ export const zh: Translations = {
     layoutEditorTitle: mod => `布局编辑器 — ${mod} 点击重置布局`
   },
 
+  summary: {
+    aria: '会话摘要',
+    title: '会话摘要',
+    close: '关闭摘要',
+    environment: {
+      title: '环境信息',
+      project: '项目',
+      workingDirectory: '工作目录',
+      model: '模型',
+      provider: '提供商',
+      profile: '工作区',
+      branch: '分支',
+      connection: '连接状态',
+      noProject: '未打开项目',
+      noSession: '未选择会话'
+    },
+    changes: {
+      title: '代码变更',
+      files: count => `${count} 个文件`,
+      additions: '新增',
+      deletions: '删除',
+      staged: count => `${count} 个已暂存`,
+      noChanges: '没有未提交的变更',
+      viewDiff: '查看差异',
+      refresh: '刷新变更',
+      stage: '暂存文件',
+      unstage: '取消暂存',
+      revert: '撤销文件'
+    },
+    git: {
+      title: 'Git 状态',
+      branch: '分支',
+      tracking: '远程跟踪',
+      ahead: count => `领先 ${count}`,
+      behind: count => `落后 ${count}`,
+      commit: '最近提交',
+      pullRequest: '拉取请求',
+      push: '推送',
+      clean: '工作区干净',
+      unavailable: '此工作区暂不可用 Git',
+      noRepository: '此工作区不是 Git 仓库'
+    },
+    agents: {
+      title: '子智能体',
+      running: count => `运行中 ${count}`,
+      completed: count => `已完成 ${count}`,
+      failed: count => `失败 ${count}`,
+      viewAll: '查看全部智能体',
+      none: '此会话暂无子智能体'
+    },
+    context: {
+      title: '上下文用量',
+      noData: '暂时没有上下文数据'
+    },
+    sources: {
+      title: '来源与预览',
+      attachments: '附件',
+      previews: '预览',
+      links: '链接',
+      none: '此会话暂无来源',
+      open: '打开来源'
+    },
+    resources: {
+      title: '系统资源',
+      ram: '内存',
+      gpu: 'GPU',
+      unavailable: '系统资源暂不可用',
+      retry: '重试资源查询'
+    },
+    state: {
+      loading: '加载中…',
+      unavailable: '暂时不可用',
+      noData: '暂无数据',
+      retry: '重试'
+    }
+  },
+
   keybinds: {
     title: '键盘快捷键',
     subtitle: open => `点击快捷键即可重新绑定 · ${open} 可重新打开此面板。`,

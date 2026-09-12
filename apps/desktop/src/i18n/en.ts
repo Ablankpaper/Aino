@@ -538,6 +538,83 @@ spawnFailed: 'Could not start the background operation.'
     layoutEditorTitle: mod => `Layout editor — ${mod}-click resets the layout`
   },
 
+  summary: {
+    aria: 'Session summary',
+    title: 'Session summary',
+    close: 'Close summary',
+    environment: {
+      title: 'Environment',
+      project: 'Project',
+      workingDirectory: 'Working directory',
+      model: 'Model',
+      provider: 'Provider',
+      profile: 'Profile',
+      branch: 'Branch',
+      connection: 'Connection',
+      noProject: 'No project is open',
+      noSession: 'No session selected'
+    },
+    changes: {
+      title: 'Code changes',
+      files: count => `${count} file${count === 1 ? '' : 's'}`,
+      additions: 'Added',
+      deletions: 'Removed',
+      staged: count => `${count} staged`,
+      noChanges: 'No uncommitted changes',
+      viewDiff: 'View diff',
+      refresh: 'Refresh changes',
+      stage: 'Stage file',
+      unstage: 'Unstage file',
+      revert: 'Revert file'
+    },
+    git: {
+      title: 'Git status',
+      branch: 'Branch',
+      tracking: 'Tracking',
+      ahead: count => `${count} ahead`,
+      behind: count => `${count} behind`,
+      commit: 'Recent commit',
+      pullRequest: 'Pull request',
+      push: 'Push',
+      clean: 'Working tree clean',
+      unavailable: 'Git is unavailable for this workspace',
+      noRepository: 'This workspace is not a Git repository'
+    },
+    agents: {
+      title: 'Subagents',
+      running: count => `${count} running`,
+      completed: count => `${count} completed`,
+      failed: count => `${count} failed`,
+      viewAll: 'View all agents',
+      none: 'No subagents in this session'
+    },
+    context: {
+      title: 'Context usage',
+      noData: 'No context data yet'
+    },
+    sources: {
+      title: 'Sources and previews',
+      attachments: 'Attachments',
+      previews: 'Previews',
+      links: 'Links',
+      none: 'No sources in this session',
+      open: 'Open source'
+    },
+    resources: {
+      title: 'System resources',
+      ram: 'RAM',
+      gpu: 'GPU',
+      unavailable: 'System resources unavailable',
+      retry: 'Retry resource check'
+    },
+    state: {
+      loading: 'Loading…',
+      unavailable: 'Temporarily unavailable',
+      noData: 'No data yet',
+      retry: 'Retry'
+    }
+  },
+
   keybinds: {
     title: 'Keyboard shortcuts',
     subtitle: open => `Click a shortcut to rebind it · ${open} reopens this panel.`,

@@ -545,6 +545,83 @@ interface UpstreamTranslations {
     layoutEditorTitle: (modifier: string) => string
   }
 
+  summary: {
+    aria: string
+    title: string
+    close: string
+    environment: {
+      title: string
+      project: string
+      workingDirectory: string
+      model: string
+      provider: string
+      profile: string
+      branch: string
+      connection: string
+      noProject: string
+      noSession: string
+    }
+    changes: {
+      title: string
+      files: (count: number) => string
+      additions: string
+      deletions: string
+      staged: (count: number) => string
+      noChanges: string
+      viewDiff: string
+      refresh: string
+      stage: string
+      unstage: string
+      revert: string
+    }
+    git: {
+      title: string
+      branch: string
+      tracking: string
+      ahead: (count: number) => string
+      behind: (count: number) => string
+      commit: string
+      pullRequest: string
+      push: string
+      clean: string
+      unavailable: string
+      noRepository: string
+    }
+    agents: {
+      title: string
+      running: (count: number) => string
+      completed: (count: number) => string
+      failed: (count: number) => string
+      viewAll: string
+      none: string
+    }
+    context: {
+      title: string
+      noData: string
+    }
+    sources: {
+      title: string
+      attachments: string
+      previews: string
+      links: string
+      none: string
+      open: string
+    }
+    resources: {
+      title: string
+      ram: string
+      gpu: string
+      unavailable: string
+      retry: string
+    }
+    state: {
+      loading: string
+      unavailable: string
+      noData: string
+      retry: string
+    }
+  }
+
   keybinds: {
     title: string
     subtitle: (open: string) => string

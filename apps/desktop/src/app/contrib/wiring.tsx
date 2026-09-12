@@ -154,7 +154,7 @@ import { usePetBridge } from './hooks/use-pet-bridge'
 import { useQuickEntryBridge } from './hooks/use-quick-entry-bridge'
 import { useSessionTileDelegate } from './hooks/use-session-tile-delegate'
 import { McpInstallDeepLinkDialog } from './mcp-install-deeplink-dialog'
-import { $restartPreviewServer, useTitlebarToolContributions } from './panes'
+import { $restartPreviewServer, SummaryPaneContent, useTitlebarToolContributions } from './panes'
 import { createSessionRpcDispatcher } from './session-rpc-dispatcher'
 import { ChatRoutesSurface, SidebarSurface, TerminalSurface } from './surfaces'
 import type { WiringActions, WiringApi } from './types'
@@ -1096,6 +1096,11 @@ export function ContribWiring({ children }: { children: ReactNode }) {
 
   const terminalNode = useMemo(() => <TerminalSurface />, [])
 
+  const summaryNode = useMemo(
+    () => <SummaryPaneContent requestGateway={requestGateway} />,
+    [requestGateway]
+  )
+
   // The voice cap changes only on config load; the gateway instance + all
   // chat reactivity are subscribed inside ChatRoutesSurface / ChatView.
   const chatRoutesNode = useMemo(
@@ -1146,9 +1151,10 @@ export function ContribWiring({ children }: { children: ReactNode }) {
       chatRoutes: chatRoutesNode,
       sidebar: sidebarNode,
       settings: settingsNode,
+      summary: summaryNode,
       terminal: terminalNode
     }),
-    [chatRoutesNode, settingsNode, sidebarNode, terminalNode]
+    [chatRoutesNode, settingsNode, sidebarNode, summaryNode, terminalNode]
   )
 
   // The REAL titlebar tool clusters (sidebar/flip toggles, haptics, keybinds,

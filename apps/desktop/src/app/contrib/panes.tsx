@@ -14,6 +14,8 @@ import { atom } from 'nanostores'
 
 import { RightSidebarPane } from '@/app/right-sidebar'
 import { ReviewPane } from '@/app/right-sidebar/review'
+import { SummaryPane } from '@/app/right-sidebar/summary'
+import type { GatewayRequester } from '@/app/contrib/types'
 import type { GroupSetter } from '@/app/shell/group-setter'
 import type { StatusbarItem } from '@/app/shell/statusbar-controls'
 import type { TitlebarTool } from '@/app/shell/titlebar-controls'
@@ -108,6 +110,15 @@ export function ReviewPaneContent() {
   return (
     <div className={cn(ZONE_CONTENT, 'flex min-h-0 flex-col [&>aside]:min-h-0 [&>aside]:flex-1')}>
       <ReviewPane key={cwd || 'no-cwd'} />
+    </div>
+  )
+}
+
+/** The unified session/workspace summary mounted in the right rail. */
+export function SummaryPaneContent({ requestGateway }: { requestGateway: GatewayRequester }) {
+  return (
+    <div className={cn(ZONE_CONTENT, 'flex min-h-0 flex-col [&>aside]:min-h-0 [&>aside]:flex-1')}>
+      <SummaryPane requestGateway={requestGateway} />
     </div>
   )
 }
