@@ -8,37 +8,39 @@ import type { HermesReviewShipInfo } from '@/global'
 import { useI18n } from '@/i18n'
 import { desktopGit } from '@/lib/desktop-git'
 import { GitBranch } from '@/lib/icons'
-import { $activeConnectionId } from '@/store/connections'
 import { notifyError } from '@/store/notifications'
-import { $activeGatewayProfile } from '@/store/profile'
 import { $projectTree, projectIdForCwd } from '@/store/projects'
-import { $reviewShipBusy, pushChanges } from '@/store/review'
-import { $currentCwd, $selectedStoredSessionId, $workspaceCwdOwner } from '@/store/session'
+import { $reviewShipBusy, pushChanges, revealReview } from '@/store/review'
+import { closeSummary } from '@/store/summary'
 import { $workspaceChangeTick } from '@/store/workspace-events'
 
 import { summaryGitState } from './git-summary'
 import { SummarySection, SummaryValue } from './summary-section'
+import { type SummarySession, summarySessionIsCurrent } from './use-summary-session'
 
 const EMPTY_SHIP_INFO: HermesReviewShipInfo = { ghReady: false, pr: null }
 
-export function GitSection() {
+export function GitSection({ embedded = false, session }: { embedded?: boolean; session: SummarySession }) {
   const { t } = useI18n()
-  const cwd = useStore($currentCwd).trim()
-  const selectedSessionId = useStore($selectedStoredSessionId)
-  const cwdOwner = useStore($workspaceCwdOwner)
+  const cwd = session.cwd.trim()
+  const selectedSessionId = session.storedId
   const shipBusy = useStore($reviewShipBusy)
-  const connection = useStore($activeConnectionId)
-  const profile = useStore($activeGatewayProfile)
+  const { connectionId: connection, profile } = session.scope
   const projects = useStore($projectTree)
   const workspaceTick = useStore($workspaceChangeTick)
   const projectId = projectIdForCwd(cwd, projects)
   const hasProject = projects.some(project => project.id === projectId && !project.isNoProject)
-  const ownsWorkspace = Boolean(cwd && selectedSessionId && cwdOwner === selectedSessionId && hasProject)
+  const ownsWorkspace = Boolean(cwd && selectedSessionId && hasProject)
+  const current = summarySessionIsCurrent(session)
 
   const gitQuery = useQuery({
-    enabled: ownsWorkspace,
+    enabled: ownsWorkspace && current,
     queryKey: ['summary-git', connection, profile, selectedSessionId, cwd, workspaceTick],
     queryFn: async () => {
+      if (!summarySessionIsCurrent(session)) {
+        throw new Error('Workspace changed')
+      }
+
       const git = desktopGit()
 
       if (!git?.repoStatus) {
@@ -47,7 +49,7 @@ export function GitSection() {
 
       const status = await git.repoStatus(cwd)
 
-      if (connection !== $activeConnectionId.get() || profile !== $activeGatewayProfile.get()) {
+      if (!summarySessionIsCurrent(session)) {
         throw new Error('Workspace changed')
       }
 
@@ -68,10 +70,14 @@ export function GitSection() {
   })
 
   if (!ownsWorkspace) {
+    return null
+  }
+
+  if (!current) {
     return (
       <SummarySection
-        emptyMessage={t.summary.environment.noProject}
-        icon={GitBranch}
+        embedded={embedded}
+        emptyMessage={t.summary.git.unavailable}
         state="empty"
         title={t.summary.git.title}
       />
@@ -79,12 +85,13 @@ export function GitSection() {
   }
 
   if (gitQuery.isPending) {
-    return <SummarySection icon={GitBranch} state="loading" title={t.summary.git.title} />
+    return <SummarySection embedded={embedded} icon={GitBranch} state="loading" title={t.summary.git.title} />
   }
 
   if (gitQuery.error) {
     return (
       <SummarySection
+        embedded={embedded}
         error={t.summary.git.unavailable}
         icon={GitBranch}
         onRetry={() => void gitQuery.refetch()}
@@ -95,15 +102,7 @@ export function GitSection() {
   }
 
   if (!gitQuery.data.status) {
-    return (
-      <SummarySection
-        emptyMessage={t.summary.git.noRepository}
-        icon={GitBranch}
-        onRetry={() => void gitQuery.refetch()}
-        state="empty"
-        title={t.summary.git.title}
-      />
-    )
+    return null
   }
 
   const state = summaryGitState(gitQuery.data.status, gitQuery.data.ship)
@@ -120,6 +119,10 @@ export function GitSection() {
       : t.summary.git.clean
 
   const push = async () => {
+    if (!summarySessionIsCurrent(session)) {
+      return
+    }
+
     try {
       await pushChanges(cwd)
       await gitQuery.refetch()
@@ -129,24 +132,61 @@ export function GitSection() {
   }
 
   return (
-    <SummarySection icon={GitBranch} title={t.summary.git.title}>
+    <SummarySection embedded={embedded} title={t.summary.git.title}>
       <div className="grid gap-1">
-        <SummaryValue label={t.summary.git.branch} value={state.branch || t.summary.state.noData} />
-        <SummaryValue label={t.summary.git.tracking} value={tracking} />
-        <SummaryValue
-          label={t.summary.git.commit}
-          value={gitQuery.data.head ? gitQuery.data.head.slice(0, 8) : t.summary.state.noData}
-        />
-        <SummaryValue
-          label={t.summary.git.pullRequest}
-          value={
-            state.pullRequest ? `#${state.pullRequest.number} · ${state.pullRequest.state}` : t.summary.state.noData
-          }
-        />
+        {embedded ? (
+          <div className="flex min-w-0 items-center gap-2">
+            <Codicon className="shrink-0 text-(--ui-text-tertiary)" name="git-branch" />
+            <Tip label={`${t.summary.git.commit}: ${gitQuery.data.head || t.summary.state.noData}`}>
+              <span className="min-w-0 flex-1 truncate">{state.branch || t.summary.state.noData}</span>
+            </Tip>
+            {(state.ahead > 0 || state.behind > 0) && (
+              <span className="shrink-0 text-[length:var(--aino-text-caption)] text-(--ui-text-tertiary)">
+                {tracking}
+              </span>
+            )}
+          </div>
+        ) : (
+          <SummaryValue
+            label={t.summary.git.branch}
+            value={
+              <Tip label={`${t.summary.git.commit}: ${gitQuery.data.head || t.summary.state.noData}`}>
+                <span>{state.branch || t.summary.state.noData}</span>
+              </Tip>
+            }
+          />
+        )}
+        {!embedded && <SummaryValue label={t.summary.git.tracking} value={tracking} />}
+        {state.pullRequest && (
+          <SummaryValue
+            label={t.summary.git.pullRequest}
+            value={
+              state.pullRequest ? `#${state.pullRequest.number} · ${state.pullRequest.state}` : t.summary.state.noData
+            }
+          />
+        )}
+        <Button
+          className="mt-1 justify-start"
+          disabled={shipBusy || gitQuery.isFetching}
+          onClick={() => {
+            if (!summarySessionIsCurrent(session)) {
+              return
+            }
+
+            revealReview(cwd)
+            closeSummary()
+          }}
+          size="inline"
+          type="button"
+          variant="text"
+        >
+          <Codicon name="git-commit" />
+          {t.summary.git.reviewAndCommit}
+        </Button>
         <Tip label={t.summary.git.push}>
           <Button
             aria-label={t.summary.git.push}
-            className="mt-1 justify-start px-1"
+            className="mt-1 justify-start"
             disabled={shipBusy || gitQuery.isFetching || state.ahead === 0}
             onClick={() => void push()}
             size="inline"

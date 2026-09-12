@@ -8,10 +8,12 @@ import type { IconComponent } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
 export interface SummarySectionProps {
+  action?: ReactNode
   children?: ReactNode
+  embedded?: boolean
   emptyMessage?: ReactNode
   error?: string
-  icon: IconComponent
+  icon?: IconComponent
   onRetry?: () => void
   state?: 'empty' | 'error' | 'loading' | 'ready'
   title: string
@@ -19,7 +21,9 @@ export interface SummarySectionProps {
 
 /** Flat, independently stateful groups within the floating summary card. */
 export function SummarySection({
+  action,
   children,
+  embedded = false,
   emptyMessage,
   error,
   icon: Icon,
@@ -32,13 +36,18 @@ export function SummarySection({
 
   return (
     <section
-      className="border-t border-(--ui-stroke-tertiary) py-4 first:border-t-0 first:pt-0 last:pb-0"
+      className={
+        embedded ? 'py-1' : 'border-t border-(--ui-stroke-tertiary) py-3 first:border-t-0 first:pt-0 last:pb-0'
+      }
       data-slot="summary-section"
       data-state={state}
     >
-      <div className="mb-3 flex min-w-0 items-center gap-2 pr-6">
-        <Icon className="size-4 shrink-0 text-(--ui-text-tertiary)" />
-        <h2 className="min-w-0 flex-1 truncate text-sm font-medium text-(--ui-text-tertiary)">{title}</h2>
+      <div className={embedded ? 'sr-only' : 'mb-2 flex min-w-0 items-center gap-2 pr-6'}>
+        {Icon && <Icon className="size-4 shrink-0 text-(--ui-text-tertiary)" />}
+        <h2 className="min-w-0 flex-1 truncate text-[length:var(--aino-text-caption)] font-medium text-(--ui-text-tertiary)">
+          {title}
+        </h2>
+        {action}
       </div>
 
       {state === 'loading' ? (

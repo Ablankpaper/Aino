@@ -552,10 +552,12 @@ spawnFailed: 'Could not start the background operation.'
       branch: 'Branch',
       connection: 'Connection',
       noProject: 'No project is open',
-      noSession: 'No session selected'
+      noSession: 'No session selected',
+      local: 'Local',
+      remote: 'Remote'
     },
     changes: {
-      title: 'Code changes',
+      title: 'Workspace changes',
       files: count => `${count} file${count === 1 ? '' : 's'}`,
       additions: 'Added',
       deletions: 'Removed',
@@ -577,7 +579,8 @@ spawnFailed: 'Could not start the background operation.'
       commit: 'Recent commit',
       pullRequest: 'Pull request',
       push: 'Push',
-      clean: 'Working tree clean',
+      reviewAndCommit: 'Review, commit or create PR',
+      clean: 'No commits ahead or behind',
       unavailable: 'Git is unavailable for this workspace',
       noRepository: 'This workspace is not a Git repository'
     },
@@ -587,19 +590,48 @@ spawnFailed: 'Could not start the background operation.'
       completed: count => `${count} completed`,
       failed: count => `${count} failed`,
       viewAll: 'View all agents',
-      none: 'No subagents in this session'
+      none: 'No subagents in this session',
+      dispatched: count => `${count} dispatched`,
+      finished: 'Finished',
+      status: {
+        running: 'Running',
+        queued: 'Queued',
+        completed: 'Completed',
+        failed: 'Failed',
+        interrupted: 'Interrupted',
+        dispatched: 'Dispatched'
+      }
     },
     context: {
       title: 'Context usage',
       noData: 'No context data yet'
     },
     sources: {
-      title: 'Sources and previews',
+      title: 'Sources',
+      add: 'Add source',
+      image: 'Image attachment',
+      skill: 'Skill',
+      tool: 'Tool',
       attachments: 'Attachments',
       previews: 'Previews',
       links: 'Links',
       none: 'No sources in this session',
       open: 'Open source'
+    },
+    outputs: {
+      title: 'Outputs',
+      create: 'Create a file or website',
+      prompt: 'Help me create a file or website: '
+    },
+    plan: {
+      title: 'Plan',
+      progress: (done, total) => `${done} of ${total} completed`,
+      recorded: 'Last recorded plan',
+      status: { pending: 'Pending', in_progress: 'In progress', completed: 'Completed', cancelled: 'Cancelled' }
+    },
+    background: {
+      title: 'Background processes',
+      status: { running: 'Running', done: 'Completed', failed: 'Failed' }
     },
     resources: {
       title: 'System resources',
@@ -609,6 +641,10 @@ spawnFailed: 'Could not start the background operation.'
       retry: 'Retry resource check'
     },
     state: {
+      showAll: count => `View all (${count})`,
+      showLess: 'Show less',
+      details: 'Details',
+      historyUnavailable: 'Could not load this conversation’s history',
       loading: 'Loading…',
       unavailable: 'Temporarily unavailable',
       noData: 'No data yet',

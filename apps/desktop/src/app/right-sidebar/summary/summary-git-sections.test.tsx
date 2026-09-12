@@ -11,15 +11,17 @@ import { $previewStatusBySession } from '@/store/preview-status'
 import { $activeGatewayProfile } from '@/store/profile'
 import { $projectTree } from '@/store/projects'
 import { $reviewFiles, $reviewOpen, $reviewRevertTarget, $reviewScopeCwd, $reviewShipInfo } from '@/store/review'
-import { $currentCwd, $selectedStoredSessionId, $workspaceCwdOwner } from '@/store/session'
+import { $connection, $currentCwd, $selectedStoredSessionId, $sessions, $workspaceCwdOwner } from '@/store/session'
 import { $summaryOpen, closeSummary } from '@/store/summary'
 import { $workspaceChangeTick } from '@/store/workspace-events'
+import { makeSessionInfo } from '@/test/session-info'
 
 import { ReviewRevertDialog } from '../review/revert-dialog'
 
-import { ChangesSection } from './changes-section'
-import { GitSection } from './git-section'
+import { ChangesSection as ScopedChangesSection } from './changes-section'
+import { GitSection as ScopedGitSection } from './git-section'
 import { SourcesSection } from './sources-section'
+import { type SummarySession, useSummarySession } from './use-summary-session'
 
 import { SummaryPane } from './index'
 
@@ -40,6 +42,14 @@ const cleanStatus: HermesRepoStatus = {
 }
 
 const file = (path: string): HermesReviewFile => ({ added: 2, path, removed: 1, staged: false, status: 'M' })
+
+function ChangesSection() {
+  return <ScopedChangesSection session={useSummarySession()} />
+}
+
+function GitSection() {
+  return <ScopedGitSection session={useSummarySession()} />
+}
 
 function renderWithQuery(children: ReactNode) {
   const client = new QueryClient({ defaultOptions: { queries: { gcTime: 0, retry: false } } })
@@ -75,7 +85,10 @@ function stubGit(
     review
   }
 
-  ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = { git }
+  ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = {
+    git,
+    api: vi.fn(async () => ({ session_id: 'summary-session', messages: [] }))
+  }
 
   return { git, review }
 }
@@ -86,6 +99,8 @@ beforeEach(() => {
   $workspaceCwdOwner.set('summary-session')
   $workspaceChangeTick.set(0)
   $activeGatewayProfile.set('default')
+  $connection.set(null)
+  $sessions.set([])
   $projectTree.set([
     { id: 'summary-project', label: 'Summary project', path: '/summary-repo', repos: [], sessionCount: 1 }
   ])
@@ -105,6 +120,23 @@ afterEach(() => {
 })
 
 describe('Summary Git scope', () => {
+  it('never reads or mutates the foreground repository for a project owned by another connection', async () => {
+    const { git, review } = stubGit({ list: async () => ({ base: null, files: [file('local-only.ts')] }) })
+    $sessions.set([makeSessionInfo({ id: 'summary-session', profile: 'default', connection_id: 'remote-a' })])
+
+    renderWithQuery(<SummaryPane />)
+
+    expect(screen.getByText('Summary project')).toBeTruthy()
+    expect(git.repoStatus).not.toHaveBeenCalled()
+    expect(review.list).not.toHaveBeenCalled()
+    expect(review.shipInfo).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Push' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'View diff' })).toBeNull()
+    expect(review.stage).not.toHaveBeenCalled()
+    expect(review.revert).not.toHaveBeenCalled()
+    expect(review.push).not.toHaveBeenCalled()
+  })
+
   it('opens the selected project in Review and dismisses the floating summary', async () => {
     stubGit({ list: async () => ({ base: null, files: [file('changed.ts')] }) })
     $summaryOpen.set(true)
@@ -120,10 +152,22 @@ describe('Summary Git scope', () => {
   it('opens a source preview and dismisses the floating summary', async () => {
     const url = 'https://example.com/guide'
     $summaryOpen.set(true)
-    $previewStatusBySession.set({
-      'summary-session': [{ cwd: '/summary-repo', id: url, label: 'Guide', target: url }]
-    })
-    renderWithQuery(<SourcesSection />)
+
+    const session: SummarySession = {
+      busy: false,
+      cwd: '/summary-repo',
+      storedId: 'summary-session',
+      runtimeId: null,
+      owner: 'default',
+      scope: { connectionId: 'local', profile: 'default' }
+    }
+
+    renderWithQuery(
+      <SourcesSection
+        items={[{ cwd: '/summary-repo', id: url, kind: 'url', label: 'Guide', target: url }]}
+        session={session}
+      />
+    )
 
     fireEvent.click(screen.getByRole('button', { name: /Guide/ }))
 
@@ -142,7 +186,8 @@ describe('Summary Git scope', () => {
       </>
     )
 
-    expect(screen.getAllByText('No project is open')).toHaveLength(2)
+    expect(screen.queryByText('No project is open')).toBeNull()
+    expect(screen.queryByRole('heading')).toBeNull()
     expect(git.repoStatus).not.toHaveBeenCalled()
     expect(review.list).not.toHaveBeenCalled()
     expect(review.shipInfo).not.toHaveBeenCalled()
@@ -153,6 +198,7 @@ describe('Summary Git scope', () => {
 
     renderWithQuery(<ChangesSection />)
 
+    fireEvent.click(await screen.findByRole('button', { name: 'View all (1)' }))
     expect(await screen.findByText('summary-repo.ts')).toBeTruthy()
     expect(screen.queryByText('pinned-review.ts')).toBeNull()
 
@@ -166,6 +212,7 @@ describe('Summary Git scope', () => {
     stubGit({ list: async () => ({ base: null, files }) })
     renderWithQuery(<ChangesSection />)
 
+    fireEvent.click(await screen.findByRole('button', { name: 'View all (1)' }))
     expect(await screen.findByText('before.ts')).toBeTruthy()
     files = [file('after.ts')]
     act(() => $workspaceChangeTick.set(1))
@@ -190,6 +237,7 @@ describe('Summary Git scope', () => {
     expect(await screen.findByText('Changes are temporarily unavailable')).toBeTruthy()
     fails = false
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'View all (1)' }))
     expect(await screen.findByText('recovered.ts')).toBeTruthy()
   })
 
@@ -210,6 +258,14 @@ describe('Summary Git scope', () => {
     fireEvent.click(push)
 
     await waitFor(() => expect(review.push).toHaveBeenCalledWith('/summary-repo'))
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Review, commit or create PR' }) as HTMLButtonElement).disabled).toBe(
+        false
+      )
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Review, commit or create PR' }))
+    expect($reviewScopeCwd.get()).toBe('/summary-repo')
+    expect($reviewOpen.get()).toBe(true)
   })
 
   it('shows a retryable error instead of presenting a failed status read as no repository', async () => {
@@ -269,6 +325,7 @@ describe('Summary Git scope', () => {
     renderWithQuery(<ChangesSection />)
 
     act(() => $activeGatewayProfile.set('work'))
+    fireEvent.click(await screen.findByRole('button', { name: 'View all (1)' }))
     expect(await screen.findByText('new-profile.ts')).toBeTruthy()
 
     await act(async () => resolveOldStatus(cleanStatus))
@@ -286,7 +343,8 @@ describe('Summary revert confirmation', () => {
       </>
     )
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Revert file: danger.ts' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'View all (1)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Revert file: danger.ts' }))
     expect(screen.getByRole('dialog', { name: 'Revert' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Revert' }))
     await waitFor(() => expect(review.revert).toHaveBeenCalledWith('/summary-repo', 'danger.ts'))

@@ -533,10 +533,12 @@ export const zh: Translations = {
       branch: '分支',
       connection: '连接状态',
       noProject: '未打开项目',
-      noSession: '未选择会话'
+      noSession: '未选择会话',
+      local: '本地',
+      remote: '远程'
     },
     changes: {
-      title: '代码变更',
+      title: '工作区变更',
       files: count => `${count} 个文件`,
       additions: '新增',
       deletions: '删除',
@@ -558,7 +560,8 @@ export const zh: Translations = {
       commit: '最近提交',
       pullRequest: '拉取请求',
       push: '推送',
-      clean: '工作区干净',
+      reviewAndCommit: '审查、提交或创建 PR',
+      clean: '无领先或落后的提交',
       unavailable: '此工作区暂不可用 Git',
       noRepository: '此工作区不是 Git 仓库'
     },
@@ -568,19 +571,48 @@ export const zh: Translations = {
       completed: count => `已完成 ${count}`,
       failed: count => `失败 ${count}`,
       viewAll: '查看全部智能体',
-      none: '此会话暂无子智能体'
+      none: '此会话暂无子智能体',
+      dispatched: count => `已派发 ${count}`,
+      finished: '已结束',
+      status: {
+        running: '运行中',
+        queued: '排队中',
+        completed: '已完成',
+        failed: '失败',
+        interrupted: '已中断',
+        dispatched: '已派发'
+      }
     },
     context: {
       title: '上下文用量',
       noData: '暂时没有上下文数据'
     },
     sources: {
-      title: '来源与预览',
+      title: '来源',
+      add: '添加来源',
+      image: '图片附件',
+      skill: '技能',
+      tool: '工具',
       attachments: '附件',
       previews: '预览',
       links: '链接',
       none: '此会话暂无来源',
       open: '打开来源'
+    },
+    outputs: {
+      title: '输出内容',
+      create: '创建文件或网页',
+      prompt: '帮我创建文件或网页：'
+    },
+    plan: {
+      title: '任务计划',
+      progress: (done, total) => `已完成 ${done} / ${total} 项`,
+      recorded: '会话中最后记录的计划',
+      status: { pending: '待处理', in_progress: '进行中', completed: '已完成', cancelled: '已取消' }
+    },
+    background: {
+      title: '后台进程',
+      status: { running: '运行中', done: '已完成', failed: '失败' }
     },
     resources: {
       title: '系统资源',
@@ -590,6 +622,10 @@ export const zh: Translations = {
       retry: '重试资源查询'
     },
     state: {
+      showAll: count => `查看全部（${count}）`,
+      showLess: '收起',
+      details: '详细信息',
+      historyUnavailable: '暂时无法读取此会话的历史记录',
       loading: '加载中…',
       unavailable: '暂时不可用',
       noData: '暂无数据',

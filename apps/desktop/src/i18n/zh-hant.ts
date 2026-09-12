@@ -297,10 +297,12 @@ export const zhHant = defineLocale({
       branch: '分支',
       connection: '連線狀態',
       noProject: '未開啟專案',
-      noSession: '未選擇工作階段'
+      noSession: '未選擇工作階段',
+      local: '本機',
+      remote: '遠端'
     },
     changes: {
-      title: '程式碼變更',
+      title: '工作區變更',
       files: count => `${count} 個檔案`,
       additions: '新增',
       deletions: '刪除',
@@ -322,7 +324,8 @@ export const zhHant = defineLocale({
       commit: '最近提交',
       pullRequest: '提取要求',
       push: '推送',
-      clean: '工作樹乾淨',
+      reviewAndCommit: '審查、提交或建立 PR',
+      clean: '沒有領先或落後的提交',
       unavailable: '此工作區暫時無法使用 Git',
       noRepository: '此工作區不是 Git 儲存庫'
     },
@@ -332,19 +335,48 @@ export const zhHant = defineLocale({
       completed: count => `已完成 ${count}`,
       failed: count => `失敗 ${count}`,
       viewAll: '檢視所有代理',
-      none: '此工作階段沒有子代理'
+      none: '此工作階段沒有子代理',
+      dispatched: count => `已派發 ${count}`,
+      finished: '已結束',
+      status: {
+        running: '執行中',
+        queued: '排隊中',
+        completed: '已完成',
+        failed: '失敗',
+        interrupted: '已中斷',
+        dispatched: '已派發'
+      }
     },
     context: {
       title: '上下文用量',
       noData: '尚無上下文資料'
     },
     sources: {
-      title: '來源與預覽',
+      title: '來源',
+      add: '新增來源',
+      image: '圖片附件',
+      skill: '技能',
+      tool: '工具',
       attachments: '附件',
       previews: '預覽',
       links: '連結',
       none: '此工作階段沒有來源',
       open: '開啟來源'
+    },
+    outputs: {
+      title: '輸出內容',
+      create: '建立檔案或網頁',
+      prompt: '幫我建立檔案或網頁：'
+    },
+    plan: {
+      title: '任務計畫',
+      progress: (done, total) => `已完成 ${done} / ${total} 項`,
+      recorded: '工作階段中最後記錄的計畫',
+      status: { pending: '待處理', in_progress: '進行中', completed: '已完成', cancelled: '已取消' }
+    },
+    background: {
+      title: '背景處理程序',
+      status: { running: '執行中', done: '已完成', failed: '失敗' }
     },
     resources: {
       title: '系統資源',
@@ -354,6 +386,10 @@ export const zhHant = defineLocale({
       retry: '重試資源查詢'
     },
     state: {
+      showAll: count => `檢視全部（${count}）`,
+      showLess: '收合',
+      details: '詳細資訊',
+      historyUnavailable: '暫時無法讀取此工作階段的歷史記錄',
       loading: '載入中…',
       unavailable: '暫時無法使用',
       noData: '尚無資料',

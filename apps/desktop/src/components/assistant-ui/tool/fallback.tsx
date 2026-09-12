@@ -16,6 +16,7 @@ import {
   useState
 } from 'react'
 
+import { isArtifactProducerTool } from '@/app/artifacts/artifact-utils'
 import { useSessionView } from '@/app/chat/session-view'
 import { AnsiText } from '@/components/assistant-ui/ansi-text'
 import { TimelineTimestamp } from '@/components/assistant-ui/thread/timeline-timestamp'
@@ -399,6 +400,10 @@ function ToolEntry({ part }: ToolEntryProps) {
   // detected target the old inline card did. Idempotent + dedup'd, so re-renders
   // don't churn.
   const previewTarget = view.previewTarget
+
+  const generatedPreview =
+    result !== undefined && view.status === 'success' && (isFileEdit || isArtifactProducerTool(toolName))
+
   // The session whose transcript this row is IN, which is not necessarily the
   // primary one: a tool row inside a session tile must feed that tile's composer.
   const { $cwd: $sessionCwd, $runtimeId: $sessionRuntimeId } = useSessionView()
@@ -414,9 +419,9 @@ function ToolEntry({ part }: ToolEntryProps) {
     const sessionId = $sessionRuntimeId.get()
 
     if (sessionId) {
-      recordPreviewArtifact(sessionId, previewTarget, $sessionCwd.get() || '')
+      recordPreviewArtifact(sessionId, previewTarget, $sessionCwd.get() || '', generatedPreview)
     }
-  }, [$sessionCwd, $sessionRuntimeId, isPending, previewTarget])
+  }, [$sessionCwd, $sessionRuntimeId, generatedPreview, isPending, previewTarget])
 
   const detailSections = useMemo(() => {
     if (!view.detail) {

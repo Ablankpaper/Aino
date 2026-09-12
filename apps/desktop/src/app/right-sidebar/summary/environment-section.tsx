@@ -1,22 +1,18 @@
 import { useStore } from '@nanostores/react'
+import { useState } from 'react'
 
+import { Button } from '@/components/ui/button'
+import { Codicon } from '@/components/ui/codicon'
 import { useI18n } from '@/i18n'
 import type { Translations } from '@/i18n/types'
-import { Activity } from '@/lib/icons'
-import { $activeGatewayProfile } from '@/store/profile'
 import { $projectTree, projectIdForCwd } from '@/store/projects'
-import {
-  $currentBranch,
-  $currentCwd,
-  $currentModel,
-  $currentProvider,
-  $gatewayState,
-  $selectedStoredSessionId,
-  $workspaceCwdOwner
-} from '@/store/session'
+import { $connection, $currentBranch, $currentModel, $currentProvider, $gatewayState } from '@/store/session'
 
+import { ChangesSection } from './changes-section'
+import { GitSection } from './git-section'
 import { formatSummaryPath, summaryEnvironmentState } from './summary-data'
 import { SummarySection, SummaryValue } from './summary-section'
+import { type SummarySession, summarySessionIsCurrent } from './use-summary-session'
 
 function connectionLabel(state: string, copy: Translations['shell']['statusbar']): string {
   if (state === 'open') {
@@ -42,36 +38,70 @@ function connectionLabel(state: string, copy: Translations['shell']['statusbar']
   return copy.gatewayUnavailable
 }
 
-export function EnvironmentSection() {
+export function EnvironmentSection({ session }: { session: SummarySession }) {
   const { t } = useI18n()
-  const cwd = useStore($currentCwd)
-  const cwdOwner = useStore($workspaceCwdOwner)
-  const selectedSession = useStore($selectedStoredSessionId)
+  const [expanded, setExpanded] = useState(false)
+  const connection = useStore($connection)
+  const { cwd, storedId: selectedSession } = session
   const model = useStore($currentModel).trim()
   const provider = useStore($currentProvider).trim()
   const branch = useStore($currentBranch).trim()
   const gatewayState = useStore($gatewayState)
-  const profile = useStore($activeGatewayProfile)
   const projects = useStore($projectTree)
   const projectId = projectIdForCwd(cwd, projects)
   const projectName = projects.find(project => project.id === projectId && !project.isNoProject)?.label ?? null
-  const state = summaryEnvironmentState({ cwd, cwdOwner, projectName, selectedSession })
+  const state = summaryEnvironmentState({ cwd, cwdOwner: selectedSession, projectName, selectedSession })
+  const current = summarySessionIsCurrent(session)
   const copy = t.summary.environment
 
-  if (state.kind === 'no-session') {
-    return <SummarySection emptyMessage={copy.noSession} icon={Activity} state="empty" title={copy.title} />
+  if (state.kind !== 'ready') {
+    return null
   }
 
   return (
-    <SummarySection icon={Activity} title={copy.title}>
-      <div className="grid gap-0.5">
-        <SummaryValue label={copy.project} value={state.kind === 'ready' ? state.projectName : copy.noProject} />
-        {state.kind === 'ready' && <SummaryValue label={copy.workingDirectory} value={formatSummaryPath(state.cwd)} />}
-        <SummaryValue label={copy.model} value={model || t.shell.statusbar.noModel} />
-        <SummaryValue label={copy.provider} value={provider || t.shell.statusbar.modelNone} />
-        <SummaryValue label={copy.profile} value={profile || 'default'} />
-        {state.kind === 'ready' && <SummaryValue label={copy.branch} value={branch || t.summary.state.noData} />}
-        <SummaryValue label={copy.connection} value={connectionLabel(gatewayState, t.shell.statusbar)} />
+    <SummarySection title={copy.title}>
+      <div className="grid gap-1.5">
+        <ChangesSection embedded session={session} />
+        <div className="flex min-w-0 items-center gap-2">
+          <Codicon
+            className="shrink-0 text-(--ui-text-tertiary)"
+            name={current ? (connection?.mode === 'remote' ? 'remote' : 'device-desktop') : 'folder'}
+          />
+          <span className="min-w-0 flex-1 truncate">{state.projectName}</span>
+          {current && (
+            <span className="text-(--ui-text-tertiary)">
+              {connection?.mode === 'remote' ? copy.remote : copy.local}
+            </span>
+          )}
+        </div>
+        <p className="truncate text-[length:var(--aino-text-caption)] text-(--ui-text-tertiary)" title={state.cwd}>
+          {formatSummaryPath(state.cwd)}
+        </p>
+        <GitSection embedded session={session} />
+        <Button
+          aria-expanded={expanded}
+          className="mt-2 justify-start"
+          onClick={() => setExpanded(value => !value)}
+          size="inline"
+          type="button"
+          variant="text"
+        >
+          {t.summary.state.details}
+          <Codicon name={expanded ? 'chevron-down' : 'chevron-right'} />
+        </Button>
+        {expanded && (
+          <div className="mt-1">
+            <SummaryValue label={copy.profile} value={session.scope.profile} />
+            {current && (
+              <>
+                <SummaryValue label={copy.model} value={model || t.shell.statusbar.noModel} />
+                <SummaryValue label={copy.provider} value={provider || t.shell.statusbar.modelNone} />
+                <SummaryValue label={copy.branch} value={branch || t.summary.state.noData} />
+                <SummaryValue label={copy.connection} value={connectionLabel(gatewayState, t.shell.statusbar)} />
+              </>
+            )}
+          </div>
+        )}
       </div>
     </SummarySection>
   )

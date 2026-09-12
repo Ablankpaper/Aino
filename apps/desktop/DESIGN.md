@@ -61,8 +61,29 @@ one-off at the call site.
 - **Summary is a titlebar card.** Its list icon precedes Terminal and the
   right-sidebar toggle. It opens an ephemeral, scrollable popover aligned with
   the toolbar's outside edge, without resizing chat. Click outside, Escape,
-  its close button or the trigger dismisses it. Environment, changes, Git,
-  agents and sources retain their existing data and actions. System
+  its close button or the trigger dismisses it. Its contents follow the selected
+  conversation: ordinary chat starts with a small Outputs affordance; real
+  artifacts, sources, plans, subagents and background processes add their groups
+  only when present. Inputs (attachments, links, loaded skills and external
+  services) are separate from generated outputs. Resource lists start compact
+  and expand in the card; images reuse the existing media resolver and files
+  open through the existing preview path. The create affordance inserts an
+  editable prompt into the composer, never sends one.
+  Project chats add environment, repository changes and Git actions. Changes
+  cover the whole working tree, including manual edits, and retain Review's
+  staging/revert confirmation paths; commit and PR open the existing Review
+  workflow. When the selected conversation's owner differs from the foreground
+  filesystem connection, Git reads/actions stay unavailable until that owner
+  is active; a same-named directory on another machine is never a substitute.
+  Previews retain producer provenance: opening a reference file does not make
+  it an output, and a later successful write promotes that existing preview.
+  Runtime feeds resolve through the selected durable conversation's
+  runtime binding. Persisted history uses the existing owner-scoped transcript
+  API (including compressed history), refreshed on opening and turn boundaries,
+  rather than scanning the transcript on every token. Finished plans/delegations
+  remain readable after their live chips clear; a historical dispatch alone
+  never claims a child is still running. Read failures offer retry, not a false
+  empty result. System
   resources remain in Settings and are not displayed or polled by this card.
   Context usage lives beside the model in the composer: a neutral progress
   ring reveals usage on hover and the existing breakdown on click. It reads
@@ -71,6 +92,12 @@ one-off at the call site.
   no longer fetches or duplicates those details.
   Opening a diff or source preview dismisses the card to uncover that content.
   Older saved layouts retire only the former Summary pane.
+  This behavior draws on Codex's public
+  [artifacts viewer](https://developers.openai.com/codex/artifacts-viewer),
+  [repository review scopes](https://developers.openai.com/codex/code-review?surface=app)
+  and [chat environments](https://developers.openai.com/codex/environments/git-worktrees).
+  Summary aggregates Aino's existing data; it does not introduce another model
+  summarization request or modify conversation context.
 - **Terminal is a bottom workspace.** The default docks it beneath chat while
   navigation and the file/review rails remain full-height. The titlebar toggle,
   palette and shortcut share pane visibility; hiding releases the panel's space

@@ -303,10 +303,12 @@ export const ja = defineLocale({
       branch: 'ブランチ',
       connection: '接続',
       noProject: 'プロジェクトが開かれていません',
-      noSession: 'セッションが選択されていません'
+      noSession: 'セッションが選択されていません',
+      local: 'ローカル',
+      remote: 'リモート'
     },
     changes: {
-      title: 'コード変更',
+      title: 'ワークスペースの変更',
       files: count => `${count} ファイル`,
       additions: '追加',
       deletions: '削除',
@@ -328,7 +330,8 @@ export const ja = defineLocale({
       commit: '最新のコミット',
       pullRequest: 'プルリクエスト',
       push: 'プッシュ',
-      clean: '作業ツリーはクリーンです',
+      reviewAndCommit: 'レビュー、コミット、PR の作成',
+      clean: '先行・遅延コミットなし',
       unavailable: 'このワークスペースでは Git を利用できません',
       noRepository: 'このワークスペースは Git リポジトリではありません'
     },
@@ -338,19 +341,48 @@ export const ja = defineLocale({
       completed: count => `${count} 件完了`,
       failed: count => `${count} 件失敗`,
       viewAll: 'すべてのエージェントを表示',
-      none: 'このセッションにサブエージェントはありません'
+      none: 'このセッションにサブエージェントはありません',
+      dispatched: count => `${count} 件送信済み`,
+      finished: '終了',
+      status: {
+        running: '実行中',
+        queued: '待機中',
+        completed: '完了',
+        failed: '失敗',
+        interrupted: '中断',
+        dispatched: '送信済み'
+      }
     },
     context: {
       title: 'コンテキスト使用量',
       noData: 'コンテキストデータはまだありません'
     },
     sources: {
-      title: 'ソースとプレビュー',
+      title: 'ソース',
+      add: 'ソースを追加',
+      image: '添付画像',
+      skill: 'スキル',
+      tool: 'ツール',
       attachments: '添付ファイル',
       previews: 'プレビュー',
       links: 'リンク',
       none: 'このセッションにソースはありません',
       open: 'ソースを開く'
+    },
+    outputs: {
+      title: '出力',
+      create: 'ファイルやサイトを作成',
+      prompt: 'ファイルやサイトを作成してください：'
+    },
+    plan: {
+      title: '作業計画',
+      progress: (done, total) => `${total} 件中 ${done} 件完了`,
+      recorded: '会話に最後に記録された計画',
+      status: { pending: '未着手', in_progress: '進行中', completed: '完了', cancelled: 'キャンセル済み' }
+    },
+    background: {
+      title: 'バックグラウンドプロセス',
+      status: { running: '実行中', done: '完了', failed: '失敗' }
     },
     resources: {
       title: 'システムリソース',
@@ -360,6 +392,10 @@ export const ja = defineLocale({
       retry: 'リソース確認を再試行'
     },
     state: {
+      showAll: count => `すべて表示（${count}）`,
+      showLess: '折りたたむ',
+      details: '詳細',
+      historyUnavailable: 'この会話の履歴を読み込めません',
       loading: '読み込み中…',
       unavailable: '一時的に利用できません',
       noData: 'データはまだありません',
