@@ -48,6 +48,7 @@ import {
   type TrackContext
 } from './track-model'
 import { TreeNode } from './tree-node'
+import { useStableTrackOrder } from './use-stable-track-order'
 
 /** The single group id a subtree resolves to, or null when it holds several
  *  zones — the sash can only collapse a boundary that IS exactly one zone. */
@@ -239,15 +240,21 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
         }
       }
 
-      const kidA = container.children[aIndex] as HTMLElement | undefined
-      const kidB = container.children[bIndex] as HTMLElement | undefined
+      // DOM order stays stable across swaps; resize the visual neighbors
+      // identified by the layout tree, never an incidental DOM index.
+      const elements = new Map(
+        Array.from(container.children, element => [(element as HTMLElement).dataset.treeTrack, element as HTMLElement])
+      )
+
+      const kidA = elements.get(node.children[aIndex].id)
+      const kidB = elements.get(node.children[bIndex].id)
 
       if (!kidA || !kidB) {
         return
       }
 
       const tracks = node.children.map((child, index) => {
-        const element = container.children[index] as HTMLElement | undefined
+        const element = elements.get(child.id)
 
         if (!element) {
           return null
@@ -631,6 +638,8 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
     return { child, collapsed, minimized, narrowCollapsed, sizing, track }
   })
 
+  const stableTracks = useStableTrackOrder(tracks)
+
   const growable = tracks.map((_, i) => i).filter(i => !tracks[i].collapsed && !tracks[i].minimized)
   const allFixed = growable.length > 0 && growable.every(i => tracks[i].track !== null)
 
@@ -676,11 +685,11 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
 
   return (
     <div
-      className={cn('flex min-h-0 min-w-0 flex-1', horizontal ? 'flex-row' : 'flex-col')}
+      className={cn('flex min-h-0 min-w-0 flex-1 [reading-flow:flex-visual]', horizontal ? 'flex-row' : 'flex-col')}
       data-tree-split={node.id}
       ref={containerRef}
     >
-      {tracks.map(({ child, collapsed, minimized, narrowCollapsed, sizing, track }, i) => {
+      {stableTracks.map(({ child, collapsed, index: i, minimized, narrowCollapsed, sizing, track }) => {
         const partner = collapsed ? -1 : seamPartner(i)
         const absorbs = i === absorberIndex
 
@@ -695,13 +704,15 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
         return (
           <div
             className="relative flex min-h-0 min-w-0"
+            data-tree-track={child.id}
             key={child.id}
             style={
               collapsed
-                ? { display: 'none' }
+                ? { display: 'none', order: i }
                 : minimized
-                  ? { flex: `0 0 ${MINIMIZED_TRACK}` }
+                  ? { flex: `0 0 ${MINIMIZED_TRACK}`, order: i }
                   : {
+                      order: i,
                       // One flexbox formula for everything: a sized zone is
                       // grow-0 shrink-1 from its preferred basis (it yields
                       // gracefully on tight windows, floored by min-width);

@@ -11,7 +11,6 @@ import { openArtifact } from '@/store/artifacts'
 import { revealFileInTree } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
 import { openPreview } from '@/store/preview'
-import { closeSummary } from '@/store/summary'
 
 import type { SummaryResource } from './session-content'
 import { type SummarySession, summarySessionIsCurrent } from './use-summary-session'
@@ -78,8 +77,6 @@ export function SummaryResourceList({ items, session }: { items: SummaryResource
           openPreview(preview, 'manual')
         }
       }
-
-      closeSummary()
     } catch (error) {
       notifyError(error, t.summary.state.unavailable)
     }

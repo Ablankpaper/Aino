@@ -11,7 +11,6 @@ import { GitBranch } from '@/lib/icons'
 import { notifyError } from '@/store/notifications'
 import { $projectTree, projectIdForCwd } from '@/store/projects'
 import { $reviewShipBusy, pushChanges, revealReview } from '@/store/review'
-import { closeSummary } from '@/store/summary'
 import { $workspaceChangeTick } from '@/store/workspace-events'
 
 import { summaryGitState } from './git-summary'
@@ -173,8 +172,7 @@ export function GitSection({ embedded = false, session }: { embedded?: boolean; 
               return
             }
 
-            revealReview(cwd)
-            closeSummary()
+            revealReview(cwd, session.target)
           }}
           size="inline"
           type="button"

@@ -1,8 +1,8 @@
 import { atom } from 'nanostores'
 
-/** Window-local card state, shared with actions that open Review or a preview. */
+/** Window-local choice; only the titlebar toggle changes summary visibility. */
 export const $summaryOpen = atom(false)
 
-export function closeSummary(): void {
-  $summaryOpen.set(false)
+export function toggleSummary(): void {
+  $summaryOpen.set(!$summaryOpen.get())
 }

@@ -16,6 +16,7 @@ import {
   $sidebarWorkspaceNodeOpen,
   setSidebarGrouping
 } from '@/store/layout'
+import { $activeGatewayProfile } from '@/store/profile'
 import { $projectDialog, $projects, $projectScope, $projectTree, ALL_PROJECTS } from '@/store/projects'
 import { $selectedStoredSessionId, $sessions } from '@/store/session'
 import { $removedSessionIds } from '@/store/session-removal'
@@ -213,7 +214,17 @@ describe('ChatSidebar navigation activity', () => {
     expect(screen.getByRole('button', { name: 'Recent' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Open folder as project…' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'New project' }))
-    expect($projectDialog.get()).toEqual({ mode: 'create' })
+    const invocation = $projectDialog.get()
+    expect(invocation?.mode).toBe('create')
+    expect(invocation?.isCurrent?.()).toBe(true)
+    const profile = $activeGatewayProfile.get()
+
+    try {
+      act(() => $activeGatewayProfile.set('another-workspace'))
+      expect(invocation?.isCurrent?.()).toBe(false)
+    } finally {
+      act(() => $activeGatewayProfile.set(profile))
+    }
   })
 
   it('separates project sessions from recent chats while preserving empty projects', () => {

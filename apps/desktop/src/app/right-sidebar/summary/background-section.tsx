@@ -4,7 +4,6 @@ import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { useSessionSlice } from '@/lib/use-session-slice'
 import { $backgroundStatusBySession, dismissBackgroundProcess, stopBackgroundProcess } from '@/store/composer-status'
-import { closeSummary } from '@/store/summary'
 
 import { openAgentTerminal } from '../terminal/terminals'
 
@@ -36,7 +35,6 @@ export function BackgroundSection({ session }: { session: SummarySession }) {
                   }
 
                   openAgentTerminal(item.id, item.title)
-                  closeSummary()
                 }}
                 size="sm"
                 type="button"

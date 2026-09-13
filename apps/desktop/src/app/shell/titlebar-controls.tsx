@@ -40,7 +40,7 @@ import { $unreadSessionCount } from '@/store/session-dot-state'
 
 import { appViewForPath, isRouteBlockingSurface } from '../routes'
 
-import { SummaryPopover } from './summary-popover'
+import { SummaryToggle } from './summary-toggle'
 import {
   TITLEBAR_ICON_BADGE_SCALE,
   TITLEBAR_LEFT_ICON_SIZE,
@@ -347,7 +347,7 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
         {visibleSystemTools.map(tool => (
           <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
         ))}
-        <SummaryPopover />
+        <SummaryToggle />
         <TitlebarToolButton navigate={navigate} tool={terminalTool} />
         <TitlebarToolButton navigate={navigate} tool={rightSidebarTool} />
       </div>

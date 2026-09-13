@@ -15,14 +15,14 @@ import {
   $reviewCommitDefault,
   $reviewCommitMsgBusy,
   $reviewFiles,
-  $reviewScopeTarget,
   $reviewShipBusy,
   $reviewShipInfo,
   cancelCommitMessage,
   type CommitAction,
   commitChanges,
   createOrOpenPr,
-  generateCommitMessage
+  generateCommitMessage,
+  reviewComposerTarget
 } from '@/store/review'
 
 // One size for every glyph in the bar so the row reads as a set of peers.
@@ -36,7 +36,6 @@ export function ReviewShipBar() {
   const c = t.statusStack.coding
   const files = useStore($reviewFiles)
   const ship = useStore($reviewShipInfo)
-  const scopeTarget = useStore($reviewScopeTarget)
   const busy = useStore($reviewShipBusy)
   const generating = useStore($reviewCommitMsgBusy)
   const commitDefault = useStore($reviewCommitDefault)
@@ -132,7 +131,9 @@ export function ReviewShipBar() {
           className="min-w-0 flex-1 justify-center px-7 text-[0.7rem] text-muted-foreground/85 hover:text-foreground"
           disabled={!hasFiles}
           onClick={() => {
-            if (!requestComposerSubmit(c.agentShipPrompt, { target: scopeTarget })) {
+            const target = reviewComposerTarget()
+
+            if (!target || !requestComposerSubmit(c.agentShipPrompt, { target })) {
               notifyError(new Error(c.agentShipUnavailable), c.agentShip)
             }
           }}

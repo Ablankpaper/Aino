@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
-import { closeSummary } from '@/store/summary'
 
 import { SummaryResourceList } from './resource-list'
 import type { SummaryResource } from './session-content'
@@ -23,10 +22,7 @@ export function SourcesSection({ items, session }: { items: SummaryResource[]; s
         <Tip label={t.summary.sources.add}>
           <Button
             aria-label={t.summary.sources.add}
-            onClick={() => {
-              closeSummary()
-              requestComposerFocus('main', { typeChar: '@' })
-            }}
+            onClick={() => requestComposerFocus(session.target, { typeChar: '@' })}
             size="icon-xs"
             type="button"
             variant="ghost"

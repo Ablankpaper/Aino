@@ -1,7 +1,10 @@
 import { atom, computed } from 'nanostores'
 
+import { translateNow } from '@/i18n'
 import { readKey, writeKey } from '@/lib/storage'
-import { $currentCwd } from '@/store/session'
+import { notifyError } from '@/store/notifications'
+import { $connection } from '@/store/session'
+import { $toolSession, $toolWorkspaceCwd, toolSessionHasCurrentSource } from '@/store/tool-session'
 
 import { setTerminalTakeover } from '../store'
 
@@ -18,8 +21,10 @@ export interface TerminalEntry {
    *  session/project state — the only thing they inherit is this initial cwd
    *  (the project root if opened in one, else the backend's default). Switching
    *  sessions never moves or recreates a terminal; at most it re-SELECTS a tab
-   *  already pointed at the session's cwd (see the $currentCwd listener). */
+   *  already pointed at the session's cwd (see the $toolWorkspaceCwd listener). */
   cwd: string
+  /** Creation source, checked before delayed font loading starts the shell. */
+  sourceKey?: string
   /** Last observed working directory of the live shell (tracked via the PTY
    *  cwd probe / OSC 7). Used to reopen the tab where the user last `cd`'d
    *  rather than the original launch dir. User tabs only. */
@@ -159,12 +164,46 @@ const newId = () =>
 
 /** Append a fresh terminal and focus it. Captures the current cwd once (its only
  *  tie to session/project state); pass an explicit cwd to override. Returns the id. */
-export function createTerminal(cwd: string = $currentCwd.get()): string {
+export function createTerminal(cwd: string): string
+// eslint-disable-next-line no-redeclare -- TypeScript overload keeps explicit-cwd callers' guaranteed terminal id.
+export function createTerminal(): string | null
+
+// eslint-disable-next-line no-redeclare -- Implementation of the two overload signatures above.
+export function createTerminal(cwd?: string): string | null {
+  const session = $toolSession.get()
+
+  const connection = $connection.get()
+
+  if (
+    cwd === undefined &&
+    (!toolSessionHasCurrentSource(session) || (connection?.mode === 'remote' && connection.remoteKind !== 'ssh'))
+  ) {
+    notifyError(new Error(translateNow('summary.state.unavailable')), translateNow('summary.state.unavailable'))
+
+    return null
+  }
+
   const id = newId()
-  $terminals.set([...$terminals.get(), { id, title: 'Terminal', auto: true, cwd, kind: 'user' }])
+  $terminals.set([
+    ...$terminals.get(),
+    {
+      id,
+      title: 'Terminal',
+      auto: true,
+      cwd: cwd ?? session.cwd,
+      kind: 'user',
+      ...(cwd === undefined ? { sourceKey: session.sourceKey } : {})
+    }
+  ])
   $activeTerminalId.set(id)
 
   return id
+}
+
+export function terminalSourceIsCurrent(id: string): boolean {
+  const sourceKey = $terminals.get().find(term => term.id === id)?.sourceKey
+
+  return !sourceKey || sourceKey === $toolSession.get().sourceKey
 }
 
 // Procs we've already surfaced a tab for — so closing an agent tab doesn't
@@ -242,8 +281,8 @@ const terminalCwd = (term: TerminalEntry) => normalizePath(term.restoreCwd || te
 // one, and never reveals the pane; a detached session (empty cwd) or a cwd no
 // tab lives in leaves the tabs exactly where they were. `listen` (not
 // `subscribe`) so boot keeps the persisted active tab.
-$currentCwd.listen(cwd => {
-  const target = normalizePath(cwd)
+computed([$toolWorkspaceCwd, $toolSession], (cwd, session) => JSON.stringify([cwd, session.sourceKey])).listen(() => {
+  const target = normalizePath($toolWorkspaceCwd.get())
 
   if (!target) {
     return
@@ -252,11 +291,13 @@ $currentCwd.listen(cwd => {
   const list = $terminals.get()
   const active = list.find(term => term.id === $activeTerminalId.get())
 
-  if (active?.kind === 'user' && terminalCwd(active) === target) {
+  if (active?.kind === 'user' && terminalSourceIsCurrent(active.id) && terminalCwd(active) === target) {
     return
   }
 
-  const match = list.find(term => term.kind === 'user' && terminalCwd(term) === target)
+  const match = list.find(
+    term => term.kind === 'user' && terminalSourceIsCurrent(term.id) && terminalCwd(term) === target
+  )
 
   if (match) {
     $activeTerminalId.set(match.id)

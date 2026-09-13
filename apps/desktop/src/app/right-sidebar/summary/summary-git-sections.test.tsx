@@ -12,7 +12,7 @@ import { $activeGatewayProfile } from '@/store/profile'
 import { $projectTree } from '@/store/projects'
 import { $reviewFiles, $reviewOpen, $reviewRevertTarget, $reviewScopeCwd, $reviewShipInfo } from '@/store/review'
 import { $connection, $currentCwd, $selectedStoredSessionId, $sessions, $workspaceCwdOwner } from '@/store/session'
-import { $summaryOpen, closeSummary } from '@/store/summary'
+import { $summaryOpen } from '@/store/summary'
 import { $workspaceChangeTick } from '@/store/workspace-events'
 import { makeSessionInfo } from '@/test/session-info'
 
@@ -113,7 +113,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  closeSummary()
+  $summaryOpen.set(false)
   $previewTabs.set([])
   $previewStatusBySession.set({})
   delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
@@ -137,7 +137,7 @@ describe('Summary Git scope', () => {
     expect(review.push).not.toHaveBeenCalled()
   })
 
-  it('opens the selected project in Review and dismisses the floating summary', async () => {
+  it('opens the selected project in Review while keeping summary open', async () => {
     stubGit({ list: async () => ({ base: null, files: [file('changed.ts')] }) })
     $summaryOpen.set(true)
     renderWithQuery(<ChangesSection />)
@@ -146,10 +146,10 @@ describe('Summary Git scope', () => {
 
     expect($reviewOpen.get()).toBe(true)
     expect($reviewScopeCwd.get()).toBe('/summary-repo')
-    expect($summaryOpen.get()).toBe(false)
+    expect($summaryOpen.get()).toBe(true)
   })
 
-  it('opens a source preview and dismisses the floating summary', async () => {
+  it('opens a source preview while keeping summary open', async () => {
     const url = 'https://example.com/guide'
     $summaryOpen.set(true)
 
@@ -158,6 +158,8 @@ describe('Summary Git scope', () => {
       cwd: '/summary-repo',
       storedId: 'summary-session',
       runtimeId: null,
+      sourceKey: '',
+      target: 'main',
       owner: 'default',
       scope: { connectionId: 'local', profile: 'default' }
     }
@@ -172,7 +174,7 @@ describe('Summary Git scope', () => {
     fireEvent.click(screen.getByRole('button', { name: /Guide/ }))
 
     await waitFor(() => expect($previewTabs.get().some(tab => tab.target.source === url)).toBe(true))
-    expect($summaryOpen.get()).toBe(false)
+    expect($summaryOpen.get()).toBe(true)
   })
 
   it('does not issue Git reads when no project owns the session cwd', async () => {

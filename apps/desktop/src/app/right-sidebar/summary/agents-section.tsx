@@ -7,7 +7,6 @@ import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { useSessionSlice } from '@/lib/use-session-slice'
 import { $subagentsBySession } from '@/store/subagents'
-import { closeSummary } from '@/store/summary'
 import { openSessionInNewWindow } from '@/store/windows'
 
 import { summaryAgentCounts, type SummaryDelegation, summaryDelegations } from './session-activity'
@@ -61,10 +60,7 @@ export function AgentsSection({ history, session }: { history: SummaryDelegation
                 : t.summary.agents.status[row.status]
 
               const open = row.sessionId
-                ? () => {
-                    closeSummary()
-                    void openSessionInNewWindow(row.sessionId!, { watch: true })
-                  }
+                ? () => void openSessionInNewWindow(row.sessionId!, { watch: true })
                 : undefined
 
               return (
@@ -100,10 +96,7 @@ export function AgentsSection({ history, session }: { history: SummaryDelegation
           )}
           <Button
             className="mt-1 justify-start"
-            onClick={() => {
-              closeSummary()
-              navigate('/agents')
-            }}
+            onClick={() => void navigate('/agents')}
             size="inline"
             type="button"
             variant="text"

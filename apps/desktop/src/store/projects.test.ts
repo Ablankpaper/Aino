@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { NO_PROJECT_ID, type SidebarProjectTree } from '@/app/chat/sidebar/projects/workspace-groups'
 import { $sidebarAgentsGrouped, $sidebarWorkspaceNodeOpen, setSidebarAgentsGrouped } from '@/store/layout'
-import { $activeGatewayProfile, setShowAllProfiles } from '@/store/profile'
+import { $activeGatewayProfile, $showAllProfiles, setShowAllProfiles } from '@/store/profile'
 import {
   $activeSessionId,
   $currentCwd,
@@ -21,6 +21,7 @@ import {
   $projectsRpcAvailable,
   $projectTree,
   $projectTreeLoading,
+  $startWorkSessionRequest,
   $worktreeRefreshToken,
   ALL_PROJECTS,
   createProject,
@@ -28,6 +29,7 @@ import {
   exitProjectScope,
   fetchProjectSessions,
   followActiveSessionCwd,
+  openFolderAsProject,
   openProjectCreate,
   pickProjectFolder,
   projectIdForCwd,
@@ -527,6 +529,45 @@ describe('pickProjectFolder', () => {
 
     await expect(pickProjectFolder()).resolves.toBeNull()
   })
+
+  it('leaves all-profiles browsing before opening a folder as a project', async () => {
+    setShowAllProfiles(true)
+    $startWorkSessionRequest.set(null)
+    $projectsRpcAvailable.set(null)
+
+    const created = { folders: [], id: 'p_demo', name: 'demo', primary_path: '/srv/demo' }
+    const treeProject = { ...created, path: '/srv/demo', repos: [], sessionCount: 0 }
+    let treeReads = 0
+
+    const request = vi.fn(async (method: string) => {
+      if (method === 'projects.create') {
+        return { project: created }
+      }
+
+      if (method === 'projects.tree') {
+        treeReads += 1
+
+        return {
+          active_id: treeReads === 1 ? null : 'p_demo',
+          projects: treeReads === 1 ? [] : [treeProject],
+          scoped_session_ids: []
+        }
+      }
+
+      return { active_id: 'p_demo', projects: [treeProject], scoped_session_ids: [] }
+    })
+
+    const gateway = { connectionState: 'open', request }
+    activeGateway.mockReturnValue(gateway as never)
+    gatewayAtom.set(gateway as never)
+
+    await openFolderAsProject('/srv/demo')
+
+    expect($showAllProfiles.get()).toBe(false)
+    expect(request).toHaveBeenCalledWith('projects.create', expect.objectContaining({ profile: 'default' }))
+    expect($startWorkSessionRequest.get()).toMatchObject({ path: '/srv/demo', openTab: true })
+    expect(notify).not.toHaveBeenCalled()
+  })
 })
 
 describe('createProject', () => {
@@ -571,6 +612,115 @@ describe('createProject', () => {
     )
     expect($projectsRpcAvailable.get()).toBe(false)
   })
+
+  it('does not publish a project created on a previous source into the new workspace', async () => {
+    let finish!: (value: unknown) => void
+    let started!: () => void
+
+    const sent = new Promise<void>(resolve => {
+      started = resolve
+    })
+
+    const request = vi.fn(() => {
+      started()
+
+      return new Promise(resolve => {
+        finish = resolve
+      })
+    })
+
+    activeGateway.mockReturnValue({ connectionState: 'open', request } as never)
+    $projects.set([])
+    $projectTree.set([])
+    const creating = createProject({ name: 'Previous source', folders: ['/previous'], use: true })
+    await sent
+    activeGateway.mockReturnValue({ connectionState: 'open', request: vi.fn() } as never)
+    finish({ project: { folders: [], id: 'p_previous', name: 'Previous source', primary_path: '/previous' } })
+    await creating
+    expect($projects.get()).toEqual([])
+    expect($projectTree.get()).toEqual([])
+    expect($activeProjectId.get()).toBeNull()
+  })
+})
+
+it('never reuses an all-profile project ID after the current-profile tree read fails', async () => {
+  const request = vi.fn(async (method: string) => {
+    if (method === 'projects.tree') {
+      throw new Error('offline')
+    }
+
+    return { active_id: null }
+  })
+
+  activeGateway.mockReturnValue({ connectionState: 'open', request } as never)
+  $activeGatewayProfile.set('default')
+  setShowAllProfiles(true)
+  $projectTree.set([{ id: 'p_other_owner', label: 'Other', path: '/same-path', repos: [], sessionCount: 0 }])
+  $projectScope.set(ALL_PROJECTS)
+  $startWorkSessionRequest.set(null)
+  await expect(openFolderAsProject('/same-path')).rejects.toThrow()
+  expect(request.mock.calls.map(call => call[0])).not.toContain('projects.set_active')
+  expect($projectScope.get()).toBe(ALL_PROJECTS)
+  expect($startWorkSessionRequest.get()).toBeNull()
+  setShowAllProfiles(false)
+})
+
+it('opens a plain folder chat on a backend without project RPCs without reusing cached project IDs', async () => {
+  const request = vi.fn(async () => {
+    throw new Error('unknown method: projects.tree')
+  })
+
+  activeGateway.mockReturnValue({ connectionState: 'open', request } as never)
+  $activeGatewayProfile.set('default')
+  $projectsRpcAvailable.set(null)
+  setShowAllProfiles(true)
+  $projectTree.set([{ id: 'p_other_owner', label: 'Other', path: '/same-path', repos: [], sessionCount: 0 }])
+  $projectScope.set(ALL_PROJECTS)
+  $startWorkSessionRequest.set(null)
+  await openFolderAsProject('/same-path')
+  expect(request).toHaveBeenCalledOnce()
+  expect($projectScope.get()).toBe(ALL_PROJECTS)
+  expect($startWorkSessionRequest.get()).toMatchObject({ path: '/same-path', openTab: true })
+  expect(notify).toHaveBeenCalledWith(
+    expect.objectContaining({ kind: 'warning', message: 'sidebar.projects.staleBackend' })
+  )
+})
+
+it('finishes an explicit folder open when a newer same-owner background refresh wins the cache', async () => {
+  let finish!: (tree: unknown) => void
+  let started!: () => void
+
+  const reading = new Promise<void>(resolve => {
+    started = resolve
+  })
+
+  const selected = { id: 'p_selected', label: 'Selected', path: '/selected', repos: [], sessionCount: 0 }
+  const newer = { id: 'p_newer', label: 'Newer', path: '/newer', repos: [], sessionCount: 0 }
+  let reads = 0
+
+  const request = vi.fn(async (method: string) => {
+    if (method === 'projects.tree' && ++reads === 1) {
+      started()
+
+      return new Promise(resolve => {
+        finish = resolve
+      })
+    }
+
+    return { projects: [selected, newer], active_id: null, scoped_session_ids: [] }
+  })
+
+  activeGateway.mockReturnValue({ connectionState: 'open', request } as never)
+  $projectsRpcAvailable.set(null)
+  setShowAllProfiles(false)
+  $startWorkSessionRequest.set(null)
+  const opening = openFolderAsProject('/selected')
+  await reading
+  await refreshProjectTree()
+  finish({ projects: [selected], active_id: null, scoped_session_ids: [] })
+  await opening
+  expect($startWorkSessionRequest.get()).toMatchObject({ path: '/selected', openTab: true })
+  expect($projectTree.get().map(project => project.id)).toEqual(['p_selected', 'p_newer'])
 })
 
 describe('projects RPC capability', () => {

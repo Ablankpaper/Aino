@@ -1931,6 +1931,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
     failedImport: 'プロファイルのインポートに失敗しました',
     failedExport: 'プロファイルのエクスポートに失敗しました',
     allProfiles: 'すべてのプロファイル',
+    advanced: '詳細ワークスペース',
     showAllProfiles: 'すべてのプロファイルを表示',
     switchToProfile: name => `${name} に切り替え`,
     switchToConnection: name => `${name} に切り替え`,
@@ -2298,13 +2299,20 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
       menuAppearance: '外観',
       noColor: '色なし',
       menuAddFolder: 'フォルダを追加',
+      manageFolders: 'フォルダを管理',
+      setPrimaryFolder: 'メインフォルダに設定',
+      foldersDescription:
+        '新しい会話にはメインフォルダを使用します。関連付けを解除してもファイルと会話は保持されます。',
+      keepOneFolder: '少なくとも1つのフォルダを残してください',
+      contextChanged: '会話またはワークスペースが変更されました。このダイアログを開き直してください。',
       menuSetActive: 'アクティブに設定',
-      menuDelete: '削除',
+      menuDelete: 'プロジェクトの登録を解除',
       reveal: 'フォルダで表示',
       copyPath: 'パスをコピー',
       removeFromSidebar: 'サイドバーから削除',
       createFailed: 'プロジェクトを作成できませんでした',
-      unavailableAllProfiles: 'すべてのプロファイルを表示中はプロジェクトを利用できません',
+      unavailableAllProfiles:
+        '全プロファイル表示では読み取り専用です。編集するには設定で所属ワークスペースを選択してください。',
       activeProfileChanged: '接続中にアクティブな Hermes プロファイルが変更されました',
       staleBackend:
         'プロジェクトを作成するには Hermes バックエンドを更新してください。バックエンドがこのデスクトップアプリより古いです（設定 → 更新 → バックエンド）。',
@@ -2648,6 +2656,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
     },
     coding: {
       selectProject: 'プロジェクトを選択',
+      noProject: 'プロジェクトなし',
       startProjectChat: 'プロジェクトで新しい会話を開始',
       viewChanges: '変更を表示',
       title: 'ワークツリー',

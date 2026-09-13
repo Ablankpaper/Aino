@@ -35,16 +35,16 @@ import {
   $reviewFiles,
   $reviewLoading,
   $reviewOpen,
-  $reviewScopeCwd,
+  $reviewRepoCwd,
   $reviewSelectedPath,
   $reviewTreeMode,
   requestRevert,
   reviewRepoCwd,
+  reviewWorkspaceKey,
   selectReviewFile,
   stageReviewFile,
   unstageReviewFile
 } from '@/store/review'
-import { $currentCwd } from '@/store/session'
 
 import { pickRevealLabel } from '../file-actions'
 
@@ -319,9 +319,7 @@ function ReviewFileRow({ node, depth }: { node: ReviewTreeNode; depth: number })
   const dragPath = absolutePath(file.path)
   // Reactive mirror of reviewRepoCwd(): the pinned scope wins, else the
   // active session's cwd (subscribing to both keeps the row live either way).
-  const scopeCwd = useStore($reviewScopeCwd)
-  const activeCwd = useStore($currentCwd)
-  const cwd = scopeCwd?.trim() || activeCwd
+  const cwd = useStore($reviewRepoCwd) || ''
 
   // Single-click shows the inline diff; double-click opens the file in the main
   // preview pane (matching the file browser). They're mutually exclusive: defer
@@ -356,15 +354,22 @@ function ReviewFileRow({ node, depth }: { node: ReviewTreeNode; depth: number })
   }
 
   const openInPreview = () => {
+    const workspace = reviewWorkspaceKey()
+
+    if (!workspace) {
+      return
+    }
     void (async () => {
       try {
         const preview = await normalizeOrLocalPreviewTarget(dragPath)
 
-        if (preview) {
+        if (preview && reviewWorkspaceKey() === workspace) {
           openPreview(preview, 'file-browser')
         }
       } catch (error) {
-        notifyError(error, t.rightSidebar.previewUnavailable)
+        if (reviewWorkspaceKey() === workspace) {
+          notifyError(error, t.rightSidebar.previewUnavailable)
+        }
       }
     })()
   }

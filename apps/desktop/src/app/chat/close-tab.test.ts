@@ -7,6 +7,9 @@ const nextSessionTileForWorkspace = vi.fn<() => null | string>(() => null)
 const closeSessionTile = vi.fn()
 const requestFreshSession = vi.fn()
 
+// These tests own the tab-close ladder, not the terminal's workspace context.
+vi.mock('@/app/right-sidebar/terminal/terminals', () => ({ closeActiveTerminal: vi.fn() }))
+
 vi.mock('@/components/pane-shell/tree/store', () => ({
   closeFocusedSessionTab: () => closeFocusedSessionTab(),
   closeFocusedToolTab: () => closeFocusedToolTab()

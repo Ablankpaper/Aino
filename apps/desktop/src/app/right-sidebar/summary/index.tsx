@@ -12,7 +12,7 @@ import { SourcesSection } from './sources-section'
 import { useSummaryContent } from './use-summary-content'
 import { useSummarySession } from './use-summary-session'
 
-/** Live summary sections; the titlebar owns the floating card and dismissal. */
+/** Live summary sections inside the window's persistent summary rail. */
 export function SummaryPane() {
   const { t } = useI18n()
   const session = useSummarySession()

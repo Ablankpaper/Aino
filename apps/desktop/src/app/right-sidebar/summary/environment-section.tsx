@@ -6,7 +6,8 @@ import { Codicon } from '@/components/ui/codicon'
 import { useI18n } from '@/i18n'
 import type { Translations } from '@/i18n/types'
 import { $projectTree, projectIdForCwd } from '@/store/projects'
-import { $connection, $currentBranch, $currentModel, $currentProvider, $gatewayState } from '@/store/session'
+import { $connection, $gatewayState } from '@/store/session'
+import { $toolSessionBranch, $toolSessionModel, $toolSessionProvider } from '@/store/tool-session'
 
 import { ChangesSection } from './changes-section'
 import { GitSection } from './git-section'
@@ -43,9 +44,9 @@ export function EnvironmentSection({ session }: { session: SummarySession }) {
   const [expanded, setExpanded] = useState(false)
   const connection = useStore($connection)
   const { cwd, storedId: selectedSession } = session
-  const model = useStore($currentModel).trim()
-  const provider = useStore($currentProvider).trim()
-  const branch = useStore($currentBranch).trim()
+  const model = useStore($toolSessionModel).trim()
+  const provider = useStore($toolSessionProvider).trim()
+  const branch = useStore($toolSessionBranch).trim()
   const gatewayState = useStore($gatewayState)
   const projects = useStore($projectTree)
   const projectId = projectIdForCwd(cwd, projects)

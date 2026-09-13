@@ -7,6 +7,7 @@ import { SessionDraftTitle } from '@/app/chat/session-draft-title'
 import { SessionStatusDot } from '@/app/chat/session-status-dot'
 import { PALETTE_AREA, type PaletteContribution, paletteToggle } from '@/app/command-palette/contrib'
 import { type StatusbarItem } from '@/app/shell/statusbar-controls'
+import { SummaryWorkspace } from '@/app/shell/summary-workspace'
 import { TITLEBAR_HEIGHT } from '@/app/shell/titlebar'
 import tabSessionsIcon from '@/assets/aino-home/tab-sessions.svg'
 import { AinoDesignIcon } from '@/components/aino-design-icon'
@@ -78,18 +79,12 @@ import {
   SIDEBAR_MAX_WIDTH
 } from '@/store/layout'
 import { runExportProfileFlow, runImportProfileFlow } from '@/store/profile-share'
-import {
-  $reviewOpen,
-  $reviewScopeCwd,
-  $reviewScopeTarget,
-  closeReview,
-  openReview,
-  REVIEW_PANE_ID
-} from '@/store/review'
-import { $currentCwd, $selectedStoredSessionId, $sessions, $yoloActive, sessionMatchesStoredId } from '@/store/session'
+import { $reviewOpen, $reviewRepoCwd, closeReview, restoreReview, REVIEW_PANE_ID } from '@/store/review'
+import { $selectedStoredSessionId, $sessions, $yoloActive, sessionMatchesStoredId } from '@/store/session'
 import { watchSessionPins } from '@/store/session-pin-sync'
 import { $botChatScopes } from '@/store/session-states'
 import { watchUnreadWriteGuard } from '@/store/session-unread-remote'
+import { $toolWorkspaceCwd } from '@/store/tool-session'
 import { isAuxiliaryWindow, isBrowserWindow, isHudWindow } from '@/store/windows'
 
 import { BrowserPopoutShell } from '../chat/browser-popout-shell'
@@ -633,7 +628,7 @@ bindTreeSideVisibility('right', $fileBrowserOpen, setFileBrowserOpen)
 // collapse and the chat absorbs the width; picking a project brings them
 // back. The terminal is NOT workspace-gated: unlike the old shell (where it
 // rode the rail's row and vanished with it), its zone stands on its own.
-const $hasWorkspace = computed($currentCwd, cwd => Boolean(cwd.trim()))
+const $hasWorkspace = computed($toolWorkspaceCwd, cwd => Boolean(cwd))
 
 // The tree pane's own presence tracks ⌘J directly, not just the column's
 // collapse — otherwise a pane revealed into that shared column would drag the
@@ -654,9 +649,9 @@ bindPaneVisibility(
 // ⌘G — the review sidebar appears/disappears (and comes to the front).
 bindPaneVisibility(
   'review',
-  computed([$reviewOpen, $hasWorkspace], (open, workspace) => open && workspace),
+  computed([$reviewOpen, $reviewRepoCwd], (open, cwd) => open && Boolean(cwd)),
   closeReview,
-  () => openReview($reviewScopeCwd.get(), $reviewScopeTarget.get())
+  restoreReview
 )
 // The titlebar and terminal's own strip provide the restore/close handles.
 // Hide the entire pane, while PersistentTerminal retains the live shells.
@@ -950,7 +945,8 @@ export function ContribController() {
               data-titlebar-content=""
               style={{
                 left: 'max(calc(var(--workspace-left, 0px) + 0.5rem), calc(var(--titlebar-controls-left, 14px) + 2 * var(--titlebar-control-size, 24px) + 1rem))',
-                right: 'calc(var(--titlebar-tools-right, 0.75rem) + var(--titlebar-tools-width, 8.5rem) + 0.75rem)'
+                right:
+                  'max(calc(var(--workspace-right, 0px) + 0.5rem), calc(var(--titlebar-tools-right, 0.75rem) + var(--titlebar-tools-width, 8.5rem) + 0.75rem))'
               }}
             >
               <TitlebarSlot area="titleBar.left" className="flex h-full min-w-0 items-center gap-2" />
@@ -971,7 +967,9 @@ export function ContribController() {
             }
           >
             <WindowTitlebarContext.Provider value={view === 'chat' && !isAuxiliaryWindow()}>
-              <LayoutTreeRoot />
+              <SummaryWorkspace>
+                <LayoutTreeRoot />
+              </SummaryWorkspace>
             </WindowTitlebarContext.Provider>
           </div>
 

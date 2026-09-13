@@ -2,7 +2,6 @@ import { requestComposerFocus, requestComposerInsert } from '@/app/chat/composer
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { useI18n } from '@/i18n'
-import { closeSummary } from '@/store/summary'
 
 import { SummaryResourceList } from './resource-list'
 import type { SummaryResource } from './session-content'
@@ -26,9 +25,8 @@ export function OutputsSection({ error, items, loading, onRetry, session, showEm
   }
 
   const create = () => {
-    closeSummary()
-    requestComposerInsert(t.summary.outputs.prompt, { target: 'main' })
-    requestComposerFocus('main')
+    requestComposerInsert(t.summary.outputs.prompt, { target: session.target })
+    requestComposerFocus(session.target)
   }
 
   return (

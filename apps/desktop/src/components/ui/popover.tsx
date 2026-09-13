@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { Popover as PopoverPrimitive } from 'radix-ui'
 import * as React from 'react'
 
+import { CARD_SURFACE_CLASS } from '@/components/ui/card-surface'
 import { usePopoverPortalContainer } from '@/components/ui/dialog-portal-context'
 import { cn } from '@/lib/utils'
 
@@ -30,7 +31,7 @@ const popoverContentVariants = cva(
         // A high-emphasis announcement uses the same graphite/inverse pair as
         // the primary action. Its arrow stays borderless and shares the fill.
         accent: 'bg-(--popover-surface) text-(--aino-action-fg) shadow-md [--popover-surface:var(--aino-action-bg)]',
-        card: 'w-80 rounded-[1.25rem] border border-(--stroke-nous) bg-(--popover-surface) p-0 text-popover-foreground shadow-nous [--popover-surface:var(--ui-bg-elevated)]'
+        card: cn(CARD_SURFACE_CLASS, 'w-80 p-0 [--popover-surface:var(--ui-bg-elevated)]')
       }
     },
     defaultVariants: { variant: 'default' }

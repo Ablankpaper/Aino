@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
 import { useState } from 'react'
 
+import { useSessionView } from '@/app/chat/session-view'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import {
@@ -16,7 +17,11 @@ import { displayPath } from '@/lib/display-path'
 import { copyFilePath, revealFile } from '@/store/file-actions'
 import { revealFileInTree } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
-import { $projectTree, goToProject, openFolderAsProject, openProjectCreate, projectRootCwd } from '@/store/projects'
+import { $profileScope, ALL_PROFILES } from '@/store/profile'
+import { $projectTree, openFolderAsProject, openProjectCreate, projectRootCwd } from '@/store/projects'
+
+import { $projectBindingSessions, canSelectDraftProject, captureProjectSelection } from '../project-selection'
+import { useComposerScope } from '../scope'
 
 interface ComposerProjectSelectorProps {
   cwd?: string
@@ -26,16 +31,31 @@ interface ComposerProjectSelectorProps {
 export function ComposerProjectSelector({ cwd, label }: ComposerProjectSelectorProps) {
   const { t } = useI18n()
   const fileMenu = t.fileMenu
+  const view = useSessionView()
+  const scope = useComposerScope()
+  const runtimeId = useStore(view.$runtimeId)
+  useStore(view.$storedId)
+  useStore(view.$messagesEmpty)
+  useStore(view.$busy)
+  const draft = canSelectDraftProject(view)
+  const bindingProject = useStore($projectBindingSessions).has(runtimeId ?? '')
+
+  const selectProject = (path: string | null, projectId?: string) => {
+    void captureProjectSelection(view, scope.attachments)
+      .select(path, projectId)
+      .catch(error => notifyError(error, t.desktop.cwdChangeFailed))
+  }
 
   const projects = useStore($projectTree).filter(project => !project.isNoProject && projectRootCwd(project))
 
   const [opening, setOpening] = useState(false)
 
-  const openFolder = async () => {
+  const openFolder = async (path?: string) => {
+    const selection = captureProjectSelection(view, scope.attachments)
     setOpening(true)
 
     try {
-      await openFolderAsProject()
+      await openFolderAsProject(path, { isCurrent: selection.isCurrent, onOpen: selection.select })
     } catch (error) {
       notifyError(error, t.sidebar.projects.createFailed)
     } finally {
@@ -49,7 +69,7 @@ export function ComposerProjectSelector({ cwd, label }: ComposerProjectSelectorP
         <Button
           aria-label={label || t.statusStack.coding.selectProject}
           className="min-w-0 max-w-full"
-          disabled={opening}
+          disabled={opening || bindingProject}
           size="inline"
           variant="ghost"
         >
@@ -78,13 +98,31 @@ export function ComposerProjectSelector({ cwd, label }: ComposerProjectSelectorP
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuLabel>{t.statusStack.coding.startProjectChat}</DropdownMenuLabel>
+        <DropdownMenuLabel>
+          {draft ? t.statusStack.coding.selectProject : t.statusStack.coding.startProjectChat}
+        </DropdownMenuLabel>
+        {draft && !runtimeId && cwd && (
+          <DropdownMenuItem onSelect={() => selectProject(null)}>
+            <Codicon name="close" size="0.875rem" />
+            {t.statusStack.coding.noProject}
+          </DropdownMenuItem>
+        )}
         <div className="max-h-48 overflow-y-auto">
           {projects.map(project => (
             <DropdownMenuItem
               aria-label={project.label}
               key={project.id}
-              onSelect={() => goToProject(project.id, { newSession: true })}
+              onSelect={() => {
+                const path = projectRootCwd(project)
+
+                // The unified tree merges profiles by path, so its project IDs
+                // are not writable IDs in the current profile.
+                if ($profileScope.get() === ALL_PROFILES) {
+                  void openFolder(path)
+                } else {
+                  selectProject(path, project.id)
+                }
+              }}
             >
               <Codicon name="folder" size="0.875rem" />
               <span className="truncate">{project.label}</span>
@@ -92,7 +130,21 @@ export function ComposerProjectSelector({ cwd, label }: ComposerProjectSelectorP
           ))}
         </div>
         {projects.length > 0 && <DropdownMenuSeparator />}
-        <DropdownMenuItem onSelect={openProjectCreate}>
+        <DropdownMenuItem
+          onSelect={() => {
+            const selection = captureProjectSelection(view, scope.attachments)
+            openProjectCreate({
+              isCurrent: selection.isCurrent,
+              onCreated: created => {
+                if (selection.isCurrent()) {
+                  void selection
+                    .select(created.primary_path ?? created.folders[0]?.path ?? null, created.id)
+                    .catch(error => notifyError(error, t.desktop.cwdChangeFailed))
+                }
+              }
+            })
+          }}
+        >
           <Codicon name="add" size="0.875rem" />
           {t.sidebar.projects.newButton}
         </DropdownMenuItem>

@@ -6,7 +6,11 @@ import { $activeGatewayProfile } from '@/store/profile'
 
 import { ProjectDialog } from './project-dialog'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  $projectDialog.set({ mode: 'create' })
+  vi.clearAllMocks()
+})
 
 vi.mock('@/i18n', () => ({
   useI18n: () => ({
@@ -49,7 +53,12 @@ const { $newProjectDropPlacement, $projectDialog } = vi.hoisted(() => {
   return {
     // Where a "New project" DRAG armed its drop (null = plain click).
     $newProjectDropPlacement: atom<{ anchor: string; before?: null | string; dir: string } | null>(null),
-    $projectDialog: atom<{ mode: 'create' | 'rename' | 'add-folder'; name?: string; projectId?: string } | null>({
+    $projectDialog: atom<{
+      mode: 'create' | 'rename' | 'add-folder'
+      name?: string
+      projectId?: string
+      isCurrent?: () => boolean
+    } | null>({
       mode: 'create'
     })
   }
@@ -94,6 +103,44 @@ async function fillCreateForm() {
 }
 
 describe('ProjectDialog', () => {
+  it('refuses to create when the draft or owner changed while the dialog was open', async () => {
+    const { createProject } = vi.mocked(await import('@/store/projects'))
+    const { notifyError } = vi.mocked(await import('@/store/notifications'))
+    notifyError.mockClear()
+    createProject.mockClear()
+    let current = true
+    $projectDialog.set({ mode: 'create', isCurrent: () => current })
+    render(<ProjectDialog />)
+    fireEvent.change(screen.getByPlaceholderText('Project name'), { target: { value: 'Scoped project' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add folder' }))
+    await screen.findByText('/Users/test/my-folder')
+    current = false
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+    await waitFor(() => expect(notifyError).toHaveBeenCalled())
+    expect(createProject).not.toHaveBeenCalled()
+    expect(screen.getByDisplayValue('Scoped project')).toBeTruthy()
+    $projectDialog.set({ mode: 'create' })
+  })
+
+  it('discards a folder chosen after the add-folder dialog changes owner', async () => {
+    const { addProjectFolder, pickProjectFolder } = vi.mocked(await import('@/store/projects'))
+    let finish!: (path: string) => void
+    pickProjectFolder.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          finish = resolve
+        })
+    )
+    let current = true
+    $projectDialog.set({ mode: 'add-folder', projectId: 'p_owner_a', isCurrent: () => current })
+    render(<ProjectDialog />)
+    fireEvent.click(screen.getByRole('button', { name: 'Add folder' }))
+    current = false
+    await act(async () => {
+      finish('/owner-a/folder')
+    })
+    expect(addProjectFolder).not.toHaveBeenCalled()
+  })
   it('wraps the "shuffle idea" button in a Tip', () => {
     render(<ProjectDialog />)
 

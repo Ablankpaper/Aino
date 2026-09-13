@@ -19,7 +19,6 @@ import {
   stageReviewFile,
   unstageReviewFile
 } from '@/store/review'
-import { closeSummary } from '@/store/summary'
 import { $workspaceChangeTick } from '@/store/workspace-events'
 
 import { summarizeReviewFiles } from './git-summary'
@@ -156,8 +155,7 @@ export function ChangesSection({ embedded = false, session }: { embedded?: boole
                 return
               }
 
-              revealReview(cwd)
-              closeSummary()
+              revealReview(cwd, session.target)
             }}
             size="inline"
             type="button"
@@ -203,9 +201,8 @@ export function ChangesSection({ embedded = false, session }: { embedded?: boole
                         return
                       }
 
-                      revealReview(cwd)
+                      revealReview(cwd, session.target)
                       void selectReviewFile(file)
-                      closeSummary()
                     }}
                     size="inline"
                     type="button"

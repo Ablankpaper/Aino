@@ -6,6 +6,13 @@ import type { HermesRepoStatus } from '@/global'
 import { $revealInTreeRequest } from '@/store/layout'
 import { $notifications, clearNotifications } from '@/store/notifications'
 import { $projectTree, $startWorkSessionRequest } from '@/store/projects'
+import {
+  $activeSessionId,
+  $currentCwd,
+  $messages,
+  $newChatWorkspaceTarget,
+  $selectedStoredSessionId
+} from '@/store/session'
 
 const repoStatus = atom<HermesRepoStatus | null>(null)
 const desktop = window.hermesDesktop
@@ -49,6 +56,11 @@ describe('CodingStatusRow', () => {
       { id: 'home', label: 'No project', path: '/ordinary-chat', repos: [], sessionCount: 0, isNoProject: true }
     ])
     $startWorkSessionRequest.set(null)
+    $activeSessionId.set(null)
+    $selectedStoredSessionId.set(null)
+    $messages.set([])
+    $currentCwd.set('')
+    $newChatWorkspaceTarget.set(null)
     $revealInTreeRequest.set(null)
     window.hermesDesktop = desktop
   })
@@ -56,6 +68,8 @@ describe('CodingStatusRow', () => {
     cleanup()
     $projectTree.set([])
     $startWorkSessionRequest.set(null)
+    $selectedStoredSessionId.set(null)
+    $messages.set([])
     $revealInTreeRequest.set(null)
     window.hermesDesktop = desktop
     clearNotifications()
@@ -69,7 +83,23 @@ describe('CodingStatusRow', () => {
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Select project' }), { button: 0, ctrlKey: false })
     expect(screen.queryByRole('menuitem', { name: 'Copy path' })).toBeNull()
     fireEvent.click(screen.getByRole('menuitem', { name: 'My project' }))
+    expect($newChatWorkspaceTarget.get()).toBe('/repo')
+    expect($currentCwd.get()).toBe('/repo')
+    expect($startWorkSessionRequest.get()).toBeNull()
+  })
+
+  it('opens a separate project chat for a stored conversation without changing its directory', () => {
+    $selectedStoredSessionId.set('existing-chat')
+    $currentCwd.set('/original')
+    render(<CodingStatusRow repoPath="/original" />)
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Select project' }), { button: 0, ctrlKey: false })
+    expect(screen.getByText('Start a new chat in project')).toBeTruthy()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'My project' }))
+
     expect($startWorkSessionRequest.get()).toMatchObject({ path: '/repo', openTab: true })
+    expect($currentCwd.get()).toBe('/original')
+    expect($selectedStoredSessionId.get()).toBe('existing-chat')
   })
 
   it('shows the project with its branch and keeps the project reachable outside git', () => {

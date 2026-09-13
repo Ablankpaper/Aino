@@ -9,6 +9,7 @@ import type { CSSProperties } from 'react'
 import { writeClipboardText } from '@/components/ui/copy-button'
 import { markRightPanePerf } from '@/debug/right-pane-events'
 import { useI18n } from '@/i18n'
+import { translateNow } from '@/i18n/runtime'
 import { triggerHaptic } from '@/lib/haptics'
 import { isComposerChord } from '@/lib/keybinds/chords'
 import { $previewTarget } from '@/store/preview'
@@ -30,7 +31,12 @@ import {
 import { registerTerminalContextMenu } from './terminal-context-menu'
 import { focusTerminalForActivation } from './terminal-focus'
 import { prepareTerminalFontFamily } from './terminal-font'
-import { closeTerminal, updateTerminalRestoreCwd, updateTerminalReviveBuffer } from './terminals'
+import {
+  closeTerminal,
+  terminalSourceIsCurrent,
+  updateTerminalRestoreCwd,
+  updateTerminalReviveBuffer
+} from './terminals'
 import { useTerminalFontController } from './use-terminal-font'
 
 // How many scrollback lines to serialize for relaunch restore. Mirrors VS Code's
@@ -851,7 +857,14 @@ export function useTerminalSession({
       return false
     })
 
-    const startSession = () =>
+    const startSession = () => {
+      if (!terminalSourceIsCurrent(id)) {
+        setStatus('closed')
+        term.write(`${translateNow('rightSidebar.terminalStartFailed', translateNow('summary.state.unavailable'))}\r\n`)
+
+        return
+      }
+
       void terminalApi
         // Prefer the prior session's last cwd so a reopened tab lands where the
         // user last `cd`'d; the main side falls back to the launch cwd (then
@@ -908,9 +921,10 @@ export function useTerminalSession({
         .catch(error => {
           setStatus('closed')
           term.write(
-            `${t.rightSidebar.terminalStartFailed(error instanceof Error ? error.message : String(error))}\r\n`
+            `${translateNow('rightSidebar.terminalStartFailed', error instanceof Error ? error.message : String(error))}\r\n`
           )
         })
+    }
 
     // Open + fit + start only once webfonts settle. Fitting with fallback metrics
     // picks the wrong row count, the shell boots at that size, then the real font

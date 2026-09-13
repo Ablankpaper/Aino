@@ -35,6 +35,8 @@ import {
   renameProject
 } from '@/store/projects'
 
+import { ProjectFoldersDialog } from './projects/project-folders-dialog'
+
 // Single dialog mounted once in the sidebar; it renders create / rename /
 // add-folder flows driven by the $projectDialog atom. Folders are chosen via
 // the native directory picker (reused from the default-project-dir setting).
@@ -78,7 +80,7 @@ export function ProjectDialog() {
       setGeneratingIdea(false)
       setSubmitting(false)
 
-      if (mode !== 'add-folder') {
+      if (mode === 'create' || mode === 'rename') {
         window.setTimeout(() => nameRef.current?.select(), 0)
       }
     }
@@ -105,11 +107,18 @@ export function ProjectDialog() {
     const profile = $activeGatewayProfile.get()
 
     const stillCurrent = () =>
-      $projectDialog.get() === invocation && activeGateway() === gateway && $activeGatewayProfile.get() === profile
+      $projectDialog.get() === invocation &&
+      activeGateway() === gateway &&
+      $activeGatewayProfile.get() === profile &&
+      (invocation?.isCurrent?.() ?? true)
 
     setSubmitting(true)
 
     try {
+      if (!stillCurrent()) {
+        throw new Error(p.contextChanged)
+      }
+
       const result = await write()
 
       if (stillCurrent()) {
@@ -126,11 +135,29 @@ export function ProjectDialog() {
   }
 
   const pickFolder = async () => {
+    const invocation = $projectDialog.get()
+    const gateway = activeGateway()
+    const profile = $activeGatewayProfile.get()
+
+    const stillCurrent = () =>
+      $projectDialog.get() === invocation &&
+      activeGateway() === gateway &&
+      $activeGatewayProfile.get() === profile &&
+      (invocation?.isCurrent?.() ?? true)
+
     try {
+      if (!stillCurrent()) {
+        throw new Error(p.contextChanged)
+      }
+
       const dir = await pickProjectFolder()
 
       if (!dir) {
         return
+      }
+
+      if (!stillCurrent()) {
+        throw new Error(p.contextChanged)
       }
 
       const projectId = state?.projectId
@@ -178,7 +205,11 @@ export function ProjectDialog() {
           clearNewProjectDropPlacement()
 
           if (created && !dropPlacement) {
-            goToProject(created.id, { newSession: true })
+            if (state?.onCreated) {
+              state.onCreated(created)
+            } else {
+              goToProject(created.id, { newSession: true })
+            }
           }
         }
       )
@@ -201,6 +232,10 @@ export function ProjectDialog() {
     } finally {
       setGeneratingIdea(false)
     }
+  }
+
+  if (mode === 'manage-folders' && state?.projectId) {
+    return <ProjectFoldersDialog key={state.projectId} name={state.name} projectId={state.projectId} />
   }
 
   const title = mode === 'rename' ? p.renameTitle : mode === 'add-folder' ? p.addFolderTitle : p.createTitle

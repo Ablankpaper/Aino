@@ -2355,6 +2355,7 @@ interface UpstreamTranslations {
     failedImport: string
     failedExport: string
     allProfiles: string
+    advanced: string
     showAllProfiles: string
     switchToProfile: (name: string) => string
     switchToConnection: (name: string) => string
@@ -2703,6 +2704,11 @@ interface UpstreamTranslations {
       menuAppearance: string
       noColor: string
       menuAddFolder: string
+      manageFolders: string
+      setPrimaryFolder: string
+      foldersDescription: string
+      keepOneFolder: string
+      contextChanged: string
       menuSetActive: string
       menuDelete: string
       moveToProject: string
@@ -3088,6 +3094,7 @@ interface UpstreamTranslations {
     standingGoal: string
     coding: {
       selectProject: string
+      noProject: string
       startProjectChat: string
       viewChanges: string
       title: string

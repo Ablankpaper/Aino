@@ -19,7 +19,7 @@ export interface SummarySectionProps {
   title: string
 }
 
-/** Flat, independently stateful groups within the floating summary card. */
+/** Flat, independently stateful groups within the summary card. */
 export function SummarySection({
   action,
   children,
@@ -42,7 +42,7 @@ export function SummarySection({
       data-slot="summary-section"
       data-state={state}
     >
-      <div className={embedded ? 'sr-only' : 'mb-2 flex min-w-0 items-center gap-2 pr-6'}>
+      <div className={embedded ? 'sr-only' : 'mb-2 flex min-w-0 items-center gap-2'}>
         {Icon && <Icon className="size-4 shrink-0 text-(--ui-text-tertiary)" />}
         <h2 className="min-w-0 flex-1 truncate text-[length:var(--aino-text-caption)] font-medium text-(--ui-text-tertiary)">
           {title}
