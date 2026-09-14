@@ -2621,7 +2621,13 @@ archiveConfirmTitle: name => `封存技能「${name}」？`,
       branchOffFrom: base => `從 ${base} 建立新分支`,
       switchTo: branch => `切換到 ${branch}`,
       switchFailed: branch => `無法切換到 ${branch}`,
-      worktrees: '工作樹'
+      worktrees: '工作樹',
+      workLocation: '工作位置',
+      localWork: '本機',
+      projectDirectory: '專案目錄',
+      worktreeWork: '獨立工作副本',
+      newChatLocation: '新對話的工作位置',
+      createWorktree: '新增獨立工作副本…'
     }
   },
 

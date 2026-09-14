@@ -421,6 +421,13 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   pane, and projects without git retain their project entry. The project menu
   owns directory details and Copy path / Reveal in file manager / Reveal in sidebar;
   it uses that composer's directory, never an incidental global backend cwd.
+  A visible work-location menu beside the project name distinguishes the primary
+  checkout from an isolated Worktree, using the existing Git worktree list and
+  branch status rather than a saved mode flag. The menu reuses the shared creation
+  dialog and draft-selection flow: unsent drafts retain text and attachments,
+  while sent conversations open a fresh chat. Ordinary folders require no Git
+  initialization. Remote primary checkouts say Project directory, not Local;
+  a foreign conversation cannot create or select paths on the foreground machine.
 - Workspace approval mode sits beside the attachment menu on the composer's
   left, with its menu opening upward from that edge. It uses the existing
   profile-wide setting and authoritative rollback on save failure.

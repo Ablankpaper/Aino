@@ -19,6 +19,7 @@ import {
   sessionMatchesStoredId
 } from './session'
 import { ambientGatewayOwnsEverySession } from './session-owner-resolution'
+import type { SessionOwnerScope } from './session-request-router'
 import { $sessionOwnerHoldRevision, $sessionStates, $sessionTiles, knownOwnerForSession } from './session-states'
 
 /** Tool focus does not change the conversation being worked on. Tab/close and
@@ -89,10 +90,20 @@ const $owner = computed(
   (runtime, stored) => knownOwnerForSession(runtime ?? stored)
 )
 
-const $scope = computed([$owner, $connection, $activeGatewayProfile], (owner, connection, activeProfile) => ({
-  connectionId: typeof owner === 'string' ? 'local' : owner?.connectionId || connection?.connectionId || 'local',
-  profile: (typeof owner === 'string' ? owner : owner?.profile) || activeProfile || 'default'
-}))
+export function resolveToolSessionScope(
+  owner: SessionOwnerScope,
+  connectionId = $connection.get()?.connectionId,
+  activeProfile = $activeGatewayProfile.get()
+) {
+  return {
+    connectionId: typeof owner === 'string' ? 'local' : owner?.connectionId || connectionId || 'local',
+    profile: (typeof owner === 'string' ? owner : owner?.profile) || activeProfile || 'default'
+  }
+}
+
+const $scope = computed([$owner, $connection, $activeGatewayProfile], (owner, connection, activeProfile) =>
+  resolveToolSessionScope(owner, connection?.connectionId, activeProfile)
+)
 
 const $sourceKey = computed([$connection, $activeGatewayProfile], (connection, profile) =>
   JSON.stringify([desktopFsCacheKey(connection), profile || 'default'])

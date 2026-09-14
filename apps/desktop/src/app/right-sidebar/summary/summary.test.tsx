@@ -50,6 +50,28 @@ function renderSummary() {
 }
 
 describe('SummaryPane', () => {
+  it('treats an unsent runtime as a draft and starts reading history after the first send', async () => {
+    const api = vi.fn(async () => {
+      throw new Error('Session has no persisted messages')
+    })
+
+    ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = { api }
+    const state = { ...createClientSessionState('new-draft'), isUnsentDraft: true }
+    $sessions.set([makeSessionInfo({ id: 'new-draft', profile: 'default', connection_id: 'local' })])
+    $sessionStates.set({ 'draft-runtime': state })
+    $selectedStoredSessionId.set('new-draft')
+    $activeSessionId.set('draft-runtime')
+    renderSummary()
+    await act(async () => {})
+    expect(screen.queryByText('暂时无法读取此会话的历史记录')).toBeNull()
+    expect(screen.getByRole('button', { name: '创建文件或网页' })).toBeTruthy()
+    expect(api).not.toHaveBeenCalled()
+
+    act(() => $sessionStates.set({ 'draft-runtime': { ...state, isUnsentDraft: false } }))
+    expect(await screen.findByText('暂时无法读取此会话的历史记录')).toBeTruthy()
+    expect(api).toHaveBeenCalledOnce()
+  })
+
   it('keeps ordinary chat compact and only reveals resources belonging to its runtime and durable history', async () => {
     renderSummary()
 

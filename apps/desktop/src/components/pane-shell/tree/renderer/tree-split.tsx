@@ -720,11 +720,11 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
                       // all-fixed run an UNCAPPED last track grows into the
                       // leftover; capped sidebars stay at their declared size.
                       flex: track ? `${absorbs ? 1 : 0} 1 ${track}` : `${grow(i)} ${grow(i)} 0px`,
-                      // Pane-declared clamps apply along THIS split's axis only
-                      // (a rail's width clamp shouldn't constrain its height).
-                      // The absorber is uncapped by selection, so dropping its
-                      // max is a no-op; capped tracks always keep theirs.
-                      minWidth: (horizontal && sizing?.minWidth) || 0,
+                      // Width floors still matter in a vertical chat/terminal
+                      // stack, including when the summary measures room to dock.
+                      // Other clamps apply along the split's axis; the absorber
+                      // remains uncapped while fixed tracks keep their limits.
+                      minWidth: sizing?.minWidth || 0,
                       maxWidth: horizontal && !absorbs ? sizing?.maxWidth : undefined,
                       minHeight: (!horizontal && sizing?.minHeight) || 0,
                       maxHeight: horizontal || absorbs ? undefined : sizing?.maxHeight

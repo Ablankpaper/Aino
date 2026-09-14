@@ -2702,7 +2702,13 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
       branchOffFrom: base => `${base} から新しいブランチ`,
       switchTo: branch => `${branch} に切り替え`,
       switchFailed: branch => `${branch} に切り替えできませんでした`,
-      worktrees: 'ワークツリー'
+      worktrees: 'ワークツリー',
+      workLocation: '作業場所',
+      localWork: 'ローカル',
+      projectDirectory: 'プロジェクトディレクトリ',
+      worktreeWork: 'ワークツリー',
+      newChatLocation: '新しいチャットの作業場所',
+      createWorktree: 'ワークツリーを作成…'
     }
   },
 

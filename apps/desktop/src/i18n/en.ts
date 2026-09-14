@@ -3863,7 +3863,13 @@ backgroundProcess: 'background process',
       branchOffFrom: base => `New branch from ${base}`,
       switchTo: branch => `Switch to ${branch}`,
       switchFailed: branch => `Could not switch to ${branch}`,
-      worktrees: 'Worktrees'
+      worktrees: 'Worktrees',
+      workLocation: 'Work location',
+      localWork: 'Local',
+      projectDirectory: 'Project directory',
+      worktreeWork: 'Worktree',
+      newChatLocation: 'New chat location',
+      createWorktree: 'Create worktree…'
     }
   },
 

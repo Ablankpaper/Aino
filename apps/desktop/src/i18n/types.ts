@@ -3140,6 +3140,12 @@ interface UpstreamTranslations {
       switchTo: (branch: string) => string
       switchFailed: (branch: string) => string
       worktrees: string
+      workLocation: string
+      localWork: string
+      projectDirectory: string
+      worktreeWork: string
+      newChatLocation: string
+      createWorktree: string
     }
   }
 

@@ -4204,7 +4204,13 @@ backgroundProcess: '后台进程',
       branchOffFrom: base => `从 ${base} 新建分支`,
       switchTo: branch => `切换到 ${branch}`,
       switchFailed: branch => `无法切换到 ${branch}`,
-      worktrees: '工作树'
+      worktrees: '工作树',
+      workLocation: '工作位置',
+      localWork: '本地',
+      projectDirectory: '项目目录',
+      worktreeWork: '独立工作副本',
+      newChatLocation: '新会话的工作位置',
+      createWorktree: '新建独立工作副本…'
     }
   },
 

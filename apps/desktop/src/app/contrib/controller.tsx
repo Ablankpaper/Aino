@@ -6,6 +6,7 @@ import { useLocation } from 'react-router'
 import { SessionDraftTitle } from '@/app/chat/session-draft-title'
 import { SessionStatusDot } from '@/app/chat/session-status-dot'
 import { PALETTE_AREA, type PaletteContribution, paletteToggle } from '@/app/command-palette/contrib'
+import { useConnectionRegistry } from '@/app/gateway/hooks/use-connection-registry'
 import { type StatusbarItem } from '@/app/shell/statusbar-controls'
 import { SummaryWorkspace } from '@/app/shell/summary-workspace'
 import { TITLEBAR_HEIGHT } from '@/app/shell/titlebar'
@@ -873,6 +874,7 @@ function TitlebarSlot({ area, className }: TitlebarSlotProps) {
 }
 
 export function ContribController() {
+  useConnectionRegistry()
   const sidebarOpen = useStore($sidebarOpen)
   const location = useLocation()
   const view = appViewForPath(location.pathname)

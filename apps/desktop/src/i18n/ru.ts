@@ -2946,7 +2946,13 @@ export const ru = defineLocale({
       branchOffFrom: base => `Новая ветка от ${base}`,
       switchTo: branch => `Переключиться на ${branch}`,
       switchFailed: branch => `Не удалось переключиться на ${branch}`,
-      worktrees: 'Worktrees'
+      worktrees: 'Worktrees',
+      workLocation: 'Рабочая папка',
+      localWork: 'Локально',
+      projectDirectory: 'Папка проекта',
+      worktreeWork: 'Рабочая копия',
+      newChatLocation: 'Папка нового чата',
+      createWorktree: 'Создать рабочую копию…'
     }
   },
   updates: {

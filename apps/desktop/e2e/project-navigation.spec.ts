@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs'
 import * as path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
-import { type MockBackendFixture, setupMockBackend, waitForAppReady } from './fixtures'
+import { buildAppEnv, launchDesktop, type MockBackendFixture, setupMockBackend, waitForAppReady } from './fixtures'
 import { receivedUserTexts } from './mock-server'
 import { expect, test } from './test'
 
@@ -75,6 +75,7 @@ async function sendMessage(text: string) {
 
 function sessionsForMessage(text: string): Array<{ id: string; cwd: string | null }> {
   const db = new DatabaseSync(path.join(fixture.sandbox.hermesHome, 'state.db'), { readOnly: true })
+
   try {
     return db
       .prepare(
@@ -294,9 +295,11 @@ test('keeps draft text through project selection and manages folders without cha
   await added.getByRole('button', { name: 'Set as primary folder', exact: true }).click()
   await expect(added.getByText('primary', { exact: true })).toBeVisible()
   await page.screenshot({ path: test.info().outputPath('project-folders-manager.png') })
+
   const previous = manager
     .getByRole('listitem')
     .filter({ hasText: path.join(realpathSync(sandbox.root), 'sample-app') })
+
   await previous.getByRole('button', { name: 'Remove', exact: true }).click()
   await expect(previous).toHaveCount(0)
   expect(existsSync(path.join(realpathSync(sandbox.root), 'sample-app'))).toBe(true)
@@ -355,16 +358,22 @@ test('creates and opens projects from the composer without replacing the draft',
   await expect.poll(() => page.evaluate(() => localStorage.getItem('hermes.desktop.showAllProfiles'))).toBe('false')
   await page.screenshot({ path: test.info().outputPath('settings-advanced-workspaces.png') })
   await fixture.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(760, 800, false))
+
   try {
     const advanced = settings.getByRole('button', { name: 'Advanced workspaces', exact: true })
     await expect(advanced).toBeVisible()
-    if ((await advanced.getAttribute('aria-expanded')) !== 'true') await advanced.click()
+
+    if ((await advanced.getAttribute('aria-expanded')) !== 'true') {
+      await advanced.click()
+    }
+
     await expect(allProfiles).toBeVisible()
     await page.screenshot({ path: test.info().outputPath('settings-advanced-narrow.png') })
   } finally {
     await fixture.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1220, 800, false))
     await settings.getByRole('button', { name: 'Close settings', exact: true }).click()
   }
+
   expect(rendererErrors).toEqual([])
 })
 
@@ -375,11 +384,17 @@ test('keeps files, summary, review and new shells attached to a chat tab without
   const sidebar = page.locator('[data-aino-sidebar]')
   const openFolder = sidebar.getByRole('button', { name: 'Open folder as project…', exact: true })
   const row = (text: string) => sidebar.locator('[data-sidebar-session-row]').filter({ hasText: text })
+
   const showProject = async (name: string) => {
     const back = sidebar.getByRole('button', { name: 'All projects', exact: true })
-    if (await back.isVisible()) await back.click()
+
+    if (await back.isVisible()) {
+      await back.click()
+    }
+
     await sidebar.getByRole('button', { name: `Open ${name}`, exact: true }).click()
   }
+
   const folders = ['tools-project-a', 'tools-project-b'].map(name => path.join(realpathSync(sandbox.root), name))
   const conversationIds: string[] = []
 
@@ -428,7 +443,11 @@ test('keeps files, summary, review and new shells attached to a chat tab without
   await tile.locator('[contenteditable="true"]').click()
 
   const showRight = page.getByRole('button', { name: 'Show right sidebar', exact: true })
-  if (await showRight.isVisible()) await showRight.click()
+
+  if (await showRight.isVisible()) {
+    await showRight.click()
+  }
+
   const files = page.locator('[data-file-browser]:visible')
   await expect(files.getByText('project-0.txt', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Session summary', exact: true }).click()
@@ -440,14 +459,17 @@ test('keeps files, summary, review and new shells attached to a chat tab without
   await page.getByRole('button', { name: /^(Show|Toggle) terminal$/ }).click()
   const terminalTabs = page.getByRole('tablist', { name: 'Terminals', exact: true })
   await expect(terminalTabs.getByRole('tab')).toHaveCount(1)
+
   const savedTerminals = () =>
     page.evaluate(() => {
       const state = JSON.parse(localStorage.getItem('hermes.desktop.terminals.v1') || '{}')
+
       return state as {
         activeTerminalId: string
         terminals: Array<{ cwd: string; id: string; title: string; reviveBuffer?: string }>
       }
     })
+
   await expect.poll(async () => (await savedTerminals()).terminals[0]?.cwd).toBe(folders[0])
   await expect(terminalTabs.getByRole('tab').first()).not.toHaveAccessibleName('1. Terminal')
   const firstTerminal = (await savedTerminals()).terminals[0]!
@@ -485,4 +507,218 @@ test('keeps files, summary, review and new shells attached to a chat tab without
   await expect.poll(async () => (await savedTerminals()).activeTerminalId).toBe(firstTerminal.id)
   expect(rendererErrors).toEqual([])
   await page.screenshot({ path: test.info().outputPath('tools-project-a-restored.png') })
+})
+
+test('selects local and isolated work locations without losing the draft or moving sent conversations', async () => {
+  test.setTimeout(180_000)
+  const { page, sandbox } = fixture
+  const sidebar = page.locator('[data-aino-sidebar]')
+  const folder = path.join(realpathSync(sandbox.root), 'work-location-project')
+  mkdirSync(folder)
+  writeFileSync(path.join(folder, 'README.md'), '# Work locations\n')
+  execFileSync('git', ['init', '--quiet', '--initial-branch=main', folder])
+  execFileSync('git', ['-C', folder, 'add', 'README.md'])
+  execFileSync('git', [
+    '-C',
+    folder,
+    '-c',
+    'user.name=Aino Test',
+    '-c',
+    'user.email=aino-test@example.com',
+    'commit',
+    '--quiet',
+    '-m',
+    'Fixture'
+  ])
+  const attachedFolder = path.join(folder, 'context-source')
+  mkdirSync(attachedFolder)
+  writeFileSync(path.join(attachedFolder, 'notes.txt'), 'Draft context\n')
+
+  await fixture.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1220, 900, false))
+  await pickFolder(folder)
+  await sidebar.getByRole('button', { name: 'Open folder as project…', exact: true }).click()
+  const surface = page.locator('[data-chat-surface]:visible').last()
+  const composer = surface.locator('[contenteditable="true"]')
+  await expect(surface.getByRole('button', { name: 'work-location-project', exact: true })).toBeVisible()
+  await composer.fill('Work location draft probe')
+  const editor = await composer.elementHandle()
+  await pickFolder(attachedFolder)
+  await surface.locator('[data-slot="composer-context-menu"]').click()
+  await page.getByRole('menuitem', { name: 'Folder…', exact: true }).click()
+  const attachments = surface.locator('[data-slot="composer-attachments"]')
+  await expect(attachments).toContainText('context-source')
+  const mode = surface.getByRole('button', { name: 'Work location', exact: true })
+  await expect(mode).toHaveText('Local')
+  await mode.click()
+  await page.getByRole('menuitem', { name: 'Create worktree…', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'New worktree', exact: true })
+  await dialog.getByPlaceholder('e.g. my-feature').fill('work-location-probe')
+  await dialog.getByRole('button', { name: 'New worktree', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(mode).toHaveText('Worktree')
+  await expect(surface.locator('.coding-status-bar')).toContainText('work-location-probe')
+  await expect(composer).toHaveText('Work location draft probe')
+  await expect(attachments).toContainText('context-source')
+  expect(await editor!.evaluate(el => el.isConnected)).toBe(true)
+  expect(execFileSync('git', ['-C', folder, 'branch', '--show-current'], { encoding: 'utf8' }).trim()).toBe('main')
+  await page.screenshot({ path: test.info().outputPath('composer-isolated-worktree.png') })
+
+  await mode.click()
+  await page.getByRole('menuitem', { name: 'Local', exact: true }).click()
+  await expect(mode).toHaveText('Local')
+  await expect(composer).toHaveText('Work location draft probe')
+  await expect(attachments).toContainText('context-source')
+  await mode.click()
+  await page.getByRole('menuitem', { name: 'work-location-probe', exact: true }).click()
+  await expect(mode).toHaveText('Worktree')
+  const sent = await sendMessage('Work location draft probe')
+  expect(sent.cwd).not.toBe(folder)
+  expect(execFileSync('git', ['-C', sent.cwd!, 'branch', '--show-current'], { encoding: 'utf8' }).trim()).toBe(
+    'work-location-probe'
+  )
+  expect(receivedUserTexts().find(text => text.includes('Work location draft probe'))).toContain(attachedFolder)
+
+  await mode.click()
+  await expect(page.getByText('New chat location', { exact: true })).toBeVisible()
+  await page.getByRole('menuitem', { name: 'Local', exact: true }).click()
+  await expect(composer).toHaveText('')
+  await expect(mode).toHaveText('Local')
+  expect(storedSessions().find(row => row.id === sent.id)?.cwd).toBe(sent.cwd)
+  const review = page.getByRole('complementary', { name: 'Review', exact: true })
+
+  if (await review.isVisible()) {
+    await review.getByRole('button', { name: 'Close', exact: true }).first().click()
+  }
+
+  const hideFiles = page.getByRole('button', { name: 'Hide right sidebar', exact: true })
+
+  if (await hideFiles.isVisible()) {
+    await hideFiles.click()
+  }
+
+  const summaryToggle = page.getByRole('button', { name: 'Session summary', exact: true })
+
+  if ((await summaryToggle.getAttribute('aria-pressed')) !== 'true') {
+    await summaryToggle.click()
+  }
+
+  const summaryPane = page.locator('[data-slot="summary-pane"]')
+  await expect(summaryPane.getByText('work-location-project', { exact: true })).toBeVisible()
+  await expect(summaryPane.getByText('Could not load this conversation’s history', { exact: true })).toHaveCount(0)
+  await fixture.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(820, 900, false))
+  await mode.click()
+  await expect(page.getByRole('menuitem', { name: 'Create worktree…', exact: true })).toBeVisible()
+  await page.screenshot({ path: test.info().outputPath('composer-work-locations-narrow.png') })
+  await page.keyboard.press('Escape')
+  expect(rendererErrors).toEqual([])
+})
+
+test('restores a worktree conversation and its draft and tools after closing the desktop', async () => {
+  test.setTimeout(180_000)
+  const { page, sandbox } = fixture
+  await fixture.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1680, 1000, false))
+  const surface = page.locator('[data-chat-surface]:visible').last()
+  await surface.getByRole('button', { name: 'Work location', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'work-location-probe', exact: true }).click()
+  const sent = await sendMessage('Restart worktree conversation')
+  writeFileSync(path.join(sent.cwd!, 'restart-proof.txt'), 'Persisted worktree file\n')
+  const sidebar = page.locator('[data-aino-sidebar]')
+  const row = sidebar.locator('[data-sidebar-session-row]').filter({ hasText: 'Restart worktree conversation' })
+  await row.click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Pin', exact: true }).click()
+  const recent = sidebar.getByRole('button', { name: 'Recent', exact: true })
+
+  if ((await recent.getAttribute('aria-expanded')) === 'true') {
+    await recent.click()
+  }
+
+  await page.getByRole('button', { name: 'Show right sidebar', exact: true }).click()
+  await expect(
+    page.locator('[data-file-browser]:visible').getByText('restart-proof.txt', { exact: true })
+  ).toBeVisible()
+  const summary = page.locator('[data-slot="summary-pane"]')
+  await expect(summary.getByText('work-location-project', { exact: true })).toBeVisible()
+  const terminalTabs = page.getByRole('tablist', { name: 'Terminals', exact: true })
+  await terminalTabs.getByRole('button', { name: 'New terminal', exact: true }).click()
+
+  const terminalState = (target: typeof page) =>
+    target.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem('hermes.desktop.terminals.v1') || '{}') as {
+          activeTerminalId: string
+          terminals: Array<{ id: string; cwd: string; reviveBuffer?: string }>
+        }
+    )
+
+  await expect
+    .poll(async () => {
+      const state = await terminalState(page)
+
+      return state.terminals.find(terminal => terminal.id === state.activeTerminalId)?.cwd
+    })
+    .toBe(sent.cwd)
+  const before = await terminalState(page)
+  const input = page.locator('[data-terminal]:visible .xterm-helper-textarea')
+  await expect(input).toHaveCount(1)
+  await input.pressSequentially('printf "aino-before-restart-%s\\n" "$PWD"')
+  await input.press('Enter')
+  await expect
+    .poll(
+      async () =>
+        (await terminalState(page)).terminals.find(terminal => terminal.id === before.activeTerminalId)?.reviveBuffer
+    )
+    .toContain(`aino-before-restart-${sent.cwd}`)
+  await surface.locator('[contenteditable="true"]').fill('Keep this unfinished worktree draft')
+  await page.screenshot({ path: test.info().outputPath('worktree-before-restart.png') })
+
+  await fixture.app.close()
+  const reopened = await launchDesktop(buildAppEnv(sandbox))
+  reopened.page.on('pageerror', error => rendererErrors.push(error.message))
+
+  try {
+    await waitForAppReady({ ...fixture, ...reopened }, 120_000)
+    const restored = reopened.page
+    const restoredSurface = restored.locator('[data-chat-surface]:visible').last()
+    await expect(restoredSurface.getByRole('button', { name: 'Work location', exact: true })).toHaveText('Worktree')
+    await expect(restoredSurface.locator('[contenteditable="true"]')).toHaveText('Keep this unfinished worktree draft')
+    // Summary visibility is a window-local choice; its contents still follow
+    // the restored chat when the user opens it in the new window.
+    await restored.getByRole('button', { name: 'Session summary', exact: true }).click()
+    await expect(
+      restored.locator('[data-slot="summary-pane"]').getByText('work-location-project', { exact: true })
+    ).toBeVisible()
+    await expect(
+      restored.locator('[data-file-browser]:visible').getByText('restart-proof.txt', { exact: true })
+    ).toBeVisible()
+    await expect(
+      restored.locator('[data-aino-sidebar]').getByRole('button', { name: 'Pinned', exact: true })
+    ).toBeVisible()
+    await expect(
+      restored.locator('[data-aino-sidebar]').getByRole('button', { name: 'Recent', exact: true })
+    ).toHaveAttribute('aria-expanded', 'false')
+    await expect.poll(async () => (await terminalState(restored)).activeTerminalId).toBe(before.activeTerminalId)
+    const terminal = (await terminalState(restored)).terminals.find(item => item.id === before.activeTerminalId)!
+    expect(terminal.cwd).toBe(sent.cwd)
+    expect(terminal.reviveBuffer).toContain(`aino-before-restart-${sent.cwd}`)
+    const restoredInput = restored.locator('[data-terminal]:visible .xterm-helper-textarea')
+    await expect(restoredInput).toHaveCount(1)
+    await restoredInput.pressSequentially('printf "aino-after-restart-%s\\n" "$PWD"')
+    await restoredInput.press('Enter')
+    await expect
+      .poll(
+        async () =>
+          (await terminalState(restored)).terminals.find(item => item.id === before.activeTerminalId)?.reviveBuffer
+      )
+      .toContain(`aino-after-restart-${sent.cwd}`)
+    await restoredSurface.locator('[contenteditable="true"]').press('Enter')
+    await expect
+      .poll(() => sessionsForMessage('Keep this unfinished worktree draft').map(session => session.id))
+      .toEqual([sent.id])
+    expect(storedSessions().find(session => session.id === sent.id)?.cwd).toBe(sent.cwd)
+    await expect(restored.locator('vite-error-overlay')).toHaveCount(0)
+    expect(rendererErrors).toEqual([])
+    await restored.screenshot({ path: test.info().outputPath('worktree-after-restart.png') })
+  } finally {
+    await reopened.app.close()
+  }
 })

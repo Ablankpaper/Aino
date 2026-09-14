@@ -1410,6 +1410,8 @@ export interface WorktreeDialogState {
   repoPath: string
   /** The base branch selected in a "branch off from X" menu. */
   base?: string
+  onCreated?: (result: { path: string; branch: string }) => void | Promise<void>
+  isCurrent?: () => boolean
 }
 
 export const $worktreeDialog = atom<null | WorktreeDialogState>(null)

@@ -23,6 +23,7 @@ import { $projectTree, projectIdForCwd } from '@/store/projects'
 import { $pullRequestsByBranch, branchPrKey, refreshPullRequests } from '@/store/pull-requests'
 
 import { ComposerProjectSelector } from './project-selector'
+import { ComposerWorkMode } from './work-mode'
 
 // Tiny uppercase section header, matching the composer "+" menu's labels.
 const MENU_SECTION = 'text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-tertiary)'
@@ -240,6 +241,9 @@ export const CodingStatusRow = memo(function CodingStatusRow({
             <div className="min-w-0 max-w-[40%]">
               <ComposerProjectSelector cwd={resolvedRepoPath} label={projectName} />
             </div>
+            {resolvedRepoPath && projectId && (
+              <ComposerWorkMode cwd={resolvedRepoPath} projectId={projectId} worktrees={worktrees} />
+            )}
             <span aria-hidden className="text-(--ui-text-tertiary)">
               ·
             </span>

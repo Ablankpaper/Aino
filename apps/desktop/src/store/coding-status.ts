@@ -9,7 +9,8 @@ import {
   $worktreeDialog,
   $worktreeRefreshToken,
   ALL_PROJECTS,
-  projectRootCwd
+  projectRootCwd,
+  type WorktreeDialogState
 } from './projects'
 import {
   $busy,
@@ -517,10 +518,10 @@ export async function resolveWorktreeRepoPath(): Promise<string> {
   return ''
 }
 
-export async function openWorktreeDialog(options?: { base?: string; repoPath?: string }): Promise<void> {
+export async function openWorktreeDialog(options?: Partial<WorktreeDialogState>): Promise<void> {
   const repoPath = options?.repoPath?.trim() || (await resolveWorktreeRepoPath())
 
-  if (repoPath) {
-    $worktreeDialog.set({ base: options?.base, repoPath })
+  if (repoPath && (!options?.isCurrent || options.isCurrent())) {
+    $worktreeDialog.set({ ...options, repoPath })
   }
 }

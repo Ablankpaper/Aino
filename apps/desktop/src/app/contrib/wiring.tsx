@@ -74,6 +74,7 @@ import {
   $selectedStoredSessionId,
   $sessionResumeRequest,
   $sessions,
+  $sessionsLoading,
   forgetSessionOwnerHintsForSession,
   requestSessionResume,
   sessionMatchesStoredId,
@@ -233,6 +234,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   const selectedStoredSessionId = useStore($selectedStoredSessionId)
   const messagingSessions = useStore($messagingSessions)
   const sessions = useStore($sessions)
+  const sessionsLoading = useStore($sessionsLoading)
   const activeConnectionId = useStore($activeConnectionId)
   const activeGatewayProfile = useStore($activeGatewayProfile)
   const profileScope = useStore($profileScope)
@@ -748,6 +750,30 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     [activeSessionIdRef, updateSessionState]
   )
 
+  // Navigation restoration must settle before `/` can initialize a fresh draft.
+  const previewTarget = useStore($previewTarget)
+  const configRecord = useHermesConfigRecord()
+
+  const resumeLastSession = configRecord.isPending
+    ? undefined
+    : (configRecord.data?.display as { resume_last_session?: unknown } | undefined)?.resume_last_session !== false
+
+  const initialNavigationReady = useDesktopIntegrations({
+    activeProfile: normalizeProfileKey(activeGatewayProfile),
+    chatOpen,
+    hasPreview: Boolean(previewTarget),
+    locationPathname: location.pathname,
+    navigate,
+    profileReady: boot.phase === 'renderer.ready',
+    refreshSessions,
+    resumeLastSession,
+    resumeExhaustedSessionId,
+    routedSessionId,
+    runtimeIdByStoredSessionId: runtimeIdByStoredSessionIdRef,
+    sessions,
+    sessionsLoading
+  })
+
   useRouteResume({
     activeSessionId,
     activeSessionIdRef,
@@ -755,6 +781,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     currentView,
     freshDraftReady,
     gatewayState,
+    initialNavigationReady,
     locationPathname: location.pathname,
     resumeSession,
     resumeFailedSessionId,
@@ -865,35 +892,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     refreshSessions,
     requestGateway,
     updateSessionState
-  })
-
-  // Electron-main / OS / cross-window integrations: update polling, ⌘W close,
-  // deep links, native-notification nav, preview-shortcut enablement,
-  // remembered-session restore, and cross-window session-list sync.
-  const previewTarget = useStore($previewTarget)
-
-  // display.resume_last_session gates the cold-start restore. `undefined` while
-  // the record is still loading holds the restore latch open; a failed fetch
-  // falls back to the historical behavior (resume).
-  const configRecord = useHermesConfigRecord()
-
-  const resumeLastSession = configRecord.isPending
-    ? undefined
-    : (configRecord.data?.display as { resume_last_session?: unknown } | undefined)?.resume_last_session !== false
-
-  useDesktopIntegrations({
-    activeProfile: normalizeProfileKey(activeGatewayProfile),
-    chatOpen,
-    hasPreview: Boolean(previewTarget),
-    locationPathname: location.pathname,
-    navigate,
-    profileReady: boot.phase === 'renderer.ready',
-    refreshSessions,
-    resumeLastSession,
-    resumeExhaustedSessionId,
-    routedSessionId,
-    runtimeIdByStoredSessionId: runtimeIdByStoredSessionIdRef,
-    sessions
   })
 
   // Pin/unpin the selected session (statusbar keybind + chat header) — pinned

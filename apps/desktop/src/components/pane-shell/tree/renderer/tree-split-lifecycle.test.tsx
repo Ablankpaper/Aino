@@ -18,6 +18,7 @@ import { $paneStates } from '@/store/panes'
 import { group, split } from '../model'
 import { $collapsedTreeSides, $hiddenTreePanes, $layoutTree, $narrowViewport, mirrorLayoutTree } from '../store'
 
+import { layoutRequiredWidth } from './required-width'
 import { TreeSplit } from './tree-split'
 
 const status = getAutoStatus(false, false, false, false, undefined)
@@ -116,6 +117,27 @@ afterEach(() => {
 })
 
 describe('sidebar swaps preserve the live workspace', () => {
+  it('reserves the chat width when the workspace also contains a vertical terminal split', () => {
+    disposers.push(
+      registry.register({
+        area: 'panes',
+        id: 'chat',
+        title: 'Chat',
+        data: { placement: 'main', minWidth: '320px' },
+        render: () => <Chat />
+      }),
+      registry.register({ area: 'panes', id: 'terminal', title: 'Terminal', render: () => <div>Terminal</div> })
+    )
+    $layoutTree.set(
+      split('row', [
+        group(['navigation'], { id: 'nav-zone' }),
+        split('column', [group(['chat'], { id: 'chat-zone' }), group(['terminal'], { id: 'terminal-zone' })])
+      ])
+    )
+    const { container } = render(<Workspace />)
+    expect(layoutRequiredWidth(container)).toBe(520)
+  })
+
   it('continues updating the conversation after swapping without losing the composer', async () => {
     render(
       <StrictMode>

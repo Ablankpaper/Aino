@@ -12,9 +12,7 @@
  * repo's Python venv (`.venv`) must exist for both backends.
  */
 
-import { type ChildProcess, spawn, spawnSync } from 'node:child_process'
 import * as fs from 'node:fs'
-import * as net from 'node:net'
 import * as path from 'node:path'
 
 import {
@@ -25,169 +23,18 @@ import {
   type Sandbox,
   waitForAppReady,
   writeEnvFile,
-  writeMockProviderConfig,
+  writeMockProviderConfig
 } from './fixtures'
 import { startMockServer } from './mock-server'
+import {
+  REMOTE_ID,
+  REMOTE_LABEL,
+  type RemoteGateway,
+  seedProfiles,
+  startRemoteGateway,
+  writeConnectionsRegistry
+} from './remote-gateway-fixture'
 import { type ElectronApplication, expect, type Page, test } from './test'
-
-const DESKTOP_ROOT = path.resolve(import.meta.dirname, '..')
-const REPO_ROOT = path.resolve(DESKTOP_ROOT, '..', '..')
-
-const REMOTE_LABEL = 'Homelab'
-const REMOTE_ID = 'homelab'
-const REMOTE_TOKEN = 'e2e-fleet-homelab-token'
-
-interface RemoteGateway {
-  url: string
-  home: string
-  close: () => Promise<void>
-}
-
-function findHermesBinary(): string {
-  const venv = path.join(REPO_ROOT, '.venv', 'bin', 'hermes')
-
-  if (fs.existsSync(venv)) {
-    return venv
-  }
-
-  const result = spawnSync('which', ['hermes'], { encoding: 'utf8' })
-
-  if (result.status === 0 && result.stdout.trim()) {
-    return result.stdout.trim()
-  }
-
-  throw new Error('hermes binary not found: create the repo venv (uv sync) or put hermes on PATH')
-}
-
-async function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = net.createServer()
-    server.unref()
-    server.on('error', reject)
-    server.listen(0, '127.0.0.1', () => {
-      const { port } = server.address() as net.AddressInfo
-      server.close(() => resolve(port))
-    })
-  })
-}
-
-/** Seed `<home>/profiles/<name>/` so the backend's /api/profiles lists it. */
-function seedProfiles(home: string, names: string[]): void {
-  for (const name of names) {
-    const dir = path.join(home, 'profiles', name)
-    fs.mkdirSync(dir, { recursive: true })
-    fs.writeFileSync(path.join(dir, 'config.yaml'), '', 'utf8')
-  }
-}
-
-/**
- * Spawn a second, fully real `hermes serve` as the remote gateway. Its
- * session token is pinned through HERMES_DASHBOARD_SESSION_TOKEN so the
- * registry entry can carry a plaintext token envelope.
- */
-async function startRemoteGateway(root: string, mockUrl: string, profiles: string[]): Promise<RemoteGateway> {
-  const home = path.join(root, 'homelab-home')
-  fs.mkdirSync(home, { recursive: true })
-  writeMockProviderConfig(home, mockUrl)
-  writeEnvFile(home)
-  seedProfiles(home, profiles)
-
-  const port = await freePort()
-  const url = `http://127.0.0.1:${port}`
-
-  const child: ChildProcess = spawn(
-    findHermesBinary(),
-    ['serve', '--host', '127.0.0.1', '--port', String(port), '--skip-build'],
-    {
-      cwd: REPO_ROOT,
-      detached: true,
-      env: {
-        ...process.env,
-        HERMES_HOME: home,
-        HERMES_DASHBOARD_SESSION_TOKEN: REMOTE_TOKEN,
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  )
-
-  let log = ''
-  child.stdout?.on('data', (chunk: Buffer) => {
-    log += chunk.toString()
-  })
-  child.stderr?.on('data', (chunk: Buffer) => {
-    log += chunk.toString()
-  })
-
-  const deadline = Date.now() + 90_000
-
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error(`remote hermes serve exited early (${child.exitCode}):\n${log}`)
-    }
-
-    try {
-      const response = await fetch(`${url}/api/status`, {
-        headers: { 'X-Hermes-Session-Token': REMOTE_TOKEN },
-      })
-
-      if (response.ok) {
-        break
-      }
-    } catch {
-      // not up yet
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 500))
-  }
-
-  if (Date.now() >= deadline) {
-    throw new Error(`remote hermes serve never became ready:\n${log}`)
-  }
-
-  return {
-    url,
-    home,
-    close: async () => {
-      if (child.pid && child.exitCode === null) {
-        try {
-          process.kill(-child.pid, 'SIGTERM')
-        } catch {
-          child.kill('SIGTERM')
-        }
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 500))
-    },
-  }
-}
-
-function writeConnectionsRegistry(sandbox: Sandbox, remoteUrl: string): void {
-  fs.writeFileSync(
-    path.join(sandbox.userDataDir, 'connections.json'),
-    JSON.stringify(
-      {
-        version: 2,
-        primary: 'local',
-        launchMode: 'primary',
-        lastUsed: 'local',
-        connections: [
-          { id: 'local', kind: 'local', label: 'This device' },
-          {
-            id: REMOTE_ID,
-            kind: 'remote',
-            label: REMOTE_LABEL,
-            url: remoteUrl,
-            authMode: 'token',
-            token: { encoding: 'plain', value: REMOTE_TOKEN },
-          },
-        ],
-      },
-      null,
-      2,
-    ),
-    { encoding: 'utf8', mode: 0o600 },
-  )
-}
 
 // FLEET_RAIL_SCREENSHOT_DIR=<dir> saves full-window captures at the key
 // states — handy for design review; never part of the assertions.
@@ -208,7 +55,8 @@ async function capture(page: Page, name: string): Promise<void> {
 // surface.
 const rail = (page: Page) => page.locator('[data-slot="profile-rail"]:visible')
 
-const gatewayGroup = (page: Page, id: string) => rail(page).locator(`[data-slot="profile-rail-gateway"][data-connection-id="${id}"]`)
+const gatewayGroup = (page: Page, id: string) =>
+  rail(page).locator(`[data-slot="profile-rail-gateway"][data-connection-id="${id}"]`)
 
 const activeGatewayGroup = (page: Page) => rail(page).locator('[data-slot="profile-rail-gateway"][data-active="true"]')
 
@@ -220,9 +68,17 @@ async function gotoRoute(page: Page, route: string): Promise<void> {
 }
 
 async function groupOrder(page: Page): Promise<Array<[string, boolean]>> {
-  return rail(page).locator('[data-slot="profile-rail-gateway"]').evaluateAll(nodes =>
-    nodes.map(node => [node.getAttribute('data-connection-id') ?? '', node.getAttribute('data-active') === 'true'] as [string, boolean]),
-  )
+  return rail(page)
+    .locator('[data-slot="profile-rail-gateway"]')
+    .evaluateAll(nodes =>
+      nodes.map(
+        node =>
+          [node.getAttribute('data-connection-id') ?? '', node.getAttribute('data-active') === 'true'] as [
+            string,
+            boolean
+          ]
+      )
+    )
 }
 
 test.describe('fleet profile rail — two registered gateways', () => {
@@ -245,7 +101,7 @@ test.describe('fleet profile rail — two registered gateways', () => {
     // rail must keep the two apart by gateway, never by name alone.
     seedProfiles(sandbox.hermesHome, ['research'])
 
-    remote = await startRemoteGateway(sandbox.root, mock.url, ['inbox', 'research'])
+    remote = await startRemoteGateway(sandbox, mock.url, ['inbox', 'research'])
     writeConnectionsRegistry(sandbox, remote.url)
 
     ;({ app, page } = await launchDesktop(buildAppEnv(sandbox)))
@@ -288,7 +144,9 @@ test.describe('fleet profile rail — two registered gateways', () => {
 
     // Its marker carries the remote (network) glyph.
     await expect(
-      rail(page).locator(`[data-slot="profile-rail-divider"][data-connection-id="${REMOTE_ID}"] [data-connection-kind="remote"]`),
+      rail(page).locator(
+        `[data-slot="profile-rail-divider"][data-connection-id="${REMOTE_ID}"] [data-connection-kind="remote"]`
+      )
     ).toBeVisible()
 
     // This device is the active group: its squares are unqualified, as before.
@@ -299,20 +157,24 @@ test.describe('fleet profile rail — two registered gateways', () => {
     // Registry order: This device first, Homelab second.
     expect(await groupOrder(page)).toEqual([
       ['local', true],
-      [REMOTE_ID, false],
+      [REMOTE_ID, false]
     ])
 
     // Fleet pill replaces the default↔all toggle; the single-gateway plug is gone.
     await expect(rail(page).getByRole('button', { name: 'All profiles on this gateway' })).toBeVisible()
     await expect(rail(page).getByRole('button', { name: 'Manage gateways…' })).toHaveCount(0)
 
-    await gatewayGroup(page, REMOTE_ID).getByRole('button', { name: `inbox · ${REMOTE_LABEL}` }).hover()
+    await gatewayGroup(page, REMOTE_ID)
+      .getByRole('button', { name: `inbox · ${REMOTE_LABEL}` })
+      .hover()
     await capture(page, '1-on-this-device-hover-inbox-homelab')
   })
 
   test('clicking an at-rest square re-homes onto that exact gateway and profile', async () => {
     test.setTimeout(180_000)
-    await gatewayGroup(page, REMOTE_ID).getByRole('button', { name: `inbox · ${REMOTE_LABEL}` }).click()
+    await gatewayGroup(page, REMOTE_ID)
+      .getByRole('button', { name: `inbox · ${REMOTE_LABEL}` })
+      .click()
 
     // A source switch intentionally starts a fresh chat, so the route leaves
     // Settings. Confirm the active source through the statusbar switcher,
@@ -329,7 +191,9 @@ test.describe('fleet profile rail — two registered gateways', () => {
     // …Homelab's group is now the active one, on the clicked profile…
     const homelab = gatewayGroup(page, REMOTE_ID)
     await expect(homelab).toHaveAttribute('data-active', 'true', { timeout: 30_000 })
-    await expect(homelab.getByRole('button', { name: 'inbox', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 })
+    await expect(homelab.getByRole('button', { name: 'inbox', exact: true })).toHaveAttribute('aria-pressed', 'true', {
+      timeout: 30_000
+    })
 
     // …This device is at rest with qualified squares…
     const local = gatewayGroup(page, 'local')
@@ -339,7 +203,7 @@ test.describe('fleet profile rail — two registered gateways', () => {
     // …and nothing moved: the order is still This device, then Homelab.
     expect(await groupOrder(page)).toEqual([
       ['local', false],
-      [REMOTE_ID, true],
+      [REMOTE_ID, true]
     ])
 
     await capture(page, '2-re-homed-on-homelab-inbox')
@@ -386,12 +250,14 @@ test.describe('fleet profile rail — two registered gateways', () => {
     })
     const local = gatewayGroup(page, 'local')
     await expect(local).toHaveAttribute('data-active', 'true', { timeout: 30_000 })
-    await expect(local.getByRole('button', { name: 'research', exact: true })).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 })
+    await expect(local.getByRole('button', { name: 'research', exact: true })).toHaveAttribute('aria-pressed', 'true', {
+      timeout: 30_000
+    })
     await expect(gatewayGroup(page, REMOTE_ID).getByRole('button', { name: `inbox · ${REMOTE_LABEL}` })).toBeVisible()
 
     expect(await groupOrder(page)).toEqual([
       ['local', true],
-      [REMOTE_ID, false],
+      [REMOTE_ID, false]
     ])
   })
 })
