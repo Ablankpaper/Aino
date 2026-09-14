@@ -635,9 +635,79 @@ describe('platform auth ownership', () => {
     expect(updateCalls).toBe(0)
   })
 
-  it('retires old credentials without discarding a newer pending 2FA challenge', async () => {
+  it('does not restore retired credentials when a replacement login fails after logout completes', async () => {
     const logoutResponse = deferred<ReturnType<typeof ok>>()
     const logoutStarted = deferred<void>()
+    const loginResponse = deferred<ReturnType<typeof errorEnvelope>>()
+    const loginStarted = deferred<void>()
+    let updateCalls = 0
+
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/auth/logout') {
+        logoutStarted.resolve()
+
+        return logoutResponse.promise
+      }
+
+      if (path === '/api/v1/auth/login') {
+        loginStarted.resolve()
+
+        return loginResponse.promise
+      }
+
+      if (path === '/api/v1/user') {
+        updateCalls += 1
+
+        return okProfile(1, 'revived')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    let stored: PlatformTokenSet | null = rememberedTokens('old')
+
+    const store: PlatformTokenStore = {
+      load: async () => stored,
+      save: async (_origin, value) => {
+        stored = value
+
+        return 'encrypted'
+      },
+      clear: async () => {
+        stored = null
+      }
+    }
+
+    const auth = createAuth(origin, stored, store)
+    await auth.initialize()
+    const logout = auth.logout()
+    await logoutStarted.promise
+
+    const login = expect(
+      auth.loginExisting({ email: 'replacement@example.test', password: 'wrong', remember: true })
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' })
+
+    await loginStarted.promise
+    logoutResponse.resolve(ok({ success: true }))
+    await expect(logout).resolves.toMatchObject({ phase: 'signed_out', account: null })
+    loginResponse.resolve(errorEnvelope(401, 'INVALID_CREDENTIALS'))
+    await login
+
+    expect(stored).toBeNull()
+    await expect(auth.updateProfile({ display_name: 'revived' })).rejects.toMatchObject({
+      code: 'authentication_required'
+    })
+    expect(updateCalls).toBe(0)
+    expect(auth.snapshot()).toMatchObject({ phase: 'signed_out', account: null, remember_state: 'session_only' })
+  })
+
+  it.each(['before', 'after'])('preserves a newer 2FA challenge arriving %s logout completes', async ordering => {
+    const logoutResponse = deferred<ReturnType<typeof ok>>()
+    const logoutStarted = deferred<void>()
+    const loginResponse = deferred<ReturnType<typeof ok>>()
+    const loginStarted = deferred<void>()
     let profile = 'old'
 
     const origin = await servePlatform(async ({ path, body }) => {
@@ -649,10 +719,16 @@ describe('platform auth ownership', () => {
         return logoutResponse.promise
       }
 
-      if (path === '/api/v1/auth/login') {return ok({ requires_2fa: true, temp_token: 'replacement-temp' })}
+      if (path === '/api/v1/auth/login') {
+        loginStarted.resolve()
+
+        return loginResponse.promise
+      }
 
       if (path === '/api/v1/auth/login/2fa') {
         expect(body.temp_token).toBe('replacement-temp')
+
+        if (body.totp_code === '000000') {return errorEnvelope(401, 'INVALID_TOTP_CODE')}
         profile = 'new'
 
         return okTokens('new')
@@ -665,12 +741,30 @@ describe('platform auth ownership', () => {
     await auth.initialize()
     const logout = auth.logout()
     await logoutStarted.promise
-    await expect(
+
+    const login = expect(
       auth.loginExisting({ email: 'replacement@example.test', password: 'password', remember: false })
     ).resolves.toEqual({ status: 'requires_2fa' })
+
+    await loginStarted.promise
+
+    if (ordering === 'before') {
+      loginResponse.resolve(ok({ requires_2fa: true, temp_token: 'replacement-temp' }))
+      await login
+    }
+
     logoutResponse.resolve(ok({ success: true }))
     await logout
 
+    if (ordering === 'after') {
+      loginResponse.resolve(ok({ requires_2fa: true, temp_token: 'replacement-temp' }))
+      await login
+    }
+
+    expect(auth.snapshot()).toMatchObject({ phase: 'signed_out', account: null })
+    await expect(auth.completeSecondFactor({ totp_code: '000000' })).rejects.toMatchObject({
+      code: 'INVALID_TOTP_CODE'
+    })
     expect(auth.snapshot()).toMatchObject({ phase: 'signed_out', account: null })
     await expect(auth.completeSecondFactor({ totp_code: '123456' })).resolves.toMatchObject({
       phase: 'signed_in',

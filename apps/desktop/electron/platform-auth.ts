@@ -9,6 +9,11 @@ import type {
 import { type PlatformClient, PlatformClientError, type PlatformProfile } from './platform-client'
 import type { PlatformTokenSet, PlatformTokenStore } from './platform-token-store'
 
+interface RetainedAccount {
+  credentials: PlatformTokenSet
+  snapshot: PlatformAccountSnapshot
+}
+
 export interface PlatformAuth {
   initialize(): Promise<PlatformAccountSnapshot>
   generation(): number
@@ -284,7 +289,7 @@ export function createPlatformAuth({
   }
 
   function beginAuthentication() {
-    const previous = tokens && current.account ? current : null
+    const previous: RetainedAccount | null = tokens && current.account ? { credentials: tokens, snapshot: current } : null
     const expected = ++generation
     pendingSecondFactor = null
 
@@ -297,16 +302,23 @@ export function createPlatformAuth({
     return { expected, previous }
   }
 
-  function failAuthentication(error: unknown, expected: number, previous: PlatformAccountSnapshot | null) {
+  function failAuthentication(error: unknown, expected: number, previous: RetainedAccount | null) {
     if (expected !== generation) {
+      return
+    }
+
+    // A newer intent can survive logout, but its retired account cannot be restored.
+    if (previous && previous.credentials !== tokens) {
+      publish({ error: safeError(error) })
+
       return
     }
 
     if (previous) {
       publish({
-        phase: previous.phase,
-        account: previous.account,
-        remember_state: previous.remember_state,
+        phase: previous.snapshot.phase,
+        account: previous.snapshot.account,
+        remember_state: previous.snapshot.remember_state,
         error: safeError(error)
       })
     } else {
