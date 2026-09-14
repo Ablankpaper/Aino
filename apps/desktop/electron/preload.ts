@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   // Launch-flag fact: the app was started with --local, so the renderer may
   // show the local-models surfaces. Static for the window's lifetime.
   localModelsEnabled: launchFlags?.localModels === true,
+  accountAdapter: launchFlags?.accountAdapter === 'legacy-development' ? 'legacy-development' : 'platform',
   platformAccount: {
     status: () => invokePlatformAccount('status'),
     capabilities: () => invokePlatformAccount('capabilities'),

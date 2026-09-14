@@ -2,6 +2,23 @@ import { defineFieldCopy } from '@/app/settings/field-copy'
 
 import type { Translations } from './types'
 
+const accountErrors: Record<string, string> = {
+  INVALID_PHONE: '请输入有效的手机号。',
+  PHONE_REGION_UNSUPPORTED: '暂不支持该地区的手机号。',
+  SMS_UNAVAILABLE: '短信登录暂时不可用。',
+  SMS_DELIVERY_UNKNOWN: '暂时无法确认短信是否送达，请稍后再试。',
+  PHONE_CODE_INVALID: '验证码不正确。',
+  PHONE_CODE_EXPIRED: '验证码已过期，请重新获取。',
+  PHONE_CODE_EXHAUSTED: '验证码错误次数过多，请重新获取。',
+  invalid_credentials: '邮箱或密码不正确。',
+  second_factor_invalid: '身份验证器验证码不正确。',
+  captcha_cancelled: '已取消人机验证。',
+  captcha_provider_unsupported: '桌面端暂不支持站点当前的人机验证方式。',
+  network_timeout: '账户服务响应超时，请重试。',
+  network_unavailable: '无法连接账户服务，请检查网络后重试。',
+  reauthentication_required: '请重新登录以继续。'
+}
+
 export const zh: Translations = {
   sessionImport: {
     title: '从其他应用继续',
@@ -797,6 +814,29 @@ export const zh: Translations = {
       termsRequired: '请先勾选同意用户协议和隐私政策。',
       legalDevelopmentNotice: '当前是本地开发测试版，正式用户协议和隐私政策尚未发布。此处仅供登录流程测试，不构成正式协议。测试账号信息保存在当前连接的后端，不会发送短信或邮件。',
       developmentCodeFor: '本次测试登录账号',
+      agreementUnavailable: '暂时无法加载当前协议。',
+      phoneLabel: '手机号',
+      phonePlaceholder: '请输入手机号',
+      invitationCodeLabel: '邀请码',
+      invitationCodePlaceholder: '请输入邀请码',
+      existingAccount: '已有账户登录',
+      emailLabel: '邮箱',
+      emailPlaceholder: '请输入邮箱',
+      passwordLabel: '密码',
+      passwordPlaceholder: '请输入密码',
+      continueExisting: '继续',
+      rememberLabel: '在此设备保持登录',
+      totpDescription: '请输入身份验证器中的验证码。',
+      totpLabel: 'TOTP 验证码',
+      completeSecondFactor: '验证',
+      switchPhone: '切换手机号登录',
+      phoneMaskedLabel: '手机号',
+      emailVerifiedLabel: '已验证邮箱',
+      offlineDescription: '当前显示最后一次验证的账户信息，恢复网络后可重试刷新。',
+      platformError: (code, retryAfter) =>
+        code === 'SMS_RATE_LIMITED' && retryAfter !== undefined
+          ? `请求过于频繁，请在 ${retryAfter} 秒后重试。`
+          : (accountErrors[code] ?? '账户请求失败，请重试。'),
       errors: {
         invalid_identifier: '请输入有效的邮箱地址或手机号。',
         missing_code: '请先获取验证码，再输入验证码登录。',
@@ -835,7 +875,7 @@ export const zh: Translations = {
       switchWechat: '切换微信登录',
       codeSentTo: '验证码已发送至',
       wechatTitle: '微信登录',
-      wechatUnavailable: '微信登录暂未在此开发版本开放。',
+      wechatUnavailable: '微信登录暂未开放。',
       switchIdentifier: '切换邮箱 / 手机'
     },
     plugins: {

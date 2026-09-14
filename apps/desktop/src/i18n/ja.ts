@@ -452,6 +452,29 @@ export const ja = defineLocale({
       termsRequired: '利用規約とプライバシーポリシーへの同意を選択してください。',
       legalDevelopmentNotice: 'これはローカル開発版です。正式な利用規約とプライバシーポリシーは未公開です。この表示はログインのテスト用で、正式な契約ではありません。テストアカウントは接続先のバックエンドに保存され、SMSやメールは送信されません。',
       developmentCodeFor: 'テスト用アカウント',
+      agreementUnavailable: '現在の利用規約を読み込めませんでした。',
+      phoneLabel: '電話番号',
+      phonePlaceholder: '電話番号を入力',
+      invitationCodeLabel: '招待コード',
+      invitationCodePlaceholder: '招待コードを入力',
+      existingAccount: '既存のアカウントでログイン',
+      emailLabel: 'メールアドレス',
+      emailPlaceholder: 'メールアドレスを入力',
+      passwordLabel: 'パスワード',
+      passwordPlaceholder: 'パスワードを入力',
+      continueExisting: '続行',
+      rememberLabel: 'このデバイスでログインを維持',
+      totpDescription: '認証アプリのコードを入力してください。',
+      totpLabel: 'TOTP コード',
+      completeSecondFactor: '確認',
+      switchPhone: '電話番号ログインに切り替え',
+      phoneMaskedLabel: '電話番号',
+      emailVerifiedLabel: '確認済みメール',
+      offlineDescription: '最後に確認されたアカウント情報を表示しています。再接続後に再試行できます。',
+      platformError: (code, retryAfter) =>
+        code === 'SMS_RATE_LIMITED' && retryAfter !== undefined
+          ? `リクエストが多すぎます。${retryAfter} 秒後に再試行してください。`
+          : 'アカウントのリクエストに失敗しました。再試行してください。',
       errors: {
         invalid_identifier: '有効なメールアドレスまたは電話番号を入力してください。',
         missing_code: '先にコードを取得し、入力してログインしてください。',
@@ -490,7 +513,7 @@ export const ja = defineLocale({
       switchWechat: 'WeChat ログインに切り替え',
       codeSentTo: '確認コードの送信先',
       wechatTitle: 'WeChat ログイン',
-      wechatUnavailable: 'この開発ビルドでは WeChat ログインを利用できません。',
+      wechatUnavailable: 'WeChat ログインはまだ利用できません。',
       switchIdentifier: 'メール / 電話番号に切り替え'
     },
     notifications: {

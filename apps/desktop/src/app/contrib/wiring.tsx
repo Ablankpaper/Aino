@@ -1331,10 +1331,10 @@ export function ContribWiring({ children }: { children: ReactNode }) {
         {!isHudWindow() && !isBrowserWindow() && (
           <PersistentTerminal onAddSelectionToChat={composer.addTerminalSelectionAttachment} />
         )}
+        {!isAuxiliaryWindow() && <DesktopInstallOverlay />}
+        <GatewayConnectingOverlay />
+        <BootFailureOverlay />
       </AccountGate>
-      {!isAuxiliaryWindow() && <DesktopInstallOverlay />}
-      <GatewayConnectingOverlay />
-      <BootFailureOverlay />
     </ContribWiringContext.Provider>
   )
 }

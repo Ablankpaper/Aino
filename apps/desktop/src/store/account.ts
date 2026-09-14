@@ -1,142 +1,192 @@
-import { JsonRpcGatewayError } from '@hermes/shared'
 import { atom } from 'nanostores'
 
-import type { RuntimeReadinessRequester } from '@/lib/runtime-readiness'
+import type {
+  PhoneChallengeDTO,
+  PhoneVerifyDTO,
+  PlatformAccountSnapshot,
+  PlatformAuthResult,
+  PlatformPublicCapabilities
+} from '../../shared/platform-contract'
 
-export interface AccountRecord {
-  id: string
-  identifier: string
-  display_name: string
+export type AccountRecord = NonNullable<PlatformAccountSnapshot['account']>
+
+export interface AccountError {
+  code: string
+  retryAfter?: number
 }
 
 export interface AccountState {
   authenticated: boolean
   account: AccountRecord | null
-  mode: 'development' | 'unconfigured'
-  canSignIn: boolean
+  adapter: 'legacy-development' | 'platform'
+  capabilities: PlatformPublicCapabilities | null
+  fixedCodeHint: boolean
   ready: boolean
   loading: boolean
+  phase: PlatformAccountSnapshot['phase']
+  rememberState: PlatformAccountSnapshot['remember_state']
   error: AccountError | null
 }
 
-const ACCOUNT_ERROR_REASONS = [
-  'invalid_identifier',
-  'missing_code',
-  'invalid_code',
-  'expired',
-  'attempts_exceeded',
-  'development_disabled',
-  'retry_cooldown',
-  'state_unavailable',
-  'invalid_display_name',
-  'not_authenticated',
-  'unavailable'
-] as const
-
-export type AccountErrorReason = (typeof ACCOUNT_ERROR_REASONS)[number]
-
-export interface AccountError {
-  reason: AccountErrorReason
-  retryAfter?: number
+export interface AccountAdapter {
+  kind: AccountState['adapter']
+  fixedCodeHint: boolean
+  status(): Promise<PlatformAccountSnapshot>
+  capabilities(): Promise<PlatformPublicCapabilities>
+  retry(): Promise<PlatformAccountSnapshot>
+  requestPhoneCode(phone: string): Promise<PhoneChallengeDTO>
+  verifyPhoneCode(input: PhoneVerifyDTO): Promise<PlatformAuthResult>
+  loginExisting(input: { email: string; password: string; remember: boolean }): Promise<PlatformAuthResult>
+  completeSecondFactor(code: string): Promise<PlatformAccountSnapshot>
+  updateProfile(displayName: string): Promise<PlatformAccountSnapshot>
+  logout(): Promise<PlatformAccountSnapshot>
+  onChanged(listener: (snapshot: PlatformAccountSnapshot) => void): () => void
 }
 
-export interface AccountStatusResponse {
-  authenticated: boolean
-  account: AccountRecord | null
-  mode?: 'development' | 'unconfigured'
-  capabilities?: { code_login?: boolean; wechat_login?: boolean }
+const INITIAL_STATE: Omit<AccountState, 'adapter' | 'fixedCodeHint'> = {
+  authenticated: false,
+  account: null,
+  capabilities: null,
+  ready: false,
+  loading: false,
+  phase: 'loading',
+  rememberState: 'session_only',
+  error: null
 }
 
-export interface AccountCodeResponse {
-  ok: boolean
-  delivery: 'development' | string
-  expires_in: number
-  retry_after: number
-}
+function safeError(error: unknown): AccountError {
+  const source = error && typeof error === 'object' ? (error as Record<string, unknown>) : {}
+  const candidate = typeof source.code === 'string' ? source.code : 'platform_error'
+  const code = /^[A-Za-z0-9_.:-]{1,80}$/.test(candidate) ? candidate : 'platform_error'
+  const retry = source.retryAfter ?? source.retry_after
 
-export interface AccountVerifyResponse extends AccountStatusResponse {
-  created?: boolean
-}
-
-function accountError(error: unknown): AccountError {
-  const data = error instanceof JsonRpcGatewayError ? error.data : null
-  const record = data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
-  const reason = ACCOUNT_ERROR_REASONS.find(value => value === record.reason) ?? 'unavailable'
-
-  return { reason, retryAfter: typeof record.retry_after === 'number' ? record.retry_after : undefined }
-}
-
-function statusState(status: AccountStatusResponse): Partial<AccountState> {
   return {
-    authenticated: Boolean(status.authenticated && status.account),
-    account: status.authenticated ? status.account : null,
-    mode: status.mode ?? 'unconfigured',
-    canSignIn: status.capabilities?.code_login === true,
-    ready: true
+    code,
+    ...(typeof retry === 'number' && Number.isSafeInteger(retry) && retry >= 0 ? { retryAfter: retry } : {})
   }
 }
 
-// The account host owns this cache. Replacing a connection gives it a new atom,
-// so late responses cannot publish another connection's account into the UI.
-export function createAccountActions(requestGateway: RuntimeReadinessRequester) {
+function snapshotError(snapshot: PlatformAccountSnapshot): AccountError | null {
+  return snapshot.error
+    ? {
+        code: snapshot.error.code,
+        ...(snapshot.error.retry_after === undefined ? {} : { retryAfter: snapshot.error.retry_after })
+      }
+    : null
+}
+
+export function createAccountActions(adapter: AccountAdapter) {
   const state = atom<AccountState>({
-    authenticated: false,
-    account: null,
-    mode: 'unconfigured',
-    canSignIn: false,
-    ready: false,
-    loading: false,
-    error: null
+    ...INITIAL_STATE,
+    adapter: adapter.kind,
+    fixedCodeHint: adapter.fixedCodeHint
   })
 
-  let revision = 0
+  let operation = 0
+  let snapshotRevision = -1
 
-  const run = async <T>(
-    operation: () => Promise<T>,
-    apply?: (value: T) => Partial<AccountState>
-  ): Promise<T | null> => {
-    const current = ++revision
+  const applySnapshot = (snapshot: PlatformAccountSnapshot) => {
+    if (snapshot.revision < snapshotRevision) {
+      return false
+    }
+
+    snapshotRevision = snapshot.revision
+    state.set({
+      ...state.get(),
+      authenticated: Boolean(
+        snapshot.account && snapshot.phase !== 'signed_out' && snapshot.phase !== 'reauth_required'
+      ),
+      account: snapshot.account,
+      ready: true,
+      loading: false,
+      phase: snapshot.phase,
+      rememberState: snapshot.remember_state,
+      error: snapshotError(snapshot)
+    })
+
+    return true
+  }
+
+  const run = async <T>(task: () => Promise<T>, apply?: (value: T) => void): Promise<T | null> => {
+    const current = ++operation
     state.set({ ...state.get(), loading: true, error: null })
 
     try {
-      const result = await operation()
+      const value = await task()
 
-      if (current !== revision) {
+      if (current !== operation) {
         return null
       }
 
-      state.set({ ...state.get(), ...apply?.(result), loading: false, error: null })
+      apply?.(value)
+      state.set({ ...state.get(), loading: false })
 
-      return result
+      return value
     } catch (error) {
-      if (current === revision) {
-        state.set({ ...state.get(), loading: false, error: accountError(error) })
+      if (current === operation) {
+        state.set({ ...state.get(), loading: false, ready: true, error: safeError(error) })
       }
 
       return null
     }
   }
 
+  adapter.onChanged(snapshot => {
+    applySnapshot(snapshot)
+  })
+
   return {
     state,
-    refresh: () => run(() => requestGateway<AccountStatusResponse>('account.status'), statusState),
-    requestCode: (identifier: string) =>
-      run(() => requestGateway<AccountCodeResponse>('account.request_code', { identifier: identifier.trim() })),
-    verifyCode: (identifier: string, code: string) =>
+    refresh: () =>
       run(
-        () =>
-          requestGateway<AccountVerifyResponse>('account.verify_code', {
-            identifier: identifier.trim(),
-            code: code.trim()
-          }),
-        statusState
+        async () => {
+          const [statusResult, capabilitiesResult] = await Promise.allSettled([
+            adapter.status(),
+            adapter.capabilities()
+          ])
+
+          if (statusResult.status === 'fulfilled') {
+            applySnapshot(statusResult.value)
+          }
+
+          if (capabilitiesResult.status === 'rejected') {
+            throw capabilitiesResult.reason
+          }
+
+          if (statusResult.status === 'rejected') {
+            throw statusResult.reason
+          }
+
+          return [statusResult.value, capabilitiesResult.value] as const
+        },
+        ([snapshot, capabilities]) => {
+          applySnapshot(snapshot)
+          state.set({ ...state.get(), capabilities, ready: true })
+        }
       ),
-    updateProfile: (displayName: string) =>
+    retry: () => run(() => adapter.retry(), applySnapshot),
+    requestPhoneCode: (phone: string) => run(() => adapter.requestPhoneCode(phone.trim())),
+    verifyPhoneCode: (input: PhoneVerifyDTO) =>
       run(
-        () => requestGateway<AccountStatusResponse>('account.update_profile', { display_name: displayName.trim() }),
-        statusState
+        () => adapter.verifyPhoneCode({ ...input, phone: input.phone.trim(), code: input.code.trim() }),
+        result => {
+          if (result.status === 'signed_in') {
+            applySnapshot(result.snapshot)
+          }
+        }
       ),
-    logout: () => run(() => requestGateway<AccountStatusResponse>('account.logout'), statusState)
+    loginExisting: (input: { email: string; password: string; remember: boolean }) =>
+      run(
+        () => adapter.loginExisting({ ...input, email: input.email.trim() }),
+        result => {
+          if (result.status === 'signed_in') {
+            applySnapshot(result.snapshot)
+          }
+        }
+      ),
+    completeSecondFactor: (code: string) => run(() => adapter.completeSecondFactor(code.trim()), applySnapshot),
+    updateProfile: (displayName: string) => run(() => adapter.updateProfile(displayName.trim()), applySnapshot),
+    logout: () => run(() => adapter.logout(), applySnapshot)
   }
 }
 

@@ -1,113 +1,123 @@
-import { JsonRpcGatewayError } from '@hermes/shared'
 import { describe, expect, it, vi } from 'vitest'
 
-import { createAccountActions } from './account'
+import type { PlatformAccountSnapshot, PlatformPublicCapabilities } from '../../shared/platform-contract'
+
+import { type AccountAdapter, createAccountActions } from './account'
+
+const capabilities: PlatformPublicCapabilities = {
+  desktop_api_version: 1,
+  registration_enabled: true,
+  phone_login_enabled: true,
+  phone_registration_enabled: true,
+  phone_binding_enabled: true,
+  phone_regions: ['CN'],
+  phone_code_length: 6,
+  invitation_code_enabled: false,
+  promo_code_enabled: false,
+  login_agreement_enabled: false,
+  login_agreement_mode: '',
+  login_agreement_revision: '',
+  login_agreement_documents: [],
+  captcha: { provider: 'disabled', site_key: '', scene_id: '', prefix: '', region: '' }
+}
+
+const signedOut: PlatformAccountSnapshot = {
+  revision: 1,
+  phase: 'signed_out',
+  account: null,
+  mode: 'production',
+  remember_state: 'session_only',
+  error: null
+}
+
+function adapter(overrides: Partial<AccountAdapter> = {}): AccountAdapter {
+  return {
+    kind: 'platform',
+    fixedCodeHint: false,
+    status: vi.fn().mockResolvedValue(signedOut),
+    capabilities: vi.fn().mockResolvedValue(capabilities),
+    retry: vi.fn().mockResolvedValue(signedOut),
+    requestPhoneCode: vi.fn(),
+    verifyPhoneCode: vi.fn(),
+    loginExisting: vi.fn(),
+    completeSecondFactor: vi.fn(),
+    updateProfile: vi.fn(),
+    logout: vi.fn(),
+    onChanged: vi.fn(() => () => {}),
+    ...overrides
+  }
+}
 
 describe('account actions', () => {
-  it('loads status and exposes the authenticated account', async () => {
-    const request = vi.fn().mockResolvedValue({
-      authenticated: true,
-      account: { id: 'abc', identifier: 'user@example.com', display_name: 'Aino User' },
-      mode: 'development'
-    })
+  it('loads status and capabilities together and exposes the authenticated account', async () => {
+    const snapshot: PlatformAccountSnapshot = {
+      ...signedOut,
+      phase: 'signed_in',
+      account: { id: 'abc', phone_masked: '+86 138****8000', email: '', display_name: 'Aino User' }
+    }
 
-    const actions = createAccountActions(request)
+    const source = adapter({ status: vi.fn().mockResolvedValue(snapshot) })
+    const actions = createAccountActions(source)
 
     await actions.refresh()
 
-    expect(request).toHaveBeenCalledWith('account.status')
+    expect(source.status).toHaveBeenCalledOnce()
+    expect(source.capabilities).toHaveBeenCalledOnce()
     expect(actions.state.get()).toMatchObject({
       authenticated: true,
       account: { id: 'abc' },
-      mode: 'development',
+      phase: 'signed_in',
       error: null
     })
   })
 
-  it('runs the development code flow without storing credentials in the renderer', async () => {
-    const request = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: true, delivery: 'development', expires_in: 600 })
-      .mockResolvedValueOnce({
-        authenticated: true,
-        created: true,
-        account: { id: 'abc', identifier: '13800138000', display_name: '13800138000' }
-      })
+  it('surfaces safe structured errors and clears them after a successful refresh', async () => {
+    const error = Object.assign(new Error('SMS_RATE_LIMITED'), { code: 'SMS_RATE_LIMITED', retry_after: 44 })
+    const source = adapter({ loginExisting: vi.fn().mockRejectedValue(error) })
+    const actions = createAccountActions(source)
 
-    const actions = createAccountActions(request)
-
-    await actions.requestCode('13800138000')
-    const result = await actions.verifyCode('13800138000', '1234')
-
-    expect(result?.authenticated).toBe(true)
-    expect(request).toHaveBeenNthCalledWith(1, 'account.request_code', { identifier: '13800138000' })
-    expect(request).toHaveBeenNthCalledWith(2, 'account.verify_code', {
-      identifier: '13800138000',
-      code: '1234'
-    })
-    expect(actions.state.get().account?.identifier).toBe('13800138000')
-  })
-
-  it('surfaces request errors and clears them after a successful refresh', async () => {
-    const request = vi
-      .fn()
-      .mockRejectedValueOnce(
-        new JsonRpcGatewayError('invalid code', {
-          data: { reason: 'invalid_code' }
-        })
-      )
-      .mockResolvedValueOnce({
-        authenticated: false,
-        account: null
-      })
-
-    const actions = createAccountActions(request)
-
-    expect(await actions.verifyCode('user@example.com', '0000')).toBeNull()
-    expect(actions.state.get().error?.reason).toBe('invalid_code')
+    expect(await actions.loginExisting({ email: 'user@example.com', password: 'secret', remember: false })).toBeNull()
+    expect(actions.state.get().error).toEqual({ code: 'SMS_RATE_LIMITED', retryAfter: 44 })
     await actions.refresh()
     expect(actions.state.get().error).toBeNull()
   })
 
   it('does not let a slow status refresh undo a newer successful login', async () => {
-    let finishStatus!: (value: unknown) => void
+    let finishStatus!: (value: PlatformAccountSnapshot) => void
 
-    const request = vi
-      .fn()
-      .mockImplementationOnce(
-        () =>
-          new Promise(resolve => {
-            finishStatus = resolve
-          })
-      )
-      .mockResolvedValueOnce({
-        authenticated: true,
-        account: { id: 'current', identifier: 'test@example.com', display_name: 'Test' },
-        mode: 'development'
-      })
+    const current: PlatformAccountSnapshot = {
+      ...signedOut,
+      revision: 2,
+      phase: 'signed_in',
+      account: { id: 'current', phone_masked: '', email: 'test@example.com', display_name: 'Test' }
+    }
 
-    const actions = createAccountActions(request)
+    const source = adapter({
+      status: vi.fn(() => new Promise<PlatformAccountSnapshot>(resolve => (finishStatus = resolve))),
+      loginExisting: vi.fn().mockResolvedValue({ status: 'signed_in', snapshot: current })
+    })
+
+    const actions = createAccountActions(source)
     const pending = actions.refresh()
-    await actions.verifyCode('test@example.com', '1234')
-    finishStatus({ authenticated: false, account: null, mode: 'development' })
+    await actions.loginExisting({ email: 'test@example.com', password: 'secret', remember: false })
+    finishStatus(signedOut)
     await pending
 
     expect(actions.state.get().account?.id).toBe('current')
   })
 
-  it('keeps state isolated from another account connection', async () => {
-    const first = createAccountActions(
-      vi.fn().mockResolvedValue({
-        authenticated: true,
-        account: { id: 'one', identifier: 'one@example.com', display_name: 'One' }
-      })
-    )
+  it('publishes authoritative account changes received from another native window', () => {
+    let changed: ((snapshot: PlatformAccountSnapshot) => void) | undefined
+    const source = adapter({ onChanged: vi.fn(listener => ((changed = listener), () => {})) })
+    const actions = createAccountActions(source)
 
-    const second = createAccountActions(vi.fn().mockResolvedValue({ authenticated: false, account: null }))
-    await first.refresh()
-    await second.refresh()
+    changed?.({
+      ...signedOut,
+      revision: 8,
+      phase: 'signed_in',
+      account: { id: 'shared', phone_masked: '+86 138****8000', email: '', display_name: 'Shared' }
+    })
 
-    expect(first.state.get().account?.id).toBe('one')
-    expect(second.state.get().account).toBeNull()
+    expect(actions.state.get().account?.id).toBe('shared')
   })
 })

@@ -2,6 +2,23 @@ import { FIELD_DESCRIPTIONS, FIELD_LABELS } from '@/app/settings/constants'
 
 import type { Translations } from './types'
 
+const accountErrors: Record<string, string> = {
+  INVALID_PHONE: 'Enter a valid phone number.',
+  PHONE_REGION_UNSUPPORTED: 'Phone numbers from this region are not supported.',
+  SMS_UNAVAILABLE: 'SMS sign-in is temporarily unavailable.',
+  SMS_DELIVERY_UNKNOWN: 'Delivery could not be confirmed. Wait before requesting another code.',
+  PHONE_CODE_INVALID: 'The verification code is incorrect.',
+  PHONE_CODE_EXPIRED: 'The verification code has expired. Request a new one.',
+  PHONE_CODE_EXHAUSTED: 'Too many incorrect attempts. Request a new code.',
+  invalid_credentials: 'The email or password is incorrect.',
+  second_factor_invalid: 'The authenticator code is incorrect.',
+  captcha_cancelled: 'Verification was canceled.',
+  captcha_provider_unsupported: 'This site captcha provider is not supported by the desktop app.',
+  network_timeout: 'The account service timed out. Try again.',
+  network_unavailable: 'The account service is offline. Check your connection and retry.',
+  reauthentication_required: 'Sign in again to continue.'
+}
+
 export const en: Translations = {
   sessionImport: {
     title: 'Continue from another app',
@@ -816,6 +833,29 @@ spawnFailed: 'Could not start the background operation.'
       termsRequired: 'Please agree to the terms and privacy policy first.',
       legalDevelopmentNotice: 'This is a local development build. The final terms and privacy policy have not been published. This notice is for testing the login flow and is not a binding agreement. Test accounts are stored on the connected backend; no SMS or email is sent.',
       developmentCodeFor: 'Test account',
+      agreementUnavailable: 'The current agreement could not be loaded.',
+      phoneLabel: 'Phone number',
+      phonePlaceholder: 'Phone number',
+      invitationCodeLabel: 'Invitation code',
+      invitationCodePlaceholder: 'Invitation code',
+      existingAccount: 'Sign in to an existing account',
+      emailLabel: 'Email',
+      emailPlaceholder: 'Email address',
+      passwordLabel: 'Password',
+      passwordPlaceholder: 'Password',
+      continueExisting: 'Continue',
+      rememberLabel: 'Keep me signed in on this device',
+      totpDescription: 'Enter the code from your authenticator app.',
+      totpLabel: 'TOTP code',
+      completeSecondFactor: 'Verify',
+      switchPhone: 'Switch to phone sign-in',
+      phoneMaskedLabel: 'Phone',
+      emailVerifiedLabel: 'Verified email',
+      offlineDescription: 'Account details are shown from the last verified snapshot. Reconnect to refresh them.',
+      platformError: (code, retryAfter) =>
+        code === 'SMS_RATE_LIMITED' && retryAfter !== undefined
+          ? `Too many requests. Try again in ${retryAfter}s.`
+          : (accountErrors[code] ?? 'The account request failed. Try again.'),
       errors: {
         invalid_identifier: 'Enter a valid email address or phone number.',
         missing_code: 'Request a code, then enter it to sign in.',
@@ -854,7 +894,7 @@ spawnFailed: 'Could not start the background operation.'
       switchWechat: 'Switch to WeChat login',
       codeSentTo: 'Verification code sent to',
       wechatTitle: 'WeChat login',
-      wechatUnavailable: 'WeChat login is not available in this development build.',
+      wechatUnavailable: 'WeChat login is not available.',
       switchIdentifier: 'Switch to email / phone'
     },
     plugins: {

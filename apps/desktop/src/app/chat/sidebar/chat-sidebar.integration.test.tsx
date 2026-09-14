@@ -8,7 +8,7 @@ import { group, split } from '@/components/pane-shell/tree/model'
 import { $layoutTree, noteActiveTreeGroup } from '@/components/pane-shell/tree/store'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { registry } from '@/contrib/registry'
-import { createAccountActions } from '@/store/account'
+import { type AccountAdapter, createAccountActions } from '@/store/account'
 import {
   $pinnedSessionIds,
   $sidebarPinsOpen,
@@ -30,9 +30,24 @@ const noop = () => {}
 
 const noopAsync = async () => {}
 
-const accountActions = createAccountActions(async () => {
-  throw new Error('Sidebar account display must not request the gateway')
-})
+const unavailableAccount = async () => {
+  throw new Error('Sidebar account display must not request account services')
+}
+
+const accountActions = createAccountActions({
+  kind: 'platform',
+  fixedCodeHint: false,
+  status: unavailableAccount,
+  capabilities: unavailableAccount,
+  retry: unavailableAccount,
+  requestPhoneCode: unavailableAccount,
+  verifyPhoneCode: unavailableAccount,
+  loginExisting: unavailableAccount,
+  completeSecondFactor: unavailableAccount,
+  updateProfile: unavailableAccount,
+  logout: unavailableAccount,
+  onChanged: () => () => {}
+} as AccountAdapter)
 
 const sessionRows = [
   makeSessionInfo({ id: 'tile-one', last_active: 2, profile: 'default', started_at: 1, title: 'Tile one' }),
@@ -91,7 +106,7 @@ describe('ChatSidebar navigation activity', () => {
     accountActions.state.set({
       ...accountActions.state.get(),
       authenticated: true,
-      account: { id: 'account-one', display_name: 'Test User', identifier: 'user@example.test' }
+      account: { id: 'account-one', display_name: 'Test User', phone_masked: '', email: 'user@example.test' }
     })
     $pinnedSessionIds.set([])
     $sidebarPinsOpen.set(true)
@@ -300,7 +315,7 @@ describe('ChatSidebar navigation activity', () => {
     act(() => {
       accountActions.state.set({
         ...accountActions.state.get(),
-        account: { id: 'account-two', display_name: '', identifier: 'second@example.test' }
+        account: { id: 'account-two', display_name: '', phone_masked: '', email: 'second@example.test' }
       })
     })
     expect(footer.queryByText('Test User')).toBeNull()

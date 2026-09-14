@@ -81,6 +81,9 @@
   background: var(--ui-bg-quaternary);
   box-shadow: var(--aino-focus-ring);
 }
+.aino-account-login .aino-account-secondary-input {
+  margin-top: 10px;
+}
 .aino-account-login .aino-account-code {
   height: 54px;
   font-size: 20px;
@@ -124,6 +127,19 @@
   line-height: 19.5px;
   font-weight: 400;
   color: var(--ui-text-tertiary);
+}
+.aino-account-login .aino-account-switch-compact {
+  margin-top: 8px;
+}
+.aino-account-remember {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--ui-text-tertiary);
+  font-size: 12px;
+  line-height: 18px;
 }
 .aino-account-recipient {
   margin-bottom: 20px;

@@ -19,6 +19,7 @@ declare global {
   interface Window {
     hermesDesktop: {
       platformAccount: PlatformAccountBridge
+      accountAdapter: 'legacy-development' | 'platform'
       // Resolve a backend connection. Omit `profile` (or pass the primary) for
       // the window's backend; pass a named profile to lazily spawn/reuse that
       // profile's backend from the pool.

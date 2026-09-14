@@ -44,6 +44,10 @@ function bundledRuntimeImportCheck(platform = process.platform) {
   return platform === 'win32' ? 'import fastapi, uvicorn, winpty' : 'import fastapi, uvicorn, ptyprocess'
 }
 
+function resolveDesktopAccountAdapter({ isPackaged, argv }: { isPackaged: boolean; argv: string[] }) {
+  return !isPackaged && argv.includes('--aino-legacy-account-development') ? 'legacy-development' : 'platform'
+}
+
 const GPU_OVERRIDE_ON = new Set(['1', 'true', 'yes', 'on'])
 const GPU_OVERRIDE_OFF = new Set(['0', 'false', 'no', 'off'])
 
@@ -146,5 +150,6 @@ export {
   detectRemoteDisplay,
   isWindowsBinaryPathInWsl,
   isWslEnvironment,
+  resolveDesktopAccountAdapter,
   resolveLinuxPasswordStore
 }

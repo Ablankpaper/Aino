@@ -446,6 +446,29 @@ export const zhHant = defineLocale({
       termsRequired: '請先勾選同意使用者協議與隱私政策。',
       legalDevelopmentNotice: '目前是本機開發測試版，正式使用者協議與隱私政策尚未發布。此處僅供登入流程測試，不構成正式協議。測試帳戶資料儲存在目前連線的後端，不會發送簡訊或郵件。',
       developmentCodeFor: '本次測試登入帳戶',
+      agreementUnavailable: '目前無法載入最新協議。',
+      phoneLabel: '手機號碼',
+      phonePlaceholder: '請輸入手機號碼',
+      invitationCodeLabel: '邀請碼',
+      invitationCodePlaceholder: '請輸入邀請碼',
+      existingAccount: '登入現有帳戶',
+      emailLabel: '電子郵件',
+      emailPlaceholder: '請輸入電子郵件',
+      passwordLabel: '密碼',
+      passwordPlaceholder: '請輸入密碼',
+      continueExisting: '繼續',
+      rememberLabel: '在此裝置保持登入',
+      totpDescription: '請輸入驗證器應用程式中的驗證碼。',
+      totpLabel: 'TOTP 驗證碼',
+      completeSecondFactor: '驗證',
+      switchPhone: '切換至手機登入',
+      phoneMaskedLabel: '手機號碼',
+      emailVerifiedLabel: '已驗證電子郵件',
+      offlineDescription: '目前顯示上次驗證的帳戶資料，恢復網路後可重試更新。',
+      platformError: (code, retryAfter) =>
+        code === 'SMS_RATE_LIMITED' && retryAfter !== undefined
+          ? `請求過於頻繁，請在 ${retryAfter} 秒後重試。`
+          : '帳戶請求失敗，請重試。',
       errors: {
         invalid_identifier: '請輸入有效的電子郵件或手機號碼。',
         missing_code: '請先取得驗證碼，再輸入以登入。',
@@ -484,7 +507,7 @@ export const zhHant = defineLocale({
       switchWechat: '切換微信登入',
       codeSentTo: '驗證碼已傳送至',
       wechatTitle: '微信登入',
-      wechatUnavailable: '此開發版本尚未開放微信登入。',
+      wechatUnavailable: '微信登入尚未開放。',
       switchIdentifier: '切換電子郵件 / 電話'
     },
     notifications: {

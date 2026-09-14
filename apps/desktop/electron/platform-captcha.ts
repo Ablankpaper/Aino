@@ -453,6 +453,10 @@ export function createPlatformCaptcha({
         throw new PlatformCaptchaError('captcha_stale')
       }
 
+      if (initialCapabilities.captcha.provider === 'disabled') {
+        return {}
+      }
+
       activePolicy = { ...initialCapabilities.captcha }
 
       const win = createWindow({

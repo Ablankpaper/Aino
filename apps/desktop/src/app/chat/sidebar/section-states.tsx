@@ -78,7 +78,9 @@ export function SidebarIdentityFooter({ onOpenAccount, onOpenSettings, settingsL
   const { t } = useI18n()
   const actions = useAccountActions()
   const { account } = useStore(actions.state)
-  const label = account?.display_name.trim() || account?.identifier.trim() || t.settings.account.title
+
+  const label =
+    account?.display_name.trim() || account?.phone_masked.trim() || account?.email.trim() || t.settings.account.title
 
   return (
     <footer

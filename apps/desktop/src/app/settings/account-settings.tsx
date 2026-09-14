@@ -43,6 +43,14 @@ export function AccountSettings() {
       <div className="mx-auto w-full max-w-2xl pt-6">
         <SectionHeading icon={Users} title={copy.title} />
         <p className="mb-5 text-sm text-(--ui-text-tertiary)">{copy.signedInDescription}</p>
+        {state.phase === 'offline' && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-(--aino-radius-control) bg-(--ui-bg-quaternary) px-3 py-2">
+            <p className="text-sm text-(--ui-text-secondary)">{copy.offlineDescription}</p>
+            <Button disabled={state.loading} onClick={() => void actions.retry()} size="sm" variant="ghost">
+              {copy.refresh}
+            </Button>
+          </div>
+        )}
         <ListRow
           action={
             editing ? (
@@ -108,7 +116,12 @@ export function AccountSettings() {
             {copy.displayNameSaved}
           </p>
         )}
-        <ListRow action={<span className="break-all">{account?.identifier}</span>} title={copy.identifierLabel} />
+        {account?.phone_masked && (
+          <ListRow action={<span className="break-all">{account.phone_masked}</span>} title={copy.phoneMaskedLabel} />
+        )}
+        {account?.email && (
+          <ListRow action={<span className="break-all">{account.email}</span>} title={copy.emailVerifiedLabel} />
+        )}
         <ListRow
           action={<span className="break-all font-mono text-xs">{account?.id}</span>}
           title={copy.accountIdLabel}
@@ -119,7 +132,7 @@ export function AccountSettings() {
           </Button>
           {state.error && (
             <p className="mt-3 text-sm text-destructive" role="alert">
-              {copy.errors[state.error.reason]}
+              {copy.platformError(state.error.code, state.error.retryAfter)}
             </p>
           )}
         </div>

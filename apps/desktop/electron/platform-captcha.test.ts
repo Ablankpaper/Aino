@@ -8,6 +8,10 @@ import {
 
 const disabled = { captcha: { provider: 'disabled', site_key: '', scene_id: '', prefix: '', region: '' } }
 
+const turnstile = {
+  captcha: { provider: 'turnstile', site_key: 'site-key', scene_id: '', prefix: '', region: '' }
+}
+
 function isolatedSession() {
   return { webRequest: { onBeforeRequest: vi.fn() } }
 }
@@ -187,7 +191,28 @@ describe('platform captcha broker', () => {
     await expect(pending).rejects.toMatchObject({ code: 'captcha_expired' })
   })
 
-  it('creates a minimal isolated window and accepts IPC only from its main document', async () => {
+  it('returns an empty proof without creating a verification surface when captcha is disabled', async () => {
+    const createWindow = vi.fn()
+    const createSession = vi.fn()
+
+    const captcha = createPlatformCaptcha({
+      ipc: { handle: vi.fn() },
+      createWindow,
+      fromWebContents: () => null,
+      origin: 'https://api.agentera.com.cn',
+      preloadPath: '/app/platform-captcha-preload.js',
+      createSession,
+      capabilities: async () => disabled as any,
+      generation: () => 1,
+      randomNonce: () => 'nonce'
+    })
+
+    await expect(captcha.acquire()).resolves.toEqual({})
+    expect(createWindow).not.toHaveBeenCalled()
+    expect(createSession).not.toHaveBeenCalled()
+  })
+
+  it('creates a minimal isolated window and accepts IPC only from its main document when captcha is enabled', async () => {
     const handlers = new Map<string, (...args: any[]) => any>()
     const ipc = { handle: (channel: string, handler: (...args: any[]) => any) => handlers.set(channel, handler) }
     const events = new Map<string, (...args: any[]) => void>()
@@ -215,7 +240,7 @@ describe('platform captcha broker', () => {
       origin: 'https://api.agentera.com.cn',
       preloadPath: '/app/platform-captcha-preload.js',
       createSession: () => session,
-      capabilities: async () => disabled as any,
+      capabilities: async () => turnstile as any,
       generation: () => 1,
       randomNonce: () => 'nonce'
     })
@@ -237,8 +262,11 @@ describe('platform captcha broker', () => {
     expect(win.loadURL).toHaveBeenCalledWith('https://api.agentera.com.cn/desktop/captcha')
     const event = { sender, senderFrame: sender.mainFrame }
     expect(handlers.get('aino:platform-captcha:get')!(event)).toMatchObject({ nonce: 'nonce' })
-    await handlers.get('aino:platform-captcha:submit')!(event, { nonce: 'nonce', proof: {} })
-    await expect(pending).resolves.toEqual({})
+    await handlers.get('aino:platform-captcha:submit')!(event, {
+      nonce: 'nonce',
+      proof: { turnstile_token: 'proof' }
+    })
+    await expect(pending).resolves.toEqual({ turnstile_token: 'proof' })
     expect(win.close).toHaveBeenCalledOnce()
   })
 
@@ -287,7 +315,7 @@ describe('platform captcha broker', () => {
       origin: 'https://api.agentera.com.cn',
       preloadPath: '/app/platform-captcha-preload.js',
       createSession: isolatedSession,
-      capabilities: async () => disabled as any,
+      capabilities: async () => turnstile as any,
       generation: () => 1,
       randomNonce: () => 'nonce'
     })
@@ -344,8 +372,8 @@ describe('platform captcha broker', () => {
 
   it('does not let an older initial policy response supersede a newer acquisition', async () => {
     const handlers = new Map<string, (...args: any[]) => any>()
-    const firstPolicy = deferred<typeof disabled>()
-    const capabilities = vi.fn().mockReturnValueOnce(firstPolicy.promise).mockResolvedValue(disabled)
+    const firstPolicy = deferred<typeof turnstile>()
+    const capabilities = vi.fn().mockReturnValueOnce(firstPolicy.promise).mockResolvedValue(turnstile)
     const events = new Map<object, Map<string, () => void>>()
     const windows: any[] = []
 
@@ -388,14 +416,17 @@ describe('platform captcha broker', () => {
     const newer = captcha.acquire()
     void newer.catch(() => undefined)
     await vi.waitFor(() => expect(createWindow).toHaveBeenCalledOnce())
-    firstPolicy.resolve(disabled)
+    firstPolicy.resolve(turnstile)
     await Promise.resolve()
 
     if (windows.length > 1) {
       const staleWinner = windows[1]
       const staleEvent = { sender: staleWinner.webContents, senderFrame: staleWinner.webContents.mainFrame }
       const staleChallenge = handlers.get('aino:platform-captcha:get')!(staleEvent)
-      await handlers.get('aino:platform-captcha:submit')!(staleEvent, { nonce: staleChallenge.nonce, proof: {} })
+      await handlers.get('aino:platform-captcha:submit')!(staleEvent, {
+        nonce: staleChallenge.nonce,
+        proof: { turnstile_token: 'proof' }
+      })
     }
 
     await expect(older).rejects.toMatchObject({ code: 'captcha_superseded' })
@@ -404,8 +435,11 @@ describe('platform captcha broker', () => {
     const active = windows[0]
     const event = { sender: active.webContents, senderFrame: active.webContents.mainFrame }
     const challenge = handlers.get('aino:platform-captcha:get')!(event)
-    await handlers.get('aino:platform-captcha:submit')!(event, { nonce: challenge.nonce, proof: {} })
-    await expect(newer).resolves.toEqual({})
+    await handlers.get('aino:platform-captcha:submit')!(event, {
+      nonce: challenge.nonce,
+      proof: { turnstile_token: 'proof' }
+    })
+    await expect(newer).resolves.toEqual({ turnstile_token: 'proof' })
   })
 
   it('allows only built assets, public settings, and the configured widget destinations', () => {

@@ -721,6 +721,26 @@ interface UpstreamTranslations {
       termsRequired: string
       legalDevelopmentNotice: string
       developmentCodeFor: string
+      agreementUnavailable: string
+      phoneLabel: string
+      phonePlaceholder: string
+      invitationCodeLabel: string
+      invitationCodePlaceholder: string
+      existingAccount: string
+      emailLabel: string
+      emailPlaceholder: string
+      passwordLabel: string
+      passwordPlaceholder: string
+      continueExisting: string
+      rememberLabel: string
+      totpDescription: string
+      totpLabel: string
+      completeSecondFactor: string
+      switchPhone: string
+      phoneMaskedLabel: string
+      emailVerifiedLabel: string
+      offlineDescription: string
+      platformError: (code: string, retryAfter?: number) => string
       errors: {
         invalid_identifier: string
         missing_code: string

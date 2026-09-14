@@ -334,6 +334,11 @@ export async function launchDesktop(
   assertDistBuilt()
 
   const electronBin = findElectron()
+  const configPath = path.join(env.HERMES_HOME, 'config.yaml')
+
+  const legacyAccountDevelopment =
+    fs.existsSync(configPath) &&
+    /(?:^|\n)account:\s*\n\s+dev_mode:\s*true(?:\s|$)/m.test(fs.readFileSync(configPath, 'utf8'))
 
   // `electron .` loads from the package.json `main` field
   // (dist/electron-main.mjs after build).
@@ -343,6 +348,7 @@ export async function launchDesktop(
       DESKTOP_ROOT, // `electron .` — the `.` is the desktop package dir
       '--disable-gpu',
       '--no-sandbox',
+      ...(legacyAccountDevelopment ? ['--aino-legacy-account-development'] : []),
     ],
     env,
     cwd: DESKTOP_ROOT,

@@ -4,62 +4,158 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n'
 import { stubResizeObserver } from '@/test/jsdom'
 
+import type { PlatformPublicCapabilities } from '../../../shared/platform-contract'
+
 import { AccountLoginCard } from './account-login-card'
 
 stubResizeObserver()
+
+const capabilities: PlatformPublicCapabilities = {
+  desktop_api_version: 1,
+  registration_enabled: true,
+  phone_login_enabled: true,
+  phone_registration_enabled: true,
+  phone_binding_enabled: true,
+  phone_regions: ['CN'],
+  phone_code_length: 6,
+  invitation_code_enabled: false,
+  promo_code_enabled: false,
+  login_agreement_enabled: true,
+  login_agreement_mode: 'checkbox',
+  login_agreement_revision: 'terms-7',
+  login_agreement_documents: [{ id: 'terms', title: '用户协议', content_md: '最新协议内容' }],
+  captcha: { provider: 'disabled', site_key: '', scene_id: '', prefix: '', region: '' }
+}
 
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
 })
 
-function renderCard(requestCode = vi.fn().mockResolvedValue({ expires_in: 600, retry_after: 60 })) {
+function renderCard(overrides: Partial<React.ComponentProps<typeof AccountLoginCard>> = {}) {
+  const props: React.ComponentProps<typeof AccountLoginCard> = {
+    capabilities,
+    error: null,
+    fixedCodeHint: false,
+    loading: false,
+    onCompleteSecondFactor: vi.fn(),
+    onLoginExisting: vi.fn(),
+    onRequestPhoneCode: vi.fn().mockResolvedValue({
+      challenge_id: 'challenge-1',
+      expires_in: 300,
+      retry_after: 60,
+      delivery: 'accepted'
+    }),
+    onVerifyPhoneCode: vi.fn(),
+    ...overrides
+  }
+
   return {
-    requestCode,
+    props,
     ...render(
       <I18nProvider configClient={null} initialLocale="zh">
-        <AccountLoginCard developmentMode onRequestCode={requestCode} onVerifyCode={vi.fn()} />
+        <AccountLoginCard {...props} />
       </I18nProvider>
     )
   }
 }
 
 describe('AccountLoginCard', () => {
-  it('renders the identifier step with the Aino brand layout', () => {
+  it('starts with the phone flow and does not require an email address', () => {
     renderCard()
 
     expect(screen.getByText('AINO')).toBeTruthy()
-    expect(screen.getByLabelText('邮箱或手机号')).toBeTruthy()
+    expect(screen.getByLabelText('手机号')).toBeTruthy()
+    expect(screen.queryByLabelText('邮箱')).toBeNull()
     expect(screen.getByRole('button', { name: '发送验证码' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '已有账户登录' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '切换微信登录' })).toBeTruthy()
   })
 
-  it('moves to the code step after requesting a code', async () => {
-    const { requestCode } = renderCard()
-    fireEvent.change(screen.getByLabelText('邮箱或手机号'), { target: { value: 'user@example.com' } })
-    fireEvent.click(screen.getByRole('checkbox'))
+  it('uses agreement, invitation and code-length policy for phone verification', async () => {
+    const onVerifyPhoneCode = vi.fn().mockResolvedValue({ status: 'signed_in' })
+
+    const { props } = renderCard({
+      capabilities: { ...capabilities, invitation_code_enabled: true },
+      onVerifyPhoneCode
+    })
+
+    fireEvent.change(screen.getByLabelText('手机号'), { target: { value: ' +8613800138000 ' } })
+    fireEvent.change(screen.getByLabelText('邀请码'), { target: { value: ' INVITE ' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: '同意用户协议和隐私政策' }))
     fireEvent.click(screen.getByRole('button', { name: '发送验证码' }))
 
-    expect(await screen.findByLabelText('验证码')).toBeTruthy()
-    expect(requestCode).toHaveBeenCalledWith('user@example.com')
-    expect(screen.getByPlaceholderText('输入验证码')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '返回' })).toBeTruthy()
+    const code = await screen.findByLabelText('验证码')
+    expect(props.onRequestPhoneCode).toHaveBeenCalledWith('+8613800138000')
+    expect(code.getAttribute('maxlength')).toBe('6')
+    fireEvent.change(code, { target: { value: '24a6810' } })
+    fireEvent.click(screen.getByRole('button', { name: '登录' }))
+
+    expect(onVerifyPhoneCode).toHaveBeenCalledWith({
+      phone: '+8613800138000',
+      challenge_id: 'challenge-1',
+      code: '246810',
+      register_if_new: true,
+      agreement_revision: 'terms-7',
+      invitation_code: 'INVITE',
+      remember: true
+    })
   })
 
-  it('shows the unavailable WeChat state without inventing a remote login', () => {
+  it('opens current agreement content instead of a development placeholder', () => {
     renderCard()
-    fireEvent.click(screen.getByRole('button', { name: '切换微信登录' }))
 
-    expect(screen.getByText('微信登录')).toBeTruthy()
-    expect(screen.getByText('微信登录暂未在此开发版本开放。')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '切换邮箱 / 手机' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '用户协议' }))
+
+    expect(screen.getByText('最新协议内容')).toBeTruthy()
   })
 
-  it('enables resend after the retry delay, while the original code is still valid', async () => {
+  it('continues an existing email account through TOTP without requesting a phone code', async () => {
+    const onLoginExisting = vi.fn().mockResolvedValue({ status: 'requires_2fa' })
+    const onCompleteSecondFactor = vi.fn().mockResolvedValue({ id: '17' })
+    const { props } = renderCard({ onCompleteSecondFactor, onLoginExisting })
+
+    fireEvent.click(screen.getByRole('button', { name: '已有账户登录' }))
+    fireEvent.change(screen.getByLabelText('邮箱'), { target: { value: 'member@example.test' } })
+    fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'password' } })
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: '继续' })))
+
+    expect(props.onRequestPhoneCode).not.toHaveBeenCalled()
+    expect(onLoginExisting).toHaveBeenCalledWith({
+      email: 'member@example.test',
+      password: 'password',
+      remember: true
+    })
+    fireEvent.change(await screen.findByLabelText('TOTP 验证码'), { target: { value: '12 3456' } })
+    fireEvent.click(screen.getByRole('button', { name: '验证' }))
+    expect(onCompleteSecondFactor).toHaveBeenCalledWith('123456')
+  })
+
+  it('shows fixed-code wording only for the explicit legacy development adapter', () => {
+    const { rerender } = renderCard()
+    expect(screen.queryByText('开发测试：验证码 1234，不会发送短信或邮件。')).toBeNull()
+
+    rerender(
+      <I18nProvider configClient={null} initialLocale="zh">
+        <AccountLoginCard
+          capabilities={capabilities}
+          fixedCodeHint
+          onCompleteSecondFactor={vi.fn()}
+          onLoginExisting={vi.fn()}
+          onRequestPhoneCode={vi.fn()}
+          onVerifyPhoneCode={vi.fn()}
+        />
+      </I18nProvider>
+    )
+
+    expect(screen.getByText('开发测试：验证码 1234，不会发送短信或邮件。')).toBeTruthy()
+  })
+
+  it('honors the server retry delay without expiring the current challenge', async () => {
     vi.useFakeTimers()
     renderCard()
-    fireEvent.change(screen.getByLabelText('邮箱或手机号'), { target: { value: 'test@example.com' } })
-    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.change(screen.getByLabelText('手机号'), { target: { value: '+8613800138000' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: '同意用户协议和隐私政策' }))
     await act(async () => fireEvent.click(screen.getByRole('button', { name: '发送验证码' })))
     await act(async () => vi.advanceTimersByTime(60_000))
 
@@ -67,13 +163,11 @@ describe('AccountLoginCard', () => {
     expect(screen.getByLabelText('验证码')).toBeTruthy()
   })
 
-  it('stays on the identifier form when sending fails', async () => {
-    renderCard(vi.fn().mockResolvedValue(null))
-    fireEvent.change(screen.getByLabelText('邮箱或手机号'), { target: { value: 'test@example.com' } })
-    fireEvent.click(screen.getByRole('checkbox'))
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: '发送验证码' })))
+  it('keeps the unavailable WeChat route explicit', () => {
+    renderCard()
+    fireEvent.click(screen.getByRole('button', { name: '切换微信登录' }))
 
-    expect(screen.getByLabelText('邮箱或手机号')).toBeTruthy()
-    expect(screen.queryByLabelText('验证码')).toBeNull()
+    expect(screen.getByText('微信登录')).toBeTruthy()
+    expect(screen.getByText('微信登录暂未开放。')).toBeTruthy()
   })
 })

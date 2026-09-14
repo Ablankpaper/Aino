@@ -2,23 +2,23 @@ import { useStore } from '@nanostores/react'
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 
+import { platformAccountActions } from '@/api/platform'
+import { createLegacyDevelopmentAccountActions } from '@/api/platform'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
-import { type AccountActions, createAccountActions } from '@/store/account'
+import type { AccountActions } from '@/store/account'
 import { $activeConnectionId } from '@/store/connections'
 import { requestGatewayForAgent } from '@/store/gateway'
-import { $gatewayState } from '@/store/session'
 
 import { AccountContext } from './account-context'
 import { AccountLoginCard } from './account-login-card'
 
 export interface AccountFlowProps {
   actions: AccountActions
-  connected: boolean
   children: ReactNode
 }
 
-export function AccountFlow({ actions, connected, children }: AccountFlowProps) {
+export function AccountFlow({ actions, children }: AccountFlowProps) {
   const state = useStore(actions.state)
   const { t } = useI18n()
   const copy = t.settings.account
@@ -28,10 +28,8 @@ export function AccountFlow({ actions, connected, children }: AccountFlowProps) 
   const [workspaceReady, setWorkspaceReady] = useState(false)
 
   useEffect(() => {
-    if (connected) {
-      void actions.refresh()
-    }
-  }, [actions, connected])
+    void actions.refresh()
+  }, [actions])
 
   useLayoutEffect(() => {
     const setMode = window.hermesDesktop?.setAccountWindowMode
@@ -102,30 +100,34 @@ export function AccountFlow({ actions, connected, children }: AccountFlowProps) 
         >
           <div className="flex w-full flex-col items-center" ref={loginContent}>
             <AccountLoginCard
-              canSignIn={state.canSignIn && connected}
-              developmentMode={state.mode === 'development'}
+              capabilities={state.capabilities}
               error={state.error}
+              fixedCodeHint={state.fixedCodeHint}
               loading={state.loading}
-              onRequestCode={actions.requestCode}
-              onVerifyCode={async (identifier, code) => {
-                const result = await actions.verifyCode(identifier, code)
+              onCompleteSecondFactor={actions.completeSecondFactor}
+              onLoginExisting={actions.loginExisting}
+              onRequestPhoneCode={actions.requestPhoneCode}
+              onVerifyPhoneCode={async input => {
+                const result = await actions.verifyPhoneCode(input)
 
-                if (result?.authenticated) {
+                if (result?.status === 'signed_in') {
                   navigate('/', { replace: true })
                 }
+
+                return result
               }}
             />
-            {(!connected || (!state.ready && !state.error)) && (
+            {!state.ready && !state.error && (
               <p className="text-sm text-(--ui-text-tertiary)" role="status">
                 {copy.loadingStatus}
               </p>
             )}
-            {state.ready && !state.canSignIn && (
+            {state.ready && !state.capabilities && (
               <p className="max-w-sm text-center text-sm text-(--ui-text-tertiary)">{copy.serviceUnavailable}</p>
             )}
             {windowError && <p className="px-8 pb-4 text-center text-xs text-destructive">{copy.errors.unavailable}</p>}
-            {((state.error && !state.ready) || (state.ready && !state.canSignIn)) && (
-              <Button disabled={state.loading || !connected} onClick={() => void actions.refresh()} variant="text">
+            {(state.error || (state.ready && !state.capabilities)) && (
+              <Button disabled={state.loading} onClick={() => void actions.retry()} variant="text">
                 {copy.refresh}
               </Button>
             )}
@@ -136,20 +138,31 @@ export function AccountFlow({ actions, connected, children }: AccountFlowProps) 
   )
 }
 
+export function shouldGatePlatformAccount(search: string) {
+  const role = new URLSearchParams(search).get('win')
+
+  return role !== 'hud' && role !== 'browser'
+}
+
 export function AccountGate({ children }: { children: ReactNode }) {
   const connectionId = useStore($activeConnectionId)
-  const gatewayState = useStore($gatewayState)
 
-  // Aino identity belongs to the connection's default account home; selecting a
-  // project or agent workspace must not switch the signed-in user's identity.
-  const actions = useMemo(
-    () => createAccountActions((method, params) => requestGatewayForAgent(connectionId, 'default', method, params)),
+  const legacyActions = useMemo(
+    () =>
+      createLegacyDevelopmentAccountActions((method, params) =>
+        requestGatewayForAgent(connectionId, 'default', method, params)
+      ),
     [connectionId]
   )
 
-  return (
-    <AccountFlow actions={actions} connected={gatewayState === 'open'}>
-      {children}
-    </AccountFlow>
-  )
+  if (!shouldGatePlatformAccount(window.location.search)) {
+    return children
+  }
+
+  const actions =
+    window.hermesDesktop.accountAdapter === 'legacy-development'
+      ? legacyActions
+      : platformAccountActions(window.hermesDesktop.platformAccount)
+
+  return <AccountFlow actions={actions}>{children}</AccountFlow>
 }
