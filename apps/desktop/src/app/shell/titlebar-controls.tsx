@@ -7,12 +7,17 @@ import titlebarHapticsIcon from '@/assets/aino-home/titlebar-haptics.svg'
 import titlebarHudIcon from '@/assets/aino-home/titlebar-hud.svg'
 import titlebarLayoutIcon from '@/assets/aino-home/titlebar-layout.svg'
 import titlebarRightSidebarIcon from '@/assets/aino-home/titlebar-right-sidebar.svg'
-import titlebarSettingsIcon from '@/assets/aino-home/titlebar-settings.svg'
 import titlebarSidebarToggleIcon from '@/assets/aino-home/titlebar-sidebar-toggle.svg'
 import titlebarSwapIcon from '@/assets/aino-home/titlebar-swap.svg'
 import { AinoDesignIcon } from '@/components/aino-design-icon'
 import { toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
-import { $narrowViewport, $treeSideVisible, resetLayoutTree } from '@/components/pane-shell/tree/store'
+import {
+  $narrowViewport,
+  $paneVisible,
+  $treeSideVisible,
+  resetLayoutTree,
+  togglePaneVisible
+} from '@/components/pane-shell/tree/store'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
@@ -35,6 +40,7 @@ import { $unreadSessionCount } from '@/store/session-dot-state'
 
 import { appViewForPath, isRouteBlockingSurface } from '../routes'
 
+import { SummaryToggle } from './summary-toggle'
 import {
   TITLEBAR_ICON_BADGE_SCALE,
   TITLEBAR_LEFT_ICON_SIZE,
@@ -71,15 +77,12 @@ export type SetTitlebarToolGroup = (id: string, tools: readonly TitlebarTool[], 
 interface TitlebarControlsProps extends ComponentProps<'div'> {
   leftTools?: readonly TitlebarTool[]
   tools?: readonly TitlebarTool[]
-  onOpenSettings: () => void
 }
 
 /**
  * The layout button's glyph. Morphs into its composite reset form — the
- * layout icon wearing a small counter-clockwise arrow badge ("layout, back
- * to how it was") — ONLY while the pointer is on the button AND ⌘/Ctrl is
- * held: hover gates via CSS (`group/tool` on the button), the modifier via
- * the window listener. Pressing the modifier elsewhere changes nothing.
+ * layout icon wearing a small counter-clockwise arrow badge — while ⌘/Ctrl is
+ * held over the button.
  */
 function LayoutGlyph({ modHeld }: { modHeld: boolean }) {
   return (
@@ -115,8 +118,7 @@ function withCountBadge(icon: ReactNode, count: number | undefined): ReactNode {
   )
 }
 
-/** Live ⌘/Ctrl tracking — mod-click affordances telegraph themselves (the
- *  layout button morphs into its reset form while the modifier is down). */
+/** Live ⌘/Ctrl tracking for the layout reset affordance. */
 function useModifierHeld(): boolean {
   const [held, setHeld] = useState(false)
 
@@ -138,7 +140,7 @@ function useModifierHeld(): boolean {
   return held
 }
 
-export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }: TitlebarControlsProps) {
+export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControlsProps) {
   const { t } = useI18n()
   const navigate = useNavigate()
   const location = useLocation()
@@ -150,6 +152,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   const panesFlipped = useStore($panesFlipped)
   const sidebarOpen = useStore($sidebarOpen)
   const unreadCount = useStore($unreadSessionCount)
+  const terminalVisible = useStore($paneVisible('terminal'))
   const unreadBadge = unreadCount > 0 ? unreadCount : undefined
   const unreadHint = unreadBadge ? ` · ${t.titlebar.unreadSessions(unreadBadge)}` : ''
 
@@ -227,8 +230,6 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   const systemTools: TitlebarTool[] = [
     {
       className: 'group/tool',
-      // Hover + held ⌘/Ctrl morphs the glyph into its reset form (see
-      // LayoutGlyph) — the mod-click telegraphs itself before it happens.
       icon: <LayoutGlyph modHeld={modHeld} />,
       id: 'layout',
       label: t.titlebar.layoutEditor,
@@ -269,18 +270,20 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
       id: 'haptics',
       label: hapticsMuted ? t.titlebar.unmuteHaptics : t.titlebar.muteHaptics,
       onSelect: toggleHaptics
-    },
-    {
-      actionId: 'nav.settings',
-      icon: <AinoDesignIcon className="size-[18px]" src={titlebarSettingsIcon} />,
-      id: 'settings',
-      label: t.titlebar.openSettings,
-      onSelect: () => {
-        triggerHaptic('open')
-        onOpenSettings()
-      }
     }
   ]
+
+  const terminalTool: TitlebarTool = {
+    actionId: 'view.showTerminal',
+    active: terminalVisible,
+    icon: <TitlebarIcon name={terminalVisible ? 'layout-panel' : 'layout-panel-off'} />,
+    id: 'terminal',
+    label: terminalVisible ? t.rightSidebar.terminalHide : t.keybinds.actions['view.showTerminal'],
+    onSelect: () => {
+      triggerHaptic('tap')
+      togglePaneVisible('terminal')
+    }
+  }
 
   // While a route-owned surface (the full-page Settings workspace or a modal
   // route such as Command Center) owns the window, these fixed control clusters
@@ -344,6 +347,8 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
         {visibleSystemTools.map(tool => (
           <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
         ))}
+        <SummaryToggle />
+        <TitlebarToolButton navigate={navigate} tool={terminalTool} />
         <TitlebarToolButton navigate={navigate} tool={rightSidebarTool} />
       </div>
     </>

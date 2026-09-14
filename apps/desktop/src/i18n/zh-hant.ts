@@ -283,6 +283,120 @@ export const zhHant = defineLocale({
     resetHudLayout: '重設 HUD 大小和位置'
   },
 
+  summary: {
+    aria: '工作階段摘要',
+    title: '工作階段摘要',
+    close: '關閉摘要',
+    environment: {
+      title: '環境資訊',
+      project: '專案',
+      workingDirectory: '工作目錄',
+      model: '模型',
+      provider: '提供方',
+      profile: '設定檔',
+      branch: '分支',
+      connection: '連線狀態',
+      noProject: '未開啟專案',
+      noSession: '未選擇工作階段',
+      local: '本機',
+      remote: '遠端'
+    },
+    changes: {
+      title: '工作區變更',
+      files: count => `${count} 個檔案`,
+      additions: '新增',
+      deletions: '刪除',
+      staged: count => `${count} 個已暫存`,
+      noChanges: '沒有未提交的變更',
+      unavailable: '暫時無法取得程式碼變更',
+      viewDiff: '檢視差異',
+      refresh: '重新整理變更',
+      stage: '暫存檔案',
+      unstage: '取消暫存',
+      revert: '還原檔案'
+    },
+    git: {
+      title: 'Git 狀態',
+      branch: '分支',
+      tracking: '遠端追蹤',
+      ahead: count => `領先 ${count}`,
+      behind: count => `落後 ${count}`,
+      commit: '最近提交',
+      pullRequest: '提取要求',
+      push: '推送',
+      reviewAndCommit: '審查、提交或建立 PR',
+      clean: '沒有領先或落後的提交',
+      unavailable: '此工作區暫時無法使用 Git',
+      noRepository: '此工作區不是 Git 儲存庫'
+    },
+    agents: {
+      title: '子代理',
+      running: count => `執行中 ${count}`,
+      completed: count => `已完成 ${count}`,
+      failed: count => `失敗 ${count}`,
+      viewAll: '檢視所有代理',
+      none: '此工作階段沒有子代理',
+      dispatched: count => `已派發 ${count}`,
+      finished: '已結束',
+      status: {
+        running: '執行中',
+        queued: '排隊中',
+        completed: '已完成',
+        failed: '失敗',
+        interrupted: '已中斷',
+        dispatched: '已派發'
+      }
+    },
+    context: {
+      title: '上下文用量',
+      noData: '尚無上下文資料'
+    },
+    sources: {
+      title: '來源',
+      add: '新增來源',
+      image: '圖片附件',
+      skill: '技能',
+      tool: '工具',
+      attachments: '附件',
+      previews: '預覽',
+      links: '連結',
+      none: '此工作階段沒有來源',
+      open: '開啟來源'
+    },
+    outputs: {
+      title: '輸出內容',
+      create: '建立檔案或網頁',
+      prompt: '幫我建立檔案或網頁：'
+    },
+    plan: {
+      title: '任務計畫',
+      progress: (done, total) => `已完成 ${done} / ${total} 項`,
+      recorded: '工作階段中最後記錄的計畫',
+      status: { pending: '待處理', in_progress: '進行中', completed: '已完成', cancelled: '已取消' }
+    },
+    background: {
+      title: '背景處理程序',
+      status: { running: '執行中', done: '已完成', failed: '失敗' }
+    },
+    resources: {
+      title: '系統資源',
+      ram: '記憶體',
+      gpu: 'GPU',
+      unavailable: '系統資源暫時無法使用',
+      retry: '重試資源查詢'
+    },
+    state: {
+      showAll: count => `檢視全部（${count}）`,
+      showLess: '收合',
+      details: '詳細資訊',
+      historyUnavailable: '暫時無法讀取此工作階段的歷史記錄',
+      loading: '載入中…',
+      unavailable: '暫時無法使用',
+      noData: '尚無資料',
+      retry: '重試'
+    }
+  },
+
   language: {
     label: '語言',
     description: '選擇桌面介面的語言。',
@@ -1750,6 +1864,7 @@ archiveConfirmTitle: name => `封存技能「${name}」？`,
     failedImport: '匯入設定檔失敗',
     failedExport: '匯出設定檔失敗',
     allProfiles: '全部設定檔',
+    advanced: '進階工作區',
     showAllProfiles: '顯示全部設定檔',
     switchToProfile: name => `切換至 ${name}`,
     switchToConnection: name => `切換至 ${name}`,
@@ -2111,16 +2226,21 @@ archiveConfirmTitle: name => `封存技能「${name}」？`,
       menuAppearance: '外觀',
       noColor: '無顏色',
       menuAddFolder: '新增資料夾',
+      manageFolders: '管理資料夾',
+      setPrimaryFolder: '設為主要資料夾',
+      foldersDescription: '新對話預設使用主要資料夾。移除關聯不會刪除檔案或歷史對話。',
+      keepOneFolder: '至少保留一個資料夾',
+      contextChanged: '對話或工作區已切換，請重新開啟此視窗後操作。',
       menuSetActive: '設為使用中',
-      menuDelete: '刪除',
+      menuDelete: '移除專案',
       reveal: '在資料夾中顯示',
       copyPath: '複製路徑',
       removeFromSidebar: '從側邊欄移除',
       createFailed: '無法建立專案',
-      unavailableAllProfiles: '檢視所有設定檔時無法使用專案',
+      unavailableAllProfiles: '全部工作區僅供瀏覽。請在設定中選擇專案所屬工作區後管理專案。',
       activeProfileChanged: '連線期間使用中的設定檔已變更',
       staleBackend: '請更新 Hermes 後端以建立專案——目前後端比桌面應用舊（設定 → 更新 → 後端）。',
-      deleteConfirm: '這會從 Hermes 中移除已儲存的專案。檔案、git 儲存庫和工作樹維持不變。',
+      deleteConfirm: '僅從 Aino 移除專案關聯，保留歷史對話、本機檔案、Git 儲存庫和工作樹。',
       startWork: '新增工作樹',
       newWorktreeTitle: '新增工作樹',
       newWorktreeDesc: '為這個工作樹命名分支。',
@@ -2456,6 +2576,7 @@ archiveConfirmTitle: name => `封存技能「${name}」？`,
     },
     coding: {
       selectProject: '選擇專案',
+      noProject: '不使用專案',
       startProjectChat: '在專案中開始新對話',
       viewChanges: '檢視變更詳情',
       title: '工作區',
@@ -2500,7 +2621,13 @@ archiveConfirmTitle: name => `封存技能「${name}」？`,
       branchOffFrom: base => `從 ${base} 建立新分支`,
       switchTo: branch => `切換到 ${branch}`,
       switchFailed: branch => `無法切換到 ${branch}`,
-      worktrees: '工作樹'
+      worktrees: '工作樹',
+      workLocation: '工作位置',
+      localWork: '本機',
+      projectDirectory: '專案目錄',
+      worktreeWork: '獨立工作副本',
+      newChatLocation: '新對話的工作位置',
+      createWorktree: '新增獨立工作副本…'
     }
   },
 
@@ -2886,6 +3013,7 @@ archiveConfirmTitle: name => `封存技能「${name}」？`,
         toggle: '系統資源'
       },
       contextUsagePanel: {
+        compacting: '正在壓縮上下文…',
         categories: {
           conversation: '對話',
           mcp: 'MCP',

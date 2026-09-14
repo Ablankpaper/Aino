@@ -24,6 +24,8 @@ const buttonVariants = cva(
         secondary:
           'bg-(--ui-bg-quaternary) text-(--ui-text-primary) hover:bg-(--chrome-action-hover) hover:text-(--ui-text-primary)',
         ghost: 'text-(--ui-text-secondary) hover:bg-(--chrome-action-hover) hover:text-(--ui-text-primary)',
+        'titlebar-popover':
+          'text-(--ui-text-secondary) hover:bg-(--chrome-action-hover) hover:text-(--ui-text-primary) aria-expanded:bg-(--chrome-action-hover) aria-expanded:text-(--ui-text-primary)',
         link: `rounded-none text-primary underline-offset-4 decoration-current/20 hover:underline ${TEXT_ACTION_ICON}`,
         // Boxless inline-text action (no bg/border). Quiet by default — reads as
         // muted label text, underlines on hover (e.g. "Cancel", "Clear").
@@ -53,6 +55,11 @@ const buttonVariants = cva(
       }
     },
     compoundVariants: [
+      {
+        variant: 'titlebar-popover',
+        size: 'icon-titlebar',
+        class: 'rounded-(--aino-radius-control)'
+      },
       // textStrong is a boxless link — size variants still inject px-*; strip
       // inline padding so the underline sits flush with the label.
       {

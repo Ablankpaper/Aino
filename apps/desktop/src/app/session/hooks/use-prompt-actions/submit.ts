@@ -402,6 +402,7 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
           sid,
           state => ({
             ...state,
+            isUnsentDraft: false,
             // A fresh user message may never land after a still-pending
             // assistant bubble — settle any leftover (drop it when empty)
             // before appending, or a stale spinner gets stranded

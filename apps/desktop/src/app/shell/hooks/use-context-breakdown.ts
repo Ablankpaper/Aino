@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 
 import type { ContextBreakdown } from '@/types/hermes'
 
@@ -9,7 +9,9 @@ interface ContextBreakdownOptions {
   sessionId: null | string
 }
 
-/** The focused session's context breakdown, fetched as soon as the statusbar
+const INITIALIZATION_RETRY_DELAYS_MS = [500, 1000, 2000]
+
+/** The composer's session context breakdown, fetched as soon as the
  *  gauge is on screen rather than when its popover opens.
  *
  *  The backend only reports measured context occupancy (`last_prompt_tokens`)
@@ -25,39 +27,84 @@ interface ContextBreakdownOptions {
  *  sessions drops the previous numbers instead of painting them under the new
  *  session's name. */
 export function useContextBreakdown({ busy, enabled, requestGateway, sessionId }: ContextBreakdownOptions) {
-  const [fetched, setFetched] = useState<{ breakdown: ContextBreakdown; sessionId: string } | null>(null)
+  const [fetched, setFetched] = useState<{
+    breakdown: ContextBreakdown
+    requestGateway: ContextBreakdownOptions['requestGateway']
+    sessionId: string
+  } | null>(null)
+
   const [loading, setLoading] = useState(false)
+  const [requestVersion, refetch] = useReducer(version => version + 1, 0)
 
   useEffect(() => {
     // Mid-turn the transcript changes on every delta and the gateway already
     // streams measured usage, so an estimate would be both stale and wasteful.
     if (!enabled || !sessionId || busy) {
+      setLoading(false)
+
       return
     }
 
     let cancelled = false
+    let retry = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const runtimeId = sessionId
+
     setLoading(true)
 
-    void requestGateway<ContextBreakdown>('session.context_breakdown', { session_id: sessionId })
-      .then(breakdown => {
-        if (!cancelled && breakdown) {
-          setFetched({ breakdown, sessionId })
-        }
-      })
-      .catch(() => undefined)
-      .finally(() => {
+    async function fetchBreakdown() {
+      let breakdown: ContextBreakdown
+
+      try {
+        breakdown = await requestGateway<ContextBreakdown>('session.context_breakdown', { session_id: runtimeId })
+      } catch {
         if (!cancelled) {
           setLoading(false)
         }
-      })
+
+        return
+      }
+
+      if (cancelled) {
+        return
+      }
+
+      if (breakdown?.context_max > 0) {
+        setFetched({ breakdown, requestGateway, sessionId: runtimeId })
+      } else {
+        // Restored sessions can answer before their lazy agent exists. A zero
+        // capacity is an initialization placeholder, never measured 0% usage.
+        setFetched(null)
+
+        const delay = INITIALIZATION_RETRY_DELAYS_MS[retry++]
+
+        if (delay !== undefined) {
+          timer = setTimeout(() => void fetchBreakdown(), delay)
+
+          return
+        }
+      }
+
+      setLoading(false)
+    }
+
+    void fetchBreakdown()
 
     return () => {
       cancelled = true
+
+      if (timer !== undefined) {
+        clearTimeout(timer)
+      }
     }
-  }, [busy, enabled, requestGateway, sessionId])
+  }, [busy, enabled, requestGateway, requestVersion, sessionId])
 
   return {
-    breakdown: fetched && fetched.sessionId === sessionId ? fetched.breakdown : null,
-    loading
+    breakdown:
+      fetched && fetched.sessionId === sessionId && fetched.requestGateway === requestGateway
+        ? fetched.breakdown
+        : null,
+    loading,
+    refetch
   }
 }

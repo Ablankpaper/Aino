@@ -22,7 +22,8 @@ import {
   $profileScope,
   ALL_PROFILES,
   normalizeProfileKey,
-  requestFreshSession
+  requestFreshSession,
+  setShowAllProfiles
 } from '@/store/profile'
 import {
   $activeSessionId,
@@ -364,7 +365,11 @@ async function activeProjectsContext(): Promise<ActiveProjectsContext> {
     gateway = await ensureActiveGatewayOpen()
   }
 
-  if (!gateway || gateway !== activeGateway() || profile !== projectProfile()) {
+  if (!gateway) {
+    throw new Error(translateNow('desktop.gatewayNotConnected'))
+  }
+
+  if (gateway !== activeGateway() || profile !== projectProfile()) {
     throw new Error(translateNow('sidebar.projects.activeProfileChanged'))
   }
 
@@ -456,7 +461,7 @@ function applyProjectTreePayload(res: ProjectTreePayload, context: ProjectTreeCo
   }
 }
 
-async function refreshProjectTreeOn(context: ActiveProjectsContext): Promise<void> {
+async function refreshProjectTreeOn(context: ActiveProjectsContext): Promise<SidebarProjectTree[] | null> {
   const generation = ++projectTreeRefreshGeneration
   const { gateway, profile } = context
 
@@ -489,16 +494,23 @@ async function refreshProjectTreeOn(context: ActiveProjectsContext): Promise<voi
       )
     }
 
-    if (generation !== projectTreeRefreshGeneration || !stillOnProjectsContext(context)) {
-      return
+    if (!stillOnProjectsContext(context)) {
+      return null
     }
 
-    applyProjectTreePayload(res, context)
-    markProjectsRpcSuccess()
+    if (generation === projectTreeRefreshGeneration) {
+      applyProjectTreePayload(res, context)
+      markProjectsRpcSuccess()
+    }
+
+    // A newer background read owns the cache, not the user's open-folder intent.
+    return res.projects ?? []
   } catch (err) {
     if (generation === projectTreeRefreshGeneration && stillOnProjectsContext(context)) {
       markProjectsRpcFailure(err)
     }
+
+    throw err
   } finally {
     if (generation === projectTreeRefreshGeneration && activeGateway() === gateway) {
       $projectTreeLoading.set(false)
@@ -928,30 +940,42 @@ export async function createProject(input: CreateProjectInput): Promise<ProjectI
     throw projectsStaleBackendError()
   }
 
+  const context = await activeProjectsContext()
   let res: { project: ProjectInfo | null }
 
   try {
-    res = await gatewayRequest<{ project: ProjectInfo | null }>(
+    res = await gatewayRequestOn<{ project: ProjectInfo | null }>(
+      context.gateway,
       'projects.create',
-      projectParams({
-        name: input.name,
-        folders: input.folders ?? [],
-        primary_path: input.primaryPath,
-        slug: input.slug,
-        description: input.description,
-        icon: input.icon,
-        color: input.color,
-        board_slug: input.boardSlug,
-        use: input.use ?? false
-      })
+      projectParams(
+        {
+          name: input.name,
+          folders: input.folders ?? [],
+          primary_path: input.primaryPath,
+          slug: input.slug,
+          description: input.description,
+          icon: input.icon,
+          color: input.color,
+          board_slug: input.boardSlug,
+          use: input.use ?? false
+        },
+        context.profile
+      )
     )
   } catch (err) {
     if (isMissingRpcMethod(err)) {
-      $projectsRpcAvailable.set(false)
+      if (stillOnProjectsContext(context)) {
+        $projectsRpcAvailable.set(false)
+      }
+
       throw projectsStaleBackendError()
     }
 
     throw err
+  }
+
+  if (!stillOnProjectsContext(context)) {
+    return res.project
   }
 
   markProjectsRpcSuccess()
@@ -1167,14 +1191,23 @@ export async function setActiveProject(id: null | string): Promise<void> {
 // menu can open create / rename / add-folder flows without prop threading
 // (mirrors $profileCreateRequest).
 export interface ProjectDialogState {
-  mode: 'add-folder' | 'create' | 'rename'
+  mode: 'add-folder' | 'create' | 'rename' | 'manage-folders'
   projectId?: string
   name?: string
+  onCreated?: (project: ProjectInfo) => void
+  isCurrent?: () => boolean
 }
 
 export const $projectDialog = atom<null | ProjectDialogState>(null)
 
-export function openProjectCreate(): void {
+function captureProjectDialogOwner(): () => boolean {
+  const gateway = activeGateway()
+  const profile = projectProfile()
+
+  return () => activeGateway() === gateway && projectProfile() === profile
+}
+
+export function openProjectCreate(options?: Pick<ProjectDialogState, 'onCreated' | 'isCurrent'>): void {
   if ($projectsRpcAvailable.get() === false) {
     notify({
       kind: 'warning',
@@ -1184,7 +1217,20 @@ export function openProjectCreate(): void {
     return
   }
 
-  $projectDialog.set({ mode: 'create' })
+  // Projects are owned by one profile. The unified all-profiles view is a
+  // browsing scope, not a writable project context; a direct project action
+  // should resolve to the currently active profile instead of showing a
+  // warning after the user has already filled the folder picker.
+  if ($profileScope.get() === ALL_PROFILES) {
+    setShowAllProfiles(false)
+  }
+
+  const ownerIsCurrent = captureProjectDialogOwner()
+  $projectDialog.set({
+    mode: 'create',
+    ...(options?.onCreated && { onCreated: options.onCreated }),
+    isCurrent: () => ownerIsCurrent() && (options?.isCurrent?.() ?? true)
+  })
 }
 
 /** Clear the armed "New project" drag placement — on dialog close, so a later
@@ -1194,11 +1240,25 @@ export function clearNewProjectDropPlacement(): void {
 }
 
 export function openProjectRename(project: { id: string; name: string }): void {
-  $projectDialog.set({ mode: 'rename', name: project.name, projectId: project.id })
+  $projectDialog.set({
+    mode: 'rename',
+    name: project.name,
+    projectId: project.id,
+    isCurrent: captureProjectDialogOwner()
+  })
 }
 
 export function openProjectAddFolder(project: { id: string; name: string }): void {
-  $projectDialog.set({ mode: 'add-folder', name: project.name, projectId: project.id })
+  $projectDialog.set({
+    mode: 'add-folder',
+    name: project.name,
+    projectId: project.id,
+    isCurrent: captureProjectDialogOwner()
+  })
+}
+
+export function openProjectFolders(project: { id: string; name: string }): void {
+  $projectDialog.set({ mode: 'manage-folders', name: project.name, projectId: project.id })
 }
 
 export function closeProjectDialog(): void {
@@ -1350,6 +1410,8 @@ export interface WorktreeDialogState {
   repoPath: string
   /** The base branch selected in a "branch off from X" menu. */
   base?: string
+  onCreated?: (result: { path: string; branch: string }) => void | Promise<void>
+  isCurrent?: () => boolean
 }
 
 export const $worktreeDialog = atom<null | WorktreeDialogState>(null)
@@ -1424,22 +1486,55 @@ export async function pickProjectFolder(): Promise<null | string> {
 // to the project and a fresh session draft lands anchored at the folder — the
 // one-keystroke version of new project → enter → new session. Like goToProject,
 // this is an open-from-nowhere: an occupied main gets a stacked tab, not stolen.
-export async function openFolderAsProject(dir?: string): Promise<void> {
+export async function openFolderAsProject(
+  dir?: string,
+  options?: { isCurrent?: () => boolean; onOpen: (path: string, projectId?: string) => void | Promise<void> }
+): Promise<void> {
+  const gateway = activeGateway()
+  const profile = $activeGatewayProfile.get()
+
+  const isCurrent = () =>
+    activeGateway() === gateway && $activeGatewayProfile.get() === profile && (options?.isCurrent?.() ?? true)
+
   const target = (dir ?? (await pickProjectFolder()) ?? '').trim()
 
-  if (!target) {
+  if (!target || !isCurrent()) {
     return
+  }
+
+  // Resolve the writable owner before refreshing or creating. Otherwise the
+  // all-profiles tree is read successfully, then projects.create is rejected
+  // with a message that leaves the selected folder without a project.
+  if ($profileScope.get() === ALL_PROFILES) {
+    setShowAllProfiles(false)
   }
 
   // Refresh first so the membership check runs against live truth — a repo
   // cloned since the last scan should enter its auto project, not double-create.
-  await refreshProjectTree()
+  const context = await activeProjectsContext()
+  let tree: SidebarProjectTree[] | null
 
-  const existing = projectIdForCwd(target)
+  try {
+    tree = await refreshProjectTreeOn(context)
+  } catch (error) {
+    if (!isMissingRpcMethod(error)) {
+      throw error
+    }
+
+    // An older backend can still open a plain folder chat. There are no
+    // confirmed project IDs to reuse; createProject surfaces the upgrade hint.
+    tree = []
+  }
+
+  if (!tree || !isCurrent()) {
+    return
+  }
+
+  const existing = projectIdForCwd(target, tree)
+  let projectId = existing ?? undefined
 
   if (existing) {
-    setSidebarAgentsGrouped(true)
-    enterProject(existing)
+    projectId = existing
   } else {
     const name =
       target
@@ -1451,13 +1546,28 @@ export async function openFolderAsProject(dir?: string): Promise<void> {
       const created = await createProject({ name, folders: [target], primaryPath: target, use: true })
 
       if (created) {
-        enterProject(created.id)
+        projectId = created.id
       }
     } catch (err) {
       // Stale backend (no projects.* RPC) or a failed write: still open the
       // folder as a plain workspace session below — the project row can wait.
       notify({ kind: 'warning', message: err instanceof Error ? err.message : String(err) })
     }
+  }
+
+  if (!isCurrent()) {
+    return
+  }
+
+  if (options) {
+    await options.onOpen(target, projectId)
+
+    return
+  }
+
+  if (projectId) {
+    setSidebarAgentsGrouped(true)
+    enterProject(projectId)
   }
 
   requestStartWorkSession(target, undefined, { openTab: true })

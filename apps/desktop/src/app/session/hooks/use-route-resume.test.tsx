@@ -20,6 +20,7 @@ interface HarnessProps {
   currentView: string
   freshDraftReady: boolean
   gatewayState: string
+  initialNavigationReady?: boolean
   locationPathname: string
   resumeSession: (sessionId: string, focus: boolean, ownerRoute?: SessionProfileRoute) => Promise<unknown>
   resumeFailedSessionId?: null | string
@@ -47,6 +48,38 @@ describe('useRouteResume', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+  })
+
+  it('waits for cold-launch navigation before initializing a draft, then honors explicit New Chat', () => {
+    vi.mocked(markSelectionRestore).mockClear()
+
+    const props: HarnessProps = {
+      activeSessionId: null,
+      activeSessionIdRef: { current: null },
+      creatingSessionRef: { current: false },
+      currentView: 'chat',
+      freshDraftReady: false,
+      gatewayState: 'open',
+      initialNavigationReady: false,
+      locationPathname: '/',
+      resumeSession: vi.fn(async () => undefined),
+      routedSessionId: null,
+      runtimeIdByStoredSessionIdRef: { current: new Map() },
+      selectedStoredSessionId: null,
+      selectedStoredSessionIdRef: { current: null },
+      startFreshSessionDraft: vi.fn()
+    }
+
+    const { rerender } = render(<RouteResumeHarness {...props} />)
+    expect(props.startFreshSessionDraft).not.toHaveBeenCalled()
+
+    rerender(<RouteResumeHarness {...props} locationPathname="/remembered" routedSessionId="remembered" />)
+    expect(props.resumeSession).toHaveBeenCalledWith('remembered', true)
+    expect(markSelectionRestore).toHaveBeenCalledTimes(1)
+    expect(props.startFreshSessionDraft).not.toHaveBeenCalled()
+
+    rerender(<RouteResumeHarness {...props} initialNavigationReady />)
+    expect(props.startFreshSessionDraft).toHaveBeenCalledWith(true)
   })
 
   it('does not re-resume the old session during a /:sid -> /new transition', () => {

@@ -58,6 +58,68 @@ one-off at the call site.
 - **Panes are working context.** Preview, files, review, and terminal remain
   attached to the current task. Their state survives temporary hiding and chat
   switches where the underlying tool is meant to persist.
+  Files, Summary and newly created terminals follow the last interacted chat
+  tab, including split chats. Clicking a tool does not silently switch back to
+  the main chat. Existing shells keep their processes and directories; a matching
+  tab may be selected, never moved or recreated. Unscoped Review follows the same
+  chat, while an explicitly opened repository stays pinned until another explicit
+  review action. Source/profile ownership gates filesystem actions; delayed reads
+  cannot paint or open files from a previous project or machine.
+- **Summary is a persistent workspace card.** Its list icon precedes Terminal
+  and the right-sidebar toggle. The titlebar button alone opens and closes it;
+  outside clicks, Escape, conversation switches and opening other panes leave
+  the choice intact. The card reserves a right-hand column, recentering the
+  transcript and composer together within the remaining workspace. It scrolls
+  independently and never mutates the user's saved tiling tree or remounts
+  chat/terminal surfaces. Below 1024px, or when existing tracks cannot fit beside
+  the card, it stacks beneath the workspace. The compact rail fits its content,
+  capped at 40% of the workspace height so the composer remains usable. Opening and closing use
+  a 200ms slide/resize transition, disabled under reduced motion. Its contents follow the selected
+  conversation: ordinary chat starts with a small Outputs affordance; real
+  artifacts, sources, plans, subagents and background processes add their groups
+  only when present. Inputs (attachments, links, loaded skills and external
+  services) are separate from generated outputs. Resource lists start compact
+  and expand in the card; images reuse the existing media resolver and files
+  open through the existing preview path. The create affordance inserts an
+  editable prompt into the composer, never sends one.
+  Project chats add environment, repository changes and Git actions. Changes
+  cover the whole working tree, including manual edits, and retain Review's
+  staging/revert confirmation paths; commit and PR open the existing Review
+  workflow. When the selected conversation's owner differs from the foreground
+  filesystem connection, Git reads/actions stay unavailable until that owner
+  is active; a same-named directory on another machine is never a substitute.
+  Previews retain producer provenance: opening a reference file does not make
+  it an output, and a later successful write promotes that existing preview.
+  Runtime feeds resolve through the selected durable conversation's
+  runtime binding. Persisted history uses the existing owner-scoped transcript
+  API (including compressed history), refreshed on opening and turn boundaries,
+  rather than scanning the transcript on every token. Finished plans/delegations
+  remain readable after their live chips clear; a historical dispatch alone
+  never claims a child is still running. Read failures offer retry, not a false
+  empty result. System
+  resources remain in Settings and are not displayed or polled by this card.
+  Context usage lives beside the model in the composer: a neutral progress
+  ring reveals usage on hover and the existing breakdown on click. It reads
+  that composer's session and owner-routed `session.context_breakdown` request,
+  refreshes when idle, and reflects the existing compaction state. Summary
+  no longer fetches or duplicates those details.
+  Diffs, source previews and terminals open beside the summary, without
+  dismissing it. Settings temporarily covers the workspace without resetting
+  the summary choice.
+  Older saved layouts retire only the former Summary pane.
+  This behavior draws on Codex's public
+  [artifacts viewer](https://developers.openai.com/codex/artifacts-viewer),
+  [repository review scopes](https://developers.openai.com/codex/code-review?surface=app)
+  and [chat environments](https://developers.openai.com/codex/environments/git-worktrees).
+  Summary aggregates Aino's existing data; it does not introduce another model
+  summarization request or modify conversation context.
+- **Terminal is a bottom workspace.** The default docks it beneath chat while
+  navigation and the file/review rails remain full-height. The titlebar toggle,
+  palette and shortcut share pane visibility; hiding releases the panel's space
+  without closing shells. Its own horizontal name tabs provide New, Close and
+  Hide, so a lone terminal does not need a second zone header. Mixed zones keep
+  their navigation strip. The old navigation-tab placement migrates once;
+  subsequent custom terminal placement remains user-owned.
 - **The file browser uses conversation chrome.** Its root directory keeps its
   original spelling in a neutral section label; file rows use the shared UI
   type scale, clear primary text, secondary icons and soft selection fills.
@@ -73,6 +135,10 @@ one-off at the call site.
   per entry point.
 - **Projects own workspace cwd.** Use Sidebar → Projects for local folders and
   worktrees; do not reintroduce a per-session/right-sidebar folder-picker flow.
+  Project menus own folder membership and the primary folder. Removing a project
+  or folder registration never deletes files or conversation history. Profile
+  management lives under Settings → Advanced workspaces; All profiles is a browse
+  scope, and opening a folder resolves to the active writable profile.
 - **Sidebar identity is the signed-in account.** Its circular avatar and name
   open Settings → My account. Use the account display name, falling back to its
   login identifier; workspace/profile selection must not change this identity.
@@ -135,6 +201,13 @@ Menus and popovers use their own shared `shadow-md` +
 dashed targets and local blur. These are semantic surface classes, not licenses
 for call-site shadow or border inventions.
 
+`PopoverContent variant="card"` provides a 320px floating card with 20px corners,
+zero outer padding and the shared `shadow-nous` / `--stroke-nous` elevation.
+Its content owns internal spacing and viewport limits. `showArrow={false}` omits
+the pointer for toolbar cards; other popovers keep their existing arrow.
+The summary rail reuses its paper surface through `CARD_SURFACE_CLASS` in
+`src/components/ui/card-surface.ts`, without popover dismissal or focus capture.
+
 ## Stroke & color tokens
 
 | Token | Use |
@@ -165,7 +238,8 @@ do **not** pass `h-*`, `px-*`, `py-*`, or icon-size overrides.
 the default non-primary look), `outline` (transparent + 1px inset ring, no
 fill/shadow), `ghost`, `link`, `text` (boxless quiet inline — "Cancel",
 "Clear"), `textStrong` (bold underlined inline affordance — "Change",
-"Open logs").
+"Open logs"), `titlebar-popover` (quiet toolbar trigger with a soft open fill;
+`icon-titlebar` uses the shared control radius).
 
 **Sizes:** `default`, `xs`, `sm`, `lg`, `inline` (flush, zero box — for buttons
 that sit inside a heading/sentence; replaces `h-auto px-0 py-0`), `micro`
@@ -179,6 +253,10 @@ already see or infer? If not, skip the tip; keep an `aria-label` for a11y.
 Tip unlabeled chrome when the job (or a keybind / truncated path / host /
 other detail) is not already on screen — toolbar / titlebar / statusbar icons,
 `TipKeybindLabel` shortcuts, ownership chips, unlabeled icon grids.
+
+`Tip variant="card"` is a rounded, theme-aware paper surface for multi-line
+informational previews, such as context usage. It keeps the standard hover
+delay and never takes focus; ordinary tooltips retain their inline treatment.
 
 Do **not** tip:
 
@@ -248,11 +326,18 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   the body field painter plus one subtle rail-tone layer, not stacked fills.
   Glass sidebar scope follows the foreground rail: Settings owns its boundary
   while open, and its narrow dropdown leaves no vertical glass strip.
+  Sidebar Glass follows the rail's physical left and right bounds, including
+  when a swap places it between chat and Summary. Chat and Summary keep their
+  opaque fields on either side; moving a rail never leaves its old tint behind.
+  Swapping sides changes track order without moving their DOM hosts, preserving
+  chat subscriptions, drafts and embedded documents. Keyboard and assistive
+  reading order follow the visual flex order; sashes resolve neighbors by track
+  identity rather than DOM position.
   Navigation uses bare line icons, primary-ink labels, smaller section labels
   and soft neutral hover/selection fills without inset outlines.
 - **Primary chat header:** the active conversation title and its existing
   session menu share the window titlebar with session search. Slots shrink
-  within the native/window-tool boundaries; long titles ellipsize and search
+  within the chat pane and native/window-tool boundaries; long titles ellipsize and search
   results open below the field without resizing the chat. Do not reserve a
   second header row for a session-only primary group. Mixed pane tabs,
   secondary chat splits and layout edit mode retain their local strips;
@@ -269,6 +354,11 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   spacing. When you do need one, it's a single `--ui-stroke-tertiary` hairline.
 
 ## Feedback & empty/error/loading states
+
+- **Progress:** `Progress shape="ring"` reuses the progress primitive's clamped
+  value and accessible range for compact meters. Its `sm` / default / `lg`
+  sizes are 14 / 16 / 20px. Indeterminate animated rings respect reduced motion;
+  the existing bar shape remains the default.
 
 - **Loading:** `Loader` (`src/components/ui/loader.tsx`) — animated math/ascii
   curves (`lemniscate-bloom` for long ops). Never ship the literal text
@@ -322,13 +412,25 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   shared overflow-only tooltip through `overflowLabel` for full title discovery.
 - The composer resolves its folder against the sidebar project tree before showing branch and change
   totals. A backend working directory alone is not a project selection. Ordinary
-  chats offer Select project; it starts a new project conversation through the
-  existing project flow. Change totals still open the current workspace's review
+  chats offer Select project. An unsent draft keeps its text and attachments when
+  selecting, opening, or creating a project from the composer. Locally created
+  empty tabs use the same rule; cold historical sessions are not empty drafts.
+  Once sent, the menu explicitly starts a separate project chat and never changes
+  the original conversation's cwd. Delayed pickers cannot retarget a different
+  draft, profile, or source. Change totals still open the current workspace's review
   pane, and projects without git retain their project entry. The project menu
   owns directory details and Copy path / Reveal in file manager / Reveal in sidebar;
   it uses that composer's directory, never an incidental global backend cwd.
-- Workspace approval mode sits beside the model in the composer, using the
-  existing profile-wide setting and authoritative rollback on save failure.
+  A visible work-location menu beside the project name distinguishes the primary
+  checkout from an isolated Worktree, using the existing Git worktree list and
+  branch status rather than a saved mode flag. The menu reuses the shared creation
+  dialog and draft-selection flow: unsent drafts retain text and attachments,
+  while sent conversations open a fresh chat. Ordinary folders require no Git
+  initialization. Remote primary checkouts say Project directory, not Local;
+  a foreign conversation cannot create or select paths on the foreground machine.
+- Workspace approval mode sits beside the attachment menu on the composer's
+  left, with its menu opening upward from that edge. It uses the existing
+  profile-wide setting and authoritative rollback on save failure.
   Narrow composers reduce it to an accessible icon before dropping secondary
   controls at the smallest size. There is no bottom statusbar or visibility
   toggle. Per-reply diagnostics are quiet, wrapping text beneath the answer;
@@ -459,7 +561,8 @@ The detailed state contract lives in the scoped
 - `cursor-pointer` at the primitive level (Button, dropdown/select) — don't
   hardcode it per call site.
 - Quiet pointer focus; keyboard-focused controls retain the shared visible
-  focus outline. Titlebar actions have no active-background state.
+  focus outline. Titlebar actions have no active-background state, except an
+  open `titlebar-popover` trigger, which identifies its floating or docked card.
 - `Esc` closes every dismissable overlay/dialog (install/onboarding excluded);
   close is an x-icon, not the word "Close".
 

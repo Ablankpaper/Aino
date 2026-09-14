@@ -200,8 +200,23 @@ export function publishWorkspaceGeometry(): () => void {
   let lastRight = NaN
   let rail: HTMLElement | null = null
   let titlebar: HTMLElement | null = null
+  let workspaceMountObserver: MutationObserver | null = null
 
   const ro = new ResizeObserver(() => measure())
+
+  const stopWorkspaceMountObserver = () => {
+    workspaceMountObserver?.disconnect()
+    workspaceMountObserver = null
+  }
+
+  const watchForWorkspaceMount = () => {
+    if (workspaceMountObserver || !document.body) {
+      return
+    }
+
+    workspaceMountObserver = new MutationObserver(() => measure())
+    workspaceMountObserver.observe(document.body, { childList: true, subtree: true })
+  }
 
   const measure = () => {
     const nextRail = document.querySelector<HTMLElement>('[data-navigation-rail]')
@@ -223,12 +238,13 @@ export function publishWorkspaceGeometry(): () => void {
     if (titlebar) {
       const r = rail?.getBoundingClientRect()
       const bar = titlebar.getBoundingClientRect()
+      const layout = rail?.closest('[data-slot="summary-workspace-main"]')?.getBoundingClientRect()
 
       const side =
         r && r.width > 0 && Math.abs(r.top - bar.bottom) <= 1
-          ? r.left <= 1
+          ? Math.abs(r.left - (layout?.left ?? 0)) <= 1
             ? 'left'
-            : Math.abs(r.right - window.innerWidth) <= 1
+            : Math.abs(r.right - (layout?.right ?? window.innerWidth)) <= 1
               ? 'right'
               : null
           : null
@@ -274,10 +290,18 @@ export function publishWorkspaceGeometry(): () => void {
 
       if (el) {
         ro.observe(el)
+        stopWorkspaceMountObserver()
+      } else {
+        // The tree root can mount before the lazy workspace pane. Watch only
+        // until that anchor appears; once found, the element ResizeObserver
+        // and existing tree/resize subscriptions own subsequent measurements.
+        watchForWorkspaceMount()
       }
     }
 
     if (!el) {
+      watchForWorkspaceMount()
+
       return
     }
 
@@ -312,6 +336,7 @@ export function publishWorkspaceGeometry(): () => void {
     onSashDragEnd = null
     window.removeEventListener('resize', measure)
     ro.disconnect()
+    stopWorkspaceMountObserver()
     root.style.removeProperty('--workspace-left')
     root.style.removeProperty('--workspace-right')
 

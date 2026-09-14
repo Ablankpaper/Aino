@@ -161,24 +161,18 @@ export const isChatWindow = (search = typeof window === 'undefined' ? '' : windo
   }
 }
 
-/* Sidebar scope needs the rail's visual edge published on :root so <body>
-   can split its paint there (glass left of the seam, opaque chrome right of
-   it — the Finder shape). The rail is an in-flow div whose WIDTH animates
-   (components/ui/sidebar.tsx, collapsible='none' branch), so a
-   ResizeObserver sees every collapse/expand frame. Settings has its own
-   full-page rail while the chat rail remains mounted but hidden underneath;
-   the route-aware selector below follows whichever rail is visible. A DOM
-   observer reacquires the target when the route swaps, and a window resize
-   listener covers viewport changes. RTL flips which side of the target is
-   measured; styles.css picks the matching gradient direction off html[dir]. */
+/* Publish the rail's physical bounds: a swapped rail can sit between chat
+   and the summary, so a single left/right seam would tint another pane.
+   Settings owns the foreground while its hidden chat rail stays mounted. */
 let railObserver: null | ResizeObserver = null
 let railDomObserver: null | MutationObserver = null
 let railTarget: Element | null = null
 let railTrackingOn = false
-const RAIL_SELECTOR = '[data-slot="sidebar"], [data-aino-overlay-nav]'
+const RAIL_SELECTOR = '[data-navigation-rail], [data-slot="sidebar"], [data-aino-overlay-nav]'
 
 const currentRail = (): Element | null =>
   document.querySelector('[data-settings-workspace] [data-aino-overlay-nav]') ??
+  document.querySelector('[data-navigation-rail]') ??
   document.querySelector('[data-slot="sidebar"]')
 
 const measureRailEdge = (): void => {
@@ -186,31 +180,34 @@ const measureRailEdge = (): void => {
   const rail = currentRail()
 
   if (rail !== railTarget) {
-    if (railObserver && railTarget) {
-      railObserver.unobserve(railTarget)
-    }
-
+    railObserver?.disconnect()
     railTarget = rail
 
     if (railObserver && rail) {
       railObserver.observe(rail)
+
+      // Summary animation moves a fixed-width right rail by resizing its
+      // workspace. The rail itself has no ResizeObserver notification then.
+      const workspace = rail.closest('[data-slot="summary-workspace-main"]')
+
+      if (workspace) {
+        railObserver.observe(workspace)
+      }
     }
   }
 
-  if (!rail) {
-    // No rail in this window (e.g. a pane-only layout): the seam sits at the
-    // window edge and the whole field stays opaque — glass simply waits for
-    // a rail to exist.
-    root.style.setProperty('--glass-rail-edge', '0px')
+  const rect = rail?.getBoundingClientRect()
+  const left = rect?.width ? Math.max(0, Math.round(rect.left)) : 0
+  const right = rect?.width ? Math.max(left, Math.min(window.innerWidth, Math.round(rect.right))) : 0
 
-    return
+  for (const [property, value] of [
+    ['--glass-rail-left', `${left}px`],
+    ['--glass-rail-right', `${right}px`]
+  ]) {
+    if (root.style.getPropertyValue(property) !== value) {
+      root.style.setProperty(property, value)
+    }
   }
-
-  const rect = rail.getBoundingClientRect()
-  const rtl = getComputedStyle(root).direction === 'rtl'
-  const edge = rect.width === 0 ? 0 : rtl ? window.innerWidth - rect.left : rect.right
-
-  root.style.setProperty('--glass-rail-edge', `${Math.max(0, Math.round(edge))}px`)
 }
 
 const startRailTracking = (): void => {
@@ -233,19 +230,31 @@ const startRailTracking = (): void => {
 
   if (typeof MutationObserver !== 'undefined' && !railDomObserver) {
     railDomObserver = new MutationObserver(records => {
-      // Streaming text and unrelated UI changes do not move the foreground
-      // rail. Re-query the document only when a rail mounts or unmounts.
+      // Track moves reuse the rail node. Track sizing can move it without
+      // changing its width. Ignore mutations inside pane content (streaming).
+      const tracksChanged = records.some(
+        record =>
+          record.target instanceof Element &&
+          (record.target.hasAttribute('data-tree-split') ||
+            (record.type === 'attributes' && record.target.parentElement?.hasAttribute('data-tree-split')))
+      )
+
       const railChanged = records.some(record =>
         [...record.addedNodes, ...record.removedNodes].some(
           node => node instanceof Element && (node.matches(RAIL_SELECTOR) || node.querySelector(RAIL_SELECTOR))
         )
       )
 
-      if (railChanged && currentRail() !== railTarget) {
+      if (railChanged || tracksChanged) {
         measureRailEdge()
       }
     })
-    railDomObserver.observe(document.body ?? document.documentElement, { childList: true, subtree: true })
+    railDomObserver.observe(document.body ?? document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style'],
+      childList: true,
+      subtree: true
+    })
   }
 
   window.addEventListener('resize', measureRailEdge)
@@ -259,16 +268,15 @@ const stopRailTracking = (): void => {
 
   railTrackingOn = false
 
-  if (railObserver && railTarget) {
-    railObserver.unobserve(railTarget)
-  }
-
+  railObserver?.disconnect()
+  railObserver = null
   railDomObserver?.disconnect()
   railDomObserver = null
 
   railTarget = null
   window.removeEventListener('resize', measureRailEdge)
-  document.documentElement.style.removeProperty('--glass-rail-edge')
+  document.documentElement.style.removeProperty('--glass-rail-left')
+  document.documentElement.style.removeProperty('--glass-rail-right')
 }
 
 /* Peek: while the user is actively adjusting translucency from Settings, the

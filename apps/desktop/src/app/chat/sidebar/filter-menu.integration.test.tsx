@@ -26,3 +26,9 @@ it('folds both simultaneously visible project and recent groups without touching
   fireEvent.click(await screen.findByRole('menuitem', { name: 'Collapse all' }))
   expect($sidebarWorkspaceNodeOpen.get()).toEqual({ p_app: false, 'list:today': false })
 })
+
+it('keeps advanced workspace management out of the ordinary conversation filter menu', () => {
+  render(<SidebarFilterMenu />)
+  fireEvent.pointerDown(screen.getByRole('button', { name: 'Filters' }), { button: 0, ctrlKey: false })
+  expect(screen.queryByRole('menuitem', { name: 'Profile' })).toBeNull()
+})

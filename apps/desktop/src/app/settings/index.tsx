@@ -40,7 +40,6 @@ import { $localModelsEnabled } from '@/store/local-models-flag'
 import { notifyError } from '@/store/notifications'
 import { $settingsScopeProfile } from '@/store/settings-scope'
 
-import { ProfileRail } from '../chat/sidebar/profile-switcher'
 import { useRouteEnumParam } from '../hooks/use-route-enum-param'
 import { OverlayIconButton } from '../overlays/overlay-chrome'
 import { OverlayMain, OverlayNav, type OverlayNavGroup, OverlaySplitLayout } from '../overlays/overlay-split-layout'
@@ -63,6 +62,7 @@ import { SystemResourcesSettings } from './system-resources-settings'
 import { SettingsSystemControls } from './system-status-controls'
 import type { SettingsPageProps, SettingsView as SettingsViewId } from './types'
 import { SettingsVersionControl } from './version-control'
+import { SettingsWorkspaceControls } from './workspace-controls'
 
 const SETTINGS_VIEWS: readonly SettingsViewId[] = [
   ...SECTIONS.map(s => `config:${s.id}` as SettingsViewId),
@@ -414,12 +414,7 @@ export function SettingsView({
 
   const navFooter = (
     <div className="flex w-full flex-col gap-1 border-t border-(--ui-stroke-tertiary) pt-2 max-[47.5rem]:w-auto max-[47.5rem]:flex-row max-[47.5rem]:border-0 max-[47.5rem]:pt-0">
-      <div
-        className="min-w-0 w-full px-0.5 max-[47.5rem]:w-auto max-[47.5rem]:flex-1"
-        data-settings-profile-controls=""
-      >
-        <ProfileRail />
-      </div>
+      <SettingsWorkspaceControls />
       <SettingsSystemControls
         onOpenCommandCenter={onOpenCommandCenter}
         onOpenCommandCenterSection={onOpenCommandCenterSection}

@@ -112,7 +112,7 @@ export function ApprovalModeMenu({
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72" side="top">
+      <DropdownMenuContent align="start" className="w-72" side="top">
         <DropdownMenuLabel>{copy.title}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup onValueChange={value => void selectMode(value as ApprovalMode)} value={mode}>

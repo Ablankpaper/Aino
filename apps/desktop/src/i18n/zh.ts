@@ -519,6 +519,120 @@ export const zh: Translations = {
     layoutEditorTitle: mod => `布局编辑器 — ${mod} 点击重置布局`
   },
 
+  summary: {
+    aria: '会话摘要',
+    title: '会话摘要',
+    close: '关闭摘要',
+    environment: {
+      title: '环境信息',
+      project: '项目',
+      workingDirectory: '工作目录',
+      model: '模型',
+      provider: '提供商',
+      profile: '工作区',
+      branch: '分支',
+      connection: '连接状态',
+      noProject: '未打开项目',
+      noSession: '未选择会话',
+      local: '本地',
+      remote: '远程'
+    },
+    changes: {
+      title: '工作区变更',
+      files: count => `${count} 个文件`,
+      additions: '新增',
+      deletions: '删除',
+      staged: count => `${count} 个已暂存`,
+      noChanges: '没有未提交的变更',
+      unavailable: '暂时无法获取代码变更',
+      viewDiff: '查看差异',
+      refresh: '刷新变更',
+      stage: '暂存文件',
+      unstage: '取消暂存',
+      revert: '撤销文件'
+    },
+    git: {
+      title: 'Git 状态',
+      branch: '分支',
+      tracking: '远程跟踪',
+      ahead: count => `领先 ${count}`,
+      behind: count => `落后 ${count}`,
+      commit: '最近提交',
+      pullRequest: '拉取请求',
+      push: '推送',
+      reviewAndCommit: '审查、提交或创建 PR',
+      clean: '无领先或落后的提交',
+      unavailable: '此工作区暂不可用 Git',
+      noRepository: '此工作区不是 Git 仓库'
+    },
+    agents: {
+      title: '子智能体',
+      running: count => `运行中 ${count}`,
+      completed: count => `已完成 ${count}`,
+      failed: count => `失败 ${count}`,
+      viewAll: '查看全部智能体',
+      none: '此会话暂无子智能体',
+      dispatched: count => `已派发 ${count}`,
+      finished: '已结束',
+      status: {
+        running: '运行中',
+        queued: '排队中',
+        completed: '已完成',
+        failed: '失败',
+        interrupted: '已中断',
+        dispatched: '已派发'
+      }
+    },
+    context: {
+      title: '上下文用量',
+      noData: '暂时没有上下文数据'
+    },
+    sources: {
+      title: '来源',
+      add: '添加来源',
+      image: '图片附件',
+      skill: '技能',
+      tool: '工具',
+      attachments: '附件',
+      previews: '预览',
+      links: '链接',
+      none: '此会话暂无来源',
+      open: '打开来源'
+    },
+    outputs: {
+      title: '输出内容',
+      create: '创建文件或网页',
+      prompt: '帮我创建文件或网页：'
+    },
+    plan: {
+      title: '任务计划',
+      progress: (done, total) => `已完成 ${done} / ${total} 项`,
+      recorded: '会话中最后记录的计划',
+      status: { pending: '待处理', in_progress: '进行中', completed: '已完成', cancelled: '已取消' }
+    },
+    background: {
+      title: '后台进程',
+      status: { running: '运行中', done: '已完成', failed: '失败' }
+    },
+    resources: {
+      title: '系统资源',
+      ram: '内存',
+      gpu: 'GPU',
+      unavailable: '系统资源暂不可用',
+      retry: '重试资源查询'
+    },
+    state: {
+      showAll: count => `查看全部（${count}）`,
+      showLess: '收起',
+      details: '详细信息',
+      historyUnavailable: '暂时无法读取此会话的历史记录',
+      loading: '加载中…',
+      unavailable: '暂时不可用',
+      noData: '暂无数据',
+      retry: '重试'
+    }
+  },
+
   keybinds: {
     title: '键盘快捷键',
     subtitle: open => `点击快捷键即可重新绑定 · ${open} 可重新打开此面板。`,
@@ -2872,6 +2986,7 @@ archiveConfirmTitle: name => `归档技能“${name}”？`,
     failedImport: '导入工作区失败',
     failedExport: '导出工作区失败',
     allProfiles: '全部工作区',
+    advanced: '高级工作区',
     showAllProfiles: '显示全部工作区',
     switchToProfile: name => `切换到 ${name}`,
     switchToConnection: name => `切换到 ${name}`,
@@ -3508,8 +3623,13 @@ archiveConfirmTitle: name => `归档技能“${name}”？`,
       menuAppearance: '外观',
       noColor: '无颜色',
       menuAddFolder: '添加文件夹',
+      manageFolders: '管理文件夹',
+      setPrimaryFolder: '设为主文件夹',
+      foldersDescription: '新会话默认使用主文件夹。移除关联不会删除文件或历史会话。',
+      keepOneFolder: '至少保留一个文件夹',
+      contextChanged: '会话或工作区已切换，请重新打开此窗口后操作。',
       menuSetActive: '设为活动',
-      menuDelete: '删除',
+      menuDelete: '移除项目',
       moveToProject: '移动到项目',
       movedTo: name => `已移动到 ${name}`,
       moveFailed: '无法移动会话',
@@ -3519,10 +3639,10 @@ archiveConfirmTitle: name => `归档技能“${name}”？`,
       copyPath: '复制路径',
       removeFromSidebar: '从侧边栏移除',
       createFailed: '无法创建项目',
-      unavailableAllProfiles: '查看全部工作区时无法使用项目功能',
+      unavailableAllProfiles: '全部工作区仅供浏览。请在设置中选择项目所属工作区后管理项目。',
       activeProfileChanged: '连接期间活动工作区发生变化',
       staleBackend: '请更新 Hermes 后端以创建项目——当前后端比桌面应用旧（设置 → 更新 → 后端）。',
-      deleteConfirm: '这会从 Hermes 中移除已保存的项目。文件、git 仓库和工作树保持不变。',
+      deleteConfirm: '仅从 Aino 移除项目关联，保留历史会话、本地文件、Git 仓库和工作树。',
       startWork: '新建工作树',
       newWorktreeTitle: '新建工作树',
       newWorktreeDesc: '为这个工作树命名分支。',
@@ -4039,6 +4159,7 @@ backgroundProcess: '后台进程',
     standingGoal: '持续目标',
     coding: {
       selectProject: '选择项目',
+      noProject: '不使用项目',
       startProjectChat: '在项目中开始新会话',
       viewChanges: '查看改动详情',
       title: '工作区',
@@ -4083,7 +4204,13 @@ backgroundProcess: '后台进程',
       branchOffFrom: base => `从 ${base} 新建分支`,
       switchTo: branch => `切换到 ${branch}`,
       switchFailed: branch => `无法切换到 ${branch}`,
-      worktrees: '工作树'
+      worktrees: '工作树',
+      workLocation: '工作位置',
+      localWork: '本地',
+      projectDirectory: '项目目录',
+      worktreeWork: '独立工作副本',
+      newChatLocation: '新会话的工作位置',
+      createWorktree: '新建独立工作副本…'
     }
   },
 
@@ -4552,6 +4679,7 @@ genericApiKeyDescription: provider => `直接访问 ${provider} 的 API。`,
         toggle: '系统资源'
       },
       contextUsagePanel: {
+        compacting: '正在压缩上下文…',
         categories: {
           conversation: '对话',
           mcp: 'MCP',

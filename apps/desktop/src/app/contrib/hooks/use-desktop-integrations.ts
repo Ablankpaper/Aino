@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { closeActiveTab } from '@/app/chat/close-tab'
 import { commandFocusedPreview } from '@/app/chat/right-rail/preview-nav'
@@ -47,6 +47,7 @@ interface DesktopIntegrationsParams {
   routedSessionId: null | string
   runtimeIdByStoredSessionId: { readonly current: Map<string, string> }
   sessions: readonly RememberedSession[]
+  sessionsLoading: boolean
 }
 
 /**
@@ -66,8 +67,10 @@ export function useDesktopIntegrations({
   resumeExhaustedSessionId,
   routedSessionId,
   runtimeIdByStoredSessionId,
-  sessions
-}: DesktopIntegrationsParams): void {
+  sessions,
+  sessionsLoading
+}: DesktopIntegrationsParams): boolean {
+  const [initialNavigationReady, setInitialNavigationReady] = useState(() => isHudWindow() || isBrowserWindow())
   // Update polling — populates $desktopVersion/$updateStatus, which feed the
   // statusbar version pill and the update toasts. Also honors the main
   // process's "open updates" menu request.
@@ -123,6 +126,7 @@ export function useDesktopIntegrations({
 
         if (!resumeLastSession) {
           restoredRef.current = true
+          setInitialNavigationReady(true)
 
           return
         }
@@ -139,6 +143,13 @@ export function useDesktopIntegrations({
         // decided; treating an unloaded list as authoritative would erase valid
         // remembered navigation permanently.
         if (sessions.length === 0 && !restorableNonSessionRoute && (routeSession || last)) {
+          if (!sessionsLoading) {
+            // An empty/failed fetch must still allow a new chat. Preserve the
+            // remembered ids, but don't let a later refresh steal its focus.
+            restoredRef.current = true
+            setInitialNavigationReady(true)
+          }
+
           return
         }
 
@@ -175,6 +186,10 @@ export function useDesktopIntegrations({
       }
     }
 
+    // A requested restore has now reached the router (or no restore was needed).
+    // Until then, `/` is only a boot placeholder, not an explicit New Chat.
+    setInitialNavigationReady(true)
+
     // Remember the open chat (session id for notifications/resume) AND the last
     // non-surface route (a page like /skills, or a session route) per profile.
     // Session-shaped routes require an explicit matching owner; unresolved and
@@ -185,7 +200,16 @@ export function useDesktopIntegrations({
     } else if (!routedSessionId && !isRouteBlockingSurface(appViewForPath(locationPathname))) {
       setRememberedRoute(locationPathname, activeProfile)
     }
-  }, [activeProfile, locationPathname, navigate, profileReady, resumeLastSession, routedSessionId, sessions])
+  }, [
+    activeProfile,
+    locationPathname,
+    navigate,
+    profileReady,
+    resumeLastSession,
+    routedSessionId,
+    sessions,
+    sessionsLoading
+  ])
 
   useEffect(() => {
     if (!profileReady || !resumeExhaustedSessionId) {
@@ -360,4 +384,6 @@ export function useDesktopIntegrations({
 
     return onSessionsChanged(() => void refreshSessions())
   }, [refreshSessions])
+
+  return initialNavigationReady
 }

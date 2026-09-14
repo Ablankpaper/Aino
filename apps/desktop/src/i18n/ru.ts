@@ -2168,6 +2168,7 @@ export const ru = defineLocale({
     failedImport: 'Не удалось импортировать профиль',
     failedExport: 'Не удалось экспортировать профиль',
     allProfiles: 'Все профили',
+    advanced: 'Дополнительные рабочие пространства',
     showAllProfiles: 'Показать все профили',
     switchToProfile: name => `Переключиться на ${name}`,
     switchToConnection: name => `Переключиться на ${name}`,
@@ -2497,8 +2498,13 @@ export const ru = defineLocale({
       menuAppearance: 'Внешний вид',
       noColor: 'Без цвета',
       menuAddFolder: 'Добавить папку',
+      manageFolders: 'Управление папками',
+      setPrimaryFolder: 'Сделать основной папкой',
+      foldersDescription: 'Новые чаты используют основную папку. Удаление связи сохраняет файлы и чаты.',
+      keepOneFolder: 'Оставьте хотя бы одну папку',
+      contextChanged: 'Разговор или рабочая область изменились. Откройте это окно заново.',
       menuSetActive: 'Сделать активным',
-      menuDelete: 'Удалить',
+      menuDelete: 'Убрать проект',
       moveToProject: 'Переместить в проект',
       movedTo: name => `Перемещено в ${name}`,
       moveFailed: 'Не удалось переместить сеанс',
@@ -2893,6 +2899,7 @@ export const ru = defineLocale({
     },
     coding: {
       selectProject: 'Выбрать проект',
+      noProject: 'Без проекта',
       startProjectChat: 'Начать новый чат в проекте',
       viewChanges: 'Посмотреть изменения',
       title: 'Рабочее дерево',
@@ -2939,7 +2946,13 @@ export const ru = defineLocale({
       branchOffFrom: base => `Новая ветка от ${base}`,
       switchTo: branch => `Переключиться на ${branch}`,
       switchFailed: branch => `Не удалось переключиться на ${branch}`,
-      worktrees: 'Worktrees'
+      worktrees: 'Worktrees',
+      workLocation: 'Рабочая папка',
+      localWork: 'Локально',
+      projectDirectory: 'Папка проекта',
+      worktreeWork: 'Рабочая копия',
+      newChatLocation: 'Папка нового чата',
+      createWorktree: 'Создать рабочую копию…'
     }
   },
   updates: {
@@ -3322,6 +3335,7 @@ export const ru = defineLocale({
       turnRunning: 'Выполняется',
       contextUsage: 'Использование контекста',
       contextUsagePanel: {
+        compacting: 'Сжатие контекста…',
         categories: {
           conversation: 'Диалог',
           mcp: 'MCP',

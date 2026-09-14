@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from 'react-router'
 
 import { AccountGate } from '@/app/account/account-gate'
 import { graftRefreshedTailOntoBackfill } from '@/app/chat/transcript-backfill'
+import { SummaryPane } from '@/app/right-sidebar/summary'
 import { formatRefValue } from '@/components/assistant-ui/directive-text'
 import { BootFailureOverlay } from '@/components/boot-failure-overlay'
 import { ConfirmHost } from '@/components/confirm-host'
@@ -73,6 +74,7 @@ import {
   $selectedStoredSessionId,
   $sessionResumeRequest,
   $sessions,
+  $sessionsLoading,
   forgetSessionOwnerHintsForSession,
   requestSessionResume,
   sessionMatchesStoredId,
@@ -105,6 +107,7 @@ import { ProfileCreateDialogHost } from '../profiles/create-profile-dialog-host'
 import { FileActionDialogs } from '../right-sidebar/file-actions'
 import { RemoteFolderPicker } from '../right-sidebar/files/remote-picker'
 import { resetProjectTreeState } from '../right-sidebar/files/use-project-tree'
+import { ReviewRevertDialog } from '../right-sidebar/review/revert-dialog'
 import { PersistentTerminal } from '../right-sidebar/terminal/persistent'
 import { closeAllTerminals } from '../right-sidebar/terminal/terminals'
 import {
@@ -231,6 +234,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   const selectedStoredSessionId = useStore($selectedStoredSessionId)
   const messagingSessions = useStore($messagingSessions)
   const sessions = useStore($sessions)
+  const sessionsLoading = useStore($sessionsLoading)
   const activeConnectionId = useStore($activeConnectionId)
   const activeGatewayProfile = useStore($activeGatewayProfile)
   const profileScope = useStore($profileScope)
@@ -746,6 +750,30 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     [activeSessionIdRef, updateSessionState]
   )
 
+  // Navigation restoration must settle before `/` can initialize a fresh draft.
+  const previewTarget = useStore($previewTarget)
+  const configRecord = useHermesConfigRecord()
+
+  const resumeLastSession = configRecord.isPending
+    ? undefined
+    : (configRecord.data?.display as { resume_last_session?: unknown } | undefined)?.resume_last_session !== false
+
+  const initialNavigationReady = useDesktopIntegrations({
+    activeProfile: normalizeProfileKey(activeGatewayProfile),
+    chatOpen,
+    hasPreview: Boolean(previewTarget),
+    locationPathname: location.pathname,
+    navigate,
+    profileReady: boot.phase === 'renderer.ready',
+    refreshSessions,
+    resumeLastSession,
+    resumeExhaustedSessionId,
+    routedSessionId,
+    runtimeIdByStoredSessionId: runtimeIdByStoredSessionIdRef,
+    sessions,
+    sessionsLoading
+  })
+
   useRouteResume({
     activeSessionId,
     activeSessionIdRef,
@@ -753,6 +781,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     currentView,
     freshDraftReady,
     gatewayState,
+    initialNavigationReady,
     locationPathname: location.pathname,
     resumeSession,
     resumeFailedSessionId,
@@ -863,35 +892,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     refreshSessions,
     requestGateway,
     updateSessionState
-  })
-
-  // Electron-main / OS / cross-window integrations: update polling, ⌘W close,
-  // deep links, native-notification nav, preview-shortcut enablement,
-  // remembered-session restore, and cross-window session-list sync.
-  const previewTarget = useStore($previewTarget)
-
-  // display.resume_last_session gates the cold-start restore. `undefined` while
-  // the record is still loading holds the restore latch open; a failed fetch
-  // falls back to the historical behavior (resume).
-  const configRecord = useHermesConfigRecord()
-
-  const resumeLastSession = configRecord.isPending
-    ? undefined
-    : (configRecord.data?.display as { resume_last_session?: unknown } | undefined)?.resume_last_session !== false
-
-  useDesktopIntegrations({
-    activeProfile: normalizeProfileKey(activeGatewayProfile),
-    chatOpen,
-    hasPreview: Boolean(previewTarget),
-    locationPathname: location.pathname,
-    navigate,
-    profileReady: boot.phase === 'renderer.ready',
-    refreshSessions,
-    resumeLastSession,
-    resumeExhaustedSessionId,
-    routedSessionId,
-    runtimeIdByStoredSessionId: runtimeIdByStoredSessionIdRef,
-    sessions
   })
 
   // Pin/unpin the selected session (statusbar keybind + chat header) — pinned
@@ -1096,6 +1096,8 @@ export function ContribWiring({ children }: { children: ReactNode }) {
 
   const terminalNode = useMemo(() => <TerminalSurface />, [])
 
+  const summaryNode = useMemo(() => <SummaryPane />, [])
+
   // The voice cap changes only on config load; the gateway instance + all
   // chat reactivity are subscribed inside ChatRoutesSurface / ChatView.
   const chatRoutesNode = useMemo(
@@ -1146,9 +1148,10 @@ export function ContribWiring({ children }: { children: ReactNode }) {
       chatRoutes: chatRoutesNode,
       sidebar: sidebarNode,
       settings: settingsNode,
+      summary: summaryNode,
       terminal: terminalNode
     }),
-    [chatRoutesNode, settingsNode, sidebarNode, terminalNode]
+    [chatRoutesNode, settingsNode, sidebarNode, summaryNode, terminalNode]
   )
 
   // The REAL titlebar tool clusters (sidebar/flip toggles, haptics, keybinds,
@@ -1175,11 +1178,11 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   // against the static system cluster — in the tree layout the titlebar band
   // sits ABOVE the grid, so AppShell's pane-width anchoring doesn't apply.
   // Count every button the static cluster actually renders: four systemTools
-  // (layout, haptics, keybinds, settings) PLUS the always-present
+  // (layout, HUD, haptics, terminal) PLUS the always-present
   // right-sidebar toggle (see titlebar-controls.tsx). A shared width that
   // under-counts leaves the find bar, the titlebar header padding, and the
-  // pane-cluster anchor overlapping the fifth button.
-  const SYSTEM_TOOL_COUNT = 5
+  // pane-cluster anchor overlapping the last button.
+  const SYSTEM_TOOL_COUNT = 6
   const paneToolCount = rightTitlebarTools.filter(tool => !tool.hidden).length
   const systemToolsWidth = titlebarToolsWidthCss(SYSTEM_TOOL_COUNT)
 
@@ -1206,11 +1209,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
             the clusters are `fixed`, so without this they'd float over the
             surface as orphaned buttons. */}
           {!isHudWindow() && !isBrowserWindow() && (
-            <TitlebarControls
-              leftTools={leftTitlebarTools}
-              onOpenSettings={() => navigate(SETTINGS_ROUTE)}
-              tools={rightTitlebarTools}
-            />
+            <TitlebarControls leftTools={leftTitlebarTools} tools={rightTitlebarTools} />
           )}
           {children}
         </div>
@@ -1250,6 +1249,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
         {!isAuxiliaryWindow() && <ProfileCreateDialogHost />}
         <SessionSwitcher />
         <FileActionDialogs />
+        <ReviewRevertDialog />
         <McpInstallDeepLinkDialog />
         <RemoteFolderPicker />
         <FindBar />

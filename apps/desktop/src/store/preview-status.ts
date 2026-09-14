@@ -14,6 +14,8 @@ import { previewName } from '@/lib/preview-targets'
 export interface PreviewArtifact {
   /** cwd captured at detection so a relative path still resolves on click. */
   cwd: string
+  /** A successful producer, not merely a file read or browser visit. */
+  generated?: boolean
   /** Dedupe key + display id (the raw target). */
   id: string
   label: string
@@ -47,7 +49,7 @@ const writePreviews = (sid: string, items: PreviewArtifact[]) => {
  * in the list keeps its slot (the tool row re-registers on every render, so this
  * must not churn the atom or reorder rows).
  */
-export function recordPreviewArtifact(sid: string, target: string, cwd: string) {
+export function recordPreviewArtifact(sid: string, target: string, cwd: string, generated = false) {
   const raw = target.trim()
 
   if (!sid || !raw) {
@@ -56,11 +58,23 @@ export function recordPreviewArtifact(sid: string, target: string, cwd: string) 
 
   const list = $previewStatusBySession.get()[sid] ?? []
 
-  if (list.some(item => item.id === raw)) {
+  const previous = list.find(item => item.id === raw)
+
+  if (previous) {
+    if (generated && !previous.generated) {
+      writePreviews(
+        sid,
+        list.map(item => (item === previous ? { ...item, generated: true } : item))
+      )
+    }
+
     return
   }
 
-  writePreviews(sid, [...list, { cwd, id: raw, label: previewName(raw), target: raw }].slice(-MAX_PER_SESSION))
+  writePreviews(
+    sid,
+    [...list, { cwd, generated, id: raw, label: previewName(raw), target: raw }].slice(-MAX_PER_SESSION)
+  )
 }
 
 export function dismissPreviewArtifact(sid: string, id: string) {

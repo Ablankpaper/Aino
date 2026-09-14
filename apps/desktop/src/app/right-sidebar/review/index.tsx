@@ -4,7 +4,6 @@ import { FileDiffPanel } from '@/components/chat/diff-lines'
 import { DiffSkeleton, TreeSkeleton } from '@/components/chat/skeletons'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DiffCount } from '@/components/ui/diff-count'
 import { Tip } from '@/components/ui/tooltip'
 import { useDelayedTrue } from '@/hooks/use-delayed-true'
@@ -19,13 +18,10 @@ import {
   $reviewFiles,
   $reviewIsRepo,
   $reviewLoading,
-  $reviewRevertTarget,
   $reviewSelectedPath,
   $reviewTreeMode,
-  cancelRevert,
   clearReviewSelection,
   closeReview,
-  confirmRevert,
   refreshReview,
   requestRevert,
   stageReviewFile,
@@ -53,13 +49,10 @@ export function ReviewPane() {
   const selectedPath = useStore($reviewSelectedPath)
   const diff = useStore($reviewDiff)
   const diffLoading = useStore($reviewDiffLoading)
-  const revertTarget = useStore($reviewRevertTarget)
   const treeMode = useStore($reviewTreeMode)
 
   const selectedFile = files.find(file => file.path === selectedPath)
   const hasFiles = files.length > 0
-  // `{ path: null }` → revert all; `{ path: '…' }` → revert one file.
-  const revertingAll = revertTarget?.path == null
   // Delay the skeletons so fast loads (most project switches) just blank → content
   // instead of flashing a jarring loading state.
   const showTreeSkeleton = useDelayedTrue(loading && !hasFiles)
@@ -201,31 +194,6 @@ export function ReviewPane() {
       )}
 
       <ReviewShipBar />
-
-      <ConfirmDialog
-        confirmLabel={revertingAll ? c.revertAll : c.revert}
-        description={
-          <>
-            {revertingAll ? c.revertAllConfirm : c.revertConfirm}
-            {!revertingAll && revertTarget?.path && (
-              <span
-                className="mt-2 block truncate font-mono text-[0.7rem] text-(--ui-text-secondary)"
-                title={displayPath(revertTarget.path)}
-              >
-                {displayPath(revertTarget.path)}
-              </span>
-            )}
-          </>
-        }
-        destructive
-        // confirmRevert closes the dialog itself, then reverts in the
-        // background — so the failure lands in a toast, not inline.
-        dismissOnConfirm
-        onClose={cancelRevert}
-        onConfirm={() => confirmRevert().catch(err => void notifyError(err, c.revert))}
-        open={revertTarget !== undefined}
-        title={revertingAll ? c.revertAll : c.revert}
-      />
     </aside>
   )
 }

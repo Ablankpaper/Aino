@@ -4,6 +4,7 @@ import type { ComponentProps, ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { type SessionView, SessionViewProvider } from '@/app/chat/session-view'
+import { summaryOutputs } from '@/app/right-sidebar/summary/session-content'
 import { $previewStatusBySession } from '@/store/preview-status'
 import { $activeSessionId, $currentCwd } from '@/store/session'
 
@@ -48,6 +49,34 @@ afterEach(() => {
 })
 
 describe('tool row preview recording', () => {
+  it('only promotes successful producer previews to outputs and preserves that evidence when reread', () => {
+    $activeSessionId.set(PRIMARY_ID)
+    $currentCwd.set('/primary/work')
+    const path = '/primary/work/reference.html'
+
+    const props = {
+      args: { path },
+      result: { path },
+      toolCallId: 'preview-provenance',
+      toolName: 'read_file'
+    } as unknown as ComponentProps<typeof ToolFallback>
+
+    const row = render(<ToolFallback {...props} />)
+    const outputs = () => summaryOutputs([], [], $previewStatusBySession.get()[PRIMARY_ID] ?? [])
+
+    expect($previewStatusBySession.get()[PRIMARY_ID]?.[0]?.target).toBe(path)
+    expect(outputs()).toEqual([])
+
+    row.rerender(<ToolFallback {...props} isError toolName="write_file" />)
+    expect(outputs()).toEqual([])
+
+    row.rerender(<ToolFallback {...props} toolName="write_file" />)
+    expect(outputs().map(item => item.target)).toEqual([path])
+
+    row.rerender(<ToolFallback {...props} />)
+    expect(outputs().map(item => item.target)).toEqual([path])
+  })
+
   // The row used to record under the global (primary-only) $activeSessionId, so
   // a preview produced inside a session TILE surfaced in the main chat's
   // composer instead of the tile's own.

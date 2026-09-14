@@ -1,10 +1,15 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { setShowAllProfiles } from '@/store/profile'
+
 import { ProjectMenu } from './project-menu'
 import type { SidebarProjectTree } from './workspace-groups'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  setShowAllProfiles(false)
+})
 
 // jsdom doesn't implement ResizeObserver; Radix's PopoverContent/Arrow use it
 // (via @radix-ui/react-use-size) to measure the arrow once the popover is
@@ -31,6 +36,7 @@ vi.mock('@/i18n', () => ({
           deleteConfirm: 'This cannot be undone.',
           menu: 'Actions',
           menuAddFolder: 'Add folder',
+          manageFolders: 'Manage folders',
           menuAppearance: 'Appearance',
           menuDelete: 'Delete',
           menuRename: 'Rename',
@@ -61,6 +67,7 @@ vi.mock('@/store/projects', () => ({
   copyPath: vi.fn(),
   deleteProject: vi.fn(),
   openProjectAddFolder: vi.fn(),
+  openProjectFolders: vi.fn(),
   openProjectRename: vi.fn(),
   revealPath: vi.fn(),
   setActiveProject: vi.fn(),
@@ -88,6 +95,13 @@ const openTriggerMenu = (trigger: HTMLElement) => {
 }
 
 describe('ProjectMenu', () => {
+  it('does not send mutations for owner-ambiguous projects in the all-workspaces browse scope', () => {
+    setShowAllProfiles(true)
+    render(<ProjectMenu isActive={false} project={project} />)
+    openTriggerMenu(screen.getByRole('button', { name: 'Actions' }))
+    expect(screen.getByRole('menuitem', { name: 'Manage folders' }).hasAttribute('data-disabled')).toBe(true)
+    expect(screen.getByRole('menuitem', { name: 'Delete…' }).hasAttribute('data-disabled')).toBe(true)
+  })
   it('does not wrap the kebab trigger in a Tip', () => {
     render(<ProjectMenu isActive={false} project={project} />)
 

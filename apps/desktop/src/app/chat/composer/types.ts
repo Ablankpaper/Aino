@@ -18,6 +18,7 @@ export interface QuickModelOption {
 }
 
 export interface ChatBarState {
+  contextUsage?: ReactNode
   model: {
     model: string
     provider: string

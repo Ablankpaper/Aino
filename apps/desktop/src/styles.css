@@ -628,29 +628,18 @@
     --glass-field: color-mix(in srgb, var(--ui-bg-chrome) var(--translucency-glass-keep, 100%), transparent);
   }
 
-  /* Sidebar scope (the Finder shape): glass rail, opaque content column.
-     <body> stays the one painter but splits at the rail's visual edge — the
-     store publishes it as --glass-rail-edge (live-tracked through collapse
-     animation and pane resizes). Left of the seam: the normal glass mix.
-     Right of it: the full opaque chrome. A hard gradient stop, so there is
-     no smear across the seam; RTL mirrors via html[dir='rtl']. The content
-     column's own surfaces stay transparent (they'd double-paint the tint
-     otherwise) — the body backdrop alone restores the opaque look. */
+  /* Sidebar scope: one painter, glass only between the rail's actual bounds.
+     This also covers a flipped rail between chat and the persistent summary.
+     Physical coordinates follow the rendered layout in both LTR and RTL. */
   :root[data-hermes-glass][data-hermes-glass-scope='sidebar'] body {
     background: linear-gradient(
       to right,
+      var(--ui-bg-chrome) var(--glass-rail-left, 0px),
       color-mix(in srgb, var(--ui-bg-chrome) var(--translucency-glass-keep, 100%), transparent)
-        var(--glass-rail-edge, 0px),
-      var(--ui-bg-chrome) var(--glass-rail-edge, 0px)
-    );
-  }
-
-  :root[data-hermes-glass][data-hermes-glass-scope='sidebar'][dir='rtl'] body {
-    background: linear-gradient(
-      to left,
+        var(--glass-rail-left, 0px),
       color-mix(in srgb, var(--ui-bg-chrome) var(--translucency-glass-keep, 100%), transparent)
-        var(--glass-rail-edge, 0px),
-      var(--ui-bg-chrome) var(--glass-rail-edge, 0px)
+        var(--glass-rail-right, 0px),
+      var(--ui-bg-chrome) var(--glass-rail-right, 0px)
     );
   }
 
@@ -2302,7 +2291,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
   translate: none;
 }
 
-[data-chat-surface][data-home-layout] [data-slot='composer-leading-controls'] > button {
+[data-chat-surface][data-home-layout] [data-slot='composer-context-menu'] {
   border-radius: 9999px;
   background: var(--aino-landing-control);
 }
@@ -2422,7 +2411,7 @@ body:not(:has([data-settings-workspace])):has([data-chat-surface][data-conversat
   translate: none;
 }
 
-[data-chat-surface][data-conversation-layout] [data-slot='composer-leading-controls'] > button {
+[data-chat-surface][data-conversation-layout] [data-slot='composer-context-menu'] {
   border-radius: 9999px;
   background: var(--aino-landing-control);
 }

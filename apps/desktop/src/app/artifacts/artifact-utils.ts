@@ -6,6 +6,8 @@ export type ArtifactKind = 'image' | 'file' | 'link'
 export type ArtifactFilter = 'all' | ArtifactKind
 export const ARTIFACT_FILTERS: readonly ArtifactFilter[] = ['all', 'image', 'file', 'link']
 
+export type ArtifactSession = Pick<SessionInfo, 'id' | 'title' | 'preview' | 'profile' | 'last_active' | 'started_at'>
+
 export interface ArtifactRecord {
   id: string
   kind: ArtifactKind
@@ -37,7 +39,7 @@ const WINDOWS_PATH_RE = /(^|[\s("'`])([A-Za-z]:[\\/][^\s"'`<>]+(?:\.[a-z0-9]{1,8
 const IMAGE_EXT_RE = /\.(?:png|jpe?g|gif|webp|svg|bmp)(?:\?.*)?$/i
 
 const FILE_EXT_RE =
-  /\.(?:png|jpe?g|gif|webp|svg|bmp|pdf|txt|json|md|csv|zip|tar|gz|avi|flac|m4a|mkv|mp3|ogg|opus|wav|webm|mp4|mov)(?:\?.*)?$/i
+  /\.(?:png|jpe?g|gif|webp|svg|bmp|pdf|html?|txt|json|md|csv|zip|tar|gz|avi|flac|m4a|mkv|mp3|ogg|opus|wav|webm|mp4|mov)(?:\?.*)?$/i
 
 const MAX_UNIX_SECONDS = 10_000_000_000
 
@@ -52,7 +54,7 @@ const PRODUCER_TOOL_ARTIFACT_KEY_RE =
 
 const SCREENSHOT_PATH_RE = /Screenshot path:\s*([^\r\n<>]+)/gi
 
-function artifactSessionTitle(session: SessionInfo): string {
+function artifactSessionTitle(session: ArtifactSession): string {
   return session.title?.trim() || session.preview?.trim() || translateNow('sidebar.row.untitledPlaceholder')
 }
 
@@ -207,7 +209,7 @@ function normalizeArtifactTimestamp(timestamp: null | number | undefined): null 
   return timestamp < MAX_UNIX_SECONDS ? timestamp * 1000 : timestamp
 }
 
-function artifactTimestamp(message: SessionMessage, session: SessionInfo): number {
+function artifactTimestamp(message: SessionMessage, session: ArtifactSession): number {
   return (
     normalizeArtifactTimestamp(message.timestamp) ??
     normalizeArtifactTimestamp(session.last_active) ??
@@ -300,7 +302,7 @@ function toolName(message: SessionMessage): string {
   return (message.tool_name || message.name || '').trim().toLowerCase()
 }
 
-function isArtifactProducerTool(name: string): boolean {
+export function isArtifactProducerTool(name: string): boolean {
   // `bfl_flux3_*` tools were removed from the core toolset, but sessions
   // recorded while they existed still carry their tool messages — keep
   // matching so those artifacts stay visible in history.
@@ -331,11 +333,19 @@ function structuredToolPayload(message: SessionMessage): null | unknown {
   return content
 }
 
-function collectArtifactsFromMessage(message: SessionMessage, pushValue: (value: string) => void): void {
+function collectArtifactsFromMessage(
+  message: SessionMessage,
+  pushValue: (value: string) => void,
+  generatedOnly: boolean
+): void {
   const text = messageText(message)
 
   if (message.role === 'assistant' && text) {
-    collectArtifactsFromText(text, pushValue)
+    if (generatedOnly) {
+      collectMediaValues(text, pushValue)
+    } else {
+      collectArtifactsFromText(text, pushValue)
+    }
 
     return
   }
@@ -381,7 +391,11 @@ function collectArtifactsFromMessage(message: SessionMessage, pushValue: (value:
   }
 }
 
-export function collectArtifactsForSession(session: SessionInfo, messages: SessionMessage[]): ArtifactRecord[] {
+export function collectArtifactsForSession(
+  session: ArtifactSession,
+  messages: SessionMessage[],
+  { generatedOnly = false }: { generatedOnly?: boolean } = {}
+): ArtifactRecord[] {
   const found = new Map<string, ArtifactRecord>()
   const title = artifactSessionTitle(session)
 
@@ -390,31 +404,35 @@ export function collectArtifactsForSession(session: SessionInfo, messages: Sessi
       continue
     }
 
-    collectArtifactsFromMessage(message, candidate => {
-      const value = normalizeValue(candidate)
+    collectArtifactsFromMessage(
+      message,
+      candidate => {
+        const value = normalizeValue(candidate)
 
-      if (!value || !looksLikeArtifact(value)) {
-        return
-      }
+        if (!value || !looksLikeArtifact(value)) {
+          return
+        }
 
-      const key = `${session.id}:${value}`
+        const key = `${session.id}:${value}`
 
-      if (found.has(key)) {
-        return
-      }
+        if (found.has(key)) {
+          return
+        }
 
-      found.set(key, {
-        id: key,
-        kind: artifactKind(value),
-        value,
-        href: artifactHref(value),
-        label: artifactLabel(value),
-        sessionId: session.id,
-        profile: session.profile,
-        sessionTitle: title,
-        timestamp: artifactTimestamp(message, session)
-      })
-    })
+        found.set(key, {
+          id: key,
+          kind: artifactKind(value),
+          value,
+          href: artifactHref(value),
+          label: artifactLabel(value),
+          sessionId: session.id,
+          profile: session.profile,
+          sessionTitle: title,
+          timestamp: artifactTimestamp(message, session)
+        })
+      },
+      generatedOnly
+    )
   }
 
   return Array.from(found.values())

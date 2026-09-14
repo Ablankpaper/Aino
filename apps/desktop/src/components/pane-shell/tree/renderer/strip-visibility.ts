@@ -27,6 +27,8 @@ export interface StripPane {
   placement?: string
   /** Panes that never leave the tree (the workspace). */
   uncloseable?: boolean
+  /** The pane provides its own tabs and hide control when alone. */
+  selfManagedTabs?: boolean
 }
 
 export interface StripZone {
@@ -71,7 +73,7 @@ function stranded(shown: readonly StripPane[]): boolean {
 
   const [only] = shown
 
-  return only.collapsePane || (!only.uncloseable && only.placement === 'main')
+  return !only.selfManagedTabs && (only.collapsePane || (!only.uncloseable && only.placement === 'main'))
 }
 
 export function resolveTabStripVisible(zone: StripZone): boolean {
@@ -124,6 +126,7 @@ export function tabStripVisibleForZone(zone: {
       return {
         collapsePane: zone.isCollapsePane(id),
         hideOnly: chrome.hideOnly,
+        selfManagedTabs: chrome.selfManagedTabs,
         placement: chrome.placement,
         uncloseable: chrome.uncloseable
       }

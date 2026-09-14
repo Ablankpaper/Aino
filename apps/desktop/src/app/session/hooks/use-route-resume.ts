@@ -12,6 +12,7 @@ interface RouteResumeOptions {
   currentView: string
   freshDraftReady: boolean
   gatewayState: string | undefined
+  initialNavigationReady?: boolean
   locationPathname: string
   resumeSession: (sessionId: string, focus: boolean, ownerRoute?: SessionProfileRoute) => Promise<unknown>
   // Stored-session id whose most recent resume failed terminally (set by
@@ -75,6 +76,7 @@ export function useRouteResume({
   currentView,
   freshDraftReady,
   gatewayState,
+  initialNavigationReady = true,
   locationPathname,
   resumeSession,
   resumeFailedSessionId,
@@ -195,6 +197,7 @@ export function useRouteResume({
 
     if (
       isNewChatRoute(locationPathname) &&
+      (!bootResumeRef.current || initialNavigationReady) &&
       !creatingSessionRef.current &&
       (selectedStoredSessionId || activeSessionId || !freshDraftReady) &&
       !rawHashLooksLikeSession()
@@ -210,6 +213,7 @@ export function useRouteResume({
     currentView,
     freshDraftReady,
     gatewayState,
+    initialNavigationReady,
     locationPathname,
     resumeSession,
     sessionResumeRequest,

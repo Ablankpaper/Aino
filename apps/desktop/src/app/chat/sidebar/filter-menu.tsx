@@ -50,14 +50,7 @@ import {
   toggleSidebarRowMeta,
   toggleSidebarStatusFilter
 } from '@/store/layout'
-import {
-  $profiles,
-  $showAllProfiles,
-  normalizeProfileKey,
-  requestProfileCreate,
-  toggleShowAllProfiles
-} from '@/store/profile'
-import { runImportProfileFlow } from '@/store/profile-share'
+import { $profiles, $showAllProfiles, normalizeProfileKey } from '@/store/profile'
 import { $projectTree } from '@/store/projects'
 import type { PullRequestBucket } from '@/store/pull-requests'
 import { $unreadFinishedSessionIds, markAllSessionsRead } from '@/store/session'
@@ -361,31 +354,21 @@ export function SidebarFilterMenu({
             </DropdownMenuSub>
           )}
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>{t.ui.actions.profile}</DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="max-h-80 overflow-y-auto">
-              {/* Scoped to one profile the rail is already the filter, so the
-                  per-profile boxes only appear where they can narrow something.
-                  The actions below stand on their own. */}
-              {narrowsByProfile && (
-                <>
-                  {profileNames.map(name => (
-                    <OptionCheckbox
-                      checked={profileFilter.includes(name)}
-                      key={name}
-                      onCheck={() => toggleSidebarProfileFilter(name)}
-                      option={{ icon: 'account', id: name, label: name }}
-                    />
-                  ))}
-                  <DropdownMenuSeparator />
-                </>
-              )}
-              <DropdownMenuItem onSelect={requestProfileCreate}>{t.profiles.newProfile}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void runImportProfileFlow()}>
-                {t.profiles.importProfile}
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          {narrowsByProfile && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>{t.ui.actions.profile}</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="max-h-80 overflow-y-auto">
+                {profileNames.map(name => (
+                  <OptionCheckbox
+                    checked={profileFilter.includes(name)}
+                    key={name}
+                    onCheck={() => toggleSidebarProfileFilter(name)}
+                    option={{ icon: 'account', id: name, label: name }}
+                  />
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          )}
 
           {projects.length > 1 && (
             <DropdownMenuSub>
@@ -406,19 +389,6 @@ export function SidebarFilterMenu({
                 ))}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-          )}
-
-          {/* Off by default: one profile's sessions are what the rail selected.
-              Nothing to widen to until a second profile exists — but stay
-              visible while it's on, or deleting your way back down to one
-              profile would strand the sidebar in a mode nothing can leave (the
-              rail hides its switcher at one profile too). */}
-          {(profileNames.length > 1 || showAllProfiles) && (
-            <OptionCheckbox
-              checked={showAllProfiles}
-              onCheck={toggleShowAllProfiles}
-              option={{ id: 'all-profiles', label: t.profiles.allProfiles }}
-            />
           )}
 
           <OptionCheckbox

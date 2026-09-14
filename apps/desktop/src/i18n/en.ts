@@ -538,6 +538,120 @@ spawnFailed: 'Could not start the background operation.'
     layoutEditorTitle: mod => `Layout editor — ${mod}-click resets the layout`
   },
 
+  summary: {
+    aria: 'Session summary',
+    title: 'Session summary',
+    close: 'Close summary',
+    environment: {
+      title: 'Environment',
+      project: 'Project',
+      workingDirectory: 'Working directory',
+      model: 'Model',
+      provider: 'Provider',
+      profile: 'Profile',
+      branch: 'Branch',
+      connection: 'Connection',
+      noProject: 'No project is open',
+      noSession: 'No session selected',
+      local: 'Local',
+      remote: 'Remote'
+    },
+    changes: {
+      title: 'Workspace changes',
+      files: count => `${count} file${count === 1 ? '' : 's'}`,
+      additions: 'Added',
+      deletions: 'Removed',
+      staged: count => `${count} staged`,
+      noChanges: 'No uncommitted changes',
+      unavailable: 'Changes are temporarily unavailable',
+      viewDiff: 'View diff',
+      refresh: 'Refresh changes',
+      stage: 'Stage file',
+      unstage: 'Unstage file',
+      revert: 'Revert file'
+    },
+    git: {
+      title: 'Git status',
+      branch: 'Branch',
+      tracking: 'Tracking',
+      ahead: count => `${count} ahead`,
+      behind: count => `${count} behind`,
+      commit: 'Recent commit',
+      pullRequest: 'Pull request',
+      push: 'Push',
+      reviewAndCommit: 'Review, commit or create PR',
+      clean: 'No commits ahead or behind',
+      unavailable: 'Git is unavailable for this workspace',
+      noRepository: 'This workspace is not a Git repository'
+    },
+    agents: {
+      title: 'Subagents',
+      running: count => `${count} running`,
+      completed: count => `${count} completed`,
+      failed: count => `${count} failed`,
+      viewAll: 'View all agents',
+      none: 'No subagents in this session',
+      dispatched: count => `${count} dispatched`,
+      finished: 'Finished',
+      status: {
+        running: 'Running',
+        queued: 'Queued',
+        completed: 'Completed',
+        failed: 'Failed',
+        interrupted: 'Interrupted',
+        dispatched: 'Dispatched'
+      }
+    },
+    context: {
+      title: 'Context usage',
+      noData: 'No context data yet'
+    },
+    sources: {
+      title: 'Sources',
+      add: 'Add source',
+      image: 'Image attachment',
+      skill: 'Skill',
+      tool: 'Tool',
+      attachments: 'Attachments',
+      previews: 'Previews',
+      links: 'Links',
+      none: 'No sources in this session',
+      open: 'Open source'
+    },
+    outputs: {
+      title: 'Outputs',
+      create: 'Create a file or website',
+      prompt: 'Help me create a file or website: '
+    },
+    plan: {
+      title: 'Plan',
+      progress: (done, total) => `${done} of ${total} completed`,
+      recorded: 'Last recorded plan',
+      status: { pending: 'Pending', in_progress: 'In progress', completed: 'Completed', cancelled: 'Cancelled' }
+    },
+    background: {
+      title: 'Background processes',
+      status: { running: 'Running', done: 'Completed', failed: 'Failed' }
+    },
+    resources: {
+      title: 'System resources',
+      ram: 'RAM',
+      gpu: 'GPU',
+      unavailable: 'System resources unavailable',
+      retry: 'Retry resource check'
+    },
+    state: {
+      showAll: count => `View all (${count})`,
+      showLess: 'Show less',
+      details: 'Details',
+      historyUnavailable: 'Could not load this conversation’s history',
+      loading: 'Loading…',
+      unavailable: 'Temporarily unavailable',
+      noData: 'No data yet',
+      retry: 'Retry'
+    }
+  },
+
   keybinds: {
     title: 'Keyboard shortcuts',
     subtitle: open => `Click a shortcut to rebind it · ${open} reopens this panel.`,
@@ -2684,6 +2798,7 @@ archiveConfirmTitle: name => `Archive skill "${name}"?`,
     failedImport: 'Failed to import profile',
     failedExport: 'Failed to export profile',
     allProfiles: 'All profiles',
+    advanced: 'Advanced workspaces',
     showAllProfiles: 'Show all profiles',
     switchToProfile: name => `Switch to ${name}`,
     switchToConnection: name => `Switch to ${name}`,
@@ -3242,8 +3357,13 @@ archiveConfirmTitle: name => `Archive skill "${name}"?`,
       menuAppearance: 'Appearance',
       noColor: 'No color',
       menuAddFolder: 'Add folder',
+      manageFolders: 'Manage folders',
+      setPrimaryFolder: 'Set as primary folder',
+      foldersDescription: 'New chats use the primary folder. Removing a folder here keeps its files and chats.',
+      keepOneFolder: 'Keep at least one folder',
+      contextChanged: 'The conversation or workspace changed. Reopen this dialog to continue.',
       menuSetActive: 'Set active',
-      menuDelete: 'Delete',
+      menuDelete: 'Remove project',
       moveToProject: 'Move to project',
       movedTo: name => `Moved to ${name}`,
       moveFailed: 'Could not move session',
@@ -3253,11 +3373,12 @@ archiveConfirmTitle: name => `Archive skill "${name}"?`,
       copyPath: 'Copy path',
       removeFromSidebar: 'Hide from sidebar',
       createFailed: 'Could not create project',
-      unavailableAllProfiles: 'Projects are unavailable while viewing all profiles',
+      unavailableAllProfiles: 'Project settings are read-only in All profiles. Select a workspace in Settings to edit.',
       activeProfileChanged: 'Active Hermes profile changed while connecting',
       staleBackend:
         'Update the Hermes backend to create projects — your backend is older than this desktop app (Settings → Updates → Backend).',
-      deleteConfirm: 'This removes the saved project from Hermes. Files, git repos, and worktrees stay untouched.',
+      deleteConfirm:
+        'Only the project registration is removed from Aino. Chats, local files, git repositories, and worktrees are kept.',
       startWork: 'New worktree',
       newWorktreeTitle: 'New worktree',
       newWorktreeDesc: 'Name the branch for this worktree.',
@@ -3696,7 +3817,8 @@ backgroundProcess: 'background process',
     standingGoal: 'Standing goal',
     coding: {
       selectProject: 'Select project',
-      startProjectChat: 'Start a conversation in a project',
+      noProject: 'No project',
+      startProjectChat: 'Start a new chat in project',
       viewChanges: 'View changes',
       title: 'Working tree',
       noBranch: 'No branch',
@@ -3741,7 +3863,13 @@ backgroundProcess: 'background process',
       branchOffFrom: base => `New branch from ${base}`,
       switchTo: branch => `Switch to ${branch}`,
       switchFailed: branch => `Could not switch to ${branch}`,
-      worktrees: 'Worktrees'
+      worktrees: 'Worktrees',
+      workLocation: 'Work location',
+      localWork: 'Local',
+      projectDirectory: 'Project directory',
+      worktreeWork: 'Worktree',
+      newChatLocation: 'New chat location',
+      createWorktree: 'Create worktree…'
     }
   },
 
@@ -4212,6 +4340,7 @@ genericApiKeyDescription: provider => `Direct API access to ${provider}.`,
         toggle: 'System resources'
       },
       contextUsagePanel: {
+        compacting: 'Compacting context…',
         categories: {
           conversation: 'Conversation',
           mcp: 'MCP',

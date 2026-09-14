@@ -7,11 +7,12 @@
  */
 
 import { useStore } from '@nanostores/react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { PaneTab, PaneTabLabel, PaneTabStrip } from '@/components/ui/pane-tab'
 import { ContribBoundary, ContribRender } from '@/contrib/react/boundary'
 import { useContributions } from '@/contrib/react/use-contributions'
+import { registry } from '@/contrib/registry'
 import type { Contribution } from '@/contrib/types'
 import { useI18n } from '@/i18n'
 import { localizedPaneTitle } from '@/i18n/contributions'
@@ -44,9 +45,6 @@ export function NarrowOverlays() {
     [panes, inTree, hiddenPanes]
   )
 
-  const collapsiblesRef = useRef(collapsibles)
-  collapsiblesRef.current = collapsibles
-
   // ⌘B / ⌘G's narrow branch dispatches the app's toggle-reveal event with the
   // REAL pane id — accept those via each contribution's revealAliases.
   useEffect(() => {
@@ -64,7 +62,20 @@ export function NarrowOverlays() {
         return
       }
 
-      const match = collapsiblesRef.current.find(p => p.id === id || paneChrome(p).revealAliases?.includes(id))
+      // Opening a pane can unhide it in the same event turn. Read that current
+      // state instead of the previous render's list so the first click works.
+      const currentTree = $layoutTree.get()
+      const currentIds = new Set(currentTree ? allPaneIds(currentTree) : [])
+
+      const match = registry
+        .getArea('panes')
+        .find(
+          p =>
+            paneChrome(p).collapsible &&
+            currentIds.has(p.id) &&
+            !$hiddenTreePanes.get().has(p.id) &&
+            (p.id === id || paneChrome(p).revealAliases?.includes(id))
+        )
 
       if (!match) {
         return
@@ -104,12 +115,13 @@ export function NarrowOverlays() {
     }
   }, [narrow])
 
+  const revealed = reveal ? collapsibles.find(p => p.id === reveal.id) : undefined
+
   if (!narrow || collapsibles.length === 0) {
     return null
   }
 
   const sideOf = (c: Contribution) => (paneChrome(c).placement === 'left' ? 'left' : 'right')
-  const revealed = reveal ? collapsibles.find(p => p.id === reveal.id) : undefined
   const sides = [...new Set(collapsibles.map(sideOf))]
 
   // The revealed pane's ZONE-mates that also left the grid (the sessions zone

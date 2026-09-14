@@ -289,6 +289,120 @@ export const ja = defineLocale({
     resetHudLayout: 'HUD のサイズと位置をリセット'
   },
 
+  summary: {
+    aria: 'セッション概要',
+    title: 'セッション概要',
+    close: '概要を閉じる',
+    environment: {
+      title: '環境',
+      project: 'プロジェクト',
+      workingDirectory: '作業ディレクトリ',
+      model: 'モデル',
+      provider: 'プロバイダー',
+      profile: 'プロファイル',
+      branch: 'ブランチ',
+      connection: '接続',
+      noProject: 'プロジェクトが開かれていません',
+      noSession: 'セッションが選択されていません',
+      local: 'ローカル',
+      remote: 'リモート'
+    },
+    changes: {
+      title: 'ワークスペースの変更',
+      files: count => `${count} ファイル`,
+      additions: '追加',
+      deletions: '削除',
+      staged: count => `${count} 件をステージ済み`,
+      noChanges: '未コミットの変更はありません',
+      unavailable: '変更を一時的に取得できません',
+      viewDiff: '差分を表示',
+      refresh: '変更を更新',
+      stage: 'ファイルをステージ',
+      unstage: 'ステージを解除',
+      revert: 'ファイルを元に戻す'
+    },
+    git: {
+      title: 'Git の状態',
+      branch: 'ブランチ',
+      tracking: '追跡',
+      ahead: count => `${count} 件先行`,
+      behind: count => `${count} 件遅延`,
+      commit: '最新のコミット',
+      pullRequest: 'プルリクエスト',
+      push: 'プッシュ',
+      reviewAndCommit: 'レビュー、コミット、PR の作成',
+      clean: '先行・遅延コミットなし',
+      unavailable: 'このワークスペースでは Git を利用できません',
+      noRepository: 'このワークスペースは Git リポジトリではありません'
+    },
+    agents: {
+      title: 'サブエージェント',
+      running: count => `${count} 件実行中`,
+      completed: count => `${count} 件完了`,
+      failed: count => `${count} 件失敗`,
+      viewAll: 'すべてのエージェントを表示',
+      none: 'このセッションにサブエージェントはありません',
+      dispatched: count => `${count} 件送信済み`,
+      finished: '終了',
+      status: {
+        running: '実行中',
+        queued: '待機中',
+        completed: '完了',
+        failed: '失敗',
+        interrupted: '中断',
+        dispatched: '送信済み'
+      }
+    },
+    context: {
+      title: 'コンテキスト使用量',
+      noData: 'コンテキストデータはまだありません'
+    },
+    sources: {
+      title: 'ソース',
+      add: 'ソースを追加',
+      image: '添付画像',
+      skill: 'スキル',
+      tool: 'ツール',
+      attachments: '添付ファイル',
+      previews: 'プレビュー',
+      links: 'リンク',
+      none: 'このセッションにソースはありません',
+      open: 'ソースを開く'
+    },
+    outputs: {
+      title: '出力',
+      create: 'ファイルやサイトを作成',
+      prompt: 'ファイルやサイトを作成してください：'
+    },
+    plan: {
+      title: '作業計画',
+      progress: (done, total) => `${total} 件中 ${done} 件完了`,
+      recorded: '会話に最後に記録された計画',
+      status: { pending: '未着手', in_progress: '進行中', completed: '完了', cancelled: 'キャンセル済み' }
+    },
+    background: {
+      title: 'バックグラウンドプロセス',
+      status: { running: '実行中', done: '完了', failed: '失敗' }
+    },
+    resources: {
+      title: 'システムリソース',
+      ram: 'RAM',
+      gpu: 'GPU',
+      unavailable: 'システムリソースを利用できません',
+      retry: 'リソース確認を再試行'
+    },
+    state: {
+      showAll: count => `すべて表示（${count}）`,
+      showLess: '折りたたむ',
+      details: '詳細',
+      historyUnavailable: 'この会話の履歴を読み込めません',
+      loading: '読み込み中…',
+      unavailable: '一時的に利用できません',
+      noData: 'データはまだありません',
+      retry: '再試行'
+    }
+  },
+
   language: {
     label: '言語',
     description: 'デスクトップインターフェイスの言語を選択します。',
@@ -1817,6 +1931,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
     failedImport: 'プロファイルのインポートに失敗しました',
     failedExport: 'プロファイルのエクスポートに失敗しました',
     allProfiles: 'すべてのプロファイル',
+    advanced: '詳細ワークスペース',
     showAllProfiles: 'すべてのプロファイルを表示',
     switchToProfile: name => `${name} に切り替え`,
     switchToConnection: name => `${name} に切り替え`,
@@ -2184,13 +2299,20 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
       menuAppearance: '外観',
       noColor: '色なし',
       menuAddFolder: 'フォルダを追加',
+      manageFolders: 'フォルダを管理',
+      setPrimaryFolder: 'メインフォルダに設定',
+      foldersDescription:
+        '新しい会話にはメインフォルダを使用します。関連付けを解除してもファイルと会話は保持されます。',
+      keepOneFolder: '少なくとも1つのフォルダを残してください',
+      contextChanged: '会話またはワークスペースが変更されました。このダイアログを開き直してください。',
       menuSetActive: 'アクティブに設定',
-      menuDelete: '削除',
+      menuDelete: 'プロジェクトの登録を解除',
       reveal: 'フォルダで表示',
       copyPath: 'パスをコピー',
       removeFromSidebar: 'サイドバーから削除',
       createFailed: 'プロジェクトを作成できませんでした',
-      unavailableAllProfiles: 'すべてのプロファイルを表示中はプロジェクトを利用できません',
+      unavailableAllProfiles:
+        '全プロファイル表示では読み取り専用です。編集するには設定で所属ワークスペースを選択してください。',
       activeProfileChanged: '接続中にアクティブな Hermes プロファイルが変更されました',
       staleBackend:
         'プロジェクトを作成するには Hermes バックエンドを更新してください。バックエンドがこのデスクトップアプリより古いです（設定 → 更新 → バックエンド）。',
@@ -2534,6 +2656,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
     },
     coding: {
       selectProject: 'プロジェクトを選択',
+      noProject: 'プロジェクトなし',
       startProjectChat: 'プロジェクトで新しい会話を開始',
       viewChanges: '変更を表示',
       title: 'ワークツリー',
@@ -2579,7 +2702,13 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
       branchOffFrom: base => `${base} から新しいブランチ`,
       switchTo: branch => `${branch} に切り替え`,
       switchFailed: branch => `${branch} に切り替えできませんでした`,
-      worktrees: 'ワークツリー'
+      worktrees: 'ワークツリー',
+      workLocation: '作業場所',
+      localWork: 'ローカル',
+      projectDirectory: 'プロジェクトディレクトリ',
+      worktreeWork: 'ワークツリー',
+      newChatLocation: '新しいチャットの作業場所',
+      createWorktree: 'ワークツリーを作成…'
     }
   },
 
@@ -2985,6 +3114,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
         toggle: 'システムリソース'
       },
       contextUsagePanel: {
+        compacting: 'コンテキストを圧縮中…',
         categories: {
           conversation: '会話',
           mcp: 'MCP',

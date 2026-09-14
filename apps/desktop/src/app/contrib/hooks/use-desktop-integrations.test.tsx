@@ -40,6 +40,17 @@ const initialHermesDesktop = desktopWindow.hermesDesktop
 
 const session = (over: Partial<SessionInfo> = {}): SessionInfo => makeSessionInfo({ id: 'live', ...over })
 
+interface NavigationHarnessProps {
+  activeProfile: string
+  locationPathname: string
+  profileReady: boolean
+  resumeExhaustedSessionId: string | null
+  resumeLastSession: boolean | null
+  routedSessionId: string | null
+  sessionsLoading?: boolean
+  sessions: readonly SessionInfo[]
+}
+
 describe('useDesktopIntegrations', () => {
   let navigate: ReturnType<typeof vi.fn<(...args: unknown[]) => void>>
 
@@ -83,9 +94,10 @@ describe('useDesktopIntegrations', () => {
     // null = config record still loading (the hook takes undefined; null dodges the destructuring default).
     resumeLastSession = true as boolean | null,
     routedSessionId = null as string | null,
+    sessionsLoading = true,
     sessions = [] as readonly SessionInfo[]
   } = {}) {
-    return renderHook(
+    return renderHook<boolean, NavigationHarnessProps>(
       ({
         activeProfile,
         locationPathname,
@@ -93,16 +105,9 @@ describe('useDesktopIntegrations', () => {
         resumeExhaustedSessionId,
         resumeLastSession,
         routedSessionId,
+        sessionsLoading = true,
         sessions
-      }: {
-        activeProfile: string
-        locationPathname: string
-        profileReady: boolean
-        resumeExhaustedSessionId: string | null
-        resumeLastSession: boolean | null
-        routedSessionId: string | null
-        sessions: readonly SessionInfo[]
-      }) =>
+      }: NavigationHarnessProps) =>
         useDesktopIntegrations({
           activeProfile,
           chatOpen: false,
@@ -114,6 +119,7 @@ describe('useDesktopIntegrations', () => {
           resumeExhaustedSessionId,
           resumeLastSession: resumeLastSession ?? undefined,
           routedSessionId,
+          sessionsLoading,
           runtimeIdByStoredSessionId: { current: new Map() },
           sessions
         }),
@@ -125,6 +131,7 @@ describe('useDesktopIntegrations', () => {
           resumeExhaustedSessionId,
           resumeLastSession,
           routedSessionId,
+          sessionsLoading,
           sessions
         }
       }
@@ -132,6 +139,28 @@ describe('useDesktopIntegrations', () => {
   }
 
   describe('profile-ready gate', () => {
+    it('allows a fresh chat after an empty fetch without erasing remembered history or navigating on later refresh', () => {
+      const rememberedKey = 'hermes.desktop.lastRoute.profile.default'
+      window.localStorage.setItem(rememberedKey, '/remembered-session')
+      const restored = render({ profileReady: true, sessionsLoading: false })
+
+      expect(restored.result.current).toBe(true)
+      expect(navigate).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(rememberedKey)).toBe('/remembered-session')
+
+      restored.rerender({
+        activeProfile: 'default',
+        locationPathname: '/',
+        profileReady: true,
+        resumeExhaustedSessionId: null,
+        resumeLastSession: true,
+        routedSessionId: null,
+        sessionsLoading: false,
+        sessions: [session({ id: 'remembered-session', profile: 'default' })]
+      })
+      expect(navigate).not.toHaveBeenCalled()
+    })
+
     it('does NOT restore before profileReady is true', () => {
       // Set remembered state, but profileReady=false.
       window.localStorage.setItem('hermes.desktop.lastRoute.profile.default', '/remembered-session')
@@ -148,9 +177,21 @@ describe('useDesktopIntegrations', () => {
 
       const sessions = [session({ id: 'remembered-session', profile: 'default' })]
 
-      render({ profileReady: true, sessions })
+      const restored = render({ profileReady: true, sessions })
 
       expect(navigate).toHaveBeenCalledWith('/remembered-session', { replace: true })
+      expect(restored.result.current).toBe(false)
+
+      restored.rerender({
+        activeProfile: 'default',
+        locationPathname: '/remembered-session',
+        profileReady: true,
+        resumeExhaustedSessionId: null,
+        resumeLastSession: true,
+        routedSessionId: 'remembered-session',
+        sessions
+      })
+      expect(restored.result.current).toBe(true)
     })
 
     it('restores remembered session id when no remembered route exists', () => {

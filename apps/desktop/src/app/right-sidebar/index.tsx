@@ -14,7 +14,7 @@ import { normalizeOrLocalPreviewTarget } from '@/lib/local-preview'
 import { cn } from '@/lib/utils'
 import { notifyError } from '@/store/notifications'
 import { openPreview } from '@/store/preview'
-import { $currentCwd, $selectedStoredSessionId, $workspaceCwdOwner } from '@/store/session'
+import { $toolSession, $toolWorkspaceCwd, toolSessionIsCurrent } from '@/store/tool-session'
 
 import { SidebarPanelLabel } from '../shell/sidebar-label'
 
@@ -22,21 +22,16 @@ import { ProjectTree } from './files/tree'
 import { useProjectTree } from './files/use-project-tree'
 
 interface RightSidebarPaneProps {
-  onActivateFile: (path: string) => void
-  onActivateFolder: (path: string) => void
+  onActivateFile?: (path: string) => void
+  onActivateFolder?: (path: string) => void
 }
 
-export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSidebarPaneProps) {
+export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSidebarPaneProps = {}) {
   const { t } = useI18n()
   const r = t.rightSidebar
-  const currentCwd = useStore($currentCwd).trim()
-  const selectedStoredSessionId = useStore($selectedStoredSessionId)
-  const workspaceCwdOwner = useStore($workspaceCwdOwner)
-
-  // A transition intentionally retains the old CWD until the new session
-  // confirms its workspace. Do not issue a filesystem read against that path:
-  // under a gateway switch it may belong to a different remote machine.
-  const hasWorkspace = Boolean(currentCwd) && (workspaceCwdOwner ?? null) === (selectedStoredSessionId ?? null)
+  const session = useStore($toolSession)
+  const currentCwd = useStore($toolWorkspaceCwd)
+  const hasWorkspace = Boolean(currentCwd)
 
   const {
     collapseAll,
@@ -60,8 +55,16 @@ export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSide
   const canCollapse = Object.values(openState).some(Boolean)
 
   const previewFile = async (path: string) => {
+    if (!toolSessionIsCurrent(session)) {
+      return
+    }
+
     try {
       const preview = await normalizeOrLocalPreviewTarget(path, effectiveCwd || undefined)
+
+      if (!toolSessionIsCurrent(session)) {
+        return
+      }
 
       if (!preview) {
         throw new Error(r.couldNotPreview(path))
@@ -69,7 +72,9 @@ export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSide
 
       openPreview(preview, 'file-browser')
     } catch (error) {
-      notifyError(error, r.previewUnavailable)
+      if (toolSessionIsCurrent(session)) {
+        notifyError(error, r.previewUnavailable)
+      }
     }
   }
 
@@ -88,8 +93,8 @@ export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSide
         error={rootError}
         hasWorkspace={hasWorkspace}
         loading={rootLoading}
-        onActivateFile={onActivateFile}
-        onActivateFolder={onActivateFolder}
+        onActivateFile={onActivateFile ?? previewFile}
+        onActivateFolder={onActivateFolder ?? previewFile}
         onCollapseAll={collapseAll}
         onLoadChildren={loadChildren}
         onNodeOpenChange={setNodeOpen}

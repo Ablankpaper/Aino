@@ -59,6 +59,7 @@ import { titlebarHeaderBaseClass, titlebarHeaderShadowClass, titlebarHeaderTitle
 import { ChatDropOverlay } from './chat-drop-overlay'
 import { ChatSwapOverlay, ChatSyncBadge } from './chat-swap-overlay'
 import { ChatBar, ChatBarFallback } from './composer'
+import { ComposerContextUsage } from './composer/context-usage'
 import { requestComposerInsert } from './composer/focus'
 import { droppedFileInlineRefs } from './composer/inline-refs'
 import { ComposerSurfaceProvider, useComposerScope, useComposerSurfaceId } from './composer/scope'
@@ -601,6 +602,9 @@ const ChatViewContent = memo(function ChatViewContent({
 
   const chatBarState = useMemo<ChatBarState>(
     () => ({
+      contextUsage: requestModelOptionsForOwner ? (
+        <ComposerContextUsage enabled={gatewayOpen} requestGateway={requestModelOptionsForOwner} />
+      ) : null,
       model: {
         model: currentModel,
         provider: currentProvider,
@@ -626,6 +630,7 @@ const ChatViewContent = memo(function ChatViewContent({
       gatewayOpen,
       modelMenuContent,
       quickModels,
+      requestModelOptionsForOwner,
       t.ui.actions.addContext
     ]
   )

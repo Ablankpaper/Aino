@@ -40,6 +40,7 @@ export function registerTerminalIpc({
   getSshConnectionState
 }: TerminalIpcDeps): TerminalIpcApi {
   const terminalSessions = new Map()
+  let shuttingDown = false
 
   function isExecutableFile(filePath) {
     if (!filePath || !path.isAbsolute(filePath)) {
@@ -247,6 +248,10 @@ export function registerTerminalIpc({
 
   // App shutdown: kill every open PTY before environment teardown.
   function disposeAllTerminalSessions() {
+    // before-quit runs while renderers are still listening. A shutdown kill
+    // must not look like a user closing their shell and erase its saved tab.
+    shuttingDown = true
+
     for (const id of [...terminalSessions.keys()]) {
       disposeTerminalSession(id)
     }
@@ -324,7 +329,11 @@ export function registerTerminalIpc({
     const outputGate = createTerminalOutputGate({
       onExitFlushed: () => terminalSessions.delete(id),
       sendData: data => send('data', data),
-      sendExit: payload => send('exit', payload)
+      sendExit: payload => {
+        if (!shuttingDown) {
+          send('exit', payload)
+        }
+      }
     })
 
     terminalSessions.set(id, {

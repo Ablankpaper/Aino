@@ -31,15 +31,17 @@ import {
   refreshReview,
   refreshShipInfo,
   requestRevert,
+  restoreReview,
   revealReview,
   revertReviewFile,
+  reviewComposerTarget,
   selectReviewFile,
   stageReviewFile,
   toggleReview,
   toggleReviewTreeMode,
   unstageReviewFile
 } from './review'
-import { $currentCwd } from './session'
+import { $connection, $currentCwd, $selectedStoredSessionId, $workspaceCwdOwner } from './session'
 
 // requestOneShot is the only cross-module dependency that must be faked (it
 // reaches the gateway); everything else routes through window.hermesDesktop.git,
@@ -193,6 +195,49 @@ describe('$reviewMaxChurn', () => {
 })
 
 describe('selectReviewFile / clearReviewSelection', () => {
+  it('keeps the new repo diff when an older repo returns the same filename late', async () => {
+    let finishOld!: (diff: string) => void
+
+    const old = new Promise<string>(resolve => {
+      finishOld = resolve
+    })
+
+    stubReview({ diff: vi.fn(async (cwd: string) => (cwd === '/repo' ? old : 'new repo diff')) })
+
+    const first = selectReviewFile(file('shared.ts'))
+    $currentCwd.set('/other-repo')
+    await selectReviewFile(file('shared.ts'))
+    finishOld('old repo diff')
+    await first
+
+    expect($reviewDiff.get()).toBe('new repo diff')
+    expect($reviewDiffLoading.get()).toBe(false)
+  })
+
+  it('never reads or mutates a pinned local repo through a different foreground connection', async () => {
+    const review = stubReview()
+    openReview('/pinned-repo')
+    await refreshReview()
+    review.list.mockClear()
+    $connection.set({ mode: 'local', connectionId: 'other-source', profile: 'default' } as NonNullable<
+      ReturnType<typeof $connection.get>
+    >)
+
+    try {
+      restoreReview()
+      await refreshReview()
+      await expect(stageReviewFile('shared.ts')).rejects.toThrow('unavailable')
+      requestRevert('shared.ts')
+      await expect(confirmRevert()).rejects.toThrow()
+      expect(review.list).not.toHaveBeenCalled()
+      expect(review.stage).not.toHaveBeenCalled()
+      expect(review.revert).not.toHaveBeenCalled()
+    } finally {
+      $reviewOpen.set(false)
+      $connection.set(null)
+    }
+  })
+
   it('sets the selected path and fetches its diff', async () => {
     const review = stubReview({ diff: vi.fn(async () => 'the diff') })
 
@@ -235,6 +280,37 @@ describe('selectReviewFile / clearReviewSelection', () => {
 })
 
 describe('view state', () => {
+  it('retains the pinned conversation on restore but rebinds an explicit selection of the same path', async () => {
+    const review = stubReview()
+    $selectedStoredSessionId.set('conversation-a')
+    $workspaceCwdOwner.set('conversation-a')
+    openReview('/repo')
+    $selectedStoredSessionId.set('conversation-b')
+    $workspaceCwdOwner.set('conversation-b')
+
+    try {
+      restoreReview()
+      expect(reviewComposerTarget()).toBeNull()
+      revealReview('/repo')
+      expect(reviewComposerTarget()).toBe('main')
+
+      $connection.set({ mode: 'local', connectionId: 'another-source', profile: 'default' } as NonNullable<
+        ReturnType<typeof $connection.get>
+      >)
+      restoreReview()
+      await refreshReview()
+      review.list.mockClear()
+      revealReview('/repo')
+      await refreshReview()
+      expect(review.list).toHaveBeenCalledWith('/repo', 'uncommitted', null)
+    } finally {
+      $reviewOpen.set(false)
+      $selectedStoredSessionId.set(null)
+      $workspaceCwdOwner.set(null)
+      $connection.set(null)
+    }
+  })
+
   it('toggleReviewTreeMode flips list <-> tree', () => {
     $reviewTreeMode.set('tree')
     toggleReviewTreeMode()
@@ -373,14 +449,14 @@ describe('mutations', () => {
 describe('revert confirm dialog', () => {
   it('requestRevert opens a target, cancelRevert closes it', () => {
     requestRevert('a.ts')
-    expect($reviewRevertTarget.get()).toEqual({ path: 'a.ts' })
+    expect($reviewRevertTarget.get()).toMatchObject({ cwd: '/repo', path: 'a.ts' })
     cancelRevert()
     expect($reviewRevertTarget.get()).toBeUndefined()
   })
 
   it('requestRevert(null) encodes the "revert all" target distinctly from closed', () => {
     requestRevert(null)
-    expect($reviewRevertTarget.get()).toEqual({ path: null })
+    expect($reviewRevertTarget.get()).toMatchObject({ cwd: '/repo', path: null })
   })
 
   it('confirmRevert closes the dialog then performs the revert', async () => {

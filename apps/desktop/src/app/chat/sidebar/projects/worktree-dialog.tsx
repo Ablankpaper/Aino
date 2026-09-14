@@ -151,16 +151,28 @@ export function WorktreeDialog() {
     }
   }, [repoPath])
 
-  // Give the new worktree to a fresh session, then close the dialog.
-  const started = (path: string) => {
-    requestStartWorkSession(path)
-    closeWorktreeDialog()
+  // Composer callers keep their draft; standalone entry points open a new chat.
+  const intentIsCurrent = () =>
+    Boolean(state && $worktreeDialog.get() === state && (!state.isCurrent || state.isCurrent()))
+
+  const started = async (result: { path: string; branch: string }) => {
+    if (intentIsCurrent()) {
+      if (state?.onCreated) {
+        await state.onCreated(result)
+      } else {
+        requestStartWorkSession(result.path)
+      }
+    }
+
+    if ($worktreeDialog.get() === state) {
+      closeWorktreeDialog()
+    }
   }
 
   const submit = async () => {
     const branch = name.trim()
 
-    if (pending || !repoPath || !branch) {
+    if (pending || !repoPath || !branch || !intentIsCurrent()) {
       return
     }
 
@@ -170,7 +182,7 @@ export function WorktreeDialog() {
       const result = await startWorkInRepo(repoPath, { base: selectedBase || undefined, branch, name: branch })
 
       if (result) {
-        started(result.path)
+        await started(result)
         setName('')
       }
     } catch (err) {
@@ -181,7 +193,7 @@ export function WorktreeDialog() {
   }
 
   const convert = async (branch: HermesGitBranch) => {
-    if (pending || !repoPath || !branch) {
+    if (pending || !repoPath || !branch || !intentIsCurrent()) {
       return
     }
 
@@ -200,7 +212,7 @@ export function WorktreeDialog() {
       }
 
       if (result) {
-        started(result.path)
+        await started(result)
       }
     } catch (err) {
       notifyError(err, p.startWorkFailed)

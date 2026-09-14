@@ -29,6 +29,7 @@ import { $threadScrolledUp } from '@/store/thread-scroll'
 import { $autoSpeakReplies } from '@/store/voice-prefs'
 import { useTheme } from '@/themes'
 
+import { ComposerApprovalMode } from './approval-mode-menu'
 import { AttachmentList } from './attachments'
 import {
   acceptsTriggerCompletion,
@@ -66,6 +67,7 @@ import { useSlashCompletions } from './hooks/use-slash-completions'
 import { useSessionStatusPresence } from './hooks/use-status-presence'
 import { ActionBadges } from './micro-actions'
 import { chipTypedPathOnSpace, pathifyRefs } from './path-refs'
+import { $projectBindingSessions } from './project-selection'
 import { QueuePanel } from './queue-panel'
 import {
   beginComposerComposition,
@@ -91,7 +93,7 @@ import { VoiceActivity, VoicePlaybackActivity } from './voice-activity'
 export function ChatBar({
   busy,
   cwd,
-  disabled,
+  disabled: disabledProp,
   focusKey,
   homeLayout = false,
   gateway,
@@ -113,6 +115,8 @@ export function ChatBar({
   onSubmit: onSubmitProp,
   onTranscribeAudio
 }: ChatBarProps) {
+  const bindingProject = useStore($projectBindingSessions).has(sessionId ?? '')
+  const disabled = disabledProp || bindingProject
   const hudMode = useStore($hudMode)
   const hudWindowing = window.hermesDesktop?.hud?.windowing
   const hudNativeDrag = hudMode && hudWindowing?.nativeDrag === true
@@ -1387,10 +1391,11 @@ export function ChatBar({
                     data-slot="composer-layout"
                   >
                     <div
-                      className="flex translate-y-[3px] items-start gap-(--composer-control-gap) self-start [grid-area:menu]"
+                      className="flex translate-y-[3px] items-center gap-(--composer-control-gap) self-start [grid-area:menu]"
                       data-slot="composer-leading-controls"
                     >
                       {contextMenu}
+                      {!minimal && <ComposerApprovalMode compact={poppedOut || compactPill} disabled={disabled} />}
                       <ContribSlot area={COMPOSER_AREAS.leading} />
                     </div>
                     <div className="min-w-0 [grid-area:input]" data-slot="composer-input-cell">

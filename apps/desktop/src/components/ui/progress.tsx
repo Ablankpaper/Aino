@@ -9,6 +9,7 @@ const TRACK_HEIGHT = {
 } as const
 
 export interface ProgressProps extends Omit<React.ComponentProps<'div'>, 'children'> {
+  shape?: 'bar' | 'ring'
   /** Completion as a 0–1 fraction; clamped. Ignored when `indeterminate`. */
   value?: number
   /** No known endpoint — animate instead of showing a fixed width. */
@@ -41,6 +42,7 @@ export function Progress({
   indeterminate = false,
   animated = false,
   destructive = false,
+  shape = 'bar',
   size = 'default',
   className,
   fillClassName,
@@ -50,6 +52,43 @@ export function Progress({
 }: ProgressProps) {
   const pct = Math.round(Math.min(1, Math.max(0, value)) * 100)
   const fillColor = destructive ? 'bg-destructive' : 'bg-primary'
+
+  if (shape === 'ring') {
+    const arc = indeterminate ? (animated ? 25 : 0) : pct
+
+    return (
+      <div
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={indeterminate ? undefined : pct}
+        className={cn('shrink-0', { sm: 'size-3.5', default: 'size-4', lg: 'size-5' }[size], className)}
+        data-slot="progress"
+        role="progressbar"
+        {...props}
+      >
+        <svg
+          aria-hidden="true"
+          className={cn('size-full -rotate-90', indeterminate && animated && 'motion-safe:animate-spin')}
+          viewBox="0 0 20 20"
+        >
+          <circle className="stroke-(--ui-stroke-secondary)" cx="10" cy="10" fill="none" r="8" strokeWidth="2.5" />
+          <circle
+            className={cn(destructive ? 'text-destructive' : 'text-(--ui-text-tertiary)', fillClassName)}
+            cx="10"
+            cy="10"
+            fill="none"
+            pathLength="100"
+            r="8"
+            stroke="currentColor"
+            strokeDasharray={`${arc} 100`}
+            strokeLinecap="round"
+            strokeWidth="2.5"
+            visibility={arc > 0 ? 'visible' : 'hidden'}
+          />
+        </svg>
+      </div>
+    )
+  }
 
   return (
     <div

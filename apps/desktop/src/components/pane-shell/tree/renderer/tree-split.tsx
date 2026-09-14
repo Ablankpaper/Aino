@@ -48,6 +48,7 @@ import {
   type TrackContext
 } from './track-model'
 import { TreeNode } from './tree-node'
+import { useStableTrackOrder } from './use-stable-track-order'
 
 /** The single group id a subtree resolves to, or null when it holds several
  *  zones — the sash can only collapse a boundary that IS exactly one zone. */
@@ -239,15 +240,21 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
         }
       }
 
-      const kidA = container.children[aIndex] as HTMLElement | undefined
-      const kidB = container.children[bIndex] as HTMLElement | undefined
+      // DOM order stays stable across swaps; resize the visual neighbors
+      // identified by the layout tree, never an incidental DOM index.
+      const elements = new Map(
+        Array.from(container.children, element => [(element as HTMLElement).dataset.treeTrack, element as HTMLElement])
+      )
+
+      const kidA = elements.get(node.children[aIndex].id)
+      const kidB = elements.get(node.children[bIndex].id)
 
       if (!kidA || !kidB) {
         return
       }
 
       const tracks = node.children.map((child, index) => {
-        const element = container.children[index] as HTMLElement | undefined
+        const element = elements.get(child.id)
 
         if (!element) {
           return null
@@ -631,6 +638,8 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
     return { child, collapsed, minimized, narrowCollapsed, sizing, track }
   })
 
+  const stableTracks = useStableTrackOrder(tracks)
+
   const growable = tracks.map((_, i) => i).filter(i => !tracks[i].collapsed && !tracks[i].minimized)
   const allFixed = growable.length > 0 && growable.every(i => tracks[i].track !== null)
 
@@ -676,24 +685,34 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
 
   return (
     <div
-      className={cn('flex min-h-0 min-w-0 flex-1', horizontal ? 'flex-row' : 'flex-col')}
+      className={cn('flex min-h-0 min-w-0 flex-1 [reading-flow:flex-visual]', horizontal ? 'flex-row' : 'flex-col')}
       data-tree-split={node.id}
       ref={containerRef}
     >
-      {tracks.map(({ child, collapsed, minimized, narrowCollapsed, sizing, track }, i) => {
+      {stableTracks.map(({ child, collapsed, index: i, minimized, narrowCollapsed, sizing, track }) => {
         const partner = collapsed ? -1 : seamPartner(i)
         const absorbs = i === absorberIndex
+
+        // Tool panes own a tab strip inside the group. Keep the sash above that
+        // strip in the stacking order, but place its visual line at the strip's
+        // lower edge so the visible boundary is the one users drag.
+        const toolZone =
+          !horizontal &&
+          (allPaneIds(child).some(isCollapsePane) ||
+            (partner >= 0 && allPaneIds(node.children[partner]).some(isCollapsePane)))
 
         return (
           <div
             className="relative flex min-h-0 min-w-0"
+            data-tree-track={child.id}
             key={child.id}
             style={
               collapsed
-                ? { display: 'none' }
+                ? { display: 'none', order: i }
                 : minimized
-                  ? { flex: `0 0 ${MINIMIZED_TRACK}` }
+                  ? { flex: `0 0 ${MINIMIZED_TRACK}`, order: i }
                   : {
+                      order: i,
                       // One flexbox formula for everything: a sized zone is
                       // grow-0 shrink-1 from its preferred basis (it yields
                       // gracefully on tight windows, floored by min-width);
@@ -701,11 +720,11 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
                       // all-fixed run an UNCAPPED last track grows into the
                       // leftover; capped sidebars stay at their declared size.
                       flex: track ? `${absorbs ? 1 : 0} 1 ${track}` : `${grow(i)} ${grow(i)} 0px`,
-                      // Pane-declared clamps apply along THIS split's axis only
-                      // (a rail's width clamp shouldn't constrain its height).
-                      // The absorber is uncapped by selection, so dropping its
-                      // max is a no-op; capped tracks always keep theirs.
-                      minWidth: (horizontal && sizing?.minWidth) || 0,
+                      // Width floors still matter in a vertical chat/terminal
+                      // stack, including when the summary measures room to dock.
+                      // Other clamps apply along the split's axis; the absorber
+                      // remains uncapped while fixed tracks keep their limits.
+                      minWidth: sizing?.minWidth || 0,
                       maxWidth: horizontal && !absorbs ? sizing?.maxWidth : undefined,
                       minHeight: (!horizontal && sizing?.minHeight) || 0,
                       maxHeight: horizontal || absorbs ? undefined : sizing?.maxHeight
@@ -729,6 +748,7 @@ export function TreeSplit({ node, root, rootRow }: { node: SplitNode; root?: boo
                 }
                 onDoubleClick={() => resetBoundary(partner, i)}
                 onPointerDown={e => startSash(partner, i, e)}
+                toolZone={toolZone}
               />
             )}
             {!narrowCollapsed && (
@@ -751,30 +771,41 @@ function Sash({
   horizontal,
   navigationBoundary,
   onDoubleClick,
-  onPointerDown
+  onPointerDown,
+  toolZone
 }: {
   disabled?: boolean
   horizontal: boolean
   navigationBoundary?: 'start' | 'end'
   onDoubleClick?: () => void
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void
+  toolZone?: boolean
 }) {
   return (
     <div
+      aria-orientation={horizontal ? 'vertical' : 'horizontal'}
       className={cn(
-        'group absolute z-20 [-webkit-app-region:no-drag]',
+        'group absolute [-webkit-app-region:no-drag]',
+        toolZone ? 'z-50' : 'z-20',
         // Asymmetric grab band: only 1px reaches into the leading pane so its
         // edge-hugging 4px scrollbar stays clickable (the old centered 9px band
         // swallowed it entirely — the pointer got col-resize instead of the
         // thumb). The trailing side keeps a generous 7px reach; total grab
-        // width stays ~8px so the sash is no harder to hit.
-        horizontal ? 'inset-y-0 left-0 w-[8px] -translate-x-[1px]' : 'inset-x-0 top-0 h-[8px] -translate-y-[1px]',
+        // width stays ~8px so the sash is no harder to hit. A tool sash is
+        // offset by the terminal rail's stable h-9 strip and straddles its
+        // lower edge, keeping the upper seam visually quiet.
+        horizontal
+          ? 'inset-y-0 left-0 w-[8px] -translate-x-[1px]'
+          : toolZone
+            ? 'inset-x-0 top-9 h-[8px] -translate-y-[1px]'
+            : 'inset-x-0 top-0 h-[8px] -translate-y-[1px]',
         disabled ? 'pointer-events-none' : horizontal ? 'cursor-col-resize' : 'cursor-row-resize'
       )}
       // Lets shell-level CSS start the resting hairline below the unified top
       // band (vertical seams only) without touching the grab geometry.
       data-navigation-boundary={navigationBoundary}
       data-sash-axis={horizontal ? 'x' : 'y'}
+      data-sash-tool-zone={toolZone || undefined}
       onDoubleClick={disabled ? undefined : onDoubleClick}
       onPointerDown={disabled ? undefined : onPointerDown}
       role="separator"

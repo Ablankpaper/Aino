@@ -1,7 +1,8 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { atom } from 'nanostores'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { useConnectionRegistry } from '@/app/gateway/hooks/use-connection-registry'
 import type { DesktopConnectionsRegistry } from '@/global'
 import { $findInPage } from '@/store/find-in-page'
 
@@ -121,7 +122,7 @@ afterEach(() => {
 describe('ConnectionSwitcher', () => {
   it('waits for primary boot fetches before restoring the launch source', async () => {
     $connectionsRegistry.set(registry([connection('local', 'This device', 'local'), connection('homelab', 'Homelab')]))
-    render(<ConnectionSwitcher onConnect={onConnect} />)
+    renderHook(useConnectionRegistry)
 
     expect(refreshConnectionsRegistry).toHaveBeenCalledTimes(1)
     expect(initializeConnectionsRegistry).not.toHaveBeenCalled()
@@ -147,7 +148,7 @@ describe('ConnectionSwitcher', () => {
       visible: false
     })
 
-    render(<ConnectionSwitcher onConnect={onConnect} />)
+    renderHook(useConnectionRegistry)
 
     await waitFor(() => expect(refreshConnectionsRegistry).toHaveBeenCalledTimes(1))
     expect(initializeConnectionsRegistry).not.toHaveBeenCalled()
@@ -163,7 +164,7 @@ describe('ConnectionSwitcher', () => {
       visible: false
     })
 
-    render(<ConnectionSwitcher onConnect={onConnect} />)
+    renderHook(useConnectionRegistry)
 
     await waitFor(() => expect(refreshConnectionsRegistry).toHaveBeenCalledTimes(1))
     expect(initializeConnectionsRegistry).not.toHaveBeenCalled()
@@ -407,6 +408,7 @@ describe('ConnectionSwitcher', () => {
     })
 
     try {
+      renderHook(useConnectionRegistry)
       render(<ConnectionSwitcher onConnect={onConnect} />)
 
       const trigger = screen.getByRole('button', { name: 'Registered gateways: This device' })

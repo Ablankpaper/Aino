@@ -93,12 +93,11 @@ function TooltipTrigger({ onFocus, ...props }: React.ComponentProps<typeof Toolt
   )
 }
 
-function TooltipContent({
-  className,
-  sideOffset = 6,
-  children,
-  ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+interface TooltipContentProps extends React.ComponentProps<typeof TooltipPrimitive.Content> {
+  variant?: 'default' | 'card'
+}
+
+function TooltipContent({ className, sideOffset = 6, children, variant = 'default', ...props }: TooltipContentProps) {
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
@@ -109,7 +108,13 @@ function TooltipContent({
         // elapses the chip appears at once.
         // pointer-events-none: the tip must never steal hover/clicks from the
         // chrome underneath (titlebar tools, adjacent tabs, etc.).
-        className={cn('pointer-events-none z-(--z-over-modal) w-fit max-w-64 select-none', className)}
+        className={cn(
+          'pointer-events-none z-(--z-over-modal) w-fit max-w-72 select-none',
+          variant === 'card' &&
+            'rounded-(--aino-radius-panel) border border-(--stroke-nous) bg-(--ui-bg-elevated) text-foreground shadow-nous',
+          variant === 'default' && 'max-w-64',
+          className
+        )}
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         {...props}
@@ -122,15 +127,19 @@ function TooltipContent({
             (#62022); an atomic inline child (`inline-flex`) sits on the baseline
             and hangs its extra lines below the background, dark-on-dark. Force
             direct children inline; break lines with `<br />`. */}
-        <span className="box-decoration-clone inline bg-foreground px-1.5 py-1 text-[11px] font-bold leading-normal text-background [font-family:Arial,sans-serif] [&>*]:!inline">
-          {children}
-        </span>
+        {variant === 'card' ? (
+          children
+        ) : (
+          <span className="box-decoration-clone inline bg-foreground px-1.5 py-1 text-[11px] font-bold leading-normal text-background [font-family:Arial,sans-serif] [&>*]:!inline">
+            {children}
+          </span>
+        )}
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )
 }
 
-interface TipProps extends Omit<React.ComponentProps<typeof TooltipPrimitive.Content>, 'content'> {
+interface TipProps extends Omit<TooltipContentProps, 'content'> {
   label: React.ReactNode
   children: React.ReactNode
   delayDuration?: number

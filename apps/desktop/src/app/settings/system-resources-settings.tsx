@@ -11,12 +11,10 @@ import { Activity, RefreshCw } from '@/lib/icons'
 import { $activeConnectionId } from '@/store/connections'
 import { $activeGatewayProfile } from '@/store/profile'
 
+import { formatHardwareBytes } from '../right-sidebar/summary/summary-data'
+
 import { ContributedStatusSettings } from './contributed-status-settings'
 import { SectionHeading, SettingsContent } from './primitives'
-
-function gb(bytes: number | null | undefined): string {
-  return bytes != null && Number.isFinite(bytes) ? `${(bytes / 2 ** 30).toFixed(1)} GB` : '\u2014'
-}
 
 function MeterRow({ label, percent, value }: { label: string; percent: number | null; value: string }) {
   return (
@@ -98,7 +96,7 @@ export function SystemResourcesSettings() {
           <MeterRow
             label={copy.ram}
             percent={ramPercent}
-            value={`${gb(ramUsed)} / ${gb(hardware.ram_total_bytes || null)}`}
+            value={`${formatHardwareBytes(ramUsed)} / ${formatHardwareBytes(hardware.ram_total_bytes || null)}`}
           />
           {hardware.gpu_name && <p className="break-words text-foreground">{hardware.gpu_name}</p>}
           {(hardware.gpu_name || hardware.vram_total_bytes > 0) && (
@@ -111,7 +109,7 @@ export function SystemResourcesSettings() {
               <MeterRow
                 label={copy.gpuMemory}
                 percent={vramPercent}
-                value={`${gb(hardware.vram_used_bytes)} / ${gb(hardware.vram_total_bytes)}`}
+                value={`${formatHardwareBytes(hardware.vram_used_bytes)} / ${formatHardwareBytes(hardware.vram_total_bytes)}`}
               />
             </>
           )}

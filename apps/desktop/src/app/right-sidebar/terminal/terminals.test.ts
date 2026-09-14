@@ -1,4 +1,4 @@
-import { atom } from 'nanostores'
+import { atom, computed } from 'nanostores'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const STORAGE_KEY = 'hermes.desktop.terminals.v1'
@@ -6,8 +6,10 @@ const STORAGE_KEY = 'hermes.desktop.terminals.v1'
 async function loadTerminalStore() {
   const $currentCwd = atom('/workspace')
 
-  vi.doMock('@/store/session', () => ({
-    $currentCwd
+  vi.doMock('@/store/tool-session', () => ({
+    $toolSession: computed($currentCwd, cwd => ({ cwd })),
+    $toolWorkspaceCwd: $currentCwd,
+    toolSessionHasCurrentSource: () => true
   }))
 
   return { ...(await import('./terminals')), $currentCwd }

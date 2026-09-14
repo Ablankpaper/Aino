@@ -15,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
@@ -22,10 +23,12 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { $panesFlipped, dismissAutoProject } from '@/store/layout'
+import { $profileScope, ALL_PROFILES } from '@/store/profile'
 import {
   copyPath,
   deleteProject,
   openProjectAddFolder,
+  openProjectFolders,
   openProjectRename,
   revealPath,
   setActiveProject,
@@ -56,6 +59,7 @@ function useProjectActions({
   const p = t.sidebar.projects
   const target = { id: project.id, name: project.label }
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const readOnly = useStore($profileScope) === ALL_PROFILES
 
   const removeAuto = () => {
     dismissAutoProject(project.id)
@@ -79,15 +83,29 @@ function useProjectActions({
   const identityItems: ActionItemSpec[] = project.isAuto
     ? []
     : [
-        { icon: 'edit', key: 'rename', label: p.menuRename, onSelect: () => openProjectRename(target) },
         {
+          disabled: readOnly,
+          icon: 'edit',
+          key: 'rename',
+          label: p.menuRename,
+          onSelect: () => openProjectRename(target)
+        },
+        {
+          disabled: readOnly,
           icon: 'new-folder',
           key: 'add-folder',
           label: p.menuAddFolder,
           onSelect: () => openProjectAddFolder(target)
         },
         {
-          disabled: isActive,
+          disabled: readOnly,
+          icon: 'files',
+          key: 'folders',
+          label: p.manageFolders,
+          onSelect: () => openProjectFolders(target)
+        },
+        {
+          disabled: isActive || readOnly,
           icon: 'target',
           key: 'set-active',
           label: p.menuSetActive,
@@ -115,6 +133,7 @@ function useProjectActions({
   const dangerItem: ActionItemSpec = project.isAuto
     ? { icon: 'trash', key: 'remove', label: p.removeFromSidebar, onSelect: removeAuto, variant: 'destructive' }
     : {
+        disabled: readOnly,
         icon: 'trash',
         key: 'delete',
         label: `${p.menuDelete}…`,
@@ -134,7 +153,7 @@ function useProjectActions({
     />
   )
 
-  return { confirmDialog, dangerItem, identityItems, pathItems }
+  return { confirmDialog, dangerItem, identityItems, pathItems, readOnly }
 }
 
 // Per-project actions. The kebab keeps its row-anchored Appearance popover; the
@@ -166,7 +185,7 @@ export function ProjectMenu({
   // when the panes are flipped (sidebar on the right).
   const panesFlipped = useStore($panesFlipped)
 
-  const { confirmDialog, dangerItem, identityItems, pathItems } = useProjectActions({
+  const { confirmDialog, dangerItem, identityItems, pathItems, readOnly } = useProjectActions({
     isActive,
     onExitScope,
     project,
@@ -185,7 +204,7 @@ export function ProjectMenu({
   // Set color / pick an icon — shown for explicit projects and for auto ones
   // (where selecting adopts the repo as a real project so the look sticks).
   const appearanceItem = (
-    <DropdownMenuItem onSelect={() => setAppearanceOpen(true)}>
+    <DropdownMenuItem disabled={readOnly} onSelect={() => setAppearanceOpen(true)}>
       <Codicon name="symbol-color" size="0.875rem" />
       <span>{p.menuAppearance}</span>
     </DropdownMenuItem>
@@ -230,6 +249,9 @@ export function ProjectMenu({
           onCloseAutoFocus={event => event.preventDefault()}
           sideOffset={6}
         >
+          {readOnly && (
+            <DropdownMenuLabel className="whitespace-normal font-normal">{p.unavailableAllProfiles}</DropdownMenuLabel>
+          )}
           {project.isAuto ? (
             // Inherited (auto) repos can still be themed — the change adopts the
             // repo as a real project. Rename / add-folder / set-active stay out
@@ -294,7 +316,7 @@ export function ProjectContextMenu({
   const { t } = useI18n()
   const p = t.sidebar.projects
 
-  const { confirmDialog, dangerItem, identityItems, pathItems } = useProjectActions({
+  const { confirmDialog, dangerItem, identityItems, pathItems, readOnly } = useProjectActions({
     isActive,
     onExitScope,
     project,
@@ -309,10 +331,11 @@ export function ProjectContextMenu({
 
   const items = (kit: MenuKit) => (
     <>
+      {readOnly && <kit.Label className="whitespace-normal font-normal">{p.unavailableAllProfiles}</kit.Label>}
       {identityItems.map(item => renderActionItem(kit, item))}
       {canTheme && (
         <kit.Sub>
-          <kit.SubTrigger>
+          <kit.SubTrigger disabled={readOnly}>
             <Codicon name="symbol-color" size="0.875rem" />
             <span>{p.menuAppearance}</span>
           </kit.SubTrigger>

@@ -55,6 +55,7 @@ export function ContextMenu({
                 GHOST_ICON_BTN,
                 'data-[state=open]:bg-(--chrome-action-hover) data-[state=open]:text-foreground'
               )}
+              data-slot="composer-context-menu"
               disabled={!state.tools.enabled}
               size="icon"
               type="button"
