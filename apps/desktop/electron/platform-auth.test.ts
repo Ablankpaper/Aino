@@ -538,6 +538,146 @@ describe('platform auth ownership', () => {
     expect(auth.snapshot()).toMatchObject({ phase: 'signed_out', account: null })
   })
 
+  it('coalesces concurrent logout callers without releasing the credential guard early', async () => {
+    const logoutResponses = [deferred<ReturnType<typeof ok>>(), deferred<ReturnType<typeof ok>>()]
+    const logoutStarted = deferred<void>()
+    let logoutCalls = 0
+    let updateCalls = 0
+
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/auth/logout') {
+        const response = logoutResponses[logoutCalls]
+        logoutCalls += 1
+        logoutStarted.resolve()
+
+        return response.promise
+      }
+
+      if (path === '/api/v1/user') {
+        updateCalls += 1
+
+        return okProfile(1, 'revived')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin, rememberedTokens('old'))
+    await auth.initialize()
+    const first = auth.logout()
+    await logoutStarted.promise
+    const second = auth.logout()
+
+    await expect(auth.updateProfile({ display_name: 'revived' })).rejects.toMatchObject({
+      code: 'logout_in_progress'
+    })
+    logoutResponses[0].resolve(ok({ success: true }))
+    logoutResponses[1].resolve(ok({ success: true }))
+    await Promise.all([first, second])
+
+    expect(logoutCalls).toBe(1)
+    expect(updateCalls).toBe(0)
+    expect(auth.snapshot()).toMatchObject({ phase: 'signed_out', account: null })
+  })
+
+  it('retires successfully logged-out credentials after a newer replacement login fails', async () => {
+    const logoutResponse = deferred<ReturnType<typeof ok>>()
+    const logoutStarted = deferred<void>()
+    let updateCalls = 0
+
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/auth/logout') {
+        logoutStarted.resolve()
+
+        return logoutResponse.promise
+      }
+
+      if (path === '/api/v1/auth/login') {return errorEnvelope(401, 'INVALID_CREDENTIALS')}
+
+      if (path === '/api/v1/user') {
+        updateCalls += 1
+
+        return okProfile(1, 'revived')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    let stored: PlatformTokenSet | null = rememberedTokens('old')
+
+    const store: PlatformTokenStore = {
+      load: async () => stored,
+      save: async () => 'encrypted',
+      clear: async () => {
+        stored = null
+      }
+    }
+
+    const auth = createAuth(origin, stored, store)
+    await auth.initialize()
+    const logout = auth.logout()
+    await logoutStarted.promise
+    await expect(
+      auth.loginExisting({ email: 'replacement@example.test', password: 'wrong', remember: true })
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' })
+    logoutResponse.resolve(ok({ success: true }))
+    await logout
+
+    expect(stored).toBeNull()
+    expect(auth.snapshot()).toMatchObject({ phase: 'signed_out', account: null })
+    await expect(auth.updateProfile({ display_name: 'revived' })).rejects.toMatchObject({
+      code: 'authentication_required'
+    })
+    expect(updateCalls).toBe(0)
+  })
+
+  it('retires old credentials without discarding a newer pending 2FA challenge', async () => {
+    const logoutResponse = deferred<ReturnType<typeof ok>>()
+    const logoutStarted = deferred<void>()
+    let profile = 'old'
+
+    const origin = await servePlatform(async ({ path, body }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(profile === 'old' ? 1 : 2, profile)}
+
+      if (path === '/api/v1/auth/logout') {
+        logoutStarted.resolve()
+
+        return logoutResponse.promise
+      }
+
+      if (path === '/api/v1/auth/login') {return ok({ requires_2fa: true, temp_token: 'replacement-temp' })}
+
+      if (path === '/api/v1/auth/login/2fa') {
+        expect(body.temp_token).toBe('replacement-temp')
+        profile = 'new'
+
+        return okTokens('new')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin, rememberedTokens('old'))
+    await auth.initialize()
+    const logout = auth.logout()
+    await logoutStarted.promise
+    await expect(
+      auth.loginExisting({ email: 'replacement@example.test', password: 'password', remember: false })
+    ).resolves.toEqual({ status: 'requires_2fa' })
+    logoutResponse.resolve(ok({ success: true }))
+    await logout
+
+    expect(auth.snapshot()).toMatchObject({ phase: 'signed_out', account: null })
+    await expect(auth.completeSecondFactor({ totp_code: '123456' })).resolves.toMatchObject({
+      phase: 'signed_in',
+      account: { id: '2' }
+    })
+  })
+
   it('coalesces a delayed old-token 401 after the first refresh has already rotated credentials', async () => {
     const secondOldResponse = deferred<ReturnType<typeof errorEnvelope>>()
     const secondOldStarted = deferred<void>()

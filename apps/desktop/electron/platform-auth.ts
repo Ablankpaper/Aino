@@ -58,7 +58,7 @@ export function createPlatformAuth({
     promise: Promise<PlatformAccountSnapshot>
   } | null = null
 
-  const loggingOutTokens = new Set<PlatformTokenSet>()
+  const logoutFlights = new Map<PlatformTokenSet, Promise<PlatformAccountSnapshot>>()
   let persistence = Promise.resolve<unknown>(undefined)
 
   let current: PlatformAccountSnapshot = {
@@ -102,7 +102,7 @@ export function createPlatformAuth({
       throw new PlatformClientError('authentication_required', true)
     }
 
-    if (loggingOutTokens.has(tokens)) {
+    if (logoutFlights.has(tokens)) {
       throw new PlatformClientError('logout_in_progress')
     }
 
@@ -460,49 +460,60 @@ export function createPlatformAuth({
     bindPhone(input) {
       return withAccountProfile(token => client.bindPhone(token, input), false)
     },
-    async logout() {
+    logout() {
       const previous = tokens
+      const activeLogout = previous ? logoutFlights.get(previous) : undefined
+
+      if (activeLogout) {
+        return activeLogout
+      }
+
       const previousSnapshot = current
-      const expected = ++generation
+      generation += 1
       pendingSecondFactor = null
       refreshFlight = null
 
+      const promise = (async () => {
+        try {
+          const [local, remote] = await Promise.allSettled([
+            persist(() => tokenStore.clear(client.origin)),
+            previous?.refreshToken ? client.logout(previous.refreshToken) : Promise.resolve()
+          ])
+
+          if (tokens !== previous) {
+            return current
+          }
+
+          if (local.status === 'rejected') {
+            publish({
+              phase: previousSnapshot.phase,
+              account: previousSnapshot.account,
+              remember_state: previousSnapshot.remember_state,
+              error: safeError(local.reason)
+            })
+            throw local.reason
+          }
+
+          tokens = null
+
+          return publish({
+            phase: 'signed_out',
+            account: null,
+            remember_state: 'session_only',
+            error: remote.status === 'rejected' ? { code: 'logout_revocation_unconfirmed' } : null
+          })
+        } finally {
+          if (previous && logoutFlights.get(previous) === promise) {
+            logoutFlights.delete(previous)
+          }
+        }
+      })()
+
       if (previous) {
-        loggingOutTokens.add(previous)
+        logoutFlights.set(previous, promise)
       }
 
-      const [local, remote] = await Promise.allSettled([
-        persist(() => tokenStore.clear(client.origin)),
-        previous?.refreshToken ? client.logout(previous.refreshToken) : Promise.resolve()
-      ])
-
-      if (previous) {
-        loggingOutTokens.delete(previous)
-      }
-
-      if (expected !== generation) {
-        return current
-      }
-
-      if (local.status === 'rejected') {
-        tokens = previous
-        publish({
-          phase: previousSnapshot.phase,
-          account: previousSnapshot.account,
-          remember_state: previousSnapshot.remember_state,
-          error: safeError(local.reason)
-        })
-        throw local.reason
-      }
-
-      tokens = null
-
-      return publish({
-        phase: 'signed_out',
-        account: null,
-        remember_state: 'session_only',
-        error: remote.status === 'rejected' ? { code: 'logout_revocation_unconfirmed' } : null
-      })
+      return promise
     }
   }
 
