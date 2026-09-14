@@ -15,6 +15,7 @@ export interface PlatformAuth {
   subscribe(listener: (snapshot: PlatformAccountSnapshot) => void): () => void
   capabilities(): Promise<PlatformPublicCapabilities>
   refresh(): Promise<PlatformAccountSnapshot>
+  retry(): Promise<PlatformAccountSnapshot>
   requestPhoneCode(input: {
     phone: string
     captcha_proof?: PlatformCaptchaProof
@@ -49,7 +50,7 @@ export function createPlatformAuth({
   let tokens: PlatformTokenSet | null = null
   let pendingSecondFactor: { tempToken: string; remember: boolean } | null = null
   let generation = 0
-  let refreshFlight: Promise<PlatformAccountSnapshot> | null = null
+  let refreshFlight: { generation: number; promise: Promise<PlatformAccountSnapshot> } | null = null
   let persistence = Promise.resolve<unknown>(undefined)
 
   let current: PlatformAccountSnapshot = {
@@ -67,7 +68,11 @@ export function createPlatformAuth({
     current = { ...current, ...patch, revision: current.revision + 1 }
 
     for (const listener of listeners) {
-      listener(current)
+      try {
+        listener(current)
+      } catch {
+        // Observers cannot roll back an authoritative account transition.
+      }
     }
 
     return current
@@ -119,26 +124,26 @@ export function createPlatformAuth({
       return false
     }
 
-    tokens = next
-    current = { ...current, remember_state: rememberState }
-
-    return true
+    return expected === generation ? rememberState : null
   }
 
   async function finishAuthentication(next: PlatformTokenSet, remember: boolean, expected: number) {
-    if (!(await storeTokens(next, remember, expected))) {
-      return current
-    }
-
     const profile = await client.profile(next.accessToken)
 
     if (expected !== generation) {
-      return current
+      throw new PlatformClientError('auth_attempt_superseded')
     }
 
+    const rememberState = await storeTokens(next, remember, expected)
+
+    if (!rememberState || expected !== generation) {
+      throw new PlatformClientError('auth_attempt_superseded')
+    }
+
+    tokens = next
     pendingSecondFactor = null
 
-    return publish({ phase: 'signed_in', account: profile, error: null })
+    return publish({ phase: 'signed_in', account: profile, remember_state: rememberState, error: null })
   }
 
   async function finishExchange(
@@ -146,10 +151,12 @@ export function createPlatformAuth({
     remember: boolean,
     expected: number
   ): Promise<PlatformAuthResult> {
+    if (expected !== generation) {
+      throw new PlatformClientError('auth_attempt_superseded')
+    }
+
     if (exchange.tempToken) {
-      if (expected === generation) {
-        pendingSecondFactor = { tempToken: exchange.tempToken, remember }
-      }
+      pendingSecondFactor = { tempToken: exchange.tempToken, remember }
 
       return { status: 'requires_2fa' }
     }
@@ -161,22 +168,114 @@ export function createPlatformAuth({
     return { status: 'signed_in', snapshot: await finishAuthentication(exchange.tokens, remember, expected) }
   }
 
-  async function withAccountProfile(operation: (token: string) => Promise<PlatformProfile>) {
+  function operationPhase(error: unknown) {
+    if (error instanceof PlatformClientError && error.authentication) {
+      return 'reauth_required' as const
+    }
+
+    if (error instanceof PlatformClientError && error.code.startsWith('network_')) {
+      return 'offline' as const
+    }
+
+    return current.phase
+  }
+
+  async function performRefresh(expected: number) {
+    if (refreshFlight?.generation === expected) {
+      return refreshFlight.promise
+    }
+
+    const previous = requireTokens()
+    const remember = current.remember_state === 'encrypted'
+
+    const promise = (async () =>
+      finishAuthentication(await client.refresh(previous.refreshToken), remember, expected))()
+
+    refreshFlight = { generation: expected, promise }
+
+    try {
+      return await promise
+    } finally {
+      if (refreshFlight?.promise === promise) {
+        refreshFlight = null
+      }
+    }
+  }
+
+  async function authenticated<T>(operation: (token: string) => Promise<T>, repeatSafe: boolean): Promise<T> {
     const expected = generation
 
     try {
-      const profile = await operation(requireTokens().accessToken)
+      try {
+        const value = await operation(requireTokens().accessToken)
 
-      return expected === generation ? publish({ phase: 'signed_in', account: profile, error: null }) : current
+        if (expected !== generation) {
+          throw new PlatformClientError('auth_attempt_superseded')
+        }
+
+        return value
+      } catch (error) {
+        if (!(error instanceof PlatformClientError) || !error.authentication || expected !== generation) {
+          throw error
+        }
+
+        await performRefresh(expected)
+
+        if (!repeatSafe) {
+          throw new PlatformClientError('authentication_refreshed_retry_required')
+        }
+
+        const value = await operation(requireTokens().accessToken)
+
+        if (expected !== generation) {
+          throw new PlatformClientError('auth_attempt_superseded')
+        }
+
+        return value
+      }
     } catch (error) {
       if (expected === generation) {
-        publish({
-          phase: error instanceof PlatformClientError && error.authentication ? 'reauth_required' : 'offline',
-          error: safeError(error)
-        })
+        publish({ phase: operationPhase(error), error: safeError(error) })
       }
 
       throw error
+    }
+  }
+
+  async function withAccountProfile(operation: (token: string) => Promise<PlatformProfile>, repeatSafe: boolean) {
+    const profile = await authenticated(operation, repeatSafe)
+
+    return publish({ phase: 'signed_in', account: profile, error: null })
+  }
+
+  function beginAuthentication() {
+    const previous = tokens && current.account ? current : null
+    const expected = ++generation
+    pendingSecondFactor = null
+
+    if (previous) {
+      publish({ error: null })
+    } else {
+      publish({ phase: 'loading', account: null, error: null })
+    }
+
+    return { expected, previous }
+  }
+
+  function failAuthentication(error: unknown, expected: number, previous: PlatformAccountSnapshot | null) {
+    if (expected !== generation) {
+      return
+    }
+
+    if (previous) {
+      publish({
+        phase: previous.phase,
+        account: previous.account,
+        remember_state: previous.remember_state,
+        error: safeError(error)
+      })
+    } else {
+      publish({ phase: 'signed_out', account: null, error: safeError(error) })
     }
   }
 
@@ -226,16 +325,11 @@ export function createPlatformAuth({
     },
     capabilities: () => client.capabilities(),
     refresh() {
-      if (refreshFlight) {
-        return refreshFlight
-      }
-
       const expected = generation
-      const previous = requireTokens()
-      const remember = current.remember_state === 'encrypted'
-      refreshFlight = (async () => {
+
+      return (async () => {
         try {
-          return await finishAuthentication(await client.refresh(previous.refreshToken), remember, expected)
+          return await performRefresh(expected)
         } catch (error) {
           if (expected === generation) {
             publish({
@@ -245,24 +339,26 @@ export function createPlatformAuth({
           }
 
           return current
-        } finally {
-          refreshFlight = null
         }
       })()
+    },
+    async retry() {
+      if (!tokens) {
+        return api.initialize()
+      }
 
-      return refreshFlight
+      const profile = await authenticated(token => client.profile(token), true)
+
+      return publish({ phase: 'signed_in', account: profile, error: null })
     },
     requestPhoneCode: input => client.requestPhoneCode(input),
     async verifyPhoneCode(input) {
-      const expected = ++generation
-      publish({ phase: 'loading', account: null, error: null })
+      const { expected, previous } = beginAuthentication()
 
       try {
         return await finishExchange(await client.verifyPhone(input), input.remember, expected)
       } catch (error) {
-        if (expected === generation) {
-          publish({ phase: 'signed_out', error: safeError(error) })
-        }
+        failAuthentication(error, expected, previous)
 
         throw error
       } finally {
@@ -270,15 +366,12 @@ export function createPlatformAuth({
       }
     },
     async loginExisting(input) {
-      const expected = ++generation
-      publish({ phase: 'loading', account: null, error: null })
+      const { expected, previous } = beginAuthentication()
 
       try {
         return await finishExchange(await client.login(input), input.remember, expected)
       } catch (error) {
-        if (expected === generation) {
-          publish({ phase: 'signed_out', error: safeError(error) })
-        }
+        failAuthentication(error, expected, previous)
 
         throw error
       } finally {
@@ -292,11 +385,13 @@ export function createPlatformAuth({
         throw new PlatformClientError('second_factor_not_pending')
       }
 
+      const expected = generation
+
       try {
         return await finishAuthentication(
           await client.complete2FA({ temp_token: pending.tempToken, totp_code: input.totp_code }),
           pending.remember,
-          generation
+          expected
         )
       } finally {
         input.totp_code = ''
@@ -309,14 +404,17 @@ export function createPlatformAuth({
         throw new PlatformClientError('invalid_display_name')
       }
 
-      return withAccountProfile(token => client.updateProfile(token, name))
+      return withAccountProfile(token => client.updateProfile(token, name), true)
     },
     requestBindingCode(input) {
-      return client.requestBindingCode(requireTokens().accessToken, input.phone, input.captcha_proof)
+      return authenticated(
+        token => client.requestBindingCode(token, input.phone, input.captcha_proof),
+        false
+      )
     },
     async submitStepUp(input) {
       try {
-        await client.submitStepUp(requireTokens().accessToken, input.totp_code)
+        await authenticated(token => client.submitStepUp(token, input.totp_code), false)
 
         return current
       } finally {
@@ -324,30 +422,39 @@ export function createPlatformAuth({
       }
     },
     bindPhone(input) {
-      return withAccountProfile(token => client.bindPhone(token, input))
+      return withAccountProfile(token => client.bindPhone(token, input), false)
     },
     async logout() {
       const previous = tokens
+      const previousSnapshot = current
       generation += 1
-      tokens = null
       pendingSecondFactor = null
       refreshFlight = null
-      publish({ phase: 'signed_out', account: null, remember_state: 'session_only', error: null })
 
-      try {
-        await persist(() => tokenStore.clear(client.origin))
-      } catch (error) {
-        publish({ error: safeError(error) })
-        throw error
-      }
+      const [local, remote] = await Promise.allSettled([
+        persist(() => tokenStore.clear(client.origin)),
+        previous?.refreshToken ? client.logout(previous.refreshToken) : Promise.resolve()
+      ])
 
-      if (previous?.refreshToken) {
-        void client.logout(previous.refreshToken).catch(() => {
-          /* local logout remains authoritative */
+      if (local.status === 'rejected') {
+        tokens = previous
+        publish({
+          phase: previousSnapshot.phase,
+          account: previousSnapshot.account,
+          remember_state: previousSnapshot.remember_state,
+          error: safeError(local.reason)
         })
+        throw local.reason
       }
 
-      return current
+      tokens = null
+
+      return publish({
+        phase: 'signed_out',
+        account: null,
+        remember_state: 'session_only',
+        error: remote.status === 'rejected' ? { code: 'logout_revocation_unconfirmed' } : null
+      })
     }
   }
 

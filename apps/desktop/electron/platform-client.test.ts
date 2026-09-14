@@ -74,6 +74,7 @@ describe('platform client', () => {
       res.setHeader('content-type', 'application/json')
       res.end(JSON.stringify({
         code: 0,
+        message: 'ok',
         data: {
           desktop_api_version: 1,
           registration_enabled: true,
@@ -130,5 +131,68 @@ describe('platform client', () => {
     await expect(
       createPlatformClient({ origin: denied, allowInsecureLoopback: true }).profile('access')
     ).rejects.toMatchObject({ code: 'TOKEN_INVALID', authentication: true })
+  })
+
+  it('keeps the timeout active while a response body is stalled', async () => {
+    const origin = await serve((_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.write('{"code":0,"message":"ok","data":')
+    })
+
+    await expect(
+      createPlatformClient({ origin, allowInsecureLoopback: true, timeoutMs: 15 }).profile('access')
+    ).rejects.toMatchObject({ code: 'network_timeout' })
+  })
+
+  it('requires the code/message/data response envelope', async () => {
+    const origin = await serve((_req, res) => {
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ id: 17, username: 'unwrapped', email: '' }))
+    })
+
+    await expect(createPlatformClient({ origin, allowInsecureLoopback: true }).profile('access')).rejects.toMatchObject({
+      code: 'invalid_response'
+    })
+  })
+
+  it.each([
+    [{ access_token: 'access', refresh_token: 'refresh', expires_in: 0, token_type: 'Bearer' }, 'zero expiry'],
+    [{ access_token: 'access', refresh_token: 'refresh', expires_in: 3600, token_type: 'Basic' }, 'non-Bearer type']
+  ])('rejects malformed token pairs: %s (%s)', async (data) => {
+    const origin = await serve((_req, res) => {
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ code: 0, message: 'success', data }))
+    })
+
+    await expect(createPlatformClient({ origin, allowInsecureLoopback: true }).refresh('refresh')).rejects.toMatchObject({
+      code: 'invalid_response'
+    })
+  })
+
+  it('does not classify business 403 as token authentication failure or invent retry_after', async () => {
+    const origin = await serve((_req, res) => {
+      res.statusCode = 403
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ code: 403, message: 'Recent authentication required', reason: 'RECENT_AUTH_REQUIRED' }))
+    })
+
+    await expect(createPlatformClient({ origin, allowInsecureLoopback: true }).profile('access')).rejects.toMatchObject({
+      code: 'RECENT_AUTH_REQUIRED',
+      authentication: false,
+      retryAfter: undefined
+    })
+  })
+
+  it('maps API rate-limit metadata into finite safe error fields', async () => {
+    const origin = await serve((_req, res) => {
+      res.statusCode = 429
+      res.setHeader('retry-after', '47')
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ code: 429, message: 'raw cooldown detail', reason: 'SMS_RATE_LIMITED' }))
+    })
+
+    await expect(
+      createPlatformClient({ origin, allowInsecureLoopback: true }).requestPhoneCode({ phone: '13900000000' })
+    ).rejects.toMatchObject({ code: 'SMS_RATE_LIMITED', retryAfter: 47, authentication: false })
   })
 })

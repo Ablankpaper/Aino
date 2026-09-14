@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from 'electron'
 
+import { unwrapPlatformAccountIpc } from '../shared/platform-contract'
+
 // Which translucency the OS can back. Asked synchronously because the renderer
 // needs it before its first paint, and answered by main because deciding it
 // needs `os.release()` — a sandboxed preload may only require electron, events,
@@ -12,6 +14,9 @@ const hudWindowing = ipcRenderer.sendSync('hermes:hud:windowing')
 const hudNativeDrag = hudWindowing?.nativeDrag === true
 const launchFlags = ipcRenderer.sendSync('hermes:launch-flags')
 
+const invokePlatformAccount = async <T>(method: string, input?: unknown): Promise<T> =>
+  unwrapPlatformAccountIpc(await ipcRenderer.invoke(`aino:platform-account:${method}`, input))
+
 contextBridge.exposeInMainWorld('hermesDesktop', {
   glassSupported: translucencySupport?.glass === true,
   translucencySupported: translucencySupport?.translucency === true,
@@ -19,17 +24,18 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   // show the local-models surfaces. Static for the window's lifetime.
   localModelsEnabled: launchFlags?.localModels === true,
   platformAccount: {
-    status: () => ipcRenderer.invoke('aino:platform-account:status'),
-    capabilities: () => ipcRenderer.invoke('aino:platform-account:capabilities'),
-    requestPhoneCode: input => ipcRenderer.invoke('aino:platform-account:request-phone-code', input),
-    verifyPhoneCode: input => ipcRenderer.invoke('aino:platform-account:verify-phone-code', input),
-    loginExisting: input => ipcRenderer.invoke('aino:platform-account:login-existing', input),
-    completeSecondFactor: input => ipcRenderer.invoke('aino:platform-account:complete-second-factor', input),
-    updateProfile: input => ipcRenderer.invoke('aino:platform-account:update-profile', input),
-    requestBindingCode: input => ipcRenderer.invoke('aino:platform-account:request-binding-code', input),
-    submitStepUp: input => ipcRenderer.invoke('aino:platform-account:submit-step-up', input),
-    bindPhone: input => ipcRenderer.invoke('aino:platform-account:bind-phone', input),
-    logout: () => ipcRenderer.invoke('aino:platform-account:logout'),
+    status: () => invokePlatformAccount('status'),
+    capabilities: () => invokePlatformAccount('capabilities'),
+    retry: () => invokePlatformAccount('retry'),
+    requestPhoneCode: input => invokePlatformAccount('request-phone-code', input),
+    verifyPhoneCode: input => invokePlatformAccount('verify-phone-code', input),
+    loginExisting: input => invokePlatformAccount('login-existing', input),
+    completeSecondFactor: input => invokePlatformAccount('complete-second-factor', input),
+    updateProfile: input => invokePlatformAccount('update-profile', input),
+    requestBindingCode: input => invokePlatformAccount('request-binding-code', input),
+    submitStepUp: input => invokePlatformAccount('submit-step-up', input),
+    bindPhone: input => invokePlatformAccount('bind-phone', input),
+    logout: () => invokePlatformAccount('logout'),
     onChanged: callback => {
       const listener = (_event, snapshot) => callback(snapshot)
       ipcRenderer.on('aino:platform-account:changed', listener)

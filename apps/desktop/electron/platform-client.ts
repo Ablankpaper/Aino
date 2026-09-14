@@ -68,6 +68,16 @@ function numberField(value: unknown) {
   return value
 }
 
+function positiveNumberField(value: unknown) {
+  const number = numberField(value)
+
+  if (number <= 0) {
+    throw new PlatformClientError('invalid_response')
+  }
+
+  return number
+}
+
 function booleanField(value: unknown, fallback = false) {
   return typeof value === 'boolean' ? value : fallback
 }
@@ -128,22 +138,23 @@ export function createPlatformClient({
   origin: rawOrigin,
   allowInsecureLoopback = false,
   timeoutMs = 10_000,
-  fetchImpl = fetch
+  fetchImpl = fetch,
+  now = Date.now
 }: {
   origin: string
   allowInsecureLoopback?: boolean
   timeoutMs?: number
   fetchImpl?: typeof fetch
+  now?: () => number
 }): PlatformClient {
   const origin = validatePlatformOrigin(rawOrigin, allowInsecureLoopback)
 
   async function request(method: string, endpoint: string, body?: unknown, token?: string): Promise<unknown> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
-    let response: Response
 
     try {
-      response = await fetchImpl(`${origin}/api/v1${endpoint}`, {
+      const response = await fetchImpl(`${origin}/api/v1${endpoint}`, {
         method,
         redirect: 'manual',
         signal: controller.signal,
@@ -154,52 +165,82 @@ export function createPlatformClient({
         },
         body: body === undefined ? undefined : JSON.stringify(body)
       })
+
+      if (response.status >= 300 && response.status < 400) {
+        throw new PlatformClientError('redirect_rejected')
+      }
+
+      let payload: Record<string, unknown>
+
+      try {
+        payload = object(await response.json())
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw error
+        }
+
+        throw new PlatformClientError('invalid_response')
+      }
+
+      if (typeof payload.message !== 'string') {
+        throw new PlatformClientError('invalid_response')
+      }
+
+      if (!response.ok) {
+        const reason = payload.reason
+        const legacyCode = payload.code
+
+        const code =
+          typeof reason === 'string' && /^[A-Za-z0-9_.:-]{1,80}$/.test(reason)
+            ? reason
+            : typeof legacyCode === 'string' && /^[A-Za-z0-9_.:-]{1,80}$/.test(legacyCode)
+              ? legacyCode
+            : `http_${response.status}`
+
+        const retryHeader = response.headers.get('retry-after')
+        const retry = retryHeader && /^\d+$/.test(retryHeader) ? Number(retryHeader) : undefined
+
+        throw new PlatformClientError(
+          code,
+          response.status === 401,
+          retry !== undefined && Number.isSafeInteger(retry) ? retry : undefined
+        )
+      }
+
+      if (
+        typeof payload.code !== 'number' ||
+        !Number.isFinite(payload.code) ||
+        payload.code !== 0 ||
+        !Object.prototype.hasOwnProperty.call(payload, 'data')
+      ) {
+        throw new PlatformClientError('invalid_response')
+      }
+
+      return payload.data
     } catch (error) {
+      if (error instanceof PlatformClientError) {
+        throw error
+      }
+
       throw new PlatformClientError(
         error instanceof Error && error.name === 'AbortError' ? 'network_timeout' : 'network_unavailable'
       )
     } finally {
       clearTimeout(timer)
     }
-
-    if (response.status >= 300 && response.status < 400) {
-      throw new PlatformClientError('redirect_rejected')
-    }
-
-    let payload: Record<string, unknown>
-
-    try {
-      payload = object(await response.json())
-    } catch (error) {
-      if (error instanceof PlatformClientError) {
-        throw error
-      }
-
-      throw new PlatformClientError('invalid_response')
-    }
-
-    if (!response.ok || (payload.code !== 0 && payload.code !== 200 && payload.code !== undefined)) {
-      const code =
-        typeof payload.code === 'string' && payload.code.length <= 80 ? payload.code : `http_${response.status}`
-
-      const retry = Number(response.headers.get('retry-after'))
-      throw new PlatformClientError(
-        code,
-        response.status === 401 || response.status === 403,
-        Number.isFinite(retry) ? retry : undefined
-      )
-    }
-
-    return payload.data === undefined ? payload : payload.data
   }
 
   function tokens(value: unknown): PlatformTokenSet {
     const data = object(value)
 
+    if (data.token_type !== 'Bearer') {
+      throw new PlatformClientError('invalid_response')
+    }
+
     return {
       accessToken: stringField(data.access_token),
       refreshToken: stringField(data.refresh_token),
-      expiresAt: Date.now() + numberField(data.expires_in) * 1000
+      expiresAt: now() + positiveNumberField(data.expires_in) * 1000
     }
   }
 

@@ -111,4 +111,24 @@ describe('platform token storage', () => {
       fs.chmodSync(path.dirname(filePath), 0o700)
     }
   })
+
+  it('retains the encrypted entry after an injected atomic delete failure', async () => {
+    const { filePath, store } = fixture()
+    await store.save('https://api.agentera.com.cn', {
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresAt: 123_000
+    })
+    const before = fs.readFileSync(filePath, 'utf8')
+    fs.chmodSync(path.dirname(filePath), 0o500)
+
+    try {
+      await expect(store.clear('https://api.agentera.com.cn')).rejects.toMatchObject({
+        code: 'secure_store_write_failed'
+      })
+      expect(fs.readFileSync(filePath, 'utf8')).toBe(before)
+    } finally {
+      fs.chmodSync(path.dirname(filePath), 0o700)
+    }
+  })
 })

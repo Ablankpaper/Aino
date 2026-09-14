@@ -20,12 +20,67 @@ interface PendingCaptcha {
   nonce: string
   generation: number
   consumed: boolean
-  policy: Promise<string>
+  settled: boolean
+  issuedAt: number
+  expiresAt: number
+  deadline: ReturnType<typeof setTimeout>
+  policy: Promise<PlatformPublicCapabilities>
   resolve: (proof: PlatformCaptchaProof) => void
   reject: (error: Error) => void
 }
 
 const PROOF_KEYS = new Set(['turnstile_token', 'tencent_captcha_ticket', 'tencent_captcha_randstr'])
+const DEFAULT_CAPTCHA_TTL_MS = 2 * 60 * 1000
+
+const CAPTCHA_PROVIDER_HOSTS = {
+  disabled: [],
+  turnstile: ['challenges.cloudflare.com'],
+  tencent: [
+    'turing.captcha.qcloud.com',
+    'turing.captcha.gtimg.com',
+    'ca.turing.captcha.qcloud.com',
+    'global.turing.captcha.gtimg.com',
+    'www.tycaptcha.com',
+    'cloudcache.tencentcs.com',
+    'rce.tencentrio.com'
+  ],
+  aliyun: ['.alicdn.com']
+} satisfies Record<PlatformPublicCapabilities['captcha']['provider'], string[]>
+
+function matchesHost(hostname: string, rule: string) {
+  return rule.startsWith('.') ? hostname.endsWith(rule) && hostname.length > rule.length : hostname === rule
+}
+
+export function isPlatformCaptchaRequestAllowed(
+  rawUrl: string,
+  platformOrigin: string,
+  provider: PlatformPublicCapabilities['captcha']['provider']
+) {
+  let url: URL
+
+  try {
+    url = new URL(rawUrl)
+  } catch {
+    return false
+  }
+
+  if (url.protocol === 'data:' || url.protocol === 'blob:') {
+    return true
+  }
+
+  if (url.origin === platformOrigin) {
+    return (
+      url.pathname === '/desktop/captcha' ||
+      url.pathname === '/api/v1/settings/public' ||
+      url.pathname === '/logo.svg' ||
+      url.pathname.startsWith('/assets/')
+    )
+  }
+
+  return (
+    url.protocol === 'https:' && CAPTCHA_PROVIDER_HOSTS[provider].some(rule => matchesHost(url.hostname, rule))
+  )
+}
 
 function trustedSender(pending: PendingCaptcha, window: object, mainFrame: boolean, rawUrl: string) {
   if (!mainFrame || window !== pending.window) {
@@ -89,30 +144,87 @@ function validateProof(proof: PlatformCaptchaProof, capabilities: PlatformPublic
 export function createPlatformCaptchaBroker({
   capabilities,
   generation,
-  randomNonce
+  randomNonce,
+  now = Date.now,
+  ttlMs = DEFAULT_CAPTCHA_TTL_MS
 }: {
   capabilities: () => Promise<PlatformPublicCapabilities>
   generation: () => number
   randomNonce: () => string
+  now?: () => number
+  ttlMs?: number
 }) {
   let pending: PendingCaptcha | null = null
 
-  return {
-    begin(window: object, url: string): Promise<PlatformCaptchaProof> {
-      pending?.reject(new PlatformCaptchaError('captcha_superseded'))
+  function settle(active: PendingCaptcha, error?: PlatformCaptchaError, proof?: PlatformCaptchaProof) {
+    if (active.settled) {
+      return false
+    }
 
-      return new Promise((resolve, reject) => {
-        pending = {
+    active.settled = true
+    clearTimeout(active.deadline)
+
+    if (error) {
+      if (pending === active) {
+        pending = null
+      }
+
+      active.reject(error)
+    } else {
+      active.consumed = true
+      active.resolve({ ...proof })
+    }
+
+    return true
+  }
+
+  function expire(active: PendingCaptcha) {
+    if (now() < active.expiresAt) {
+      return false
+    }
+
+    settle(active, new PlatformCaptchaError('captcha_expired'))
+
+    return true
+  }
+
+  return {
+    begin(
+      window: object,
+      url: string,
+      initialCapabilities?: PlatformPublicCapabilities
+    ): Promise<PlatformCaptchaProof> {
+      if (pending && !pending.settled) {
+        settle(pending, new PlatformCaptchaError('captcha_superseded'))
+      }
+
+      const issuedAt = now()
+      let active: PendingCaptcha
+
+      const result = new Promise<PlatformCaptchaProof>((resolve, reject) => {
+        active = {
           window,
           url,
           nonce: randomNonce(),
           generation: generation(),
           consumed: false,
-          policy: capabilities().then(value => JSON.stringify(value.captcha)),
+          settled: false,
+          issuedAt,
+          expiresAt: issuedAt + ttlMs,
+          deadline: undefined as unknown as ReturnType<typeof setTimeout>,
+          policy: initialCapabilities ? Promise.resolve(initialCapabilities) : capabilities(),
           resolve,
           reject
         }
+        active.deadline = setTimeout(() => settle(active, new PlatformCaptchaError('captcha_expired')), ttlMs)
+        active.deadline.unref?.()
+        pending = active
+        void active.policy.catch(() => settle(active, new PlatformCaptchaError('captcha_policy_unavailable')))
       })
+
+      void result.catch(() => undefined)
+
+      return result
     },
     getChallenge(input: { window: object; mainFrame: boolean; url: string }) {
       if (!pending || !trustedSender(pending, input.window, input.mainFrame, input.url)) {
@@ -123,7 +235,11 @@ export function createPlatformCaptchaBroker({
         throw new PlatformCaptchaError('captcha_consumed')
       }
 
-      return { nonce: pending.nonce }
+      if (expire(pending)) {
+        throw new PlatformCaptchaError('captcha_expired')
+      }
+
+      return { nonce: pending.nonce, issued_at: pending.issuedAt, expires_at: pending.expiresAt }
     },
     async submit(input: CaptchaSubmit) {
       const active = pending
@@ -136,55 +252,52 @@ export function createPlatformCaptchaBroker({
         throw new PlatformCaptchaError('captcha_sender_rejected')
       }
 
+      if (expire(active)) {
+        throw new PlatformCaptchaError('captcha_expired')
+      }
+
       if (active.generation !== generation()) {
-        pending = null
         const error = new PlatformCaptchaError('captcha_stale')
-        active.reject(error)
+        settle(active, error)
         throw error
       }
 
-      let initialPolicy: string
+      let initialPolicy: PlatformPublicCapabilities
       let fresh: PlatformPublicCapabilities
 
       try {
         ;[initialPolicy, fresh] = await Promise.all([active.policy, capabilities()])
       } catch {
-        if (active === pending) {
-          pending = null
-        }
-
         const error = new PlatformCaptchaError('captcha_policy_unavailable')
-        active.reject(error)
+        settle(active, error)
         throw error
+      }
+
+      if (expire(active)) {
+        throw new PlatformCaptchaError('captcha_expired')
       }
 
       if (active !== pending || active.generation !== generation()) {
         if (active === pending) {
-          pending = null
+          settle(active, new PlatformCaptchaError('captcha_stale'))
         }
 
         const error = new PlatformCaptchaError('captcha_stale')
-        active.reject(error)
         throw error
       }
 
-      if (initialPolicy !== JSON.stringify(fresh.captcha)) {
-        pending = null
+      if (JSON.stringify(initialPolicy.captcha) !== JSON.stringify(fresh.captcha)) {
         const error = new PlatformCaptchaError('captcha_stale_policy')
-        active.reject(error)
+        settle(active, error)
         throw error
       }
 
       validateProof(input.proof, fresh)
-      active.consumed = true
-      pending = active
-      active.resolve({ ...input.proof })
+      settle(active, undefined, input.proof)
     },
-    cancel(window: object) {
+    cancel(window: object, code = 'captcha_cancelled') {
       if (pending?.window === window && !pending.consumed) {
-        const active = pending
-        pending = null
-        active.reject(new PlatformCaptchaError('captcha_cancelled'))
+        settle(pending, new PlatformCaptchaError(code))
       }
     }
   }
@@ -207,12 +320,22 @@ interface CaptchaWindow {
   once?(event: string, handler: () => void): void
 }
 
+interface CaptchaSession {
+  webRequest: {
+    onBeforeRequest(
+      filter: { urls: string[] },
+      listener: (details: { url: string }, callback: (result: { cancel: boolean }) => void) => void
+    ): void
+  }
+}
+
 export function createPlatformCaptcha({
   ipc,
   createWindow,
   fromWebContents,
   origin,
   preloadPath,
+  createSession,
   capabilities,
   generation,
   randomNonce
@@ -222,13 +345,27 @@ export function createPlatformCaptcha({
   fromWebContents(sender: unknown): CaptchaWindow | null
   origin: string
   preloadPath: string
+  createSession(): CaptchaSession
   capabilities: () => Promise<PlatformPublicCapabilities>
   generation: () => number
   randomNonce: () => string
 }) {
   const captchaUrl = `${origin}/desktop/captcha`
   const broker = createPlatformCaptchaBroker({ capabilities, generation, randomNonce })
+  let captchaSession: CaptchaSession | null = null
   let activeWindow: CaptchaWindow | null = null
+  let activeProvider: PlatformPublicCapabilities['captcha']['provider'] = 'disabled'
+
+  function isolatedSession() {
+    if (!captchaSession) {
+      captchaSession = createSession()
+      captchaSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
+        callback({ cancel: !isPlatformCaptchaRequestAllowed(details.url, origin, activeProvider) })
+      })
+    }
+
+    return captchaSession
+  }
 
   function senderInput(event: any) {
     const window = fromWebContents(event?.sender)
@@ -251,6 +388,16 @@ export function createPlatformCaptcha({
         activeWindow.close()
       }
 
+      let initialCapabilities: PlatformPublicCapabilities
+
+      try {
+        initialCapabilities = await capabilities()
+      } catch {
+        throw new PlatformCaptchaError('captcha_policy_unavailable')
+      }
+
+      activeProvider = initialCapabilities.captcha.provider
+
       const win = createWindow({
         width: 400,
         height: 560,
@@ -263,7 +410,8 @@ export function createPlatformCaptcha({
           contextIsolation: true,
           sandbox: true,
           nodeIntegration: false,
-          webviewTag: false
+          webviewTag: false,
+          session: isolatedSession()
         }
       })
 
@@ -279,7 +427,7 @@ export function createPlatformCaptcha({
 
       win.webContents.on?.('will-navigate', denyExternalNavigation)
       win.webContents.on?.('will-redirect', denyExternalNavigation)
-      const pending = broker.begin(win, captchaUrl)
+      const pending = broker.begin(win, captchaUrl, initialCapabilities)
       win.once?.('closed', () => {
         broker.cancel(win)
 
@@ -290,18 +438,28 @@ export function createPlatformCaptcha({
       win.once?.('ready-to-show', () => win.show?.())
 
       try {
-        await win.loadURL(captchaUrl)
-      } catch (error) {
-        broker.cancel(win)
+        const load = Promise.resolve()
+          .then(() => win.loadURL(captchaUrl))
+          .then(
+            () => ({ type: 'loaded' as const }),
+            () => ({ type: 'load_failed' as const })
+          )
 
-        if (!win.isDestroyed()) {
-          win.close()
+        const first = await Promise.race([
+          load,
+          pending.then(proof => ({ type: 'proof' as const, proof }))
+        ])
+
+        if (first.type === 'load_failed') {
+          broker.cancel(win, 'captcha_load_failed')
+          await pending.catch(() => undefined)
+          throw new PlatformCaptchaError('captcha_load_failed')
         }
 
-        throw error
-      }
+        if (first.type === 'proof') {
+          return first.proof
+        }
 
-      try {
         return await pending
       } finally {
         if (!win.isDestroyed()) {

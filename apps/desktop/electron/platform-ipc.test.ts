@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { unwrapPlatformAccountIpc } from '../shared/platform-contract'
+
 import { registerPlatformIpc } from './platform-ipc'
 
 function rig() {
@@ -43,8 +45,27 @@ function rig() {
   }
 
   const sent: any[] = []
-  const win = { isDestroyed: () => false, webContents: { send: (...args: any[]) => sent.push(args) }, once: vi.fn() }
-  const other = { isDestroyed: () => false, webContents: { send: vi.fn() }, once: vi.fn() }
+
+  const win = {
+    isDestroyed: () => false,
+    webContents: {
+      isDestroyed: () => false,
+      mainFrame: { url: 'http://127.0.0.1:5174/' },
+      send: (...args: any[]) => sent.push(args)
+    },
+    once: vi.fn()
+  }
+
+  const other = {
+    isDestroyed: () => false,
+    webContents: {
+      isDestroyed: () => false,
+      mainFrame: { url: 'http://127.0.0.1:5174/?peer=1' },
+      send: vi.fn()
+    },
+    once: vi.fn()
+  }
+
   const sender: any = { mainFrame: {} }
   const captcha = { acquire: vi.fn().mockResolvedValue({ turnstile_token: 'main-owned-proof' }) }
 
@@ -69,6 +90,8 @@ function rig() {
     sent,
     snapshot,
     win,
+    invoke: async (name: string, input?: unknown, overrideEvent = event) =>
+      unwrapPlatformAccountIpc(await handlers.get(`aino:platform-account:${name}`)!(overrideEvent, input)),
     emit: (value = snapshot) => changed?.(value)
   }
 }
@@ -80,20 +103,20 @@ describe('platform account IPC', () => {
     const f = rig()
 
     ;(f.event.senderFrame as any).url = 'http://127.0.0.1:5174/?peer=1#/chat'
-    expect(f.handlers.get('aino:platform-account:status')!(f.event)).toBe(f.snapshot)
+    await expect(f.invoke('status')).resolves.toBe(f.snapshot)
 
-    expect(() =>
-      f.handlers.get('aino:platform-account:status')!({ ...f.event, senderFrame: { url: 'http://127.0.0.1:5174/' } })
-    ).toThrow('unauthorized_platform_ipc')
+    await expect(
+      f.invoke('status', undefined, { ...f.event, senderFrame: { url: 'http://127.0.0.1:5174/' } })
+    ).rejects.toMatchObject({ code: 'unauthorized_platform_ipc' })
     const unregisteredSender: any = { mainFrame: { url: 'http://127.0.0.1:5174/' } }
-    expect(() =>
-      f.handlers.get('aino:platform-account:status')!({
+    await expect(
+      f.invoke('status', undefined, {
         sender: unregisteredSender,
         senderFrame: unregisteredSender.mainFrame
       })
-    ).toThrow('unauthorized_platform_ipc')
+    ).rejects.toMatchObject({ code: 'unauthorized_platform_ipc' })
     ;(f.event.senderFrame as any).url = 'https://evil.test/'
-    expect(() => f.handlers.get('aino:platform-account:status')!(f.event)).toThrow('unauthorized_platform_ipc')
+    await expect(f.invoke('status')).rejects.toMatchObject({ code: 'unauthorized_platform_ipc' })
   })
 
   it('broadcasts snapshots to every registered live window and stops after unregister', () => {
@@ -107,6 +130,40 @@ describe('platform account IPC', () => {
     expect(f.other.webContents.send).toHaveBeenCalledTimes(1)
   })
 
+  it('does not broadcast to a registered window after it navigates away from the trusted document', () => {
+    const f = rig()
+    f.controller.registerWindow(f.other as any)
+    f.other.webContents.mainFrame.url = 'file:///tmp/other.html'
+
+    f.emit()
+
+    expect(f.other.webContents.send).not.toHaveBeenCalled()
+  })
+
+  it('keeps a registered loading window eligible after its trusted document commits', () => {
+    const f = rig()
+    f.other.webContents.mainFrame.url = 'about:blank'
+    f.controller.registerWindow(f.other as any)
+    f.emit()
+    f.other.webContents.mainFrame.url = 'http://127.0.0.1:5174/'
+    f.emit({ ...f.snapshot, revision: 2 })
+
+    expect(f.other.webContents.send).toHaveBeenCalledOnce()
+  })
+
+  it('isolates and prunes a throwing broadcast target', () => {
+    const f = rig()
+    f.controller.registerWindow(f.other as any)
+    f.other.webContents.send.mockImplementation(() => {
+      throw new Error('renderer destroyed')
+    })
+
+    expect(() => f.emit()).not.toThrow()
+    f.emit({ ...f.snapshot, revision: 2 })
+    expect(f.other.webContents.send).toHaveBeenCalledTimes(1)
+    expect(f.sent).toHaveLength(2)
+  })
+
   it('closing one account window does not log out the shared account', () => {
     const f = rig()
     f.controller.unregisterWindow(f.win as any)
@@ -118,14 +175,14 @@ describe('platform account IPC', () => {
     const f = rig()
 
     ;(f.event.senderFrame as any).url = 'http://127.0.0.1:5174/'
-    await f.handlers.get('aino:platform-account:request-phone-code')!(f.event, { phone: '13900000000' })
+    await f.invoke('request-phone-code', { phone: '13900000000' })
     expect(f.captcha.acquire).toHaveBeenCalledOnce()
     expect(f.auth.requestPhoneCode).toHaveBeenCalledWith({
       phone: '13900000000',
       captcha_proof: { turnstile_token: 'main-owned-proof' }
     })
     await expect(
-      f.handlers.get('aino:platform-account:request-phone-code')!(f.event, {
+      f.invoke('request-phone-code', {
         phone: '13900000000',
         captcha_proof: { turnstile_token: 'renderer-proof' }
       })
@@ -137,18 +194,59 @@ describe('platform account IPC', () => {
 
     ;(f.event.senderFrame as any).url = 'http://127.0.0.1:5174/'
 
-    expect(() => f.handlers.get('aino:platform-account:request-phone-code')!(f.event, { phone: '' })).toThrow(
-      'invalid_platform_input'
-    )
+    await expect(f.invoke('request-phone-code', { phone: '' })).rejects.toMatchObject({
+      code: 'invalid_platform_input'
+    })
     expect(f.captcha.acquire).not.toHaveBeenCalled()
 
-    expect(() =>
-      f.handlers.get('aino:platform-account:login-existing')!(f.event, {
+    await expect(
+      f.invoke('login-existing', {
         email: 'a@example.test',
         password: 42,
         remember: true
       })
-    ).toThrow('invalid_platform_input')
+    ).rejects.toMatchObject({ code: 'invalid_platform_input' })
     expect(f.captcha.acquire).not.toHaveBeenCalled()
+  })
+
+  it('accepts an empty agreement revision when server policy disables the agreement', async () => {
+    const f = rig()
+
+    ;(f.event.senderFrame as any).url = 'http://127.0.0.1:5174/'
+
+    await f.invoke('verify-phone-code', {
+      phone: '13900000000',
+      challenge_id: 'challenge',
+      code: '246810',
+      register_if_new: true,
+      agreement_revision: '',
+      remember: false
+    })
+
+    expect(f.auth.verifyPhoneCode).toHaveBeenCalledWith(expect.objectContaining({ agreement_revision: '' }))
+  })
+
+  it('exposes a narrow retry handler for offline account restoration', async () => {
+    const f = rig()
+    f.auth.retry = vi.fn().mockResolvedValue(f.snapshot)
+    ;(f.event.senderFrame as any).url = 'http://127.0.0.1:5174/'
+
+    await expect(f.invoke('retry')).resolves.toBe(f.snapshot)
+    expect(f.auth.retry).toHaveBeenCalledOnce()
+  })
+
+  it('preserves only safe enumerable error fields through the serialized preload boundary', async () => {
+    const f = rig()
+    f.auth.requestPhoneCode.mockRejectedValue(
+      Object.assign(new Error('raw server cooldown body'), { code: 'SMS_RATE_LIMITED', retryAfter: 47 })
+    )
+    ;(f.event.senderFrame as any).url = 'http://127.0.0.1:5174/'
+
+    await expect(f.invoke('request-phone-code', { phone: '13900000000' })).rejects.toMatchObject({
+      message: 'SMS_RATE_LIMITED',
+      code: 'SMS_RATE_LIMITED',
+      retryAfter: 47,
+      retry_after: 47
+    })
   })
 })

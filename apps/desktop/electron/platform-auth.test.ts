@@ -155,6 +155,8 @@ describe('platform auth ownership', () => {
   it('clears a remembered token write that finishes after logout', async () => {
     const f = await createPlatformAuthTestRig({ delaySave: true })
     const pending = f.auth.refresh()
+    await f.waitForPendingProfile()
+    f.resolvePendingProfile()
     await f.waitForSave()
     const logout = f.auth.logout()
     f.releaseSave()
@@ -164,7 +166,7 @@ describe('platform auth ownership', () => {
 
   it('keeps the last account while offline but requires reauthentication on a confirmed 401', async () => {
     const origin = await serveSequence([
-      [200, { code: 0, data: { id: 2, username: 'Lin', email: 'lin@example.test' } }],
+      [200, { code: 0, message: 'ok', data: { id: 2, username: 'Lin', email: 'lin@example.test' } }],
       [503, { code: 'UPSTREAM', message: 'down' }],
       [401, { code: 'TOKEN_INVALID', message: 'revoked' }]
     ])
@@ -185,7 +187,358 @@ describe('platform auth ownership', () => {
     await auth.refresh()
     expect(auth.snapshot()).toMatchObject({ phase: 'reauth_required', account: { id: '2' } })
   })
+
+  it('rejects a stale 2FA result and keeps only the newest pending challenge', async () => {
+    let resolveOld: ((value: unknown) => void) | null = null
+
+    const oldResult = new Promise<unknown>(resolve => {
+      resolveOld = resolve
+    })
+
+    let completedTempToken = ''
+    let profileId = 1
+
+    const origin = await servePlatform(async ({ path, body }) => {
+      if (path === '/api/v1/user/profile') {
+        return okProfile(profileId, profileId === 1 ? 'old' : 'new')
+      }
+
+      if (path === '/api/v1/auth/login') {
+        if (body.email === 'old-attempt@example.test') {
+          return oldResult
+        }
+
+        return ok({ requires_2fa: true, temp_token: 'new-temp' })
+      }
+
+      if (path === '/api/v1/auth/login/2fa') {
+        completedTempToken = String(body.temp_token)
+        profileId = 2
+
+        return okTokens('new')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin)
+    await auth.initialize()
+
+    const stale = auth.loginExisting({
+      email: 'old-attempt@example.test',
+      password: 'old-password',
+      remember: false
+    })
+
+    const current = auth.loginExisting({ email: 'new-attempt@example.test', password: 'new-password', remember: false })
+    await expect(current).resolves.toEqual({ status: 'requires_2fa' })
+    resolveOld?.(ok({ requires_2fa: true, temp_token: 'old-temp' }))
+    await expect(stale).rejects.toMatchObject({ code: 'auth_attempt_superseded' })
+    await expect(auth.completeSecondFactor({ totp_code: '123456' })).resolves.toMatchObject({
+      phase: 'signed_in',
+      account: { id: '2' }
+    })
+    expect(completedTempToken).toBe('new-temp')
+  })
+
+  it('clears an older 2FA challenge when a replacement attempt fails', async () => {
+    const origin = await servePlatform(async ({ path, body }) => {
+      if (path === '/api/v1/auth/login') {
+        return body.email === 'first@example.test'
+          ? ok({ requires_2fa: true, temp_token: 'old-temp' })
+          : errorEnvelope(401, 'INVALID_CREDENTIALS')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin)
+    await auth.initialize()
+    await auth.loginExisting({ email: 'first@example.test', password: 'password', remember: false })
+
+    await expect(
+      auth.loginExisting({ email: 'second@example.test', password: 'wrong', remember: false })
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' })
+    await expect(auth.completeSecondFactor({ totp_code: '123456' })).rejects.toMatchObject({
+      code: 'second_factor_not_pending'
+    })
+  })
+
+  it('preserves the old signed-in account and token after a failed account switch', async () => {
+    let updateAuth = ''
+
+    const origin = await servePlatform(async ({ path, authorization, body }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/auth/login') {return errorEnvelope(401, 'INVALID_CREDENTIALS')}
+
+      if (path === '/api/v1/user') {
+        updateAuth = authorization
+
+        return okProfile(1, String(body.username))
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin, rememberedTokens('old'))
+    await auth.initialize()
+
+    await expect(
+      auth.loginExisting({ email: 'other@example.test', password: 'wrong', remember: true })
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' })
+    expect(auth.snapshot()).toMatchObject({ phase: 'signed_in', account: { id: '1', display_name: 'old' } })
+    await expect(auth.updateProfile({ display_name: 'still-old' })).resolves.toMatchObject({
+      phase: 'signed_in',
+      account: { id: '1', display_name: 'still-old' }
+    })
+    expect(updateAuth).toBe('Bearer old-access')
+  })
+
+  it('keeps logout truthful, attempts remote revocation, and restores after local deletion failure', async () => {
+    let logoutCalls = 0
+
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/auth/logout') {
+        logoutCalls += 1
+
+        return errorEnvelope(503, 'REVOCATION_UNAVAILABLE')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const stored = rememberedTokens('old')
+
+    const store: PlatformTokenStore = {
+      load: async () => stored,
+      save: async () => 'encrypted',
+      clear: async () => {
+        throw Object.assign(new Error('disk denied'), { code: 'secure_store_write_failed' })
+      }
+    }
+
+    const first = createAuth(origin, stored, store)
+    await first.initialize()
+    await expect(first.logout()).rejects.toMatchObject({ code: 'secure_store_write_failed' })
+    expect(logoutCalls).toBe(1)
+    expect(first.snapshot()).toMatchObject({ phase: 'signed_in', account: { id: '1' }, error: { code: 'secure_store_write_failed' } })
+
+    const restarted = createAuth(origin, stored, store)
+    await restarted.initialize()
+    expect(restarted.snapshot()).toMatchObject({ phase: 'signed_in', account: { id: '1' } })
+  })
+
+  it('surfaces unconfirmed remote revocation after durable local logout', async () => {
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/auth/logout') {return errorEnvelope(503, 'REVOCATION_UNAVAILABLE')}
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin, rememberedTokens('old'))
+    await auth.initialize()
+
+    await expect(auth.logout()).resolves.toMatchObject({
+      phase: 'signed_out',
+      error: { code: 'logout_revocation_unconfirmed' }
+    })
+  })
+
+  it('isolates subscriber failures from a successful authentication transition', async () => {
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/auth/login') {return okTokens('new')}
+
+      if (path === '/api/v1/user/profile') {return okProfile(2, 'new')}
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin)
+    await auth.initialize()
+    auth.subscribe(() => {
+      throw new Error('observer failed')
+    })
+
+    await expect(
+      auth.loginExisting({ email: 'new@example.test', password: 'password', remember: false })
+    ).resolves.toMatchObject({ status: 'signed_in', snapshot: { account: { id: '2' } } })
+  })
+
+  it('coalesces concurrent authenticated 401s into one refresh and retries idempotent profile updates', async () => {
+    let refreshCalls = 0
+    let oldUpdateCalls = 0
+    let newUpdateCalls = 0
+
+    const origin = await servePlatform(async ({ path, authorization, body }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/user') {
+        if (authorization === 'Bearer old-access') {
+          oldUpdateCalls += 1
+
+          return errorEnvelope(401, 'TOKEN_EXPIRED')
+        }
+
+        newUpdateCalls += 1
+
+        return okProfile(1, String(body.username))
+      }
+
+      if (path === '/api/v1/auth/refresh') {
+        refreshCalls += 1
+
+        return okTokens('new')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin, rememberedTokens('old'))
+    await auth.initialize()
+
+    await Promise.all([
+      auth.updateProfile({ display_name: 'first' }),
+      auth.updateProfile({ display_name: 'second' })
+    ])
+    expect(oldUpdateCalls).toBe(2)
+    expect(refreshCalls).toBe(1)
+    expect(newUpdateCalls).toBe(2)
+  })
+
+  it('refreshes but does not automatically replay a non-repeatable binding-code request', async () => {
+    let bindingCalls = 0
+    let refreshCalls = 0
+
+    const origin = await servePlatform(async ({ path, authorization }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/user/account-bindings/phone/send-code') {
+        bindingCalls += 1
+
+        if (authorization === 'Bearer old-access') {return errorEnvelope(401, 'TOKEN_EXPIRED')}
+
+        return ok({ challenge_id: 'challenge', expires_in: 300, retry_after: 60, delivery: 'submitted' })
+      }
+
+      if (path === '/api/v1/auth/refresh') {
+        refreshCalls += 1
+
+        return okTokens('new')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin, rememberedTokens('old'))
+    await auth.initialize()
+
+    await expect(auth.requestBindingCode({ phone: '13900000000' })).rejects.toMatchObject({
+      code: 'authentication_refreshed_retry_required'
+    })
+    expect(bindingCalls).toBe(1)
+    expect(refreshCalls).toBe(1)
+    await expect(auth.requestBindingCode({ phone: '13900000000' })).resolves.toMatchObject({
+      challenge_id: 'challenge'
+    })
+    expect(bindingCalls).toBe(2)
+  })
+
+  it('retries offline restoration through the narrow account recovery method', async () => {
+    let available = false
+
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') {
+        return available ? okProfile(1, 'old') : errorEnvelope(503, 'OFFLINE')
+      }
+
+      if (path === '/api/v1/auth/refresh') {return okTokens('new')}
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin, rememberedTokens('old'))
+    await auth.initialize()
+    expect(auth.snapshot().phase).toBe('offline')
+    available = true
+
+    await expect(auth.retry()).resolves.toMatchObject({ phase: 'signed_in', account: { id: '1' } })
+  })
 })
+
+function rememberedTokens(prefix: string): PlatformTokenSet {
+  return { accessToken: `${prefix}-access`, refreshToken: `${prefix}-refresh`, expiresAt: 999_999 }
+}
+
+function createAuth(origin: string, initial: PlatformTokenSet | null = null, suppliedStore?: PlatformTokenStore) {
+  let stored = initial
+
+  const store: PlatformTokenStore = suppliedStore ?? {
+    load: async () => stored,
+    save: async (_origin, value) => {
+      stored = value
+
+      return 'encrypted'
+    },
+    clear: async () => {
+      stored = null
+    }
+  }
+
+  return createPlatformAuth({
+    client: createPlatformClient({ origin, allowInsecureLoopback: true, now: () => 1 }),
+    tokenStore: store,
+    now: () => 1
+  })
+}
+
+function ok(data: unknown) {
+  return { status: 200, body: { code: 0, message: 'success', data } }
+}
+
+function okProfile(id: number, username: string) {
+  return ok({ id, username, email: `${username}@example.test`, phone_bound: false })
+}
+
+function okTokens(prefix: string) {
+  return ok({
+    access_token: `${prefix}-access`,
+    refresh_token: `${prefix}-refresh`,
+    expires_in: 3600,
+    token_type: 'Bearer'
+  })
+}
+
+function errorEnvelope(status: number, reason: string) {
+  return { status, body: { code: status, message: reason, reason } }
+}
+
+async function servePlatform(
+  handler: (request: { path: string; body: Record<string, unknown>; authorization: string }) => Promise<any>
+) {
+  const server = http.createServer(async (req, res) => {
+    const chunks: Buffer[] = []
+
+    for await (const chunk of req) {chunks.push(Buffer.from(chunk))}
+    const body = chunks.length > 0 ? JSON.parse(Buffer.concat(chunks).toString()) : {}
+
+    const result = await handler({
+      path: req.url || '/',
+      body,
+      authorization: String(req.headers.authorization || '')
+    })
+
+    res.statusCode = result.status
+    res.setHeader('content-type', 'application/json')
+    res.end(JSON.stringify(result.body))
+  })
+
+  servers.push(server)
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+
+  return `http://127.0.0.1:${(server.address() as { port: number }).port}`
+}
 
 async function serveSequence(responses: Array<[number, unknown]>) {
   const server = http.createServer((_req, res) => {

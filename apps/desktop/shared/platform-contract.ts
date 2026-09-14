@@ -56,9 +56,31 @@ export interface PhoneVerifyDTO {
 }
 export type PlatformAuthResult = { status: 'signed_in'; snapshot: PlatformAccountSnapshot } | { status: 'requires_2fa' }
 
+export type PlatformAccountIpcResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: { code: string; retry_after?: number } }
+
+export function unwrapPlatformAccountIpc<T>(result: PlatformAccountIpcResult<T>): T {
+  if (result.ok === true) {
+    return result.value
+  }
+
+  const error = {
+    name: 'PlatformAccountError',
+    message: result.error.code,
+    code: result.error.code,
+    ...(result.error.retry_after === undefined
+      ? {}
+      : { retryAfter: result.error.retry_after, retry_after: result.error.retry_after })
+  }
+
+  throw error
+}
+
 export interface PlatformAccountBridge {
   status(): Promise<PlatformAccountSnapshot>
   capabilities(): Promise<PlatformPublicCapabilities>
+  retry(): Promise<PlatformAccountSnapshot>
   requestPhoneCode(input: { phone: string; captcha_proof?: PlatformCaptchaProof }): Promise<PhoneChallengeDTO>
   verifyPhoneCode(input: PhoneVerifyDTO): Promise<PlatformAuthResult>
   loginExisting(input: {
@@ -77,6 +99,6 @@ export interface PlatformAccountBridge {
 }
 
 export interface PlatformCaptchaBridge {
-  getChallenge(): Promise<{ nonce: string }>
+  getChallenge(): Promise<{ nonce: string; issued_at: number; expires_at: number }>
   submit(input: { nonce: string; proof: PlatformCaptchaProof }): Promise<void>
 }

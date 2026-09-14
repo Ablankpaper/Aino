@@ -1,4 +1,8 @@
-import type { PlatformAccountSnapshot, PlatformCaptchaProof } from '../shared/platform-contract'
+import type {
+  PlatformAccountIpcResult,
+  PlatformAccountSnapshot,
+  PlatformCaptchaProof
+} from '../shared/platform-contract'
 
 import type { PlatformAuth } from './platform-auth'
 
@@ -8,9 +12,19 @@ interface IpcLike {
 }
 interface WindowLike {
   isDestroyed(): boolean
-  webContents: { send(channel: string, payload: unknown): void }
+  webContents: {
+    isDestroyed(): boolean
+    mainFrame: { url: string }
+    send(channel: string, payload: unknown): void
+  }
   once?(event: string, listener: () => void): void
 }
+
+const LOCAL_PLATFORM_ERROR_CODES = new Set([
+  'invalid_platform_input',
+  'renderer_captcha_proof_rejected',
+  'unauthorized_platform_ipc'
+])
 
 function sameRendererDocument(actualRaw: string, trustedRaw: string) {
   try {
@@ -50,6 +64,7 @@ export function registerPlatformIpc({
       !win ||
       !windows.has(win) ||
       win.isDestroyed() ||
+      win.webContents.isDestroyed() ||
       event.senderFrame !== event.sender?.mainFrame ||
       !sameRendererDocument(String(event.senderFrame?.url || ''), trustedRendererUrl)
     ) {
@@ -79,6 +94,32 @@ export function registerPlatformIpc({
     }
 
     return value
+  }
+
+  function boundedString(input: Record<string, unknown>, name: string, max: number) {
+    const value = input[name]
+
+    if (typeof value !== 'string' || value.length > max) {
+      throw new Error('invalid_platform_input')
+    }
+
+    return value
+  }
+
+  function safeIpcError(error: unknown) {
+    const source = error && typeof error === 'object' ? (error as Record<string, unknown>) : {}
+    const message = error instanceof Error ? error.message : ''
+
+    const candidate =
+      typeof source.code === 'string' ? source.code : LOCAL_PLATFORM_ERROR_CODES.has(message) ? message : ''
+
+    const code = /^[A-Za-z0-9_.:-]{1,80}$/.test(candidate) ? candidate : 'platform_error'
+    const retry = source.retryAfter ?? source.retry_after
+
+    return {
+      code,
+      ...(typeof retry === 'number' && Number.isSafeInteger(retry) && retry >= 0 ? { retry_after: retry } : {})
+    }
   }
 
   function flag(input: Record<string, unknown>, name: string) {
@@ -118,6 +159,11 @@ export function registerPlatformIpc({
 
       return auth.capabilities()
     },
+    retry: event => {
+      authorize(event)
+
+      return auth.retry()
+    },
     'request-phone-code': (event, input) => {
       authorize(event)
 
@@ -132,7 +178,7 @@ export function registerPlatformIpc({
         challenge_id: field(value, 'challenge_id', 256),
         code: field(value, 'code', 64),
         register_if_new: flag(value, 'register_if_new'),
-        agreement_revision: field(value, 'agreement_revision', 256),
+        agreement_revision: boundedString(value, 'agreement_revision', 256),
         invitation_code: field(value, 'invitation_code', 256, true),
         promo_code: field(value, 'promo_code', 256, true),
         remember: flag(value, 'remember')
@@ -190,13 +236,31 @@ export function registerPlatformIpc({
   }
 
   for (const [name, handler] of Object.entries(methods)) {
-    ipc.handle(`aino:platform-account:${name}`, handler)
+    ipc.handle(`aino:platform-account:${name}`, async (...args) => {
+      try {
+        return { ok: true, value: await handler(args[0], args[1]) } satisfies PlatformAccountIpcResult<unknown>
+      } catch (error) {
+        return { ok: false, error: safeIpcError(error) } satisfies PlatformAccountIpcResult<unknown>
+      }
+    })
   }
 
   const unsubscribe = auth.subscribe((snapshot: PlatformAccountSnapshot) => {
     for (const win of windows) {
-      if (!win.isDestroyed()) {
+      try {
+        if (win.isDestroyed() || win.webContents.isDestroyed()) {
+          windows.delete(win)
+
+          continue
+        }
+
+        if (!sameRendererDocument(win.webContents.mainFrame.url, trustedRendererUrl)) {
+          continue
+        }
+
         win.webContents.send('aino:platform-account:changed', snapshot)
+      } catch {
+        windows.delete(win)
       }
     }
   })
