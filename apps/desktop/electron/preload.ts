@@ -18,6 +18,25 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   // Launch-flag fact: the app was started with --local, so the renderer may
   // show the local-models surfaces. Static for the window's lifetime.
   localModelsEnabled: launchFlags?.localModels === true,
+  platformAccount: {
+    status: () => ipcRenderer.invoke('aino:platform-account:status'),
+    capabilities: () => ipcRenderer.invoke('aino:platform-account:capabilities'),
+    requestPhoneCode: input => ipcRenderer.invoke('aino:platform-account:request-phone-code', input),
+    verifyPhoneCode: input => ipcRenderer.invoke('aino:platform-account:verify-phone-code', input),
+    loginExisting: input => ipcRenderer.invoke('aino:platform-account:login-existing', input),
+    completeSecondFactor: input => ipcRenderer.invoke('aino:platform-account:complete-second-factor', input),
+    updateProfile: input => ipcRenderer.invoke('aino:platform-account:update-profile', input),
+    requestBindingCode: input => ipcRenderer.invoke('aino:platform-account:request-binding-code', input),
+    submitStepUp: input => ipcRenderer.invoke('aino:platform-account:submit-step-up', input),
+    bindPhone: input => ipcRenderer.invoke('aino:platform-account:bind-phone', input),
+    logout: () => ipcRenderer.invoke('aino:platform-account:logout'),
+    onChanged: callback => {
+      const listener = (_event, snapshot) => callback(snapshot)
+      ipcRenderer.on('aino:platform-account:changed', listener)
+
+      return () => ipcRenderer.removeListener('aino:platform-account:changed', listener)
+    }
+  },
   getConnection: (profile, opts) => ipcRenderer.invoke('hermes:connection', profile, opts),
   // Registry-scoped backend resolution: { connectionId, profile } → descriptor.
   getConnectionFor: payload => ipcRenderer.invoke('hermes:connection:for', payload),

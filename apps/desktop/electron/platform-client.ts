@@ -1,0 +1,360 @@
+import type {
+  PhoneChallengeDTO,
+  PhoneVerifyDTO,
+  PlatformCaptchaProof,
+  PlatformPublicCapabilities
+} from '../shared/platform-contract'
+
+import type { PlatformTokenSet } from './platform-token-store'
+
+export const PLATFORM_PRODUCTION_ORIGIN = 'https://api.agentera.com.cn'
+
+export class PlatformClientError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly authentication = false,
+    public readonly retryAfter?: number
+  ) {
+    super(code)
+  }
+}
+export interface PlatformProfile {
+  id: string
+  display_name: string
+  phone_masked: string
+  email: string
+}
+interface AuthExchange {
+  tokens?: PlatformTokenSet
+  tempToken?: string
+}
+export interface PlatformClient {
+  readonly origin: string
+  capabilities(): Promise<PlatformPublicCapabilities>
+  profile(accessToken: string): Promise<PlatformProfile>
+  refresh(refreshToken: string): Promise<PlatformTokenSet>
+  requestPhoneCode(input: { phone: string; captcha_proof?: PlatformCaptchaProof }): Promise<PhoneChallengeDTO>
+  verifyPhone(input: PhoneVerifyDTO): Promise<AuthExchange>
+  login(input: { email: string; password: string; captcha_proof?: PlatformCaptchaProof }): Promise<AuthExchange>
+  complete2FA(input: { temp_token: string; totp_code: string }): Promise<PlatformTokenSet>
+  updateProfile(accessToken: string, displayName: string): Promise<PlatformProfile>
+  requestBindingCode(accessToken: string, phone: string, proof?: PlatformCaptchaProof): Promise<PhoneChallengeDTO>
+  bindPhone(accessToken: string, input: { phone: string; challenge_id: string; code: string }): Promise<PlatformProfile>
+  submitStepUp(accessToken: string, code: string): Promise<void>
+  logout(refreshToken: string): Promise<void>
+}
+
+function object(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new PlatformClientError('invalid_response')
+  }
+
+  return value as Record<string, unknown>
+}
+
+function stringField(value: unknown, allowEmpty = false) {
+  if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) {
+    throw new PlatformClientError('invalid_response')
+  }
+
+  return value
+}
+
+function numberField(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new PlatformClientError('invalid_response')
+  }
+
+  return value
+}
+
+function booleanField(value: unknown, fallback = false) {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+export function validatePlatformOrigin(raw: string, allowInsecureLoopback = false): string {
+  const url = new URL(raw)
+  const loopback = url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.hostname === '::1'
+
+  if (url.username || url.password || url.search || url.hash || (url.pathname !== '/' && url.pathname !== '')) {
+    throw new Error('invalid_platform_origin')
+  }
+
+  if (url.protocol !== 'https:' && !(allowInsecureLoopback && url.protocol === 'http:' && loopback)) {
+    throw new Error('invalid_platform_origin')
+  }
+
+  return url.origin
+}
+
+export function resolvePlatformOrigin({
+  isPackaged,
+  readDevelopmentConfig
+}: {
+  isPackaged: boolean
+  readDevelopmentConfig: () => string
+}): { origin: string; development: boolean } {
+  if (isPackaged) {
+    return { origin: PLATFORM_PRODUCTION_ORIGIN, development: false }
+  }
+
+  let value: unknown
+
+  try {
+    value = JSON.parse(readDevelopmentConfig())
+  } catch {
+    return { origin: PLATFORM_PRODUCTION_ORIGIN, development: false }
+  }
+
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    (value as Record<string, unknown>).enabled !== true
+  ) {
+    return { origin: PLATFORM_PRODUCTION_ORIGIN, development: false }
+  }
+
+  const origin = validatePlatformOrigin(String((value as Record<string, unknown>).origin || ''), true)
+
+  if (new URL(origin).protocol !== 'http:') {
+    throw new Error('invalid_platform_origin')
+  }
+
+  return { origin, development: true }
+}
+
+export function createPlatformClient({
+  origin: rawOrigin,
+  allowInsecureLoopback = false,
+  timeoutMs = 10_000,
+  fetchImpl = fetch
+}: {
+  origin: string
+  allowInsecureLoopback?: boolean
+  timeoutMs?: number
+  fetchImpl?: typeof fetch
+}): PlatformClient {
+  const origin = validatePlatformOrigin(rawOrigin, allowInsecureLoopback)
+
+  async function request(method: string, endpoint: string, body?: unknown, token?: string): Promise<unknown> {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    let response: Response
+
+    try {
+      response = await fetchImpl(`${origin}/api/v1${endpoint}`, {
+        method,
+        redirect: 'manual',
+        signal: controller.signal,
+        headers: {
+          accept: 'application/json',
+          ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          ...(token ? { authorization: `Bearer ${token}` } : {})
+        },
+        body: body === undefined ? undefined : JSON.stringify(body)
+      })
+    } catch (error) {
+      throw new PlatformClientError(
+        error instanceof Error && error.name === 'AbortError' ? 'network_timeout' : 'network_unavailable'
+      )
+    } finally {
+      clearTimeout(timer)
+    }
+
+    if (response.status >= 300 && response.status < 400) {
+      throw new PlatformClientError('redirect_rejected')
+    }
+
+    let payload: Record<string, unknown>
+
+    try {
+      payload = object(await response.json())
+    } catch (error) {
+      if (error instanceof PlatformClientError) {
+        throw error
+      }
+
+      throw new PlatformClientError('invalid_response')
+    }
+
+    if (!response.ok || (payload.code !== 0 && payload.code !== 200 && payload.code !== undefined)) {
+      const code =
+        typeof payload.code === 'string' && payload.code.length <= 80 ? payload.code : `http_${response.status}`
+
+      const retry = Number(response.headers.get('retry-after'))
+      throw new PlatformClientError(
+        code,
+        response.status === 401 || response.status === 403,
+        Number.isFinite(retry) ? retry : undefined
+      )
+    }
+
+    return payload.data === undefined ? payload : payload.data
+  }
+
+  function tokens(value: unknown): PlatformTokenSet {
+    const data = object(value)
+
+    return {
+      accessToken: stringField(data.access_token),
+      refreshToken: stringField(data.refresh_token),
+      expiresAt: Date.now() + numberField(data.expires_in) * 1000
+    }
+  }
+
+  function authExchange(value: unknown): AuthExchange {
+    const data = object(value)
+
+    return data.requires_2fa === true ? { tempToken: stringField(data.temp_token) } : { tokens: tokens(data) }
+  }
+
+  function profile(value: unknown): PlatformProfile {
+    const data = object(value)
+
+    const bindings =
+      data.auth_bindings && typeof data.auth_bindings === 'object'
+        ? (data.auth_bindings as Record<string, unknown>)
+        : data.identity_bindings && typeof data.identity_bindings === 'object'
+          ? (data.identity_bindings as Record<string, unknown>)
+          : {}
+
+    const phone =
+      bindings.phone && typeof bindings.phone === 'object' ? (bindings.phone as Record<string, unknown>) : {}
+
+    return {
+      id: String(numberField(data.id)),
+      display_name: stringField(data.display_name ?? data.username),
+      phone_masked: data.phone_bound === true ? stringField(phone.subject_hint ?? '', true) : '',
+      email: stringField(data.email ?? '', true)
+    }
+  }
+
+  function challenge(value: unknown): PhoneChallengeDTO {
+    const data = object(value)
+
+    return {
+      challenge_id: stringField(data.challenge_id),
+      expires_in: numberField(data.expires_in),
+      retry_after: numberField(data.retry_after ?? 0),
+      delivery: stringField(data.delivery)
+    }
+  }
+
+  function proof(value?: PlatformCaptchaProof) {
+    return value ? { ...value } : {}
+  }
+
+  return {
+    origin,
+    async capabilities() {
+      const data = object(await request('GET', '/settings/public'))
+
+      const documents = Array.isArray(data.login_agreement_documents)
+        ? data.login_agreement_documents.map(item => {
+            const doc = object(item)
+
+            return {
+              id: stringField(doc.id),
+              title: stringField(doc.title),
+              content_md: stringField(doc.content_md, true)
+            }
+          })
+        : []
+
+      const enabledProviders = [
+        booleanField(data.turnstile_enabled)
+          ? { provider: 'turnstile' as const, configured: Boolean(data.turnstile_site_key) }
+          : null,
+        booleanField(data.tencent_captcha_enabled)
+          ? { provider: 'tencent' as const, configured: Boolean(data.tencent_captcha_app_id) }
+          : null,
+        booleanField(data.aliyun_captcha_enabled)
+          ? {
+              provider: 'aliyun' as const,
+              configured: Boolean(data.aliyun_captcha_scene_id && data.aliyun_captcha_prefix)
+            }
+          : null
+      ].filter((value): value is NonNullable<typeof value> => value !== null)
+
+      if (enabledProviders.length > 1 || (enabledProviders[0] && !enabledProviders[0].configured)) {
+        throw new PlatformClientError('invalid_response')
+      }
+
+      const provider = enabledProviders[0]?.provider ?? 'disabled'
+
+      return {
+        desktop_api_version: numberField(data.desktop_api_version),
+        registration_enabled: booleanField(data.registration_enabled),
+        phone_login_enabled: booleanField(data.phone_login_enabled),
+        phone_registration_enabled: booleanField(data.phone_registration_enabled),
+        phone_binding_enabled: booleanField(data.phone_binding_enabled),
+        phone_regions: Array.isArray(data.phone_regions) ? data.phone_regions.map(value => stringField(value)) : [],
+        phone_code_length: numberField(data.phone_code_length),
+        invitation_code_enabled: booleanField(data.invitation_code_enabled),
+        promo_code_enabled: booleanField(data.promo_code_enabled),
+        login_agreement_enabled: booleanField(data.login_agreement_enabled),
+        login_agreement_mode: stringField(data.login_agreement_mode ?? '', true),
+        login_agreement_revision: stringField(data.login_agreement_revision ?? '', true),
+        login_agreement_documents: documents,
+        captcha: {
+          provider,
+          site_key: stringField(
+            provider === 'tencent' ? (data.tencent_captcha_app_id ?? '') : (data.turnstile_site_key ?? ''),
+            true
+          ),
+          scene_id: stringField(data.aliyun_captcha_scene_id ?? '', true),
+          prefix: stringField(data.aliyun_captcha_prefix ?? '', true),
+          region: stringField(data.aliyun_captcha_region ?? data.tencent_captcha_region ?? '', true)
+        }
+      }
+    },
+    async profile(token) {
+      return profile(await request('GET', '/user/profile', undefined, token))
+    },
+    async refresh(refreshToken) {
+      return tokens(await request('POST', '/auth/refresh', { refresh_token: refreshToken }))
+    },
+    async requestPhoneCode(input) {
+      return challenge(
+        await request('POST', '/auth/phone/send-code', { phone: input.phone, ...proof(input.captcha_proof) })
+      )
+    },
+    async verifyPhone(input) {
+      const { remember: _remember, ...payload } = input
+
+      return authExchange(await request('POST', '/auth/phone/verify', payload))
+    },
+    async login(input) {
+      return authExchange(
+        await request('POST', '/auth/login', {
+          email: input.email,
+          password: input.password,
+          ...proof(input.captcha_proof)
+        })
+      )
+    },
+    async complete2FA(input) {
+      return tokens(await request('POST', '/auth/login/2fa', input))
+    },
+    async updateProfile(token, displayName) {
+      return profile(await request('PUT', '/user', { username: displayName }, token))
+    },
+    async requestBindingCode(token, phoneValue, captcha) {
+      return challenge(
+        await request('POST', '/user/account-bindings/phone/send-code', { phone: phoneValue, ...proof(captcha) }, token)
+      )
+    },
+    async bindPhone(token, input) {
+      const data = object(await request('POST', '/user/account-bindings/phone', input, token))
+
+      return profile(data.user)
+    },
+    async submitStepUp(token, code) {
+      await request('POST', '/user/totp/step-up', { code }, token)
+    },
+    async logout(refreshToken) {
+      await request('POST', '/auth/logout', { refresh_token: refreshToken })
+    }
+  }
+}

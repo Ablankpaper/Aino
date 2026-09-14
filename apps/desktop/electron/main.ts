@@ -275,6 +275,11 @@ import { serializeJsonBody, setJsonRequestHeaders } from './oauth-net-request'
 import { LEGACY_OAUTH_PARTITION, resolveOauthPartition } from './oauth-partition'
 import { createParentStartMarkerResolver, parentWatchdogEnv } from './parent-process-identity'
 import { registerPetOverlayIpc } from './pet-overlay-ipc'
+import { createPlatformAuth } from './platform-auth'
+import { createPlatformCaptcha } from './platform-captcha'
+import { createPlatformClient, resolvePlatformOrigin } from './platform-client'
+import { registerPlatformIpc } from './platform-ipc'
+import { createPlatformTokenStore } from './platform-token-store'
 import {
   pendingNotice as pendingPluginCompatNotice,
   recordDismissed as recordPluginCompatDismissed
@@ -510,6 +515,7 @@ let f12Blocked = false
 // ESM loader is broken on Electron 40's Node (ERR_INVALID_RETURN_PROPERTY_VALUE).
 // Dev (`npm run dev`) and prod both load the esbuild output from dist/.
 const PRELOAD_PATH = path.join(APP_ROOT, 'dist', 'electron-preload.js')
+const PLATFORM_CAPTCHA_PRELOAD_PATH = path.join(APP_ROOT, 'dist', 'platform-captcha-preload.js')
 
 // Remote displays (SSH X11 forwarding, VNC, RDP) make Chromium's GPU
 // compositor flicker — accelerated layers can't be presented cleanly over the
@@ -4811,6 +4817,49 @@ function resolveRendererIndex() {
 
   return candidates[0]
 }
+
+const platformOrigin = resolvePlatformOrigin({
+  isPackaged: IS_PACKAGED,
+  readDevelopmentConfig: () => fs.readFileSync(path.join(app.getPath('userData'), 'platform-development.json'), 'utf8')
+})
+
+const platformClient = createPlatformClient({
+  origin: platformOrigin.origin,
+  allowInsecureLoopback: platformOrigin.development
+})
+
+const platformTokenStore = createPlatformTokenStore({
+  filePath: path.join(app.getPath('userData'), 'platform-tokens.json'),
+  crypto: {
+    isAvailable: () => safeStorage.isEncryptionAvailable(),
+    backend: () => (process.platform === 'linux' ? safeStorage.getSelectedStorageBackend() : 'os'),
+    encrypt: value => safeStorage.encryptString(value),
+    decrypt: value => safeStorage.decryptString(value)
+  }
+})
+
+const platformAuth = createPlatformAuth({ client: platformClient, tokenStore: platformTokenStore, now: Date.now })
+
+const platformCaptcha = createPlatformCaptcha({
+  ipc: ipcMain,
+  createWindow: options => new BrowserWindow(options as Electron.BrowserWindowConstructorOptions),
+  fromWebContents: sender => BrowserWindow.fromWebContents(sender as Electron.WebContents),
+  origin: platformOrigin.origin,
+  preloadPath: PLATFORM_CAPTCHA_PRELOAD_PATH,
+  capabilities: () => platformAuth.capabilities(),
+  generation: () => platformAuth.snapshot().revision,
+  randomNonce: () => crypto.randomBytes(32).toString('base64url')
+})
+
+const platformIpc = registerPlatformIpc({
+  ipc: ipcMain,
+  auth: platformAuth,
+  captcha: platformCaptcha,
+  fromWebContents: sender => BrowserWindow.fromWebContents(sender as Electron.WebContents),
+  trustedRendererUrl: DEV_SERVER
+    ? new URL('/', DEV_SERVER).toString()
+    : pathToFileURL(resolveRendererIndex()).toString()
+})
 
 // True when `dir` lives inside the packaged app bundle / install tree.
 // Packaged Electron's process.cwd() (and npm's INIT_CWD when dev tooling
@@ -13461,6 +13510,8 @@ function spawnSecondaryWindow({
     webPreferences: chatWindowWebPreferences(PRELOAD_PATH)
   })
 
+  platformIpc.registerWindow(win)
+
   // Chat-surface registration: applyWindowTranslucency swaps this window's
   // backing between opaque-themed and alpha-0 when glass toggles.
   translucencyBackedWindows.add(win)
@@ -13640,6 +13691,8 @@ function createInstanceWindow() {
     show: false,
     webPreferences: chatWindowWebPreferences(PRELOAD_PATH)
   })
+
+  platformIpc.registerWindow(win)
 
   instanceWindows.add(win)
 
@@ -14604,6 +14657,8 @@ function createWindow() {
     // session-windows.ts and stream-throttle.ts.
     webPreferences: chatWindowWebPreferences(PRELOAD_PATH)
   })
+
+  platformIpc.registerWindow(mainWindow)
 
   const createdMainWindow = mainWindow
 
@@ -18109,6 +18164,9 @@ app.whenReady().then(() => {
     passwordStoreSwitch: app.commandLine.getSwitchValue('password-store'),
     safeStorageApi: safeStorage
   })
+
+  // Platform identity restores independently from Agent/backend availability.
+  void platformAuth.initialize()
 
   // Keychain encryption is opt-in (default OFF). One-shot: rewrite any
   // legacy safeStorage-encrypted secrets as plain so no later launch ever
