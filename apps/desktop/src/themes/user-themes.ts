@@ -1,13 +1,9 @@
 /**
  * User-installed desktop themes (currently: converted VS Code themes).
  *
- * This is the extensibility seam. The theme context reads the *merged* registry
- * (built-ins + user themes) for `availableThemes` and for every skin lookup, so
- * an installed theme shows up everywhere a built-in does — the Cmd-K palette,
- * the Appearance settings grid, and `/skin` — with no per-surface wiring.
- *
- * Stored as a localStorage record so the boot-time paint (which runs before
- * React mounts) can resolve a user theme synchronously, same as built-ins.
+ * Legacy assets remain available to converters and plugin previews. Aino's
+ * ThemeProvider uses its fixed palette and does not apply registry themes.
+ * Keeping this storage preserves installed resources across the UI change.
  */
 
 import { atom, computed } from 'nanostores'

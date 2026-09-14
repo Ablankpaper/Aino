@@ -45,7 +45,6 @@ import {
   Monitor,
   Moon,
   Package,
-  Palette,
   PawPrint,
   Plus,
   RefreshCw,
@@ -86,10 +85,7 @@ import {
   requestActiveUpdate
 } from '@/store/updates'
 import { canOpenNewWindow, openNewWindow } from '@/store/windows'
-import { luminance } from '@/themes/color'
 import { type ThemeMode, useTheme } from '@/themes/context'
-import { localizedThemeCopy } from '@/themes/localized'
-import { isUserTheme, resolveTheme } from '@/themes/user-themes'
 
 import { openSession, openSessionIntentFromModifiers } from '../open-session'
 import {
@@ -111,7 +107,6 @@ import { useSettingsSearchCatalog } from '../settings/use-settings-search'
 
 import { usePaletteContributions } from './contrib'
 import { HighlightWatcher } from './highlight-watcher'
-import { MarketplaceThemePage } from './marketplace-theme-page'
 import { PetInlineToggle, PetPalettePage } from './pet-palette-page'
 
 interface PaletteItem {
@@ -156,10 +151,6 @@ interface PaletteGroup {
   heading?: string
   items: PaletteItem[]
 }
-
-// Nested page → its parent, so Back / Esc step up one level instead of closing
-// the palette. Pages absent here go straight back to the root list.
-const PAGE_PARENTS: Record<string, string> = { 'install-theme': 'theme' }
 
 /** A nested page reachable from a root item via `to`. */
 interface PalettePage {
@@ -470,27 +461,6 @@ const THEME_MODES: ReadonlyArray<{ icon: IconComponent; mode: ThemeMode }> = [
   { icon: Monitor, mode: 'system' }
 ]
 
-// Which Light/Dark groups a theme belongs in. Built-ins render in both modes
-// (the engine synthesises the missing side). Imported VS Code themes only carry
-// the variant(s) the extension shipped — a single dark theme like Dracula lives
-// under Dark only, while a GitHub/Solarized family (light + dark) lives in both.
-function themeSupportsMode(name: string, target: 'light' | 'dark'): boolean {
-  if (!isUserTheme(name)) {
-    return true
-  }
-
-  const resolved = resolveTheme(name)
-
-  if (!resolved) {
-    return true
-  }
-
-  const background =
-    target === 'dark' ? (resolved.darkColors ?? resolved.colors).background : resolved.colors.background
-
-  return target === 'dark' ? luminance(background) <= 0.5 : luminance(background) > 0.5
-}
-
 /**
  * ⌘K is an overlay that is stateful to itself: pressing it must open a frame
  * immediately, and must not be held up by whatever else the shell is doing. So
@@ -561,8 +531,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
   const dismissedAutoProjects = useStore($dismissedAutoProjectIds)
   const navigate = useNavigate()
 
-  const { availableThemes, clearThemePreview, mode, previewTheme, resolvedMode, setMode, setTheme, themeName } =
-    useTheme()
+  const { clearThemePreview, mode, previewTheme, setMode, themeName } = useTheme()
 
   // Mode rows preview like theme rows do: paint the committed skin at the
   // highlighted brightness. `system` has to be resolved here — previewTheme
@@ -716,7 +685,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
   // the parent page doesn't reopen mid-search.
   const goBack = useCallback(() => {
     setSearch('')
-    setPage(prev => (prev ? (PAGE_PARENTS[prev] ?? null) : null))
+    setPage(null)
   }, [])
 
   const settingsSectionLabel = useCallback(
@@ -956,17 +925,10 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
       },
       {
         // Declared before Settings: cmdk keeps group order, so this keeps the
-        // theme/mode pickers on top for "theme"/"color" queries instead of
+        // brightness picker on top for "color" queries instead of
         // buried under a fuzzy Settings match.
         heading: cc.appearance,
         items: [
-          {
-            icon: Palette,
-            id: 'appearance-theme',
-            keywords: ['theme', 'appearance', 'color', 'palette', 'skin', 'dark', 'light', 'look'],
-            label: cc.changeTheme,
-            to: 'theme'
-          },
           {
             icon: Sun,
             id: 'appearance-mode',
@@ -1122,40 +1084,6 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
       ]
     })
 
-    // Apply a theme directly from the root search (e.g. "nous" → Nous). Live
-    // preview via keepOpen, mirroring the nested theme picker. If the theme
-    // can't render the current light/dark mode, flip to the one it supports.
-    result.push({
-      heading: t.settings.appearance.themeTitle,
-      items: availableThemes.map(theme => {
-        const copy = localizedThemeCopy(theme, t)
-        // Same mode fixup as run(): if a theme cannot render the current
-        // light/dark, preview (and commit) in the one mode it supports.
-        const previewMode = themeSupportsMode(theme.name, resolvedMode)
-          ? resolvedMode
-          : resolvedMode === 'dark'
-            ? 'light'
-            : 'dark'
-
-        return {
-          active: themeName === theme.name,
-          icon: Palette,
-          id: `search-theme-${theme.name}`,
-          keepOpen: true,
-          keywords: ['theme', 'appearance', 'color', 'skin', theme.name, copy.label, copy.description],
-          label: copy.label,
-          onHighlight: () => previewTheme(theme.name, previewMode),
-          run: () => {
-            setTheme(theme.name)
-
-            if (!themeSupportsMode(theme.name, resolvedMode)) {
-              setMode(previewMode)
-            }
-          }
-        }
-      })
-    })
-
     // Switch light/dark/system directly (typing "dark" shouldn't require the
     // nested color-mode page).
     result.push({
@@ -1245,18 +1173,15 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
     return result
   }, [
     archivedSessions,
-    availableThemes,
     go,
     goSession,
     mcpServers,
     mode,
     previewTheme,
-    resolvedMode,
     resolveThemeMode,
     search,
     sessions,
     setMode,
-    setTheme,
     settingsCatalog,
     settingsEntryItem,
     t,
@@ -1330,70 +1255,6 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
   // and point a root item at it via `to`.
   const subPages = useMemo<Record<string, PalettePage>>(
     () => ({
-      theme: {
-        title: t.settings.appearance.themeTitle,
-        placeholder: t.settings.appearance.themeDesc,
-        groups: [
-          // Pinned at the top: drills into the Marketplace browser.
-          {
-            items: [
-              {
-                icon: Download,
-                id: 'theme-install',
-                keywords: ['install', 'marketplace', 'vscode', 'vs code', 'download', 'new', 'color'],
-                label: t.commandCenter.installTheme.title,
-                to: 'install-theme'
-              }
-            ]
-          },
-          // Brightness lives with the palettes: one mode toggle for the whole
-          // list instead of splitting every theme across a Light and a Dark group.
-          {
-            heading: t.settings.appearance.colorMode,
-            items: THEME_MODES.map(entry => ({
-              active: mode === entry.mode,
-              icon: entry.icon,
-              id: `theme-mode-${entry.mode}`,
-              keepOpen: true,
-              keywords: ['appearance', 'brightness', 'color mode', t.settings.modeOptions[entry.mode].label],
-              label: t.settings.modeOptions[entry.mode].label,
-              onHighlight: () => previewTheme(themeName, resolveThemeMode(entry.mode)),
-              run: () => setMode(entry.mode)
-            }))
-          },
-          // Every palette once, applied on top of the selected mode. An import
-          // that only ships one variant (Dracula) flips the mode to the side it
-          // can actually render.
-          {
-            heading: t.settings.appearance.themeTitle,
-            items: availableThemes.map(theme => {
-              const copy = localizedThemeCopy(theme, t)
-              const previewMode = themeSupportsMode(theme.name, resolvedMode)
-                ? resolvedMode
-                : resolvedMode === 'dark'
-                  ? 'light'
-                  : 'dark'
-
-              return {
-                active: themeName === theme.name,
-                icon: Palette,
-                id: `theme-${theme.name}`,
-                keepOpen: true,
-                keywords: ['theme', 'appearance', 'palette', theme.name, copy.label, copy.description],
-                label: copy.label,
-                onHighlight: () => previewTheme(theme.name, previewMode),
-                run: () => {
-                  setTheme(theme.name)
-
-                  if (previewMode !== resolvedMode) {
-                    setMode(previewMode)
-                  }
-                }
-              }
-            })
-          }
-        ]
-      },
       'color-mode': {
         title: t.settings.appearance.colorMode,
         placeholder: t.settings.appearance.colorModeDesc,
@@ -1419,13 +1280,6 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
         placeholder: t.commandCenter.pets.placeholder,
         groups: []
       },
-      // Server-driven page: items come from the Marketplace, rendered by
-      // <MarketplaceThemePage> (loader + live search + per-row install).
-      'install-theme': {
-        title: t.commandCenter.installTheme.pageTitle,
-        placeholder: t.commandCenter.installTheme.placeholder,
-        groups: []
-      },
       // Settings-scoped search (⌘K while the Settings workspace is open, or the
       // search pill beside its back button).
       settings: {
@@ -1434,18 +1288,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
         groups: settingsPageGroups
       }
     }),
-    [
-      availableThemes,
-      mode,
-      previewTheme,
-      resolvedMode,
-      resolveThemeMode,
-      setMode,
-      setTheme,
-      settingsPageGroups,
-      t,
-      themeName
-    ]
+    [mode, previewTheme, resolveThemeMode, setMode, settingsPageGroups, t, themeName]
   )
 
   const activePage = page ? subPages[page] : null
@@ -1603,8 +1446,6 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
                 }}
                 search={search}
               />
-            ) : page === 'install-theme' ? (
-              <MarketplaceThemePage onPickTheme={setTheme} search={search} />
             ) : (
               <PaletteGroups
                 bindings={bindings}

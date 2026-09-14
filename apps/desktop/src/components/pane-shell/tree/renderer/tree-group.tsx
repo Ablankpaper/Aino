@@ -556,7 +556,7 @@ export function TreeGroup({
           session or the workspace's routed session.  Other zones retain the
           shared multi-pane tab strip. */}
       {singleSessionHeader && (
-        <SessionHeaderPlacement enabled={titleInWindowBar} groupId={node.id}>
+        <SessionHeaderPlacement enabled={titleInWindowBar} groupId={node.id} paneId={activeId}>
           <ZoneMenu {...zoneMenu}>
             <PaneTabStrip
               className="session-title-header"

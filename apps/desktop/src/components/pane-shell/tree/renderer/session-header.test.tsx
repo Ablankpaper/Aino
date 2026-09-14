@@ -5,7 +5,10 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { SessionDraftTitle } from '@/app/chat/session-draft-title'
 import { Slot } from '@/contrib/react/slot'
 import { registry } from '@/contrib/registry'
+import { createClientSessionState } from '@/lib/chat-runtime'
 import { clearSessionDraft, stashSessionDraft } from '@/store/composer'
+import { $activeSessionId, $selectedStoredSessionId } from '@/store/session'
+import { $sessionStates, $sessionTiles } from '@/store/session-states'
 
 import { $layoutEditMode } from '../../edit-mode'
 import { group } from '../model'
@@ -48,6 +51,10 @@ beforeAll(() => {
 beforeEach(() => {
   window.localStorage.clear()
   $layoutEditMode.set(false)
+  $activeSessionId.set(null)
+  $selectedStoredSessionId.set('existing-session')
+  $sessionStates.set({})
+  $sessionTiles.set([])
 
   for (const [id, title, data] of [
     ['workspace', 'Workspace', { placement: 'main', uncloseable: true }],
@@ -68,14 +75,23 @@ afterEach(() => {
   root = null
   container = null
   clearSessionDraft(null)
+  $activeSessionId.set(null)
+  $selectedStoredSessionId.set(null)
+  $sessionStates.set({})
+  $sessionTiles.set([])
 })
 
 describe('single-session header', () => {
-  it('keeps the primary heading independent of unsent text while retaining draft names in the tab strip', () => {
+  it('hides the primary draft heading until send while retaining draft names in the tab strip', () => {
+    $selectedStoredSessionId.set(null)
     disposers.push(
       registry.register({
         area: 'panes',
-        data: { placement: 'main', tabTitle: () => <SessionDraftTitle scope={null} /> },
+        data: {
+          placement: 'main',
+          tabLead: () => <span aria-label="Draft status" />,
+          tabTitle: () => <SessionDraftTitle scope={null} />
+        },
         id: 'workspace',
         render: () => null,
         title: 'New session'
@@ -88,17 +104,20 @@ describe('single-session header', () => {
       </WindowTitlebarContext.Provider>
     )
 
+    expect(globalThis.document.querySelector('[data-window-session-title]')).toBeNull()
+    expect(globalThis.document.querySelector('[aria-label="Draft status"]')).toBeNull()
     act(() => stashSessionDraft(null, 'This message has not been sent', []))
-    expect(
-      globalThis.document.querySelector('[data-window-session-title] [data-current-session-title]')?.textContent
-    ).toBe('New session')
+    expect(globalThis.document.querySelector('[data-current-session-title]')).toBeNull()
 
     act(() => $layoutEditMode.set(true))
     expect(globalThis.document.querySelector('[data-tree-tab="workspace"]')?.textContent).toContain(
       'This message has not been sent'
     )
+    expect(globalThis.document.querySelector('[aria-label="Draft status"]')).toBeTruthy()
     act(() => $layoutEditMode.set(false))
+    expect(globalThis.document.querySelector('[data-current-session-title]')).toBeNull()
     act(() => {
+      $selectedStoredSessionId.set('sent-session')
       disposers.push(
         registry.register({
           area: 'panes',
@@ -112,6 +131,39 @@ describe('single-session header', () => {
     expect(globalThis.document.querySelector('[data-current-session-title]')?.textContent).toBe(
       'The confirmed conversation title'
     )
+
+    act(() => $selectedStoredSessionId.set(null))
+    expect(globalThis.document.querySelector('[data-current-session-title]')).toBeNull()
+    // Selecting history is enough: a cold transcript is not an unsent draft.
+    act(() => $selectedStoredSessionId.set('sent-session'))
+    expect(globalThis.document.querySelector('[data-current-session-title]')?.textContent).toBe(
+      'The confirmed conversation title'
+    )
+  })
+
+  it('keeps a promoted unsent tile out of the window heading without hiding its navigation handles', () => {
+    const draft = { ...createClientSessionState('a'), isUnsentDraft: true }
+    $sessionTiles.set([{ storedSessionId: 'a', runtimeId: 'draft-runtime' }])
+    $sessionStates.set({ 'draft-runtime': draft })
+    const node = group(['workspace', 'session-tile:a'], { active: 'session-tile:a', id: 'promoted-draft' })
+    render(
+      <WindowTitlebarContext.Provider value>
+        <Slot area="titleBar.left" />
+        <TreeGroup node={node} parentAxis="row" />
+      </WindowTitlebarContext.Provider>
+    )
+
+    expect(globalThis.document.querySelector('[data-current-session-title]')).toBeNull()
+    act(() => $layoutEditMode.set(true))
+    expect(globalThis.document.querySelector('[data-tree-tab="session-tile:a"]')).toBeTruthy()
+    act(() => $layoutEditMode.set(false))
+    expect(globalThis.document.querySelector('[data-current-session-title]')).toBeNull()
+
+    act(() => $sessionStates.set({ 'draft-runtime': { ...draft, isUnsentDraft: false } }))
+    expect(globalThis.document.querySelector('[data-current-session-title]')?.textContent).toBe('Session A')
+    // A freshly resumed runtime has no draft marker, even before its messages load.
+    act(() => $sessionStates.set({ 'draft-runtime': createClientSessionState('a') }))
+    expect(globalThis.document.querySelector('[data-current-session-title]')?.textContent).toBe('Session A')
   })
 
   it('moves the primary title and its live menu into the window bar and restores the inline header when needed', () => {

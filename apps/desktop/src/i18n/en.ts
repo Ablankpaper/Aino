@@ -1011,9 +1011,9 @@ spawnFailed: 'Could not start the background operation.'
     },
     appearance: {
       title: 'Appearance',
-      intro: 'Desktop-only. Mode is brightness; theme is palette and chat chrome.',
+      intro: 'Display preferences for Aino Desktop.',
       colorMode: 'Color Mode',
-      colorModeDesc: 'Pick a fixed mode or let Hermes follow your system setting.',
+      colorModeDesc: 'Choose light or dark, or follow your system appearance.',
       toolViewTitle: 'Tool Call Display',
       toolViewDesc: 'Product hides raw tool payloads; Technical shows full input/output.',
       reasoningCollapsedTitle: 'Collapse thinking by default',

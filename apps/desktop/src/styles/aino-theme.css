@@ -52,10 +52,10 @@
   --aino-scrim: rgb(0 0 0 / 32%);
 }
 
-/* The default light canvas matches the approved conversation. Custom skins
-   retain their own seed palettes; Glass still controls the surface aliases. */
+/* Aino's fixed light canvas matches the approved conversation.
+   Glass still controls the surface aliases. */
 :root:not(.dark):not([data-hermes-theme]),
-:root[data-hermes-theme='nous']:not(.dark) {
+:root[data-hermes-theme='mono']:not(.dark) {
   --ui-bg-chrome: #fff;
   --ui-bg-sidebar: #f7f7f7;
   --ui-bg-editor: #fafafa;

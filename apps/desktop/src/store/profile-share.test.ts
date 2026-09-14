@@ -23,7 +23,8 @@ vi.mock('@/hermes', () => ({
 vi.mock('@/lib/query-client', () => ({ invalidateProfileScopedQueries: vi.fn() }))
 vi.mock('@/store/starmap', () => ({ resetStarmapGraph: vi.fn() }))
 
-const { applyDesktopOverlay, buildDesktopOverlay, exportProfileBundle, runExportProfileFlow } = await import('./profile-share')
+const { applyDesktopOverlay, buildDesktopOverlay, exportProfileBundle, runExportProfileFlow } =
+  await import('./profile-share')
 const { $profileColors, setProfileColor } = await import('./profile')
 const { modePref, skinPref } = await import('@/themes/context')
 const { $userThemes } = await import('@/themes/user-themes')
@@ -67,19 +68,20 @@ describe('buildDesktopOverlay', () => {
     expect(overlay.themes).toBeUndefined()
   })
 
-  it('bundles the full definition of a non-built-in skin', () => {
+  it('exports the fixed desktop palette without bundling an inactive legacy theme', () => {
     $userThemes.set({ 'rose-quartz': roseTheme })
-    skinPref.assign('glam', 'rose-quartz')
+    window.localStorage.setItem('hermes-desktop-profile-themes-v1', JSON.stringify({ glam: 'rose-quartz' }))
 
     const overlay = buildDesktopOverlay('glam')
 
-    expect(overlay.skin).toBe('rose-quartz')
-    expect(overlay.themes).toEqual({ 'rose-quartz': roseTheme })
+    expect(overlay.skin).toBe('mono')
+    expect(overlay.themes).toBeUndefined()
+    expect($userThemes.get()['rose-quartz']).toEqual(roseTheme)
   })
 })
 
 describe('applyDesktopOverlay', () => {
-  it('installs bundled themes and assigns skin/mode/color to the new profile', () => {
+  it('ignores bundled legacy palettes while importing brightness and profile color', () => {
     applyDesktopOverlay('glam-copy', {
       version: 1,
       skin: 'rose-quartz',
@@ -88,8 +90,8 @@ describe('applyDesktopOverlay', () => {
       profileColor: '#e91e63'
     })
 
-    expect($userThemes.get()['rose-quartz']).toEqual(roseTheme)
-    expect(skinPref.resolve('glam-copy')).toBe('rose-quartz')
+    expect($userThemes.get()).toEqual({})
+    expect(skinPref.resolve('glam-copy')).toBe('mono')
     expect(modePref.resolve('glam-copy')).toBe('dark')
     expect($profileColors.get()['glam-copy']).toBe('#e91e63')
   })

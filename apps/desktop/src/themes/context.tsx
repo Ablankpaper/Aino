@@ -5,42 +5,31 @@
  * Tailwind utility that references a color or font-family token picks up
  * the change automatically.
  *
- * Mode (light/dark/system) controls brightness; skin controls accent.
- * The two are persisted independently. Shift+X toggles light/dark.
+ * Aino Desktop uses one neutral palette. Only brightness (light/dark/system)
+ * varies and is persisted per profile. Shift+X toggles light/dark.
  */
 
 import { useStore } from '@nanostores/react'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
-import { $registryVersion } from '@/contrib/registry'
 import { matchesQuery, useMediaQuery } from '@/hooks/use-media-query'
 import { persistString, persistStringRecord, storedString, storedStringRecord } from '@/lib/storage'
 import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
 import { setAppearance } from '@/store/translucency'
 
-import { $accentOverride } from './accent-override'
-import { $backendThemes, $pendingSkinApply } from './backend-sync'
+import { $pendingSkinApply } from './backend-sync'
 import { ensureContrast, harmonize, hexToRgb, mix, readableOn } from './color'
-import { BUILTIN_THEME_LIST, DEFAULT_SKIN_NAME, DEFAULT_TYPOGRAPHY, nousTheme } from './presets'
-import { retintTheme } from './retint'
+import { DEFAULT_SKIN_NAME, DEFAULT_TYPOGRAPHY, monoTheme, nousTheme } from './presets'
 import type { DesktopTheme, DesktopThemeColors } from './types'
-import { $userThemes, listAllThemes, resolveTheme } from './user-themes'
+import { resolveTheme } from './user-themes'
 
-// Legacy global skin (pre per-profile themes). Still the inheritance fallback
-// for any profile without its own assignment, so single-profile users and old
-// installs are unaffected.
+// Legacy skin keys stay readable for old profile archives; they no longer
+// select the desktop palette. Brightness keeps its per-profile assignment.
 const SKIN_KEY = 'hermes-desktop-theme-v2'
 const MODE_KEY = 'hermes-desktop-mode-v1'
-// Per-profile skin + light/dark mode assignments: { [profileKey]: value }. A
-// profile inherits the global default until it's given its own appearance.
 const PROFILE_SKINS_KEY = 'hermes-desktop-profile-themes-v1'
 const PROFILE_MODES_KEY = 'hermes-desktop-profile-modes-v1'
-// Last active profile, recorded so the boot-time paint can pick that profile's
-// theme before the gateway reports which profile actually launched.
 const LAST_PROFILE_KEY = 'hermes-desktop-active-profile-v1'
-// Skins that no longer exist. A profile still pointing at one falls back to
-// DEFAULT_SKIN_NAME rather than painting a name nothing resolves.
-const RETIRED_SKINS = new Set(['nous-light', 'default', 'gold'])
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -49,8 +38,9 @@ const INJECTED_FONT_URLS = new Set<string>()
 const resolveMode = (mode: ThemeMode, systemDark = matchesQuery('(prefers-color-scheme: dark)')): 'light' | 'dark' =>
   mode === 'system' ? (systemDark ? 'dark' : 'light') : mode
 
-const normalizeSkin = (name: string | null): string =>
-  name && resolveTheme(name) && !RETIRED_SKINS.has(name) ? name : DEFAULT_SKIN_NAME
+// Desktop palette is intentionally fixed. Keep the stored skin keys readable
+// for profile compatibility, but never let an old or backend skin recolor Aino.
+const normalizeSkin = (): string => DEFAULT_SKIN_NAME
 
 /**
  * A stored mode, or `system` when there isn't one.
@@ -87,11 +77,6 @@ const profilePref = <T extends string>(record: string, legacy: string, normalize
 
 export const skinPref = profilePref(PROFILE_SKINS_KEY, SKIN_KEY, normalizeSkin)
 export const modePref = profilePref(PROFILE_MODES_KEY, MODE_KEY, normalizeMode)
-
-// Provider state keeps the raw pick so a name nothing resolves YET (a backend
-// skin the gateway hasn't seeded on this launch) isn't flattened to the default
-// for the rest of the session — it paints as soon as the registry can resolve it.
-const storedSkin = (profile: string): string => skinPref.stored(profile) ?? DEFAULT_SKIN_NAME
 
 /** Everything a peer window could change that this one has to repaint for. */
 const APPEARANCE_KEYS = new Set([SKIN_KEY, PROFILE_SKINS_KEY, MODE_KEY, PROFILE_MODES_KEY])
@@ -152,15 +137,15 @@ export function getBaseColors(skinName: string, mode: 'light' | 'dark'): Desktop
   return seed.darkColors ? seed.colors : synthLightColors(seed)
 }
 
-function deriveTheme(skinName: string, mode: 'light' | 'dark'): DesktopTheme {
-  const seed = resolveTheme(skinName) ?? nousTheme
+function deriveTheme(mode: 'light' | 'dark'): DesktopTheme {
+  const seed = monoTheme
 
   return {
     ...seed,
-    name: `${skinName}-${mode}`,
+    name: `${DEFAULT_SKIN_NAME}-${mode}`,
     label: `${seed.label} ${mode === 'light' ? 'Light' : 'Dark'}`,
     description: `${seed.label} ${mode} palette`,
-    colors: getBaseColors(skinName, mode)
+    colors: mode === 'dark' ? seed.colors : synthLightColors(seed)
   }
 }
 
@@ -294,8 +279,8 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
   // they let a brand-new window paint the themed background on its very first
   // frame, before this module has even loaded.
   try {
-    window.localStorage.setItem('hermes-boot-background', chromeBg)
-    window.localStorage.setItem('hermes-boot-color-scheme', rendered)
+    window.localStorage.setItem('aino-boot-background-v1', chromeBg)
+    window.localStorage.setItem('aino-boot-color-scheme-v1', rendered)
   } catch {
     // Storage may be unavailable (private mode / quota); the inline script
     // falls back to prefers-color-scheme.
@@ -325,7 +310,7 @@ if (typeof window !== 'undefined') {
   const profile = readBootProfileKey()
   const pref = modePref.resolve(profile)
   const resolved = resolveMode(pref)
-  const theme = deriveTheme(skinPref.resolve(profile), resolved)
+  const theme = deriveTheme(resolved)
   applyTheme(theme, resolved)
 
   // Gatewayless presentation windows must not contend with the main/HUD
@@ -348,28 +333,25 @@ interface ThemeContextValue {
   /** The light/dark switch the user picked. */
   resolvedMode: 'light' | 'dark'
   /**
-   * The mode actually painted, derived from the active background's luminance.
-   * Differs from `resolvedMode` for skins that keep a bright surface in "dark"
-   * (or vice-versa). Surface-bound UI (e.g. the terminal palette) should key off
-   * this so it matches what's on screen instead of inverting.
+   * The mode actually painted, including a transient brightness preview.
+   * Surface-bound UI (e.g. the terminal palette) follows this value.
    */
   renderedMode: 'light' | 'dark'
   availableThemes: Array<{ name: string; label: string; description: string }>
   setTheme: (name: string) => void
   setMode: (mode: ThemeMode) => void
   /**
-   * Paint a theme with an explicit light/dark, without persistence. This is
-   * the highlight preview for the palette. A commit (`setTheme`) or
-   * `clearThemePreview` repaints the committed appearance.
+   * Preview Aino at an explicit brightness without persistence. Alternate
+   * palettes are unsupported. `setMode` commits; `clearThemePreview` reverts.
    */
   previewTheme: (name: string, mode: 'light' | 'dark') => void
   clearThemePreview: () => void
 }
 
-const SKIN_LIST = BUILTIN_THEME_LIST.map(({ name, label, description }) => ({ name, label, description }))
+const SKIN_LIST = [{ name: DEFAULT_SKIN_NAME, label: monoTheme.label, description: monoTheme.description }]
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: nousTheme,
+  theme: deriveTheme('light'),
   themeName: DEFAULT_SKIN_NAME,
   mode: 'light',
   resolvedMode: 'light',
@@ -388,48 +370,22 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProps) {
-  // Skin + mode are assigned per profile; the active profile drives which
-  // appearance shows. Single-profile users only ever see "default", so their
-  // behavior is unchanged.
+  // Brightness follows the active profile; the neutral palette is shared.
   const gatewayProfileKey = normalizeProfileKey(useStore($activeGatewayProfile))
   const [auxiliaryProfileKey, setAuxiliaryProfileKey] = useState(readBootProfileKey)
   const profileKey = auxiliary ? auxiliaryProfileKey : gatewayProfileKey
-
-  // Built-ins + user-installed + registry-contributed themes. Reactive so an
-  // import or a plugin registration shows up live in the palette, settings
-  // grid, and `/skin` without a reload.
-  const userThemes = useStore($userThemes)
-  const backendThemes = useStore($backendThemes)
-  const registryVersion = useStore($registryVersion)
-
-  const availableThemes = useMemo(
-    () =>
-      listAllThemes().map(({ name, label, description }) => ({
-        name,
-        label,
-        description
-      })),
-    // userThemes + backendThemes + registryVersion ARE listAllThemes' reactivity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [userThemes, backendThemes, registryVersion]
-  )
-
-  const [themeName, setThemeNameState] = useState(() =>
-    typeof window === 'undefined' ? DEFAULT_SKIN_NAME : storedSkin(readBootProfileKey())
-  )
 
   const [mode, setModeState] = useState<ThemeMode>(() =>
     typeof window === 'undefined' ? 'system' : modePref.resolve(readBootProfileKey())
   )
 
-  // Follow profile switches: paint the profile's assigned skin + mode and
+  // Follow profile switches: paint the profile's assigned brightness and
   // remember it for the next boot's first paint.
   useEffect(() => {
     if (!auxiliary) {
       rememberActiveProfileKey(profileKey)
     }
 
-    setThemeNameState(storedSkin(profileKey))
     setModeState(modePref.resolve(profileKey))
   }, [auxiliary, profileKey])
 
@@ -442,7 +398,6 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
       if (auxiliary && event.key === LAST_PROFILE_KEY) {
         const remembered = readBootProfileKey()
         setAuxiliaryProfileKey(remembered)
-        setThemeNameState(storedSkin(remembered))
         setModeState(modePref.resolve(remembered))
 
         return
@@ -454,7 +409,6 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
 
       const live = auxiliary ? readBootProfileKey() : normalizeProfileKey($activeGatewayProfile.get())
 
-      setThemeNameState(storedSkin(live))
       setModeState(modePref.resolve(live))
     }
 
@@ -466,41 +420,14 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   const systemDark = useMediaQuery('(prefers-color-scheme: dark)')
   const resolvedMode = resolveMode(mode, systemDark)
 
-  // Transient highlight preview (palette theme picker). It is never
+  // Transient highlight preview (palette brightness picker). It is never
   // persisted. A commit or an explicit clear returns the paint to the
   // committed appearance.
   const [preview, setPreview] = useState<{ name: string; mode: 'light' | 'dark' } | null>(null)
 
-  // The committed skin, resolved against the CURRENT registry — so a stored
-  // backend skin that failed to resolve at boot paints once the gateway seeds it.
-  const committedName = useMemo(
-    () => normalizeSkin(themeName),
-    // normalizeSkin resolves through the merged registry; the stores are its reactivity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [themeName, userThemes, backendThemes, registryVersion]
-  )
-
-  const paintedName = preview ? preview.name : committedName
   const paintedMode = preview ? preview.mode : resolvedMode
 
-  const activeTheme = useMemo(
-    () => deriveTheme(paintedName, paintedMode),
-    // deriveTheme resolves its seed through the merged registry, so the theme
-    // stores are its reactivity too — an in-place palette edit of the ACTIVE
-    // skin (live theme authoring) must repaint, not just a name switch.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [paintedName, paintedMode, userThemes, backendThemes, registryVersion]
-  )
-
-  // Dev-only accent retint. `null` (always, in production) returns the theme
-  // untouched, and retintTheme is an identity when the seed already matches —
-  // so the picker costs nothing until it's actually moved off the default.
-  const accentOverride = useStore($accentOverride)
-
-  const paintedTheme = useMemo(
-    () => (accentOverride === null ? activeTheme : retintTheme(activeTheme, accentOverride)),
-    [activeTheme, accentOverride]
-  )
+  const paintedTheme = useMemo(() => deriveTheme(paintedMode), [paintedMode])
 
   // What actually gets painted (matches the `.dark` class applyTheme toggles).
   const renderedMode = useMemo(() => renderedModeFor(paintedTheme.colors, paintedMode), [paintedTheme, paintedMode])
@@ -522,15 +449,11 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
     [auxiliary]
   )
 
-  const setTheme = useCallback(
-    (name: string) => {
-      const next = normalizeSkin(name)
+  const setTheme = useCallback((name: string) => {
+    if (name === DEFAULT_SKIN_NAME) {
       setPreview(null)
-      setThemeNameState(next)
-      skinPref.assign(liveProfile(), next)
-    },
-    [liveProfile]
-  )
+    }
+  }, [])
 
   const setMode = useCallback(
     (next: ThemeMode) => {
@@ -542,14 +465,13 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   )
 
   const previewTheme = useCallback((name: string, previewMode: 'light' | 'dark') => {
-    setPreview(resolveTheme(name) ? { name, mode: previewMode } : null)
+    setPreview(name === DEFAULT_SKIN_NAME ? { name, mode: previewMode } : null)
   }, [])
 
   const clearThemePreview = useCallback(() => setPreview(null), [])
 
-  // Drain a backend-driven skin switch (Hermes authoring/activating a skin from a
-  // prompt, or `/skin` on another surface). setTheme persists it per profile, so
-  // the choice sticks like any manual pick.
+  // Drain legacy requests without allowing another surface's skin choice to
+  // replace Aino's palette or the user's brightness preference.
   const pendingSkin = useStore($pendingSkinApply)
 
   useEffect(() => {
@@ -565,28 +487,17 @@ export function ThemeProvider({ auxiliary = false, children }: ThemeProviderProp
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme: paintedTheme,
-      themeName: committedName,
+      themeName: DEFAULT_SKIN_NAME,
       mode,
       resolvedMode,
       renderedMode,
-      availableThemes,
+      availableThemes: SKIN_LIST,
       setTheme,
       setMode,
       previewTheme,
       clearThemePreview
     }),
-    [
-      paintedTheme,
-      committedName,
-      mode,
-      resolvedMode,
-      renderedMode,
-      availableThemes,
-      setTheme,
-      setMode,
-      previewTheme,
-      clearThemePreview
-    ]
+    [paintedTheme, mode, resolvedMode, renderedMode, setTheme, setMode, previewTheme, clearThemePreview]
   )
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

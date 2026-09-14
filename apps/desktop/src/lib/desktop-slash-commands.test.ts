@@ -5,7 +5,6 @@ import { setRuntimeI18nLocale } from '@/i18n'
 import {
   type CommandCatalogMeta,
   type CommandsCatalogLike,
-  desktopSkinSlashCompletions,
   type DesktopSlashArgumentMode,
   desktopSlashCommandArgumentMode,
   desktopSlashDescription,
@@ -80,7 +79,6 @@ describe('desktop slash command curation', () => {
   it('keeps core desktop chat commands in suggestions', () => {
     expect(isDesktopSlashSuggestion('/new')).toBe(true)
     expect(isDesktopSlashSuggestion('/branch')).toBe(true)
-    expect(isDesktopSlashSuggestion('/skin')).toBe(true)
     expect(isDesktopSlashSuggestion('/usage')).toBe(true)
     expect(isDesktopSlashSuggestion('/version')).toBe(true)
     expect(isDesktopSlashSuggestion('/yolo')).toBe(true)
@@ -370,9 +368,6 @@ describe('desktop slash command curation', () => {
     expect(desktopSlashDescription('/branch', 'Branch the current session')).toBe(
       'Branch the latest message into a new chat'
     )
-    expect(desktopSlashDescription('/skin', 'Show or change the display skin/theme')).toBe(
-      'Switch desktop theme or cycle to the next one'
-    )
   })
 
   it('uses the active locale when a built-in description has no explicit map', () => {
@@ -389,49 +384,15 @@ describe('desktop slash command curation', () => {
     ).toBe('将最新消息分支到新对话')
   })
 
-  it('builds /skin completions from desktop themes', () => {
-    const completions = desktopSkinSlashCompletions(
-      [
-        { name: 'mono', label: 'Mono', description: 'Clean grayscale' },
-        { name: 'midnight', label: 'Midnight', description: 'Deep blue' },
-        { name: 'slate', label: 'Slate', description: 'Cool slate blue' }
-      ],
-      'mono',
-      'm'
-    )
-
-    expect(completions).toEqual([
-      {
-        text: '/skin mono',
-        display: '/skin mono',
-        meta: 'Mono (current) - Clean grayscale — minimal and focused'
-      },
-      {
-        text: '/skin midnight',
-        display: '/skin midnight',
-        meta: 'Midnight - Deep blue-violet with cool accents'
-      }
-    ])
-  })
-
-  it('localizes /skin completion metadata for Simplified Chinese users', () => {
-    setRuntimeI18nLocale('zh')
-
-    const completions = desktopSkinSlashCompletions(
-      [{ name: 'ember', label: 'Ember', description: 'Warm crimson and bronze' }],
-      'ember',
-      ''
-    )
-
-    expect(completions.slice(0, 2)).toEqual([
-      { text: '/skin list', display: '/skin list', meta: '显示可用的桌面主题' },
-      { text: '/skin next', display: '/skin next', meta: '切换到下一个桌面主题' }
-    ])
-    expect(completions[2]).toEqual({
-      text: '/skin ember',
-      display: '/skin ember',
-      meta: '余烬 (当前) - 温暖的深红与青铜色——锻造氛围'
+  it('keeps skin changes terminal-only, including an explicit desktop catalog entry', () => {
+    rememberDesktopCommandsCatalog({
+      commands: { '/skin': { desktop: 'exec', argument_mode: 'options' } },
+      pairs: [['/skin', 'Change skin']]
     })
+    expect(isDesktopSlashSuggestion('/skin')).toBe(false)
+    expect(isDesktopSlashCommand('/skin mono')).toBe(false)
+    expect(resolveDesktopCommand('/skin')?.surface).toEqual({ kind: 'unavailable', reason: 'terminal' })
+    expect(filterDesktopCommandsCatalog({ pairs: [['/skin', 'Change skin']] }).pairs).toEqual([])
   })
 
   it('explains known commands that desktop owns elsewhere', () => {

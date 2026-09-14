@@ -573,9 +573,9 @@ export const zhHant = defineLocale({
     },
     appearance: {
       title: '外觀',
-      intro: '這些是僅限桌面端的顯示偏好。模式控制亮度；主題控制強調色與聊天介面樣式。',
+      intro: '設定 Aino 桌面端的顯示偏好。',
       colorMode: '色彩模式',
-      colorModeDesc: '選擇固定模式，或讓 Hermes 跟隨系統設定。',
+      colorModeDesc: '選擇明亮、暗色，或跟隨系統外觀。',
       toolViewTitle: '工具呼叫顯示',
       toolViewDesc: '產品模式會隱藏原始工具 payload；技術模式會顯示完整輸入/輸出。',
       reasoningCollapsedTitle: '預設摺疊推理過程',

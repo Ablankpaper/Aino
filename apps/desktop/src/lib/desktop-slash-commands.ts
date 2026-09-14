@@ -42,12 +42,6 @@ export interface DesktopSlashCompletion {
   text: string
 }
 
-export interface DesktopThemeCommandOption {
-  description: string
-  label: string
-  name: string
-}
-
 /**
  * Local client action a command resolves to. Each id maps to exactly one
  * handler in the dispatcher (`use-prompt-actions`), so adding a command never
@@ -66,7 +60,6 @@ export type DesktopActionId =
   | 'new'
   | 'pet'
   | 'profile'
-  | 'skin'
   | 'stop'
   | 'title'
   | 'wake'
@@ -201,12 +194,6 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
     argumentMode: 'options'
   },
   { name: '/profile', description: 'Switch the active Hermes profile', surface: action('profile') },
-  {
-    name: '/skin',
-    description: 'Switch desktop theme or cycle to the next one',
-    surface: action('skin'),
-    argumentMode: 'options'
-  },
   { name: '/title', description: 'Rename the current session', surface: action('title'), argumentMode: 'text' },
   { name: '/help', description: 'Show desktop slash commands', aliases: ['/commands'], surface: action('help') },
   {
@@ -311,6 +298,7 @@ const NO_DESKTOP_SURFACE: Record<DesktopUnavailableReason, readonly string[]> = 
     '/sb',
     '/set-home',
     '/sethome',
+    '/skin',
     '/snap',
     '/snapshot',
     '/statusbar',
@@ -656,42 +644,6 @@ export function desktopSlashDescription(command: string, fallback = '', localize
 
 export function desktopSlashCommandArgumentMode(command: string): DesktopSlashArgumentMode | null {
   return resolveDesktopCommand(command)?.argumentMode ?? asArgumentMode(catalogMeta(command)?.argument_mode) ?? null
-}
-
-export function desktopSkinSlashCompletions(
-  themes: DesktopThemeCommandOption[],
-  activeThemeName: string,
-  argPrefix: string
-): DesktopSlashCompletion[] {
-  const prefix = argPrefix.trim().toLowerCase()
-
-  const commands: DesktopSlashCompletion[] = [
-    {
-      text: '/skin list',
-      display: '/skin list',
-      meta: translateNow('desktop.skinCommand.completionList')
-    },
-    {
-      text: '/skin next',
-      display: '/skin next',
-      meta: translateNow('desktop.skinCommand.completionNext')
-    },
-    ...themes.map(theme => {
-      const copy = localizedThemeCopyNow(theme)
-
-      return {
-        text: `/skin ${theme.name}`,
-        display: `/skin ${theme.name}`,
-        meta: `${copy.label}${theme.name === activeThemeName ? ` (${translateNow('desktop.skinCommand.completionCurrent')})` : ''} - ${copy.description}`
-      }
-    })
-  ]
-
-  if (!prefix) {
-    return commands
-  }
-
-  return commands.filter(item => item.text.slice('/skin '.length).toLowerCase().startsWith(prefix))
 }
 
 /**

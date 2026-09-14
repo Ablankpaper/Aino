@@ -3,23 +3,24 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { modePref, skinPref } from './context'
 import { DEFAULT_SKIN_NAME } from './presets'
 
-// Skin and mode share one per-profile contract, so assert it once over both.
+// Brightness is per-profile; legacy palette assignments always resolve to Aino.
 interface Pref {
   resolve: (profile: string) => string
   assign: (profile: string, value: string) => void
 }
 
 const cases = [
-  {
-    name: 'skin',
-    pref: skinPref as unknown as Pref,
-    fallback: DEFAULT_SKIN_NAME,
-    a: 'ember',
-    b: 'catppuccin',
-    junk: 'nope'
-  },
   { name: 'mode', pref: modePref as unknown as Pref, fallback: 'system', a: 'dark', b: 'light', junk: 'dusk' }
 ]
+
+it('normalizes legacy palette assignments without overwriting unrelated storage', () => {
+  window.localStorage.clear()
+  window.localStorage.setItem('hermes-desktop-profile-themes-v1', JSON.stringify({ work: 'catppuccin' }))
+  window.localStorage.setItem('hermes-desktop-theme-v2', 'everforest')
+  expect(skinPref.resolve('work')).toBe(DEFAULT_SKIN_NAME)
+  expect(skinPref.resolve('default')).toBe(DEFAULT_SKIN_NAME)
+  expect(window.localStorage.getItem('hermes-desktop-theme-v2')).toBe('everforest')
+})
 
 describe.each(cases)('per-profile $name', ({ pref, fallback, a, b, junk }) => {
   beforeEach(() => window.localStorage.clear())

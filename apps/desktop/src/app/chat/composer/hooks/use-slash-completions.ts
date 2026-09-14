@@ -7,9 +7,7 @@ import { useI18n } from '@/i18n'
 import { sessionTitle } from '@/lib/chat-runtime'
 import {
   type CommandsCatalogLike,
-  desktopSkinSlashCompletions,
   desktopSlashDescription,
-  type DesktopThemeCommandOption,
   filterDesktopCommandsCatalog,
   isDesktopSlashExtensionCommand,
   isDesktopSlashSuggestion,
@@ -56,17 +54,11 @@ function commandText(value: string): string {
 const SESSION_INLINE_LIMIT = 7
 
 /** Live `/` completions backed by the gateway's `complete.slash` RPC. */
-export function useSlashCompletions(options: {
-  gateway: HermesGateway | null
-  /** Desktop theme list — `/skin` is owned client-side, so its arg completions
-   *  come from here, not the backend (whose skin list is CLI/TUI-only). */
-  skinThemes?: DesktopThemeCommandOption[]
-  activeSkin?: string
-}): {
+export function useSlashCompletions(options: { gateway: HermesGateway | null }): {
   adapter: Unstable_TriggerAdapter
   loading: boolean
 } {
-  const { gateway, skinThemes, activeSkin } = options
+  const { gateway } = options
   const { t } = useI18n()
   const commandDescriptions = t.composer.commandDescs
   const browseAllSessions = t.composer.browseAllSessions
@@ -96,21 +88,9 @@ export function useSlashCompletions(options: {
 
       const text = `/${query}`
 
-      // The desktop owns /skin entirely (client-side theme context). Surface its
-      // theme list inside this single popover instead of a bespoke one, and skip
-      // the backend skin completions (which describe CLI/TUI skins that don't
-      // apply here). Matches once we're past `/skin ` into the arg stage.
-      const skinArg = /^\/skin\s+(.*)$/is.exec(text)
-
-      if (skinArg && skinThemes) {
-        const items = desktopSkinSlashCompletions(skinThemes, activeSkin ?? '', skinArg[1] ?? '').map(entry => ({
-          text: entry.text,
-          display: entry.display,
-          meta: entry.meta,
-          group: 'Themes'
-        }))
-
-        return { items, query }
+      // /skin is terminal-only; do not offer backend argument completions.
+      if (/^\/skin(?:\s|$)/i.test(text)) {
+        return { items: [], query }
       }
 
       // /resume (and its aliases) completes recent sessions inline — the same
@@ -258,7 +238,7 @@ export function useSlashCompletions(options: {
         return { items: [], query }
       }
     },
-    [activeSkin, browseAllSessions, commandDescriptions, gateway, skinThemes]
+    [browseAllSessions, commandDescriptions, gateway]
   )
 
   const toItem = useCallback((entry: CompletionEntry, index: number): Unstable_TriggerItem => {
@@ -289,21 +269,18 @@ export function useSlashCompletions(options: {
     }
   }, [])
 
-  // Mirrors the fetcher's branching: the `/skin` and `/resume` arg stages are
+  // Mirrors the fetcher's branching: `/skin` and the `/resume` arg stage are
   // answered from client-side state, so they never wait on the network; every
   // other query is served from the completion cache when it's still warm.
-  const isCached = useCallback(
-    (query: string) => {
-      const text = `/${query}`
+  const isCached = useCallback((query: string) => {
+    const text = `/${query}`
 
-      if ((skinThemes && /^\/skin\s+/is.test(text)) || /^\/(?:resume|sessions|switch)\s+/is.test(text)) {
-        return true
-      }
+    if (/^\/skin(?:\s|$)/i.test(text) || /^\/(?:resume|sessions|switch)\s+/is.test(text)) {
+      return true
+    }
 
-      return hasCachedSlashCompletion(query ? `slash:${text.toLowerCase()}` : 'catalog')
-    },
-    [skinThemes]
-  )
+    return hasCachedSlashCompletion(query ? `slash:${text.toLowerCase()}` : 'catalog')
+  }, [])
 
   return useLiveCompletionAdapter({ enabled, epoch, fetcher, isCached, toItem })
 }

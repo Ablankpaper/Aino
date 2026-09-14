@@ -27,7 +27,6 @@ import { $gatewayState } from '@/store/session'
 import { $botChatSessionIds, $sessionStates, $sessionTiles, isBotChatSession } from '@/store/session-states'
 import { $threadScrolledUp } from '@/store/thread-scroll'
 import { $autoSpeakReplies } from '@/store/voice-prefs'
-import { useTheme } from '@/themes'
 
 import { ComposerApprovalMode } from './approval-mode-menu'
 import { AttachmentList } from './attachments'
@@ -220,9 +219,8 @@ export function ChatBar({
   const queueEditRef = useRef<QueueEditState | null>(null)
   const composingRef = useRef(false) // true during IME composition (CJK input)
 
-  const { availableThemes, themeName } = useTheme()
   const at = useAtCompletions({ gateway: gateway ?? null, sessionId: sessionId ?? null, cwd: cwd ?? null })
-  const slash = useSlashCompletions({ activeSkin: themeName, gateway: gateway ?? null, skinThemes: availableThemes })
+  const slash = useSlashCompletions({ gateway: gateway ?? null })
   const emoji = useEmojiCompletions()
 
   const { t } = useI18n()

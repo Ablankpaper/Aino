@@ -1,19 +1,8 @@
 /**
- * Live skin sync from the Hermes backend.
- *
- * The backend resolves the active skin (built-in or `$HERMES_HOME/skins/*.yaml`)
- * and announces it on `gateway.ready` / `skin.changed`, and answers `config.get
- * skin` with the same payload. `ingestBackendSkin` folds that into the desktop:
- *
- *   1. Registers the converted theme in `$backendThemes` so it appears wherever a
- *      built-in does — Appearance, Cmd-K, `/skin` — with no per-surface wiring
- *      (`listAllThemes` merges this store).
- *   2. When asked to apply (an explicit change), requests the switch via
- *      `$pendingSkinApply`, which the ThemeProvider drains through `setTheme`.
- *
- * `gateway.ready` seeds the baseline WITHOUT applying, so a fresh connect never
- * stomps the user's persisted desktop theme; only a genuine name change (Hermes
- * authoring/activating a skin from a prompt, or `/skin` elsewhere) repaints.
+ * Cache backend skin data for legacy assets and plugin previews.
+ * CLI/TUI continue to own their skin choice. Aino's ThemeProvider drains
+ * compatibility apply requests without changing its fixed desktop palette
+ * or rewriting the user's legacy assignments.
  */
 
 import type { HermesSkin } from '@hermes/shared/skin'
@@ -25,10 +14,7 @@ import { BUILTIN_THEMES } from './presets'
 import { skinToDesktopTheme } from './skin'
 import { type DesktopTheme, isValidTheme } from './types'
 
-// Cached so the boot-time paint (which runs before the gateway connects) can
-// resolve a persisted skin pick synchronously, like a built-in or a user
-// install. Without it the stored name failed `resolveTheme` on every launch
-// and the app silently painted the default until the next `skin.changed`.
+// Preserve known backend assets across launches for legacy/plugin consumers.
 const BACKEND_THEMES_KEY = 'hermes-desktop-backend-themes-v1'
 
 const readCached = (): Record<string, DesktopTheme> =>
@@ -63,8 +49,8 @@ export function __resetBackendSkinSync(): void {
 
 /**
  * Fold a resolved skin into the desktop. `apply: false` (connect-time seed) only
- * records the baseline; `apply: true` (runtime change / poll) repaints on a name
- * change. Built-in names keep the desktop's own palette but can still be applied.
+ * records the baseline; `apply: true` queues a compatibility request on a name
+ * change. Aino's ThemeProvider never applies an alternate palette.
  */
 export function ingestBackendSkin(skin: HermesSkin | undefined | null, { apply }: { apply: boolean }): void {
   const name = (skin && typeof skin === 'object' ? (skin.name ?? '') : '').trim()
@@ -73,13 +59,8 @@ export function ingestBackendSkin(skin: HermesSkin | undefined | null, { apply }
     return
   }
 
-  // `default` is "no opinion" on the PALETTE — the desktop keeps its own default
-  // (nous), so we never register a converted theme under `default`. It is still a
-  // valid apply TARGET though: a runtime switch back to `default` must repaint the
-  // desktop to its own default (setTheme normalizes `default` → nous). So we only
-  // skip the registry step here and let it flow through the apply logic below.
-  // Built-in names (mono/slate/…) already have a hand-tuned desktop palette — we
-  // never shadow it, but the name is still a valid apply target.
+  // Built-ins keep their authored definitions; backend conversions never
+  // shadow them. `default` does not declare a palette of its own.
   if (name !== 'default' && !BUILTIN_THEMES[name]) {
     const theme = skinToDesktopTheme(skin as HermesSkin)
 

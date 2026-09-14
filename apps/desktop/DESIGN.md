@@ -171,8 +171,13 @@ The approved Aino conversation is the visual anchor for **all** desktop-owned
 surfaces: routes, Settings, dialogs, menus, auxiliary windows, lifecycle states,
 panes and bundled plugins. `src/styles/aino-theme.css` defines the shared neutral
 surface roles at `:root`, so body portals and independent renderers inherit them
-without a page-specific opt-in. ThemeProvider owns palette seeds and font choices;
-custom skins, dark mode and native Glass continue to work.
+without a page-specific opt-in. ThemeProvider owns the fixed neutral Aino (`mono`)
+palette and font tokens. Appearance offers Light, Dark and System; theme cards,
+theme installation, palette commands and desktop `/skin` switching are retired.
+Legacy palette assignments and backend skin events cannot recolor the desktop.
+Brightness remains per profile and follows peer windows; CLI/TUI skins, typography,
+zoom and native Glass keep their independent settings. Stored theme assets are not
+deleted when upgrading.
 
 Gatewayless auxiliary renderers (Quick Entry, pet overlay, wake indicator) mount
 `ThemeProvider auxiliary`. This presentation-only mode follows the remembered
@@ -405,8 +410,11 @@ Sizes: `default`, `xs`, `overlay` (titlebar glyph counts).
   to the available chat width, including narrow panes in wide windows. Locales
   without a copy pool retain their translated subtitle. Quick tasks keep their
   existing action paths.
-- The main window's conversation heading stays `New session` until its first
-  turn is sent; multi-pane tab strips retain draft previews to distinguish tabs.
+- The main window's conversation heading and status dot stay hidden on the
+  blank home surface and while a draft is unsent, including a draft tab promoted
+  into the primary group. Sending its first turn reveals the heading; opening
+  history shows its title even while the transcript loads. Multi-pane tab strips,
+  secondary splits and layout edit mode retain draft previews and navigation handles.
   Long titles truncate within the left titlebar column, and the session search
   stays centered in the usable titlebar area. `PaneTabLabel` can opt into the
   shared overflow-only tooltip through `overflowLabel` for full title discovery.

@@ -121,11 +121,11 @@ export function useSettingsSearchCatalog(enabled: boolean) {
     },
     {
       context: appearanceContext,
-      description: appearance.themeDesc,
+      description: appearance.colorModeDesc,
       icon: Palette,
       id: `setting:${APPEARANCE_SETTING_IDS.theme}`,
-      keywords: ['color mode', 'skin'],
-      label: appearance.themeTitle,
+      keywords: ['color mode', 'brightness', 'light', 'dark', 'system'],
+      label: appearance.colorMode,
       target: { setting: APPEARANCE_SETTING_IDS.theme, view: 'config:appearance' }
     },
     {

@@ -35,7 +35,8 @@ describe('requestTheme', () => {
 
   afterEach(cleanup)
 
-  it('switches the painted theme from outside React', () => {
+  it('accepts the fixed palette without overwriting a legacy assignment', () => {
+    window.localStorage.setItem('hermes-desktop-theme-v2', 'everforest')
     renderProbe()
 
     let accepted = false
@@ -45,16 +46,20 @@ describe('requestTheme', () => {
 
     expect(accepted).toBe(true)
     expect(ctx.themeName).toBe('mono')
+    expect(window.localStorage.getItem('hermes-desktop-theme-v2')).toBe('everforest')
   })
 
-  // The imperative door must land in the same place the React one does, or a
-  // plugin-driven switch would evaporate on the next profile read.
-  it('persists per profile like a manual pick', () => {
+  // Plugin requests must obey the same fixed-palette policy as React callers.
+  it('refuses alternate built-in palettes without changing the current appearance', () => {
     renderProbe()
 
-    act(() => void requestTheme('midnight'))
+    let accepted = true
+    act(() => {
+      accepted = requestTheme('midnight')
+    })
 
-    expect(skinPref.resolve('default')).toBe('midnight')
+    expect(accepted).toBe(false)
+    expect(skinPref.resolve('default')).toBe('mono')
   })
 
   it('refuses a name that does not resolve, leaving the appearance untouched', () => {
@@ -73,9 +78,8 @@ describe('requestTheme', () => {
     expect(cssVar('--theme-foreground')).toBe(painted)
   })
 
-  // The whole plugin loop: contribute a palette through THEMES_AREA, then
-  // activate it on an event with no component in scope.
-  it('activates a theme contributed through the registry', () => {
+  // Contributing an asset does not make it an available desktop palette.
+  it('refuses an alternate palette contributed through the registry', () => {
     const zeus: DesktopTheme = { ...midnightTheme, description: 'Zeus', label: 'Zeus', name: 'zeus' }
     const dispose = registry.register({ area: THEMES_AREA, data: zeus, id: 'zeus' })
 
@@ -86,8 +90,8 @@ describe('requestTheme', () => {
       accepted = requestTheme('zeus')
     })
 
-    expect(accepted).toBe(true)
-    expect(ctx.themeName).toBe('zeus')
+    expect(accepted).toBe(false)
+    expect(ctx.themeName).toBe('mono')
 
     dispose()
   })

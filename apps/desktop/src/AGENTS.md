@@ -37,9 +37,12 @@ via `/api/gateway/*`). Never re-parent the gateway under the backend — `gatewa
   suggestion and catalog paths let extensions through (the allow-list once silently dropped every
   skill/quick command from completions even though they executed when typed).
 - Dispatch: `app/session/hooks/use-prompt-actions/slash.ts` (`runSlash`) — desktop-owned built-ins
-  (`/skin`, `/help`, `/new`, ...) locally or via `commands.catalog`; everything else `slash.exec` →
+  (`/help`, `/new`, ...) locally or via `commands.catalog`; everything else `slash.exec` →
   `command.dispatch` fallback; a skill command resolves to `{type: "skill", message}` and is
   submitted as a normal prompt.
+
+Desktop uses the fixed Aino palette with Light/Dark/System brightness. `/skin` remains
+terminal-only: neither command discovery nor argument completion may offer it on desktop.
 
 **Rule:** palette curation hides noise (terminal-only / messaging-only built-ins), NEVER
 user-activated extensions. If you tighten `desktop-slash-commands.ts`, keep

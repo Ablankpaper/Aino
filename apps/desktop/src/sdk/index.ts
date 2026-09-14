@@ -1734,10 +1734,8 @@ export { cn } from '@/lib/utils'
  *  is gone. Pass the owning profile — a hidden session has no row to read it
  *  from, and the persisted half is bucketed per profile. */
 export { ackStoredSessionId, forgetSessionUnread, markSessionUnreadFinished } from '@/store/session-unread'
-/** Live accent override — set a hex and the ACTIVE theme repaints with its
- *  accent family re-seeded from it (see `retintTheme`); `null` restores the
- *  authored palette. Deliberately not persisted: it is an authoring knob, not
- *  a setting, so a plugin that sets it must clear it on dispose. */
+/** Legacy accent authoring state. Aino's fixed desktop palette does not
+ *  subscribe to it; plugins may still use it for their own previews. */
 export { $accentOverride, setAccentOverride } from '@/themes/accent-override'
 /** OKLCH colour maths, for anything deriving a palette rather than hardcoding
  *  one: perceptual conversion, the sRGB gamut boundary, WCAG contrast, and
@@ -1754,13 +1752,11 @@ export {
   oklchToSrgb255,
   readableOn
 } from '@/themes/color'
-/** The painted theme, its name, and the appearance it resolved to — plus
- *  `setTheme` / `setMode` to change it from a component. */
+/** The fixed Aino palette and its brightness. `setMode` selects Light/Dark/System;
+ *  legacy `setTheme` only accepts the current Aino palette. */
 export { useTheme } from '@/themes/context'
-/** Switch the theme from outside React (a gateway event, a connection coming
- *  up, any callback with no component around it). Returns false and leaves the
- *  appearance alone when the name doesn't resolve, so it doubles as the "is
- *  this theme installed?" check. */
+/** Legacy theme request. Returns false for any palette other than Aino's fixed
+ *  palette; it is not a check for whether an old theme asset is installed. */
 export { requestTheme } from '@/themes/request'
 export { retintTheme, themeHue } from '@/themes/retint'
 export type { DesktopTheme, DesktopThemeColors } from '@/themes/types'

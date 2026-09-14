@@ -4,10 +4,12 @@ import { type MockBackendFixture, setupMockBackend, waitForAppReady } from './fi
 import { expect, test } from './test'
 
 let fixture: MockBackendFixture | null = null
+const rendererErrors: string[] = []
 
 test.beforeAll(async () => {
   fixture = await setupMockBackend({ extraConfig: 'desktop:\n  repo_scan_enabled: false\naccount:\n  dev_mode: true' })
   const { page } = fixture
+  page.on('pageerror', error => rendererErrors.push(error.message))
   await page.getByRole('textbox', { name: 'Email or phone', exact: true }).fill('top-chrome@example.com')
   await page.getByRole('checkbox', { name: 'Agree to the user agreement and privacy policy', exact: true }).check()
   await page.getByRole('button', { name: 'Send code', exact: true }).click()
@@ -26,7 +28,9 @@ test('keeps the primary conversation title beside search without a second header
   const { app, page } = fixture!
   const title = page.locator('[data-current-session-title]').first()
   await page.locator('[data-tour="sidebar-nav-new-session"]').click()
-  await expect(title).toBeVisible()
+  await expect(page.locator('[data-chat-surface][data-home-layout]')).toBeVisible()
+  await expect(page.locator('[data-window-session-title]')).toHaveCount(0)
+  await expect(title).toHaveCount(0)
 
   const metrics = () =>
     page.evaluate(() => {
@@ -44,22 +48,24 @@ test('keeps the primary conversation title beside search without a second header
 
       const bar = rect('[data-slot="app-titlebar"]')
       const content = rect('[data-titlebar-content]')
-      const heading = rect('[data-current-session-title]')
+      const heading = document.querySelector('[data-current-session-title]')?.getBoundingClientRect()
       const chat = rect('[data-chat-surface]')
       const search = document.querySelector('[data-session-search-shell]')?.getBoundingClientRect()
       const tools = rect('[data-slot="titlebar-app-controls"]')
       const paneTools = document.querySelector('[data-slot="titlebar-pane-controls"]')?.getBoundingClientRect()
-      const label = document.querySelector<HTMLElement>('[data-current-session-title] > span')!
+      const label = document.querySelector<HTMLElement>('[data-current-session-title] > span')
 
       return {
         chatStartsBelowBar: Math.abs(chat.top - bar.bottom) <= 1,
-        titleInsideBar: heading.top >= bar.top && heading.bottom <= bar.bottom,
-        titleReadable: heading.width > 80,
-        titleBeforeSearch: !search || heading.right <= search.left,
+        titleInsideBar: !heading || (heading.top >= bar.top && heading.bottom <= bar.bottom),
+        // Narrow windows deliberately ellipsize the title; its existing
+        // overflow tooltip supplies the full name, without a fixed pixel floor.
+        titleVisible: !heading || (heading.width > 0 && Boolean(label && label.clientWidth > 0)),
+        titleBeforeSearch: !heading || !search || heading.right <= search.left,
         searchBeforeTools: !search || search.right <= (paneTools?.left ?? tools.left),
         searchCentered: !search || Math.abs((search.left + search.right) / 2 - (content.left + content.right) / 2) <= 2,
         titleTruncatesCleanly:
-          label.scrollWidth <= label.clientWidth || getComputedStyle(label).textOverflow === 'ellipsis',
+          !label || label.scrollWidth <= label.clientWidth || getComputedStyle(label).textOverflow === 'ellipsis',
         viewportOverflow: document.documentElement.scrollWidth > window.innerWidth
       }
     })
@@ -69,7 +75,7 @@ test('keeps the primary conversation title beside search without a second header
   await expect(page.locator('[data-tree-tab="hermes-bots:pane"]')).toBeVisible()
 
   const composer = page.locator('[contenteditable="true"]').first()
-  const unsentDraft = 'This unsent draft should keep the new session label until it is sent'
+  const unsentDraft = 'This draft must not appear as a conversation heading before it is sent'
   await composer.fill(unsentDraft)
   await expect
     .poll(() =>
@@ -80,7 +86,9 @@ test('keeps the primary conversation title beside search without a second header
       }, unsentDraft)
     )
     .toBe(true)
-  await expect(title).toHaveText('New session')
+  await expect(title).toHaveCount(0)
+  await expect(page.locator('[data-window-session-title]')).toHaveCount(0)
+  await expect.poll(async () => (await metrics()).searchCentered).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('unsent-draft-title.png') })
   await composer.fill('Check a long conversation heading while keeping search and every window tool available')
   await composer.press('Enter')
@@ -88,6 +96,7 @@ test('keeps the primary conversation title beside search without a second header
     timeout: 60_000
   })
   await expect(page.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
+  await expect(title).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Search sessions' })).toBeVisible()
   await expect(
     page.locator('[data-slot="app-titlebar"]').getByRole('button', { name: 'Session actions' })
@@ -116,7 +125,7 @@ test('keeps the primary conversation title beside search without a second header
     await expect.poll(metrics).toEqual({
       chatStartsBelowBar: true,
       titleInsideBar: true,
-      titleReadable: true,
+      titleVisible: true,
       titleBeforeSearch: true,
       searchBeforeTools: true,
       searchCentered: true,
@@ -135,10 +144,7 @@ test('keeps the primary conversation title beside search without a second header
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1220, 800, false))
   const sessionUrl = page.url()
   const sessionTitle = await title.innerText()
-  await page
-    .locator('[data-slot="titlebar-app-controls"]')
-    .getByRole('button', { name: 'Open settings', exact: true })
-    .click()
+  await page.locator('[data-aino-sidebar]').getByRole('button', { name: 'Open settings', exact: true }).click()
   await expect(page.locator('[data-settings-workspace]')).toBeVisible()
   await expect(page.locator('[data-window-session-title]')).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: 'Search sessions' })).toHaveCount(0)
@@ -172,13 +178,18 @@ test('keeps the primary conversation title beside search without a second header
 
   await page.locator('button:has-text("New session")').first().click()
   await expect(page.locator('[data-chat-surface][data-home-layout]')).toBeVisible()
+  await expect(title).toHaveCount(0)
   const row = page.locator('[data-aino-sidebar]').getByRole('button', { name: sessionTitle, exact: true })
+  // Opening history reveals its heading; that title remains a tab drop target.
+  await row.click()
+  await expect(title).toHaveText(sessionTitle)
   await row.dragTo(title)
   await expect(page.locator('[data-window-session-title]')).toContainText(sessionTitle)
   await expect(page.locator('[data-chat-surface]:visible').first()).toContainText('mock inference server')
 
   const targetUrl = page.url()
   await page.locator('[data-tour="sidebar-nav-new-session"]').click()
+  await expect(title).toHaveCount(0)
   const search = page.getByRole('textbox', { name: 'Search sessions' })
   await search.fill('deliberately long conversation')
   const results = page.locator('[data-session-search-results]')
@@ -194,6 +205,8 @@ test('keeps the primary conversation title beside search without a second header
   await expect(page).toHaveURL(targetUrl)
   await expect(search).toHaveValue('')
   await expect(title).toHaveText(longTitle)
+  await expect(page.locator('vite-error-overlay')).toHaveCount(0)
+  expect(rendererErrors).toEqual([])
 })
 
 test('keeps the main titlebar and tab strip on one surface across chat states', async () => {
