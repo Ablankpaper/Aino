@@ -11,6 +11,7 @@ import type { PlatformTokenSet, PlatformTokenStore } from './platform-token-stor
 
 export interface PlatformAuth {
   initialize(): Promise<PlatformAccountSnapshot>
+  generation(): number
   snapshot(): PlatformAccountSnapshot
   subscribe(listener: (snapshot: PlatformAccountSnapshot) => void): () => void
   capabilities(): Promise<PlatformPublicCapabilities>
@@ -50,7 +51,14 @@ export function createPlatformAuth({
   let tokens: PlatformTokenSet | null = null
   let pendingSecondFactor: { tempToken: string; remember: boolean } | null = null
   let generation = 0
-  let refreshFlight: { generation: number; promise: Promise<PlatformAccountSnapshot> } | null = null
+
+  let refreshFlight: {
+    generation: number
+    source: PlatformTokenSet
+    promise: Promise<PlatformAccountSnapshot>
+  } | null = null
+
+  const loggingOutTokens = new Set<PlatformTokenSet>()
   let persistence = Promise.resolve<unknown>(undefined)
 
   let current: PlatformAccountSnapshot = {
@@ -92,6 +100,10 @@ export function createPlatformAuth({
   function requireTokens() {
     if (!tokens) {
       throw new PlatformClientError('authentication_required', true)
+    }
+
+    if (loggingOutTokens.has(tokens)) {
+      throw new PlatformClientError('logout_in_progress')
     }
 
     return tokens
@@ -180,18 +192,40 @@ export function createPlatformAuth({
     return current.phase
   }
 
-  async function performRefresh(expected: number) {
-    if (refreshFlight?.generation === expected) {
+  async function performRefresh(expected: number, failedTokens?: PlatformTokenSet) {
+    const previous = requireTokens()
+
+    if (failedTokens && previous !== failedTokens) {
+      return current
+    }
+
+    if (refreshFlight?.generation === expected && refreshFlight.source === previous) {
       return refreshFlight.promise
     }
 
-    const previous = requireTokens()
     const remember = current.remember_state === 'encrypted'
 
-    const promise = (async () =>
-      finishAuthentication(await client.refresh(previous.refreshToken), remember, expected))()
+    const promise = (async () => {
+      const next = await client.refresh(previous.refreshToken)
+      const rememberState = await storeTokens(next, remember, expected)
 
-    refreshFlight = { generation: expected, promise }
+      if (!rememberState || expected !== generation) {
+        throw new PlatformClientError('auth_attempt_superseded')
+      }
+
+      tokens = next
+      current = { ...current, remember_state: rememberState }
+
+      const profile = await client.profile(next.accessToken)
+
+      if (expected !== generation) {
+        throw new PlatformClientError('auth_attempt_superseded')
+      }
+
+      return publish({ phase: 'signed_in', account: profile, error: null })
+    })()
+
+    refreshFlight = { generation: expected, source: previous, promise }
 
     try {
       return await promise
@@ -204,10 +238,11 @@ export function createPlatformAuth({
 
   async function authenticated<T>(operation: (token: string) => Promise<T>, repeatSafe: boolean): Promise<T> {
     const expected = generation
+    const initialTokens = requireTokens()
 
     try {
       try {
-        const value = await operation(requireTokens().accessToken)
+        const value = await operation(initialTokens.accessToken)
 
         if (expected !== generation) {
           throw new PlatformClientError('auth_attempt_superseded')
@@ -219,7 +254,7 @@ export function createPlatformAuth({
           throw error
         }
 
-        await performRefresh(expected)
+        await performRefresh(expected, initialTokens)
 
         if (!repeatSafe) {
           throw new PlatformClientError('authentication_refreshed_retry_required')
@@ -317,6 +352,7 @@ export function createPlatformAuth({
         return publish({ phase: tokens ? 'offline' : 'signed_out', error: safeError(error) })
       }
     },
+    generation: () => generation,
     snapshot: () => current,
     subscribe(listener) {
       listeners.add(listener)
@@ -427,14 +463,26 @@ export function createPlatformAuth({
     async logout() {
       const previous = tokens
       const previousSnapshot = current
-      generation += 1
+      const expected = ++generation
       pendingSecondFactor = null
       refreshFlight = null
+
+      if (previous) {
+        loggingOutTokens.add(previous)
+      }
 
       const [local, remote] = await Promise.allSettled([
         persist(() => tokenStore.clear(client.origin)),
         previous?.refreshToken ? client.logout(previous.refreshToken) : Promise.resolve()
       ])
+
+      if (previous) {
+        loggingOutTokens.delete(previous)
+      }
+
+      if (expected !== generation) {
+        return current
+      }
 
       if (local.status === 'rejected') {
         tokens = previous

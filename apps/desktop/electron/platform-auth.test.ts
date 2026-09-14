@@ -155,8 +155,6 @@ describe('platform auth ownership', () => {
   it('clears a remembered token write that finishes after logout', async () => {
     const f = await createPlatformAuthTestRig({ delaySave: true })
     const pending = f.auth.refresh()
-    await f.waitForPendingProfile()
-    f.resolvePendingProfile()
     await f.waitForSave()
     const logout = f.auth.logout()
     f.releaseSave()
@@ -446,6 +444,196 @@ describe('platform auth ownership', () => {
     expect(bindingCalls).toBe(2)
   })
 
+  it('does not let an older delayed logout overwrite a newer completed login', async () => {
+    const logoutResponse = deferred<ReturnType<typeof ok>>()
+    const logoutStarted = deferred<void>()
+    let profile = 'old'
+
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(profile === 'old' ? 1 : 2, profile)}
+
+      if (path === '/api/v1/auth/logout') {
+        logoutStarted.resolve()
+
+        return logoutResponse.promise
+      }
+
+      if (path === '/api/v1/auth/login') {
+        profile = 'new'
+
+        return okTokens('new')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    let stored: PlatformTokenSet | null = rememberedTokens('old')
+
+    const store: PlatformTokenStore = {
+      load: async () => stored,
+      save: async (_origin, value) => {
+        stored = value
+
+        return 'encrypted'
+      },
+      clear: async () => {
+        stored = null
+      }
+    }
+
+    const auth = createAuth(origin, stored, store)
+    await auth.initialize()
+
+    const logout = auth.logout()
+    await logoutStarted.promise
+    await expect(
+      auth.loginExisting({ email: 'new@example.test', password: 'password', remember: true })
+    ).resolves.toMatchObject({ status: 'signed_in', snapshot: { account: { id: '2' } } })
+    expect(stored).toMatchObject({ accessToken: 'new-access' })
+    logoutResponse.resolve(ok({ success: true }))
+    await logout
+
+    expect(auth.snapshot()).toMatchObject({ phase: 'signed_in', account: { id: '2' } })
+    expect(stored).toMatchObject({ accessToken: 'new-access' })
+  })
+
+  it('rejects authenticated account work while its credentials are being logged out', async () => {
+    const logoutResponse = deferred<ReturnType<typeof ok>>()
+    const logoutStarted = deferred<void>()
+    let updateCalls = 0
+
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/auth/logout') {
+        logoutStarted.resolve()
+
+        return logoutResponse.promise
+      }
+
+      if (path === '/api/v1/user') {
+        updateCalls += 1
+
+        return okProfile(1, 'revived')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin, rememberedTokens('old'))
+    await auth.initialize()
+    const logout = auth.logout()
+    await logoutStarted.promise
+
+    try {
+      await expect(auth.updateProfile({ display_name: 'revived' })).rejects.toMatchObject({
+        code: 'logout_in_progress'
+      })
+    } finally {
+      logoutResponse.resolve(ok({ success: true }))
+      await logout
+    }
+
+    expect(updateCalls).toBe(0)
+    expect(auth.snapshot()).toMatchObject({ phase: 'signed_out', account: null })
+  })
+
+  it('coalesces a delayed old-token 401 after the first refresh has already rotated credentials', async () => {
+    const secondOldResponse = deferred<ReturnType<typeof errorEnvelope>>()
+    const secondOldStarted = deferred<void>()
+    const firstNewUpdate = deferred<void>()
+    let oldCalls = 0
+    let refreshCalls = 0
+
+    const origin = await servePlatform(async ({ path, authorization, body }) => {
+      if (path === '/api/v1/user/profile') {return okProfile(1, 'old')}
+
+      if (path === '/api/v1/user') {
+        if (authorization === 'Bearer old-access') {
+          oldCalls += 1
+
+          if (oldCalls === 2) {
+            secondOldStarted.resolve()
+
+            return secondOldResponse.promise
+          }
+
+          return errorEnvelope(401, 'TOKEN_EXPIRED')
+        }
+
+        firstNewUpdate.resolve()
+
+        return okProfile(1, String(body.username))
+      }
+
+      if (path === '/api/v1/auth/refresh') {
+        refreshCalls += 1
+
+        return okTokens('new')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const auth = createAuth(origin, rememberedTokens('old'))
+    await auth.initialize()
+    const first = auth.updateProfile({ display_name: 'first' })
+    const second = auth.updateProfile({ display_name: 'second' })
+    await secondOldStarted.promise
+    await firstNewUpdate.promise
+    secondOldResponse.resolve(errorEnvelope(401, 'TOKEN_EXPIRED'))
+    await Promise.all([first, second])
+
+    expect(refreshCalls).toBe(1)
+  })
+
+  it('retains a rotated refresh family when profile recovery is transiently unavailable', async () => {
+    let profileCalls = 0
+    let refreshCalls = 0
+    let stored: PlatformTokenSet | null = rememberedTokens('old')
+
+    const origin = await servePlatform(async ({ path, authorization }) => {
+      if (path === '/api/v1/user/profile') {
+        profileCalls += 1
+
+        if (profileCalls === 2) {return errorEnvelope(503, 'PROFILE_UNAVAILABLE')}
+
+        expect(authorization).toBe(profileCalls === 1 ? 'Bearer old-access' : 'Bearer new-access')
+
+        return okProfile(1, 'old')
+      }
+
+      if (path === '/api/v1/auth/refresh') {
+        refreshCalls += 1
+
+        return refreshCalls === 1 ? okTokens('new') : errorEnvelope(401, 'REFRESH_TOKEN_REVOKED')
+      }
+
+      throw new Error(`unexpected ${path}`)
+    })
+
+    const store: PlatformTokenStore = {
+      load: async () => stored,
+      save: async (_origin, value) => {
+        stored = value
+
+        return 'encrypted'
+      },
+      clear: async () => {
+        stored = null
+      }
+    }
+
+    const auth = createAuth(origin, stored, store)
+    await auth.initialize()
+    await auth.refresh()
+
+    expect(auth.snapshot()).toMatchObject({ phase: 'offline', account: { id: '1' } })
+    expect(stored).toMatchObject({ accessToken: 'new-access', refreshToken: 'new-refresh' })
+    await expect(auth.retry()).resolves.toMatchObject({ phase: 'signed_in', account: { id: '1' } })
+    expect(refreshCalls).toBe(1)
+  })
+
   it('retries offline restoration through the narrow account recovery method', async () => {
     let available = false
 
@@ -552,4 +740,16 @@ async function serveSequence(responses: Array<[number, unknown]>) {
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
 
   return `http://127.0.0.1:${(server.address() as { port: number }).port}`
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (error: unknown) => void
+
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+
+  return { promise, resolve, reject }
 }

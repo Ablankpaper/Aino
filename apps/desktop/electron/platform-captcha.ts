@@ -31,6 +31,7 @@ interface PendingCaptcha {
 
 const PROOF_KEYS = new Set(['turnstile_token', 'tencent_captcha_ticket', 'tencent_captcha_randstr'])
 const DEFAULT_CAPTCHA_TTL_MS = 2 * 60 * 1000
+type CaptchaPolicy = PlatformPublicCapabilities['captcha']
 
 const CAPTCHA_PROVIDER_HOSTS = {
   disabled: [],
@@ -51,16 +52,52 @@ function matchesHost(hostname: string, rule: string) {
   return rule.startsWith('.') ? hostname.endsWith(rule) && hostname.length > rule.length : hostname === rule
 }
 
+function aliyunRuntimeHosts(policy: CaptchaPolicy) {
+  if (policy.provider !== 'aliyun' || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(policy.prefix)) {
+    return []
+  }
+
+  const prefix = policy.prefix.toLowerCase()
+
+  if (policy.region === 'cn') {
+    return [
+      'cloudauth-device-dualstack.cn-shanghai.aliyuncs.com',
+      'cn-shanghai.device.saf.aliyuncs.com',
+      `${prefix}.captcha-open.aliyuncs.com`,
+      `${prefix}.captcha-open-b.aliyuncs.com`,
+      'upload.captcha-open.aliyuncs.com',
+      'upload.captcha-open-b.aliyuncs.com'
+    ]
+  }
+
+  if (policy.region === 'sgp') {
+    return [
+      'cloudauth-device-dualstack.ap-southeast-1.aliyuncs.com',
+      'ap-southeast-1.device.saf.aliyuncs.com',
+      `${prefix}.captcha-open-southeast.aliyuncs.com`,
+      `${prefix}.captcha-open-southeast-b.aliyuncs.com`,
+      'upload.captcha-open-southeast.aliyuncs.com',
+      'upload.captcha-open-southeast-b.aliyuncs.com'
+    ]
+  }
+
+  return []
+}
+
 export function isPlatformCaptchaRequestAllowed(
   rawUrl: string,
   platformOrigin: string,
-  provider: PlatformPublicCapabilities['captcha']['provider']
+  policy: CaptchaPolicy
 ) {
   let url: URL
 
   try {
     url = new URL(rawUrl)
   } catch {
+    return false
+  }
+
+  if (url.username || url.password) {
     return false
   }
 
@@ -77,9 +114,9 @@ export function isPlatformCaptchaRequestAllowed(
     )
   }
 
-  return (
-    url.protocol === 'https:' && CAPTCHA_PROVIDER_HOSTS[provider].some(rule => matchesHost(url.hostname, rule))
-  )
+  const allowedHosts = [...CAPTCHA_PROVIDER_HOSTS[policy.provider], ...aliyunRuntimeHosts(policy)]
+
+  return url.protocol === 'https:' && url.port === '' && allowedHosts.some(rule => matchesHost(url.hostname, rule))
 }
 
 function trustedSender(pending: PendingCaptcha, window: object, mainFrame: boolean, rawUrl: string) {
@@ -354,13 +391,14 @@ export function createPlatformCaptcha({
   const broker = createPlatformCaptchaBroker({ capabilities, generation, randomNonce })
   let captchaSession: CaptchaSession | null = null
   let activeWindow: CaptchaWindow | null = null
-  let activeProvider: PlatformPublicCapabilities['captcha']['provider'] = 'disabled'
+  let activePolicy: CaptchaPolicy = { provider: 'disabled', site_key: '', scene_id: '', prefix: '', region: '' }
+  let acquisitionGeneration = 0
 
   function isolatedSession() {
     if (!captchaSession) {
       captchaSession = createSession()
       captchaSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
-        callback({ cancel: !isPlatformCaptchaRequestAllowed(details.url, origin, activeProvider) })
+        callback({ cancel: !isPlatformCaptchaRequestAllowed(details.url, origin, activePolicy) })
       })
     }
 
@@ -384,6 +422,9 @@ export function createPlatformCaptcha({
 
   return {
     async acquire(): Promise<PlatformCaptchaProof> {
+      const acquisition = ++acquisitionGeneration
+      const operationGeneration = generation()
+
       if (activeWindow && !activeWindow.isDestroyed()) {
         activeWindow.close()
       }
@@ -393,10 +434,26 @@ export function createPlatformCaptcha({
       try {
         initialCapabilities = await capabilities()
       } catch {
+        if (acquisition !== acquisitionGeneration) {
+          throw new PlatformCaptchaError('captcha_superseded')
+        }
+
+        if (operationGeneration !== generation()) {
+          throw new PlatformCaptchaError('captcha_stale')
+        }
+
         throw new PlatformCaptchaError('captcha_policy_unavailable')
       }
 
-      activeProvider = initialCapabilities.captcha.provider
+      if (acquisition !== acquisitionGeneration) {
+        throw new PlatformCaptchaError('captcha_superseded')
+      }
+
+      if (operationGeneration !== generation()) {
+        throw new PlatformCaptchaError('captcha_stale')
+      }
+
+      activePolicy = { ...initialCapabilities.captcha }
 
       const win = createWindow({
         width: 400,

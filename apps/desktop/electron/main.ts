@@ -4848,7 +4848,7 @@ const platformCaptcha = createPlatformCaptcha({
   preloadPath: PLATFORM_CAPTCHA_PRELOAD_PATH,
   createSession: () => session.fromPartition('aino:platform-captcha', { cache: false }),
   capabilities: () => platformAuth.capabilities(),
-  generation: () => platformAuth.snapshot().revision,
+  generation: () => platformAuth.generation(),
   randomNonce: () => crypto.randomBytes(32).toString('base64url')
 })
 
