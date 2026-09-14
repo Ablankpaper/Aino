@@ -125,8 +125,10 @@ describe('useStatusSnapshot', () => {
 
   it('localizes the default missing-provider reason for Simplified Chinese users', async () => {
     setRuntimeI18nLocale('zh')
-    const requestGateway = vi.fn(async (method: string) =>
-      (method === 'setup.runtime_check' ? { ok: false } : { provider_configured: false }) as never
+
+    const requestGateway = vi.fn(
+      async (method: string) =>
+        (method === 'setup.runtime_check' ? { ok: false } : { provider_configured: false }) as never
     ) as unknown as GatewayRequester
 
     const { result } = renderHook(() => useStatusSnapshot('open', requestGateway))

@@ -3013,7 +3013,12 @@ function readWindowState() {
 const accountWindowController = createAccountWindowController()
 
 function persistWindowState() {
-  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized() || accountWindowController.isLogin(mainWindow)) {
+  if (
+    !mainWindow ||
+    mainWindow.isDestroyed() ||
+    mainWindow.isMinimized() ||
+    accountWindowController.isLogin(mainWindow)
+  ) {
     return
   }
 

@@ -409,12 +409,7 @@ function pluralizeNoun(noun: string, count: number): string {
 }
 
 function formatCountLabel(metric: CountMetric): string {
-  return translateNow(
-    'assistant.tool.countLabel',
-    metric.count,
-    metric.noun,
-    pluralizeNoun(metric.noun, metric.count)
-  )
+  return translateNow('assistant.tool.countLabel', metric.count, metric.noun, pluralizeNoun(metric.noun, metric.count))
 }
 
 function countMetric(count: number, noun: string): CountMetric {
@@ -678,7 +673,10 @@ function toolErrorText(part: ToolPart, result: Record<string, unknown>): string 
   }
 
   if (result.success === false || result.ok === false) {
-    return firstStringField(result, ['message', 'reason', 'detail']) || translateNow('assistant.tool.fallbacks.returnedSuccessFalse')
+    return (
+      firstStringField(result, ['message', 'reason', 'detail']) ||
+      translateNow('assistant.tool.fallbacks.returnedSuccessFalse')
+    )
   }
 
   if (typeof result.status === 'string' && /\b(error|failed|failure)\b/i.test(result.status)) {
@@ -896,7 +894,9 @@ function cronjobSubtitle(argsRecord: Record<string, unknown>, resultRecord: Reco
   const jobs = Array.isArray(resultRecord.jobs) ? resultRecord.jobs : null
 
   if (jobs) {
-    return jobs.length ? translateNow('assistant.tool.cron.jobsCount', jobs.length) : translateNow('assistant.tool.cron.noJobs')
+    return jobs.length
+      ? translateNow('assistant.tool.cron.jobsCount', jobs.length)
+      : translateNow('assistant.tool.cron.noJobs')
   }
 
   const message = firstStringField(resultRecord, ['message'])
@@ -965,7 +965,9 @@ function toolSubtitle(
   if (toolName === 'browser_snapshot') {
     const snapshot = firstStringField(resultRecord, ['snapshot'])
 
-    return snapshot ? summarizeBrowserSnapshot(snapshot) : translateNow('assistant.tool.subtitles.capturedBrowserSnapshot')
+    return snapshot
+      ? summarizeBrowserSnapshot(snapshot)
+      : translateNow('assistant.tool.subtitles.capturedBrowserSnapshot')
   }
 
   if (toolName === 'browser_click') {
@@ -990,7 +992,9 @@ function toolSubtitle(
   if (toolName === 'web_search') {
     const query = firstStringField(argsRecord, ['search_term', 'query']) || contextValue(argsRecord)
 
-    return query ? translateNow('assistant.tool.subtitles.query', query) : translateNow('assistant.tool.subtitles.queriedWebSources')
+    return query
+      ? translateNow('assistant.tool.subtitles.query', query)
+      : translateNow('assistant.tool.subtitles.queriedWebSources')
   }
 
   if (toolName === 'terminal' || toolName === 'execute_code') {

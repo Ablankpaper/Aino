@@ -1797,9 +1797,8 @@ export function $treeSideVisible(side: TreeSide): ReadableAtom<boolean> {
   let cached = treeSideVisibleCache.get(side)
 
   if (!cached) {
-    cached = computed(
-      [$layoutTree, $collapsedTreeSides, $dismissedPanes, $hiddenTreePanes, $registryVersion],
-      () => isTreeSideVisible(side)
+    cached = computed([$layoutTree, $collapsedTreeSides, $dismissedPanes, $hiddenTreePanes, $registryVersion], () =>
+      isTreeSideVisible(side)
     )
     treeSideVisibleCache.set(side, cached)
   }

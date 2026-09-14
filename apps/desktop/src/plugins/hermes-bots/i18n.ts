@@ -1043,7 +1043,9 @@ const ja: BotsMessages = {
     newSectionEllipsis: '新しいセクション…',
     removeFromSection: 'セクションから外す',
     deleted: (name, count) =>
-      count === 0 ? `「${name}」を削除しました` : `「${name}」を削除しました — ${count} 件のボットを未分類に移動しました`,
+      count === 0
+        ? `「${name}」を削除しました`
+        : `「${name}」を削除しました — ${count} 件のボットを未分類に移動しました`,
     undo: '元に戻す'
   },
   bot: {

@@ -238,7 +238,7 @@ export const en: Translations = {
       openaiRejectedApiKeyWithStatus: status => `OpenAI rejected the API key (${status} invalid_api_key).`,
       openaiTtsNeedsKey: 'OpenAI TTS needs VOICE_TOOLS_OPENAI_KEY or OPENAI_API_KEY.',
       codeSkewRestartRequired: 'This backend is running old code after an update. Restart it to load the new code.',
-spawnFailed: 'Could not start the background operation.'
+      spawnFailed: 'Could not start the background operation.'
     },
     voice: {
       configureSpeechToText: 'Configure speech-to-text to use voice mode.',
@@ -441,8 +441,7 @@ spawnFailed: 'Could not start the background operation.'
       waiting: 'Waiting for verification link…',
       verify: 'Verify to continue',
       verificationNotApprovedTitle: 'Verification was not approved',
-      verificationNotApprovedMessage:
-        'Verification finished without allowing Remote Spending for this terminal.',
+      verificationNotApprovedMessage: 'Verification finished without allowing Remote Spending for this terminal.',
       verificationCompleteTitle: 'Verification complete',
       verificationCompleteMessage: 'Remote Spending is allowed for this terminal.'
     },
@@ -814,7 +813,8 @@ spawnFailed: 'Could not start the background operation.'
       refresh: 'Retry',
       serviceUnavailable: 'The account service is not configured. Configure it and retry.',
       termsRequired: 'Please agree to the terms and privacy policy first.',
-      legalDevelopmentNotice: 'This is a local development build. The final terms and privacy policy have not been published. This notice is for testing the login flow and is not a binding agreement. Test accounts are stored on the connected backend; no SMS or email is sent.',
+      legalDevelopmentNotice:
+        'This is a local development build. The final terms and privacy policy have not been published. This notice is for testing the login flow and is not a binding agreement. Test accounts are stored on the connected backend; no SMS or email is sent.',
       developmentCodeFor: 'Test account',
       errors: {
         invalid_identifier: 'Enter a valid email address or phone number.',
@@ -827,7 +827,7 @@ spawnFailed: 'Could not start the background operation.'
         state_unavailable: 'Account information could not be read or saved. Try again.',
         invalid_display_name: 'Enter a nickname of 1–32 characters without line breaks.',
         not_authenticated: 'Sign in before changing your nickname.',
-        unavailable: 'Cannot connect to the account service. Check your connection and retry.',
+        unavailable: 'Cannot connect to the account service. Check your connection and retry.'
       },
       title: 'My account',
       signInTitle: 'Sign in to Aino',
@@ -2203,7 +2203,7 @@ spawnFailed: 'Could not start the background operation.'
     skillArchivedMessage: 'Restorable via hermes curator restore.',
     officialCatalog: 'Available to install',
     officialPill: 'Official',
-archiveConfirmTitle: name => `Archive skill "${name}"?`,
+    archiveConfirmTitle: name => `Archive skill "${name}"?`,
     archiveConfirmDescription: 'The skill is archived and can be restored with `hermes curator restore`.',
     hub: {
       searchPlaceholder: 'Search the skill hub',
@@ -3813,7 +3813,7 @@ archiveConfirmTitle: name => `Archive skill "${name}"?`,
       dismissError: 'Dismiss error',
       add: 'Add'
     },
-backgroundProcess: 'background process',
+    backgroundProcess: 'background process',
     standingGoal: 'Standing goal',
     coding: {
       selectProject: 'Select project',
@@ -4120,7 +4120,7 @@ backgroundProcess: 'background process',
     signInFailed: 'Sign-in failed. Try again.',
     signInExpired:
       'Sign-in expired waiting for authorization. This usually means the sign-in page stalled in the opened tab (server-side issue) — finish signing in there, then try again. If it keeps failing, use an API key or the CLI fallback instead.',
-genericApiKeyDescription: provider => `Direct API access to ${provider}.`,
+    genericApiKeyDescription: provider => `Direct API access to ${provider}.`,
     pickDifferentProvider: 'Pick a different provider',
     signInWith: provider => `Sign in with ${provider}`,
     openedBrowser: provider => `We opened ${provider} in your browser.`,
@@ -4690,7 +4690,7 @@ genericApiKeyDescription: provider => `Direct API access to ${provider}.`,
       loadingResponse: 'Hermes is loading a response',
       loadingLocalModel: model => `Loading ${model} into memory`,
       processingPrompt: 'Processing prompt',
-summarizing: 'Summarizing thread',
+      summarizing: 'Summarizing thread',
       working: 'Hermes is working',
       resumeWhenBackgroundDone: count =>
         count === 1
@@ -4709,7 +4709,7 @@ summarizing: 'Summarizing thread',
         details: 'Reply usage details',
         sessionElapsed: 'Session elapsed at this reply',
         input: 'Input',
-        output: 'Output',
+        output: 'Output'
       },
       today: time => `Today, ${time}`,
       yesterday: time => `Yesterday, ${time}`,

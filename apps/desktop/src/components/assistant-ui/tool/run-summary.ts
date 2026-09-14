@@ -134,7 +134,11 @@ function lowerFirst(text: string): string {
  * split out before this sees them (`splitRunItems`), so there is no aggregate
  * diff to report here; each edit carries its own +N/−M on its card.
  */
-export function summarizeToolRun(tools: readonly ToolCallLike[], live: boolean, copy: ToolRunCopy = DEFAULT_COPY): string {
+export function summarizeToolRun(
+  tools: readonly ToolCallLike[],
+  live: boolean,
+  copy: ToolRunCopy = DEFAULT_COPY
+): string {
   // Which clause narrates in the present tense: normally the outstanding call,
   // but sequential calls leave gaps where the run is still going and nothing is
   // pending. The most recent call covers those, and it's the one the ticker is

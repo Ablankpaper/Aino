@@ -251,6 +251,7 @@ export const ResponseLoadingIndicator: FC = () => {
   const { t } = useI18n()
   const { compacting, drafting, providerWait, turnStartedAt } = useThreadSessionStatus()
   const elapsed = useElapsedSeconds(true, undefined, turnStartedAt)
+
   const hint = useStatusHint(
     compacting,
     drafting,
@@ -258,6 +259,7 @@ export const ResponseLoadingIndicator: FC = () => {
     t.assistant.thread.summarizing,
     t.assistant.tool.runSummary
   )
+
   // Renderer-synthesized load bar: covers loads the backend's wait loop
   // can't narrate (gateway still initializing, or an auxiliary call — not
   // the main request — triggered the autoload). A real wait frame wins.
@@ -331,6 +333,7 @@ export const TurnActivityIndicator: FC = () => {
   // the whole turn so far.
   const [quietSince, setQuietSince] = useState<number | undefined>(undefined)
   const { awaitingInput, busy, compacting, drafting, providerWait, turnStartedAt } = useThreadSessionStatus()
+
   const hint = useStatusHint(
     compacting,
     drafting,

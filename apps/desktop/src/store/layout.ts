@@ -209,11 +209,7 @@ export const $dismissedWorktreeIds = persistentAtom(
 )
 // Only successful git removals may reappear on discovery. Explicit hides,
 // including legacy dismissals without provenance, remain hidden.
-export const $removedWorktreeIds = persistentAtom(
-  'hermes.desktop.removedWorktrees',
-  [] as string[],
-  Codecs.stringArray
-)
+export const $removedWorktreeIds = persistentAtom('hermes.desktop.removedWorktrees', [] as string[], Codecs.stringArray)
 export const $sidebarPinsOpen = persistentAtom('hermes.desktop.sidebar.sections.pinned.open', true, Codecs.bool)
 export const $sidebarRecentsOpen = persistentAtom('hermes.desktop.sidebar.sections.recent.open', true, Codecs.bool)
 // Cron-job sessions live in their own section below recents, collapsed by

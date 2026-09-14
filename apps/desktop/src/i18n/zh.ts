@@ -187,8 +187,7 @@ export const zh: Translations = {
       backendExitedBeforeReady: (status, suffix, profile) =>
         (profile
           ? `Aino 工作区“${profile}”的后端在准备就绪前退出（${status}）`
-          : `Aino 后端在准备就绪前退出（${status}）`) +
-        (suffix.startsWith('.') ? `。${suffix.slice(1)}` : suffix)
+          : `Aino 后端在准备就绪前退出（${status}）`) + (suffix.startsWith('.') ? `。${suffix.slice(1)}` : suffix)
     }
   },
 
@@ -795,7 +794,8 @@ export const zh: Translations = {
       refresh: '重试',
       serviceUnavailable: '账户服务尚未配置，请配置服务后重试。',
       termsRequired: '请先勾选同意用户协议和隐私政策。',
-      legalDevelopmentNotice: '当前是本地开发测试版，正式用户协议和隐私政策尚未发布。此处仅供登录流程测试，不构成正式协议。测试账号信息保存在当前连接的后端，不会发送短信或邮件。',
+      legalDevelopmentNotice:
+        '当前是本地开发测试版，正式用户协议和隐私政策尚未发布。此处仅供登录流程测试，不构成正式协议。测试账号信息保存在当前连接的后端，不会发送短信或邮件。',
       developmentCodeFor: '本次测试登录账号',
       errors: {
         invalid_identifier: '请输入有效的邮箱地址或手机号。',
@@ -808,7 +808,7 @@ export const zh: Translations = {
         state_unavailable: '暂时无法读取或保存账户信息，请重试。',
         invalid_display_name: '请输入 1–32 个字符的昵称，不支持换行。',
         not_authenticated: '请先登录，再修改昵称。',
-        unavailable: '无法连接账户服务，请检查连接后重试。',
+        unavailable: '无法连接账户服务，请检查连接后重试。'
       },
       title: '我的账户',
       signInTitle: '登录 Aino',
@@ -1527,8 +1527,7 @@ export const zh: Translations = {
       title: '已注册网关',
       localLabel: '此设备',
       intro: '管理本机以及通过远程、SSH 或 Hermes Cloud 连接可访问的每个 Hermes 网关。',
-      stagedNote:
-        '可在“会话”侧边栏切换网关。工作区、聊天、消息和定时任务归属于各自网关；其他网关上的工作会继续运行。',
+      stagedNote: '可在“会话”侧边栏切换网关。工作区、聊天、消息和定时任务归属于各自网关；其他网关上的工作会继续运行。',
       launchModeTitle: '启动时返回上次使用网关的会话视图',
       launchModeDesc: '关闭时，会话将在主网关上打开。',
       searchPlaceholder: '搜索网关…',
@@ -1586,8 +1585,7 @@ export const zh: Translations = {
     },
     managedUpdates: {
       title: '托管更新',
-      intro:
-        '以事务方式更新由桌面端托管的 SSH 安装：先排空会话，再更新远端检出，最后恢复每个工作区，并生成关联回执。',
+      intro: '以事务方式更新由桌面端托管的 SSH 安装：先排空会话，再更新远端检出，最后恢复每个工作区，并生成关联回执。',
       sshConnection: '桌面端托管的 SSH 安装',
       update: '更新',
       updating: '更新中…',
@@ -2396,7 +2394,7 @@ export const zh: Translations = {
     skillArchivedMessage: '可通过 hermes curator restore 恢复。',
     officialCatalog: '可安装',
     officialPill: '官方',
-archiveConfirmTitle: name => `归档技能“${name}”？`,
+    archiveConfirmTitle: name => `归档技能“${name}”？`,
     archiveConfirmDescription: '技能会被归档，可通过 hermes curator restore 恢复。',
     hub: {
       searchPlaceholder: '搜索技能中心',
@@ -4155,7 +4153,7 @@ archiveConfirmTitle: name => `归档技能“${name}”？`,
       dismissError: '关闭错误',
       add: '添加'
     },
-backgroundProcess: '后台进程',
+    backgroundProcess: '后台进程',
     standingGoal: '持续目标',
     coding: {
       selectProject: '选择项目',
@@ -4448,7 +4446,7 @@ backgroundProcess: '后台进程',
     signInFailed: '登录失败，请重试。',
     signInExpired:
       '等待授权超时。通常是因为登录页面在打开的标签页中卡住（服务端问题）——请在该页面完成登录后重试。若仍失败，请改用 API 密钥或 CLI 方式。',
-genericApiKeyDescription: provider => `直接访问 ${provider} 的 API。`,
+    genericApiKeyDescription: provider => `直接访问 ${provider} 的 API。`,
     pickDifferentProvider: '选择其他提供方',
     signInWith: provider => `使用 ${provider} 登录`,
     openedBrowser: provider => `已在浏览器中打开 ${provider}。`,
@@ -5023,7 +5021,7 @@ genericApiKeyDescription: provider => `直接访问 ${provider} 的 API。`,
       loadingResponse: 'Hermes 正在加载回复',
       loadingLocalModel: model => `正在将 ${model} 载入内存`,
       processingPrompt: '正在处理提示词',
-summarizing: '正在总结会话',
+      summarizing: '正在总结会话',
       working: 'Hermes 正在工作',
       resumeWhenBackgroundDone: count =>
         count === 1 ? '后台任务完成后将自动继续' : `${count} 个后台任务完成后将自动继续`,
@@ -5040,7 +5038,7 @@ summarizing: '正在总结会话',
         details: '回复消耗详情',
         sessionElapsed: '会话历时（截至此回复）',
         input: '输入',
-        output: '输出',
+        output: '输出'
       },
       today: time => `今天，${time}`,
       yesterday: time => `昨天，${time}`,

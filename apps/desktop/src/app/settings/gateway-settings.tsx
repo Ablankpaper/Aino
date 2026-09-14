@@ -1082,7 +1082,10 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
       {!embedded && (
         <div className="mb-4 flex justify-end">
           <Button asChild size="sm" variant="ghost">
-            <a href={`#${WEBHOOKS_ROUTE}`}><Globe />{t.shell.statusbar.webhooks}</a>
+            <a href={`#${WEBHOOKS_ROUTE}`}>
+              <Globe />
+              {t.shell.statusbar.webhooks}
+            </a>
           </Button>
         </div>
       )}

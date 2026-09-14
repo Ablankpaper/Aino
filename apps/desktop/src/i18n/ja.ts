@@ -450,7 +450,8 @@ export const ja = defineLocale({
       refresh: '再試行',
       serviceUnavailable: 'アカウントサービスが未設定です。設定後に再試行してください。',
       termsRequired: '利用規約とプライバシーポリシーへの同意を選択してください。',
-      legalDevelopmentNotice: 'これはローカル開発版です。正式な利用規約とプライバシーポリシーは未公開です。この表示はログインのテスト用で、正式な契約ではありません。テストアカウントは接続先のバックエンドに保存され、SMSやメールは送信されません。',
+      legalDevelopmentNotice:
+        'これはローカル開発版です。正式な利用規約とプライバシーポリシーは未公開です。この表示はログインのテスト用で、正式な契約ではありません。テストアカウントは接続先のバックエンドに保存され、SMSやメールは送信されません。',
       developmentCodeFor: 'テスト用アカウント',
       errors: {
         invalid_identifier: '有効なメールアドレスまたは電話番号を入力してください。',
@@ -463,7 +464,7 @@ export const ja = defineLocale({
         state_unavailable: 'アカウント情報を読み書きできません。再試行してください。',
         invalid_display_name: '改行を含まない 1～32 文字の表示名を入力してください。',
         not_authenticated: '表示名を変更するにはログインしてください。',
-        unavailable: 'アカウントサービスに接続できません。接続を確認してください。',
+        unavailable: 'アカウントサービスに接続できません。接続を確認してください。'
       },
       title: 'マイアカウント',
       signInTitle: 'Aino にサインイン',
@@ -1565,7 +1566,7 @@ export const ja = defineLocale({
     skillArchivedMessage: 'hermes curator restore で復元できます。',
     officialCatalog: 'インストール可能',
     officialPill: '公式',
-archiveConfirmTitle: name => `スキル「${name}」をアーカイブしますか？`,
+    archiveConfirmTitle: name => `スキル「${name}」をアーカイブしますか？`,
     archiveConfirmDescription: 'スキルはアーカイブされ、hermes curator restore で復元できます。'
   },
 
@@ -3378,7 +3379,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
         details: '返信の使用量詳細',
         sessionElapsed: 'この返信までの会話時間',
         input: '入力',
-        output: '出力',
+        output: '出力'
       },
       today: time => `今日 ${time}`,
       yesterday: time => `昨日 ${time}`,
@@ -3477,7 +3478,8 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
       copyPath: 'パスをコピー',
       outputAlt: 'ツール出力',
       rawResponse: '生の応答',
-      truncatedOutput: count => `… ${count.toLocaleString()}文字を省略しました — 「コピー」で完全な出力を取得できます。`,
+      truncatedOutput: count =>
+        `… ${count.toLocaleString()}文字を省略しました — 「コピー」で完全な出力を取得できます。`,
       copyActivity: 'アクティビティをコピー',
       arguments: '引数',
       result: '結果',
