@@ -1815,9 +1815,7 @@ describe('usePromptActions slash.exec dispatch payloads', () => {
 
     await handle!.submitText('/goal 继续执行这项工作')
 
-    expect(renderedSeedTexts(states).join('\n')).toContain(
-      '会话忙碌中——消息已排队，将在当前回合结束后发送'
-    )
+    expect(renderedSeedTexts(states).join('\n')).toContain('会话忙碌中——消息已排队，将在当前回合结束后发送')
 
     dropSessionState(RUNTIME_SESSION_ID)
     $queuedPromptsBySession.set({})

@@ -60,7 +60,9 @@ export function SystemResourcesSettings() {
 
   useViewedInterval(
     () => {
-      if (!isFetching) {void refetch()}
+      if (!isFetching) {
+        void refetch()
+      }
     },
     5000,
     !error

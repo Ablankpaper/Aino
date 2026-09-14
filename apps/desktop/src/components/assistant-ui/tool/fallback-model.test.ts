@@ -144,10 +144,7 @@ describe('buildToolView browser and command summaries', () => {
     const snapshot = buildToolView(part({ result: {}, toolName: 'browser_snapshot' }), '')
     const clicked = buildToolView(part({ result: {}, toolName: 'browser_click' }), '')
 
-    const clickedInternal = buildToolView(
-      part({ result: { clicked: '@email' }, toolName: 'browser_click' }),
-      ''
-    )
+    const clickedInternal = buildToolView(part({ result: { clicked: '@email' }, toolName: 'browser_click' }), '')
 
     const filled = buildToolView(
       part({ args: { label: '邮箱', value: 'alice@example.com' }, result: {}, toolName: 'browser_fill' }),
@@ -180,10 +177,7 @@ describe('buildToolView result counts', () => {
       ''
     )
 
-    const files = buildToolView(
-      part({ result: { files: ['a.txt', 'b.txt', 'c.txt'] }, toolName: 'list_files' }),
-      ''
-    )
+    const files = buildToolView(part({ result: { files: ['a.txt', 'b.txt', 'c.txt'] }, toolName: 'list_files' }), '')
 
     expect(results.countLabel).toBe('2 个结果')
     expect(files.countLabel).toBe('3 个文件')

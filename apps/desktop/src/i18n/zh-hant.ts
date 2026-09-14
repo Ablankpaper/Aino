@@ -444,7 +444,8 @@ export const zhHant = defineLocale({
       refresh: '重試',
       serviceUnavailable: '帳戶服務尚未設定，請設定服務後重試。',
       termsRequired: '請先勾選同意使用者協議與隱私政策。',
-      legalDevelopmentNotice: '目前是本機開發測試版，正式使用者協議與隱私政策尚未發布。此處僅供登入流程測試，不構成正式協議。測試帳戶資料儲存在目前連線的後端，不會發送簡訊或郵件。',
+      legalDevelopmentNotice:
+        '目前是本機開發測試版，正式使用者協議與隱私政策尚未發布。此處僅供登入流程測試，不構成正式協議。測試帳戶資料儲存在目前連線的後端，不會發送簡訊或郵件。',
       developmentCodeFor: '本次測試登入帳戶',
       errors: {
         invalid_identifier: '請輸入有效的電子郵件或手機號碼。',
@@ -457,7 +458,7 @@ export const zhHant = defineLocale({
         state_unavailable: '暫時無法讀取或儲存帳戶資料，請重試。',
         invalid_display_name: '請輸入 1–32 個字元的暱稱，不支援換行。',
         not_authenticated: '請先登入，再修改暱稱。',
-        unavailable: '無法連線至帳戶服務，請檢查連線後重試。',
+        unavailable: '無法連線至帳戶服務，請檢查連線後重試。'
       },
       title: '我的帳戶',
       signInTitle: '登入 Aino',
@@ -1515,7 +1516,7 @@ export const zhHant = defineLocale({
     skillArchivedMessage: '可透過 hermes curator restore 還原。',
     officialCatalog: '可安裝',
     officialPill: '官方',
-archiveConfirmTitle: name => `封存技能「${name}」？`,
+    archiveConfirmTitle: name => `封存技能「${name}」？`,
     archiveConfirmDescription: '技能會被封存，可透過 hermes curator restore 還原。'
   },
 
@@ -3271,7 +3272,7 @@ archiveConfirmTitle: name => `封存技能「${name}」？`,
         details: '回覆消耗詳情',
         sessionElapsed: '對話歷時（截至此回覆）',
         input: '輸入',
-        output: '輸出',
+        output: '輸出'
       },
       today: time => `今天，${time}`,
       yesterday: time => `昨天，${time}`,
@@ -3403,8 +3404,7 @@ archiveConfirmTitle: name => `封存技能「${name}」？`,
         clickedPageElement: target =>
           target.startsWith('@') ? `已點擊頁面元素（內部參照 ${target}）` : `已點擊 ${target}`,
         filledPageInput: '已填寫頁面輸入欄',
-        fieldValue: (field, value) =>
-          [field && `欄位：${field}`, value && `值：${value}`].filter(Boolean).join(' · '),
+        fieldValue: (field, value) => [field && `欄位：${field}`, value && `值：${value}`].filter(Boolean).join(' · '),
         queriedWebSources: '已查詢網頁來源',
         query: query => `查詢：${query}`,
         executedCommand: '已執行指令',

@@ -175,14 +175,10 @@ describe('desktop i18n runtime translator', () => {
       '新会话默认从此文件夹开始，除非你选择其他目录。留空则使用你的主目录。'
     )
     expect(translateNow('cron.customPlaceholder')).toBe('0 9 * * * 或工作日 9:00')
-    expect(translateNow('composer.githubSuggestions.doneTip')).toBe(
-      '发送消息后，智能体将引导你完成 GitHub 登录'
-    )
+    expect(translateNow('composer.githubSuggestions.doneTip')).toBe('发送消息后，智能体将引导你完成 GitHub 登录')
     expect(translateNow('desktop.emptySlashCommand')).toBe('空斜杠命令')
     expect(translateNow('desktop.slashInvalidResponse')).toBe('command.dispatch 返回无效响应')
-    expect(translateNow('prompts.sudoDesc')).toBe(
-      'Aino 需要你的 sudo 密码来运行特权命令。它只会发送给你的本地智能体。'
-    )
+    expect(translateNow('prompts.sudoDesc')).toBe('Aino 需要你的 sudo 密码来运行特权命令。它只会发送给你的本地智能体。')
     expect(translateNow('install.fetchingManifest')).toBe('正在获取安装器清单…')
   })
 

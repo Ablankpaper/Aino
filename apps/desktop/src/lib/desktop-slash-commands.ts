@@ -629,7 +629,10 @@ export function desktopSlashUnavailableMessage(
       return surface.picker === 'model' ? localized.modelPicker(canonical) : localized.sessionPicker(canonical)
     }
 
-    return runtimePickerUnavailableMessage(surface.picker, canonical) || PICKER_UNAVAILABLE_MESSAGE[surface.picker](canonical)
+    return (
+      runtimePickerUnavailableMessage(surface.picker, canonical) ||
+      PICKER_UNAVAILABLE_MESSAGE[surface.picker](canonical)
+    )
   }
 
   return null
@@ -742,16 +745,18 @@ export function filterDesktopCommandsCatalog(
       ...section,
       pairs: section.pairs
         .filter(([command]) => isDesktopSlashSuggestion(command))
-        .map(([command, description]) =>
-          [command, desktopSlashDescription(command, description, localizedDescriptions)] as [string, string]
+        .map(
+          ([command, description]) =>
+            [command, desktopSlashDescription(command, description, localizedDescriptions)] as [string, string]
         )
     }))
     .filter(section => section.pairs.length > 0)
 
   const pairs = catalog.pairs
     ?.filter(([command]) => isDesktopSlashSuggestion(command))
-    .map(([command, description]) =>
-      [command, desktopSlashDescription(command, description, localizedDescriptions)] as [string, string]
+    .map(
+      ([command, description]) =>
+        [command, desktopSlashDescription(command, description, localizedDescriptions)] as [string, string]
     )
 
   // Recount skill commands from the filtered output so /help's footer reflects

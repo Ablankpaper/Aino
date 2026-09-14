@@ -127,7 +127,9 @@ describe('convertVscodeColorTheme', () => {
   it('uses the active locale when a theme has no colors map', () => {
     setRuntimeI18nLocale('zh')
 
-    expect(() => convertVscodeColorTheme({ name: 'Empty' })).toThrow('主题缺少 colors 映射，无法识别为 VS Code 配色主题。')
+    expect(() => convertVscodeColorTheme({ name: 'Empty' })).toThrow(
+      '主题缺少 colors 映射，无法识别为 VS Code 配色主题。'
+    )
   })
 
   const fullAnsi = {

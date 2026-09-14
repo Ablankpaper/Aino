@@ -150,6 +150,7 @@ export function EditProfileDialog({ bot, open, onClose }: EditProfileDialogProps
           confirmLabel: t.common.confirm,
           modelSwitchFailed: t.desktop.modelSwitchFailed
         })
+
         const failed = Object.entries(res?.applied || {}).filter(([, ok]) => !ok)
 
         if (failed.length) {

@@ -1129,6 +1129,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
       heading: t.settings.appearance.themeTitle,
       items: availableThemes.map(theme => {
         const copy = localizedThemeCopy(theme, t)
+
         // Same mode fixup as run(): if a theme cannot render the current
         // light/dark, preview (and commit) in the one mode it supports.
         const previewMode = themeSupportsMode(theme.name, resolvedMode)
@@ -1368,6 +1369,7 @@ function CommandPaletteBody({ onExited }: { onExited: () => void }) {
             heading: t.settings.appearance.themeTitle,
             items: availableThemes.map(theme => {
               const copy = localizedThemeCopy(theme, t)
+
               const previewMode = themeSupportsMode(theme.name, resolvedMode)
                 ? resolvedMode
                 : resolvedMode === 'dark'
