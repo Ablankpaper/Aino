@@ -185,6 +185,11 @@ def _commit_agent_switch(sid: str, session: dict, agent, result, current_model: 
         logger.warning("In-place model switch failed for TUI agent: %s", exc)
         raise ValueError(f"Model switch to {result.new_model} failed ({exc}); "
                          f"staying on {getattr(agent, 'model', current_model)}.") from exc
+    if result.target_provider == "aino" and getattr(result, "managed_metadata", None):
+        agent._managed_model_metadata = result.managed_metadata
+    elif session.get("managed_model_params") and result.target_provider != "aino":
+        from .managed_session import release_selection
+        release_selection(sid, session)
     _restart_slash_worker(sid, session)
     _persist_live_session_runtime(session)
     _persist_live_session_system_prompt(session)
@@ -203,6 +208,11 @@ def _apply_model_switch(
     from hermes_cli.model_switch import switch_model
     model_input, explicit_provider, one_turn, persist_global = _switch_request(
         raw_input, parsed_flags, persist_override)
+    if session.get("managed_model_params"):
+        if one_turn:
+            raise ValueError("One-turn billing source changes are not supported for platform sessions")
+        if not explicit_provider or explicit_provider == "aino":
+            raise ValueError("Select a platform model through the desktop model picker, or specify a BYOK provider")
     agent = session.get("agent")
     if one_turn and not agent:
         raise ValueError("/model --once requires a live session")
@@ -232,6 +242,9 @@ def _apply_model_switch(
             return confirm
     if agent:
         _commit_agent_switch(sid, session, agent, result, current_model, restore_snapshot)
+    elif session.get("managed_model_params"):
+        from .managed_session import release_selection
+        release_selection(sid, session)
     # PER-SESSION override so a rebuild of THIS session (/new, resume) re-derives the model.
     # Deliberately NOT written to process-global env (HERMES_MODEL & co.): the desktop hosts
     # every same-profile session in one process, so os.environ would leak the switch to all.
@@ -289,7 +302,7 @@ def _sync_agent_model_with_config(sid: str, session: dict) -> None:
     """Adopt a config.yaml model change at turn start (like gateways do per message). Sessions
     pinned with /model keep their choice; a failed switch keeps the current model."""
     agent = session.get("agent")
-    if agent is None or session.get("model_override"):
+    if agent is None or session.get("model_override") or session.get("managed_model_params"):
         return
     target = _config_model_target()
     if not target[0]:

@@ -78,6 +78,44 @@ def _interrupt(binding, session):
         server._interrupt_session_turn(binding.session_id, session)
 
 
+def resolve_managed_runtime(binding: ManagedModelBinding, *, now: float) -> dict:
+    """Resolve a lease at a Unix timestamp, without consulting ambient credentials."""
+    if binding.expires_at.timestamp() <= now:
+        return {"credential_expired": True}
+    modes = {"chat_completions": "chat_completions", "anthropic_messages": "anthropic_messages",
+             "responses": "codex_responses"}
+    if binding.api_mode not in modes:
+        raise ManagedBindingError("managed_model_protocol_unsupported")
+
+    return {
+        "provider": "aino",
+        "model": binding.model,
+        "base_url": binding.base_url,
+        "api_key": binding.api_key,
+        "api_mode": modes[binding.api_mode],
+    }
+
+
+def persisted_managed_model_metadata(binding: ManagedModelBinding) -> dict:
+    """Return only source/owner/model/protocol identifiers, never credentials.
+
+    This is stored in session DB for history recovery. Credentials are never persisted.
+
+    Returns:
+        Dict with model_source='aino', platform_owner, model_id, and api_mode
+    """
+    return {
+        "model_source": "aino",
+        "platform_owner": {
+            "platform_origin": binding.owner.platform_origin,
+            "user_id": binding.owner.user_id,
+        },
+        "model_id": binding.model_id,
+        "model": binding.model,
+        "api_mode": binding.api_mode,
+    }
+
+
 class ManagedModelRegistry:
     def __init__(self):
         self._lock = threading.RLock()
@@ -91,6 +129,8 @@ class ManagedModelRegistry:
             a.timer.cancel()
 
     def issue(self, sid, session, peer, owner, model_id):
+        from .managed_session import validate_selection
+        validate_selection(session, owner, model_id)
         with self._lock:
             self._revision += 1
             self._cancel(self._pending.pop(sid, None))
@@ -139,6 +179,7 @@ class ManagedModelRegistry:
             if session.get("running") and (not previous or
                     previous.owner != a.owner or previous.model_id != a.model_id):
                 raise ManagedBindingError("managed_binding_busy")
+            self._validate_runtime(binding, session)
             self._cancel(previous)
             self._cancel(a)
             self._pending.pop(sid)
@@ -147,6 +188,41 @@ class ManagedModelRegistry:
             a.timer = threading.Timer(seconds, self._expire, args=(sid, a))
             a.timer.daemon = True
             a.timer.start()
+
+    @staticmethod
+    def _validate_runtime(binding, session):
+        from .managed_session import validate_selection
+        validate_selection(session, binding.owner, binding.model_id)
+        selected = session.get("managed_model_params")
+        if selected:
+            if any(selected.get(k) and selected[k] != getattr(binding, k) for k in ("model", "api_mode")):
+                raise ManagedBindingError("managed_model_identity_mismatch")
+            session["managed_model_params"] = persisted_managed_model_metadata(binding)
+
+    def renew(self, binding, session, peer):
+        """An existing controller may extend ONLY its still-live, exact runtime."""
+        with self._lock:
+            a = self._active.get(binding.session_id)
+            now = datetime.now(timezone.utc)
+            if (not a or a.session is not session or a.peer is not session.get("transport")
+                    or session.get("_closing") or a.controller is not peer
+                    or a.revision != binding.binding_revision or a.binding.expires_at <= now
+                    or any(getattr(a.binding, k) != getattr(binding, k) for k in
+                           ("owner", "model_id", "model", "api_mode", "base_url", "capabilities"))
+                    or not 0 < (binding.expires_at - now).total_seconds() <= 3605
+                    or binding.expires_at < a.binding.expires_at):
+                raise ManagedBindingError("managed_binding_stale")
+            self._validate_runtime(binding, session)
+            self._cancel(a)
+            # Replace authority so an expiry callback already queued for the old
+            # lease cannot invalidate the renewed one.
+            replacement = _Authority(session, a.peer, a.owner, a.model_id, a.revision, "", a.deadline,
+                                     controller=peer, binding=binding)
+            self._active[binding.session_id] = replacement
+            replacement.timer = threading.Timer((binding.expires_at - now).total_seconds(), self._expire,
+                                                args=(binding.session_id, replacement))
+            replacement.timer.daemon = True
+            replacement.timer.start()
 
     def _expire(self, sid, a):
         with self._lock:

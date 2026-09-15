@@ -1,6 +1,6 @@
 import http from 'node:http'
 
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { WebSocketServer } from 'ws'
 
 import type { PlatformModel } from '../shared/platform-contract'
@@ -15,6 +15,8 @@ afterEach(async () => {
   for (const stop of cleanup.splice(0).reverse()) {
     await stop()
   }
+
+  vi.useRealTimers()
 })
 
 const model: PlatformModel = {
@@ -111,7 +113,7 @@ async function rig(options: { remote?: boolean; allow?: boolean; delayLease?: bo
           credential_id: 'lease-1',
           api_key: secret,
           base_url: origin + '/v1',
-          expires_at: new Date(Date.now() + 600_000).toISOString(),
+          expires_at: new Date(Date.now() + 3600_000).toISOString(),
           model
         })
 
@@ -152,7 +154,7 @@ async function rig(options: { remote?: boolean; allow?: boolean; delayLease?: bo
           }
 
           reply({ managed_model_binding: 1, binding_revision: ++claims })
-        } else if (req.method === 'session.bind_managed_model') {
+        } else if (req.method === 'session.bind_managed_model' || req.method === 'session.renew_managed_model') {
           if (p.binding_revision !== claims) {
             reject()
 
@@ -253,6 +255,22 @@ async function rig(options: { remote?: boolean; allow?: boolean; delayLease?: bo
     secret
   }
 }
+
+it('renews on the retained controller socket without a renderer ticket and stops after clear', async () => {
+  const f = await rig()
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  expect((await f.controller.bind(f.input, f.window)).ok).toBe(true)
+  const first = f.binding()
+  await vi.advanceTimersByTimeAsync(20 * 60_000)
+  await vi.waitFor(() => expect(f.received.some(r => r.method === 'session.renew_managed_model')).toBe(true))
+  expect(f.credentials).toHaveLength(2)
+  expect(f.credentials[1]).toEqual(f.credentials[0])
+  expect(f.binding()).toMatchObject({ binding_revision: first!.binding_revision, owner: first!.owner })
+  expect(f.received.filter(r => r.method === 'session.claim_managed_model')).toHaveLength(1)
+  f.controller.clear(f.input, f.window)
+  await vi.advanceTimersByTimeAsync(60 * 60_000)
+  expect(f.credentials).toHaveLength(2)
+})
 
 it('uses real auth HTTP and shared WebSocket serialization without exposing the lease in public results', async () => {
   const f = await rig()

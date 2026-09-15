@@ -1,0 +1,5 @@
+name: aino-provider
+kind: model-provider
+version: 1.0.0
+description: Aino Platform (managed credentials)
+author: Aino

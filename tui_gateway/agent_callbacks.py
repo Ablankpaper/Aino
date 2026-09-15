@@ -375,6 +375,8 @@ def _rebuild_session_agent(sid: str, session: dict, **kwargs):
         config_model_seen = _config_model_target()
         if opened:
             session_db = _open_profile_session_db(profile_home)
+        if session.get("managed_model_params"):
+            kwargs["managed_model_params"] = session["managed_model_params"]
         agent = _make_agent(sid, session["session_key"], session_db=session_db, **kwargs)
     except BaseException:
         if opened and session_db is not None:

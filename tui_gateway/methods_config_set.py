@@ -106,6 +106,12 @@ def _cfgset_guarded(fn):
 @_cfgset_guarded
 def _set_model(rid, params, key, value, session):
     """Live/deferred model switch; see _apply_model_switch and _apply_pending_model_switch."""
+    if params.get("model_source") == "aino":
+        from .managed_session import select_model
+        confirm = select_model(params.get("session_id", ""), session, value,
+                               bool(params.get("confirm_expensive_model")))
+        return _kv(rid, key, value, scope="session", confirm_required=confirm,
+                   confirm_message="Switch the model for this conversation?" if confirm else "")
     if not value:
         return _err(rid, 4002, "model value required")
     confirmed = bool(params.get("confirm_expensive_model", False))

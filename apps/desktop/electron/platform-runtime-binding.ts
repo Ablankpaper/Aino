@@ -36,6 +36,7 @@ interface Binding {
   revision: number
   session: string
   expiry?: ReturnType<typeof setTimeout>
+  renewal?: ReturnType<typeof setTimeout>
 }
 interface Slot {
   intent: number
@@ -61,6 +62,7 @@ export function createPlatformRuntimeBindingController(options: {
     }
 
     clearTimeout(binding.expiry)
+    clearTimeout(binding.renewal)
     // Socket ownership on the gateway clears both pending claims and active
     // bindings even if the network cannot deliver a final clear RPC.
     binding.rpc.close()
@@ -89,6 +91,16 @@ export function createPlatformRuntimeBindingController(options: {
     }
 
     windows.clear()
+  }
+
+  function armLease(binding: Binding, expiresAt: string, expired: () => void, renew: () => Promise<void>) {
+    clearTimeout(binding.expiry)
+    clearTimeout(binding.renewal)
+    const ttl = Math.max(0, Date.parse(expiresAt) - Date.now())
+    binding.expiry = setTimeout(expired, ttl)
+    binding.expiry.unref?.()
+    binding.renewal = setTimeout(() => void renew(), Math.min(20 * 60_000, Math.max(5_000, ttl / 3)))
+    binding.renewal.unref?.()
   }
 
   const unsubscribe = auth.subscribe(snapshot => {
@@ -245,20 +257,71 @@ export function createPlatformRuntimeBindingController(options: {
         }
 
         binding.revision = claimedRevision
-        clearTimeout(binding.expiry)
         const retained = binding
-        binding.expiry = setTimeout(
-          () => {
-            if (slot.active === retained) {
-              reset(slot)
-              slots.delete(key)
+        const revision = claimedRevision
+        const stillOwned = () => current() && slot.active === retained && retained.revision === revision
+
+        const expire = () => {
+          if (slot.active === retained && retained.revision === revision) {
+            reset(slot)
+            slots.delete(key)
+          }
+        }
+
+        const renew = async () => {
+          if (!stillOwned()) {
+            return
+          }
+
+          try {
+            const next = await auth.modelLease({
+              model_id: input.model_id,
+              device_id: options.deviceId(),
+              connection_grant_id: retained.grant
+            })
+
+            if (!stillOwned()) {
+              return
             }
-          },
-          Math.max(0, Date.parse(lease.expires_at) - Date.now())
-        )
-        binding.expiry.unref?.()
+
+            const renewed = await retained.rpc.request<{ bound?: boolean; model_id?: string; binding_revision?: number }>(
+              'session.renew_managed_model',
+              {
+                ...params,
+                binding_revision: revision,
+                model: next.model.model,
+                api_mode: next.model.api_mode,
+                capabilities: next.model.capabilities,
+                credential_id: next.credential_id,
+                api_key: next.api_key,
+                base_url: next.base_url,
+                expires_at: next.expires_at
+              }
+            )
+
+            if (!stillOwned()) {
+              return
+            }
+
+            if (!renewed.bound || renewed.model_id !== input.model_id || renewed.binding_revision !== revision) {
+              expire()
+
+              return
+            }
+
+            armLease(retained, next.expires_at, expire, renew)
+          } catch (error) {
+            // No retry loop: a network failure retains the current lease only
+            // until its original deadline. Confirmed auth loss revokes now.
+            if (error instanceof PlatformClientError && error.authentication) {
+              expire()
+            }
+          }
+        }
+
         slot.active = binding
         slot.pending = undefined
+        armLease(retained, lease.expires_at, expire, renew)
 
         return { ok: true, ready: true, model_id: input.model_id, billing_source: 'aino', expires_at: lease.expires_at }
       } catch (error) {

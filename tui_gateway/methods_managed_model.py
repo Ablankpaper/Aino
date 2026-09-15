@@ -79,8 +79,7 @@ def _claim_managed_model(params, sid, session, peer):
     return {"binding_revision": revision, "managed_model_binding": 1}
 
 
-@_managed_method("session.bind_managed_model")
-def _bind_managed_model(params, sid, session, peer):
+def _binding(params, sid):
     owner = _managed_owner(params)
     expires = datetime.fromisoformat(_managed_text(params, "expires_at").replace("Z", "+00:00"))
     if expires.tzinfo is None or expires <= datetime.now(timezone.utc):
@@ -95,13 +94,27 @@ def _bind_managed_model(params, sid, session, peer):
             or any(type(capabilities.get(k)) is not bool for k in ("tools", "vision", "reasoning"))
             or _managed_text(params, "base_url", 2048) != owner.platform_origin + "/v1"):
         raise ManagedBindingError("managed_binding_invalid")
-    binding = ManagedModelBinding(
+    return ManagedModelBinding(
         session_id=sid, owner=owner, model_id=_managed_text(params, "model_id", 128),
         model=_managed_text(params, "model", 256), api_mode=mode, capabilities=dict(capabilities),
         credential_id=_managed_text(params, "credential_id"), api_key=_managed_text(params, "api_key", 4096),
         base_url=params["base_url"], expires_at=expires, binding_revision=revision)
+
+
+@_managed_method("session.bind_managed_model")
+def _bind_managed_model(params, sid, session, peer):
+    binding = _binding(params, sid)
     get_registry().bind(binding, session, peer)
-    return {"bound": True, "model_id": binding.model_id, "binding_revision": revision}
+    from .managed_session import apply_bound_selection
+    apply_bound_selection(sid, session)
+    return {"bound": True, "model_id": binding.model_id, "binding_revision": binding.binding_revision}
+
+
+@_managed_method("session.renew_managed_model")
+def _renew_managed_model(params, sid, session, peer):
+    binding = _binding(params, sid)
+    get_registry().renew(binding, session, peer)
+    return {"bound": True, "model_id": binding.model_id, "binding_revision": binding.binding_revision}
 
 
 @_managed_method("session.clear_managed_model")

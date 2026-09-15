@@ -228,13 +228,15 @@ def _billing_pending_change(result: dict) -> dict:
 
 # ── session.create / list / most_recent / facts ──────────────────────
 def _persist_branch(db, new_key: str, parent_key: str, title: str, history: list, *, source, cwd, profile_name,
-                    copy_fields=(), compensate: bool = False) -> None:
+                    copy_fields=(), compensate: bool = False, runtime_metadata: dict | None = None) -> None:
     """Branch child row + parent transcript (bounded-chunk transactions) + title. ``_branched_from`` keeps the
     row visible in list_sessions_rich() (the live parent never matches the legacy end_reason='branched'
     heuristic); NULL ``profile_name`` rows drop out of profile-keyed sidebar matching / deep links. ``compensate``
     deletes a committed row whose transcript/title failed (a durable-but-empty row would defeat the INSERT OR
     IGNORE first-prompt seed) — except on disk-full, where the delete cannot land."""
-    db.create_session(new_key, source=source, model=_resolve_model(), model_config={"_branched_from": parent_key},
+    metadata = runtime_metadata or {}
+    db.create_session(new_key, source=source, model=metadata.get("model") or _resolve_model(),
+                      model_config={"_branched_from": parent_key, **metadata},
                       parent_session_id=parent_key, cwd=cwd, profile_name=profile_name)
     try:
         # Compensation guard (#93959 review): if the transcript copy or title write fails AFTER the row
@@ -268,7 +270,8 @@ def _seed_branch_row(record: dict, key: str, parent_session_id: str, history: li
                 return
             _persist_branch(db, key, parent_session_id, _branch_title(db, parent_session_id), history,
                             source=source, cwd=record["cwd"],
-                            profile_name=(Path(profile_home).name if profile_home else None), compensate=True)
+                            profile_name=(Path(profile_home).name if profile_home else None), compensate=True,
+                            runtime_metadata=_workdir_row_model_config(record)[1])
             record["pending_title"] = None
     except Exception:
         logger.warning("seeded-branch persistence failed for %s; falling back to lazy row creation", key,
@@ -277,11 +280,25 @@ def _seed_branch_row(record: dict, key: str, parent_session_id: str, history: li
 
 def _create_overrides(params: dict) -> tuple:
     """PER-SESSION (model, reasoning, service_tier) overrides from the composer — never a global config
-    write. ``fast`` presence is the contract: omitted inherits, true pins priority, false pins normal ("")."""
+    write. ``fast`` presence is the contract: omitted inherits, true pins priority, false pins normal ("").
+
+    Also extracts managed model parameters: model_source and model_id for platform models."""
     create_model = _str_param(params, "model")
+    model_source = _str_param(params, "model_source") or None
+    model_id = _str_param(params, "model_id") or None
+    if model_source == "aino" and (not model_id or len(model_id) > 128):
+        raise ValueError("platform model_id required")
+
     model_override = None
-    if create_model:
+    managed_model_params = None
+
+    # Platform models: store model_source and model_id for lazy binding
+    if model_source == "aino" and model_id:
+        managed_model_params = {"model_source": model_source, "model_id": model_id}
+    # Traditional BYOK: store model and provider
+    elif create_model:
         model_override = {"model": create_model, "provider": _str_param(params, "provider") or None}
+
     reasoning_override = None
     if effort := _str_param(params, "reasoning_effort"):
         with contextlib.suppress(Exception):
@@ -290,7 +307,7 @@ def _create_overrides(params: dict) -> tuple:
     service_tier_override = None
     if "fast" in params:
         service_tier_override = "priority" if is_truthy_value(params.get("fast")) else ""
-    return model_override, reasoning_override, service_tier_override
+    return model_override, reasoning_override, service_tier_override, managed_model_params
 
 
 @method("session.create")
@@ -307,7 +324,12 @@ def _(rid, params: dict) -> dict:
     _enable_gateway_prompts()
     # ``profile`` (app-global remote mode): stored so the build and every turn re-bind HERMES_HOME.
     profile_home = _profile_home(profile := (params.get("profile") or "").strip() or None)
-    session_model_override, create_reasoning_override, create_service_tier_override = _create_overrides(params)
+    session_model_override, create_reasoning_override, create_service_tier_override, managed_model_params = _create_overrides(params)
+    if parent_session_id and managed_model_params is None and session_model_override is None:
+        from .managed_session import managed_metadata
+        with _session_db({"profile_home": str(profile_home) if profile_home else None}) as db:
+            parent = db.get_session(parent_session_id) if db is not None else None
+            managed_model_params = managed_metadata(_parse_model_config((parent or {}).get("model_config"), quiet=True))
     now = time.time()
     with _sessions_lock:
         _sessions[sid] = {
@@ -321,6 +343,7 @@ def _(rid, params: dict) -> dict:
             "model_override": session_model_override,
             "create_reasoning_override": create_reasoning_override,
             "create_service_tier_override": create_service_tier_override,
+            "managed_model_params": managed_model_params,
             "parent_session_id": parent_session_id, "pending_title": _str_param(params, "title") or None,
             "pending_hidden": _flag(params, "hidden"), "room_plumbing": _flag(params, "room_plumbing"),
             "follow_profile_config": _flag(params, "follow_profile_config"),
@@ -349,6 +372,7 @@ def _(rid, params: dict) -> dict:
     _schedule_session_cap_enforcement()  # trim detached idle sessions over the cap
     cwd = _sessions[sid]["cwd"]
     override = session_model_override or {}
+    from .managed_session import model_status
     return _ok(rid, {
         "session_id": sid, "stored_session_id": key, "message_count": len(history),
         "messages": _history_to_messages(history),
@@ -357,7 +381,8 @@ def _(rid, params: dict) -> dict:
                  **({"provider": override["provider"]} if override.get("provider") else {}),
                  "tools": {}, "skills": {}, "cwd": cwd, "branch": git_probe.branch(cwd),
                  "project": _project_info_for_cwd(cwd), "lazy": True, "desktop_contract": DESKTOP_BACKEND_CONTRACT,
-                 "profile_name": _response_profile_name(profile)}})
+                 "profile_name": _response_profile_name(profile),
+                 **model_status(_sessions[sid], sid)}})
 
 
 def _session_list_by_title(rid, db, title_lookup: str) -> dict:
@@ -469,6 +494,7 @@ class _Resume:
         ``overrides`` restores the stored model/provider/reasoning/tier so the deferred build matches eager."""
         if overrides is not None:
             extra.update(model_override=overrides.get("model_override"), resume_runtime_overrides=overrides or None)
+            extra["managed_model_params"] = overrides.get("managed_model_params")
         return _deferred_session_record(
             self.target, cols=self.cols, cwd=cwd, history=history, lease=None, source=source,
             close_on_disconnect=_flag(self.params, "close_on_disconnect"),
@@ -485,8 +511,10 @@ class _Resume:
         return sanitize_replay_history(raw), display, raw
 
     def info(self, cwd: str, overrides: dict) -> dict:
-        return _lazy_resume_info(cwd, model=(overrides.get("model_override") or {}).get("model") or "",
-                                 provider=overrides.get("provider_override") or "", profile=self.profile)
+        from .managed_session import model_status
+        return {**_lazy_resume_info(cwd, model=(overrides.get("model_override") or {}).get("model") or "",
+                                  provider=overrides.get("provider_override") or "", profile=self.profile),
+                **model_status(overrides)}
 
     def child_history(self, repair: bool) -> list:
         """The child's OWN conversation (no ancestors), row ids included."""
@@ -679,7 +707,8 @@ def _resume_lazy(ctx: _Resume) -> dict:
         history = ctx.child_history(repair=True)
     except Exception as e:
         return _err(ctx.rid, 5000, f"resume failed: {e}")
-    record = ctx.record(source, cwd, history, lazy=True, todo_state=_todo_state_from_history(history))
+    overrides = _stored_session_runtime_overrides(ctx.found)
+    record = ctx.record(source, cwd, history, overrides, lazy=True, todo_state=_todo_state_from_history(history))
     if (reused := ctx.claim(sid, record)) is not None:
         return reused
     # A child mid-run emits no session events — liveness comes from the relay registry.
@@ -691,7 +720,7 @@ def _resume_lazy(ctx: _Resume) -> dict:
         display = ctx.child_history(repair=False)
     except Exception:
         logger.debug("child-watch display projection read failed", exc_info=True)
-    return _resume_response(ctx, sid, record, info=_lazy_resume_info(cwd, profile=ctx.profile), display=display,
+    return _resume_response(ctx, sid, record, info=ctx.info(cwd, overrides), display=display,
                             count_source=display, running=running, status="streaming" if running else "idle")
 
 
@@ -734,6 +763,8 @@ def _resume_cold(ctx: _Resume) -> dict:
 
 def _resume_eager(ctx: _Resume) -> dict:
     """Synchronous build OUTSIDE _session_resume_lock (it would stall session.close), then double-checked."""
+    if _stored_session_runtime_overrides(ctx.found).get("managed_model_params"):
+        return _resume_cold(ctx)
     sid, source, _cwd = ctx.mint()
     with _profile_build_scope(ctx.profile_home):
         try:
@@ -1860,6 +1891,15 @@ def _build_branch_agent(session: dict, new_sid: str, new_key: str, history: list
     """Build + register the branched agent in the parent's profile; the DEDICATED db handle is ours until
     ``_transfer_db_to_agent`` (released here on failure)."""
     parent_home = session.get("profile_home")
+    from .managed_session import managed_metadata
+    if managed := managed_metadata(session.get("managed_model_params")):
+        record = _deferred_session_record(new_key, cols=session.get("cols", 80), cwd=_session_cwd(session),
+            history=list(history), lease=None, source=source, profile_home=parent_home,
+            explicit_cwd=bool(session.get("explicit_cwd")), managed_model_params=managed)
+        with _sessions_lock:
+            _sessions[new_sid] = record
+            _register_session_cwd(record)
+        return None
     branch_db, branch_owns_db = _profile_session_db(parent_home) if parent_home else (None, False)
     try:
         with _profile_build_scope(parent_home):
@@ -1922,7 +1962,7 @@ def _(rid, params: dict, session: dict) -> dict:
             home = session.get("profile_home")
             _persist_branch(db, new_key, old_key, title, history, source=source, cwd=_session_cwd(session),
                             profile_name=Path(home).name if home else _current_profile_name(),
-                            copy_fields=_BRANCH_COPY_FIELDS)
+                            copy_fields=_BRANCH_COPY_FIELDS, runtime_metadata=_workdir_row_model_config(session)[1])
         except Exception as e:
             return _err(rid, 5008, f"branch failed: {e}")
     try:

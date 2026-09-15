@@ -120,10 +120,13 @@ def test_claim_requires_same_gateway_principal_and_live_session_identity(rig):
 
 def test_expiry_revokes_active_call_and_close_cleans_binding(rig, monkeypatch):
     import tui_gateway.managed_model_runtime as runtime
-    call, create, owner, controller, _, _ = rig
+    call, create, owner, controller, stranger, _ = rig
     sid = create()
     params, _ = prepare(call, sid, owner, controller)
     result(call(controller, "session.bind_managed_model", **params))
+    for peer, extra in ((stranger, {}), (owner, {}), (controller, {"model": "different-model"}),
+                        (controller, {"binding_revision": params["binding_revision"] + 1})):
+        assert "error" in call(peer, "session.renew_managed_model", **(params | extra))
     session = srv._sessions[sid]
     session["running"] = True
     cancelled = []

@@ -27,6 +27,9 @@ def _turn_isolation_enabled(cfg: dict | None = None) -> bool:
 
 
 def _session_uses_compute_host(session: dict, cfg: dict | None = None) -> bool:
+    # Authority is scoped to this gateway's live sockets, never serialized to a worker.
+    if session.get("managed_model_params"):
+        return False
     # Routes lazy sessions whose AIAgent was never built in-process; already-built
     # sessions keep the in-process path unless a prior isolated turn marked host ownership.
     return _turn_isolation_enabled(cfg) and (

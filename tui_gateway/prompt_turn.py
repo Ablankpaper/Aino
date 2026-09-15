@@ -85,6 +85,12 @@ def _admit_prompt_turn(
     """Ownership + liveness gate every turn source must cross; ``(images, agent)`` or None.
     Synthesized turns (auto-continue, wake-ups) call ``_run_prompt_submit`` directly — the
     bypass that once let a second backend run a duplicate turn."""
+    from .managed_session import submit_refusal
+    if reason := submit_refusal(sid, session):
+        with session["history_lock"]:
+            session["running"] = False
+        _emit("error", sid, {"message": "Platform model credentials required", "reason": reason})
+        return None
     # When the session already holds its lease this is a cheap dict check. See #94778.
     if (ownership_refusal := _ensure_active_session_slot(sid, session)) is not None:
         logger.info(
@@ -96,7 +102,7 @@ def _admit_prompt_turn(
         _emit("error", sid, {"message": str(ownership_refusal)})
         return None
     with session["history_lock"]:
-        if session.get("_closing") or (
+        if session.get("_closing") or session.get("managed_pending_switch") or (
             queued_prompt_generation is not None
             and int(session.get("_queued_prompt_generation", 0)) != queued_prompt_generation):
             session["running"] = False

@@ -508,6 +508,9 @@ def _lock_in_submit_turn(
     cut, mark the turn running + in flight.  Returns ``(err, survivor_fields)``."""
     fields = {}
     with session["history_lock"]:
+        if session.get("managed_pending_switch"):
+            return _err(rid, 4410, "Platform model credentials required",
+                        {"reason": "awaiting_managed_credentials"}), fields
         # A watch session's run lives in the PARENT turn (own running flag False); typing
         # mid-run would build a second agent racing the child on the same stored session.
         if session.get("lazy") and _child_run_active(str(session.get("session_key") or "")):
@@ -550,6 +553,9 @@ def _(rid, params: dict) -> dict:
     if err:
         return err
     hosted_task = params.get("_hosted_task")
+    from .managed_session import submit_refusal
+    if reason := submit_refusal(sid, session):
+        return _err(rid, 4410, "Platform model credentials required", {"reason": reason})
     hosted_terminal_callback = params.get("_hosted_terminal_callback")
     internal_hosted_submit = hosted_task is not None or hosted_terminal_callback is not None
     err = (
@@ -580,6 +586,8 @@ def _(rid, params: dict) -> dict:
         if (t := current_transport()) is not None:
             session["transport"] = t
             _cancel_ws_orphan_reap(sid)
+    if reason := submit_refusal(sid, session):
+        return _err(rid, 4410, "Platform model credentials required", {"reason": reason})
     # Claim the turn against a possibly-running session (busy/queued reply, else fall
     # through once ``running`` is observed False).  The provider interrupt happens after
     # history_lock is released (a non-interruptible tool may hold it); if the old turn

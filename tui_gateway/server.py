@@ -879,11 +879,21 @@ def _deferred_build_agent_kwargs(current: dict, session_db) -> dict:
     """_make_agent kwargs for a deferred (first-prompt) build. A lazy-resumed (watch) session carries the
     stored conversation id so the upgrade continues it; a cold deferred resume restores the full persisted
     runtime identity (like the eager resume's overrides splat) so the build can't drop the provider. No
-    stored runtime, or an unroutable provider → this session's picked model/effort/tier, else the default."""
+    stored runtime, or an unroutable provider → this session's picked model/effort/tier, else the default.
+
+    Managed models: stores model_source and model_id for platform models, defers binding until agent build."""
     kw = {"session_db": session_db, "context_cwd_is_launch_artifact": _context_cwd_is_launch_artifact(current),
           "platform_override": _session_source(current)}
     if resume_sid := current.get("resume_session_id"):
         kw["session_id"] = resume_sid
+
+    # Managed model params from session.create or resume
+    if managed := current.get("managed_model_params"):
+        kw["managed_model_params"] = managed
+        kw.update({k: v for k, v in (("reasoning_config_override", current.get("create_reasoning_override")),
+                                    ("service_tier_override", current.get("create_service_tier_override")))
+                   if v is not None})
+        return kw
     resume_overrides = current.get("resume_runtime_overrides")
     if isinstance(resume_overrides, dict) and resume_overrides and _overrides_have_routable_provider(resume_overrides):
         kw.update(resume_overrides)
@@ -983,6 +993,9 @@ def _start_agent_build(sid: str, session: dict) -> None:
     """Start building the real AIAgent for a TUI session, once. Deferred until the first prompt (or any
     command needing the agent) so the composer isn't blocked on tool discovery / model metadata;
     the ready/error event contract is unchanged."""
+    from .managed_session import submit_refusal
+    if submit_refusal(sid, session):
+        return
     ready = session.get("agent_ready")
     if ready is None:
         return
@@ -1064,6 +1077,10 @@ def _sess_nowait(params, rid):
 
 def _sess(params, rid):
     s, err = _sess_building(params, rid)
+    if not err:
+        from .managed_session import submit_refusal
+        if reason := submit_refusal(params.get("session_id", ""), s):
+            return s, _err(rid, 4410, "Platform model credentials required", {"reason": reason})
     return (None, err) if err else (s, _wait_agent(s, rid))
 
 
@@ -1465,6 +1482,9 @@ def _stored_session_runtime_overrides(row: dict | None) -> dict:
     if not row:
         return {}
     model_config = _parse_model_config(row.get("model_config"), quiet=True)
+    from .managed_session import managed_metadata
+    if managed := managed_metadata(model_config):
+        return {"managed_model_params": managed}
     _row_title = str(row.get("title") or "").strip()
     if (model_config.get("room_plumbing") or (row.get("hidden") and _row_title.startswith("Group:"))
             or model_config.get("follow_profile_config") or _row_title == "Bot Chat"):
@@ -1514,6 +1534,13 @@ def _runtime_model_config(agent, existing: dict | None = None) -> dict:
     attributes DELETE the key rather than skip the write: resume reads provider/endpoint from this JSON
     (model column written separately), so a stale provider would route the resumed chat to the wrong endpoint."""
     config = dict(existing or {})
+    from .managed_session import managed_metadata
+    if managed := managed_metadata(getattr(agent, "_managed_model_metadata", None)):
+        return {**{k: v for k, v in config.items() if k in (
+            "_branched_from", "room_plumbing", "follow_profile_config", "reasoning_config", "service_tier")},
+            **managed, "provider": "aino"}
+    for key in ("model_source", "platform_owner", "model_id"):
+        config.pop(key, None)
     attr = lambda k: str(getattr(agent, k, "") or "").strip()
     model, provider, base_url = attr("model"), attr("provider"), attr("base_url")
     if provider.lower() == "custom":
@@ -2058,6 +2085,9 @@ def _session_info(agent, session: dict | None = None) -> dict:
             if isinstance(session, dict) and session.get("profile_home") else _current_profile_name()),
         "capabilities": {"managed_model_binding": 1},
     }
+    from .managed_session import model_status
+    runtime_sid = next((sid for sid, record in list(_sessions.items()) if record is sess), None)
+    info.update(model_status(sess, runtime_sid))
     with contextlib.suppress(Exception):
         from hermes_cli import __version__, __release_date__
         info.update(version=__version__, release_date=__release_date__)
@@ -2188,7 +2218,10 @@ def _resolve_agent_model_runtime(model_override, provider_override) -> tuple[str
     """(model, runtime) for a new agent; a per-session override (/model switch or a resumed row's persisted
     runtime) wins over global config/env. Older rows stored the resolved provider "custom" (no named entry
     matches) — recover the identity from the persisted base_url or the rebuild fails "No LLM provider
-    configured". Persisted base_url/api_key/api_mode are honored only for the original runtime, never a fallback."""
+    configured". Persisted base_url/api_key/api_mode are honored only for the original runtime, never a fallback.
+
+    Platform leases are resolved separately, never by this ambient auth/fallback chain."""
+
     if isinstance(model_override, dict) and model_override.get("model"):
         model = str(model_override.get("model") or "")
         requested_provider = model_override.get("provider") or provider_override or None
@@ -2245,7 +2278,8 @@ def _make_agent(
     sid: str, key: str, session_id: str | None = None, session_db=None,
     model_override: dict | str | None = None, provider_override: str | None = None,
     reasoning_config_override: dict | None = None, service_tier_override: str | None = None,
-    platform_override: str | None = None, context_cwd_is_launch_artifact: bool | None = None):
+    platform_override: str | None = None, context_cwd_is_launch_artifact: bool | None = None,
+    managed_model_params: dict | None = None):
     # AC-4 test seam: dead unless armed by the isolated certify harness.
     from tui_gateway.synthetic_turn import maybe_build_synthetic_agent
     synthetic = maybe_build_synthetic_agent(session_id or key, model_override)
@@ -2262,7 +2296,9 @@ def _make_agent(
     from agent.shell_hooks import register_from_config
     register_from_config(cfg)
     system_prompt = _startup_system_prompt(cfg, session_id or key)
-    model, runtime = _resolve_agent_model_runtime(model_override, provider_override)
+    from .managed_session import managed_metadata, runtime_for_session
+    model, runtime = (runtime_for_session(sid) if managed_model_params
+                      else _resolve_agent_model_runtime(model_override, provider_override))
     _pr = _load_provider_routing()
     platform = _resolve_agent_platform(platform_override)
     ignore_rules = is_truthy_value(os.environ.get("HERMES_IGNORE_RULES"))
@@ -2283,8 +2319,11 @@ def _make_agent(
         session_db=session_db if session_db is not None else _get_db(), ephemeral_system_prompt=system_prompt or None,
         checkpoints_enabled=is_truthy_value(os.environ.get("HERMES_TUI_CHECKPOINTS")),
         pass_session_id=is_truthy_value(os.environ.get("HERMES_TUI_PASS_SESSION_ID")),
-        skip_context_files=ignore_rules, skip_memory=ignore_rules, fallback_model=_load_fallback_model(),
+        skip_context_files=ignore_rules, skip_memory=ignore_rules,
+        fallback_model=[] if managed_model_params else _load_fallback_model(),
         **_agent_cbs(sid))
+    if managed_model_params:
+        agent._managed_model_metadata = managed_metadata(managed_model_params)
     if context_cwd_is_launch_artifact is None:
         with _sessions_lock:
             context_cwd_is_launch_artifact = _context_cwd_is_launch_artifact(_sessions.get(sid))
@@ -2391,7 +2430,7 @@ def _deferred_session_record(
     close_on_disconnect: bool = False, display_history_prefix: list | None = None,
     profile_home: Path | None = None, lazy: bool = False, model_override=None,
     resume_runtime_overrides: dict | None = None, todo_state: dict | None = None,
-    explicit_cwd: bool = False) -> dict:
+    explicit_cwd: bool = False, managed_model_params: dict | None = None) -> dict:
     """A live-session record whose AIAgent is built later (lazy watch / cold resume) — _init_session's shape minus the agent."""
     now = time.time()
     return {
@@ -2404,6 +2443,7 @@ def _deferred_session_record(
         "pending_title": None,
         "profile_home": str(profile_home) if profile_home is not None else None,
         "resume_runtime_overrides": resume_runtime_overrides, "resume_session_id": session_key,
+        "managed_model_params": managed_model_params,
         "running": False, "session_key": session_key, "show_reasoning": _load_show_reasoning(),
         "slash_worker": None, "source": source, "tool_progress_mode": _load_tool_progress_mode(),
         "tool_started_at": {}, "todo_state": todo_state,
@@ -2632,10 +2672,12 @@ def _fallback_session_info(session: dict) -> dict:
     # so a client can clear a stale label instead of retaining it — the same contract `_lazy_session_info`
     # above already follows.
     cwd = _session_cwd(session)
+    from .managed_session import model_status
     return {
         "cwd": cwd, "branch": git_probe.branch(cwd), "project": _project_info_for_cwd(cwd), "lazy": True,
         "model": _resolve_model(), "skills": {}, "tools": {}, "desktop_contract": DESKTOP_BACKEND_CONTRACT,
         "capabilities": {"managed_model_binding": 1},
+        **model_status(session),
     }
 
 
