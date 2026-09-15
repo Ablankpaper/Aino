@@ -6,7 +6,12 @@ import type {
   PlatformPublicCapabilities
 } from '../shared/platform-contract'
 
-import { type PlatformClient, PlatformClientError, type PlatformProfile } from './platform-client'
+import {
+  type PlatformClient,
+  PlatformClientError,
+  type PlatformLeaseInput,
+  type PlatformProfile
+} from './platform-client'
 import type { PlatformTokenSet, PlatformTokenStore } from './platform-token-store'
 
 interface RetainedAccount {
@@ -15,6 +20,8 @@ interface RetainedAccount {
 }
 
 export interface PlatformAuth {
+  models(): ReturnType<PlatformClient['models']>
+  modelLease(input: PlatformLeaseInput): ReturnType<PlatformClient['modelLease']>
   initialize(): Promise<PlatformAccountSnapshot>
   generation(): number
   snapshot(): PlatformAccountSnapshot
@@ -289,7 +296,9 @@ export function createPlatformAuth({
   }
 
   function beginAuthentication() {
-    const previous: RetainedAccount | null = tokens && current.account ? { credentials: tokens, snapshot: current } : null
+    const previous: RetainedAccount | null =
+      tokens && current.account ? { credentials: tokens, snapshot: current } : null
+
     const expected = ++generation
     pendingSecondFactor = null
 
@@ -327,6 +336,8 @@ export function createPlatformAuth({
   }
 
   const api: PlatformAuth = {
+    models: () => authenticated(token => client.models(token), true),
+    modelLease: input => authenticated(token => client.modelLease(token, input), true),
     async initialize() {
       const expected = ++generation
       publish({ phase: 'loading', error: null })
@@ -455,10 +466,7 @@ export function createPlatformAuth({
       return withAccountProfile(token => client.updateProfile(token, name), true)
     },
     requestBindingCode(input) {
-      return authenticated(
-        token => client.requestBindingCode(token, input.phone, input.captcha_proof),
-        false
-      )
+      return authenticated(token => client.requestBindingCode(token, input.phone, input.captcha_proof), false)
     },
     async submitStepUp(input) {
       try {

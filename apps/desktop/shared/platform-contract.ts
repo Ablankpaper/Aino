@@ -57,8 +57,7 @@ export interface PhoneVerifyDTO {
 export type PlatformAuthResult = { status: 'signed_in'; snapshot: PlatformAccountSnapshot } | { status: 'requires_2fa' }
 
 export type PlatformAccountIpcResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: { code: string; retry_after?: number } }
+  { ok: true; value: T } | { ok: false; error: { code: string; retry_after?: number } }
 
 export function unwrapPlatformAccountIpc<T>(result: PlatformAccountIpcResult<T>): T {
   if (result.ok === true) {
@@ -100,12 +99,51 @@ export interface PlatformAccountBridge {
 
 export interface PlatformModel {
   id: string
+  model: string
   display_name: string
   provider_label: string
+  api_mode: 'chat_completions' | 'responses' | 'anthropic_messages'
+  state: 'available' | 'insufficient_balance' | 'quota_exhausted' | 'unavailable'
+  reason_code: string | null
+  is_default: boolean
+  context_window: number | null
+  max_output_tokens: number | null
+  capabilities: { tools: boolean; vision: boolean; reasoning: boolean }
+  billing_source: 'balance' | 'subscription'
+  pricing: PlatformModelPricing
+}
+
+export interface PlatformModelPricing {
+  currency: string
+  unit: string
+  input: string | null
+  output: string | null
+  cache_read: string | null
+  cache_write: string | null
+  effective_user_rate: string
+  detail_available: boolean
+  tiers: Array<{
+    min_tokens: number
+    max_tokens: number | null
+    label: string
+    input: string | null
+    output: string | null
+    cache_read: string | null
+    cache_write: string | null
+    cache_write_1h: string | null
+  }>
+  time_pricing: null | {
+    timezone: string
+    weekdays_only: boolean
+    periods: Array<{ start_time: string; end_time: string; multiplier: string }>
+  }
+  group_peak: null | { start: string; end: string; multiplier: string }
 }
 
 export interface PlatformModelsBridge {
-  bind(input: BindPlatformModelInput): Promise<BindPlatformModelResult>
+  owner(expectedAccountRevision: number): Promise<{ platform_origin: string; user_id: string }>
+  bind(input: BindPlatformModelInput & { session_ticket: string }): Promise<BindPlatformModelResult>
+  clear(input: { connection_id: string; profile: string; session_id: string }): Promise<void>
   list(): Promise<PlatformModel[]>
 }
 
@@ -118,8 +156,8 @@ export interface BindPlatformModelInput {
 }
 
 export type BindPlatformModelResult =
-  | { ok: true; credential_id: string; expires_at: string }
-  | { ok: false; error: { code: string; message: string } }
+  | { ok: true; ready: true; model_id: string; billing_source: 'aino'; expires_at: string }
+  | { ok: false; error: { code: string } }
 
 export interface PlatformCaptchaBridge {
   getChallenge(): Promise<{ nonce: string; issued_at: number; expires_at: number }>

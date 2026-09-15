@@ -2056,7 +2056,7 @@ def _session_info(agent, session: dict | None = None) -> dict:
         "profile_name": (
             _response_profile_name(Path(session["profile_home"]).name)
             if isinstance(session, dict) and session.get("profile_home") else _current_profile_name()),
-        "capabilities": {"managed_model_binding": True},
+        "capabilities": {"managed_model_binding": 1},
     }
     with contextlib.suppress(Exception):
         from hermes_cli import __version__, __release_date__
@@ -2381,7 +2381,7 @@ def _lazy_resume_info(cwd: str, *, model: str = "", provider: str = "", profile:
         "cwd": cwd, "branch": git_probe.branch(cwd), "project": _project_info_for_cwd(cwd),
         "model": model or _resolve_model(), "tools": {}, "skills": {}, "lazy": True,
         "desktop_contract": DESKTOP_BACKEND_CONTRACT, "profile_name": _response_profile_name(profile),
-        "capabilities": {"managed_model_binding": True},
+        "capabilities": {"managed_model_binding": 1},
         **({"provider": provider} if provider else {}),
     }
 
@@ -2635,7 +2635,7 @@ def _fallback_session_info(session: dict) -> dict:
     return {
         "cwd": cwd, "branch": git_probe.branch(cwd), "project": _project_info_for_cwd(cwd), "lazy": True,
         "model": _resolve_model(), "skills": {}, "tools": {}, "desktop_contract": DESKTOP_BACKEND_CONTRACT,
-        "capabilities": {"managed_model_binding": True},
+        "capabilities": {"managed_model_binding": 1},
     }
 
 

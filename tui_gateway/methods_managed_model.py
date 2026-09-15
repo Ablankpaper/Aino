@@ -1,90 +1,116 @@
-"""JSON-RPC handlers for session.bind_managed_model and session.clear_managed_model."""
+"""Narrow delegation from the owning chat socket to a main-process socket."""
 
-from .method_ctx import HandlerRegistry
+from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
-_registry = HandlerRegistry()
-method = _registry.method
+from pathlib import Path
+from .managed_model_runtime import (
+    ManagedBindingError, ManagedModelBinding, ManagedModelOwner, get_registry, transport_principal,
+)
+
+_handlers = {}
 
 
-@method("session.bind_managed_model")
-def _bind_managed_model(rid, params: dict) -> dict:
-    """Bind platform credentials to a session.
+def _managed_text(params, name, limit=256):
+    value = params.get(name)
+    if not isinstance(value, str) or not value or len(value) > limit:
+        raise ManagedBindingError("managed_binding_invalid")
+    return value
 
-    Validates session ownership and stores credentials in memory.
-    Response never contains secrets.
-    """
-    # Imports inside handler so they survive rebinding onto server.py namespace
-    from datetime import datetime
-    from .managed_model_runtime import ManagedModelBinding, ManagedModelOwner, get_registry
 
-    session_id = params.get("session_id", "").strip()
-    if not session_id:
-        return _err(rid, -32602, "session_id required")
+def _managed_owner(params):
+    value = params.get("owner")
+    if not isinstance(value, dict):
+        raise ManagedBindingError("managed_binding_invalid")
+    origin = _managed_text(value, "platform_origin", 2048)
+    url = urlsplit(origin)
+    if (url.scheme not in {"https", "http"} or not url.hostname or url.username or url.password
+            or url.path or url.query or url.fragment
+            or (url.scheme == "http" and url.hostname not in {"127.0.0.1", "::1", "localhost"})):
+        raise ManagedBindingError("managed_binding_invalid")
+    return ManagedModelOwner(origin, _managed_text(value, "user_id"))
 
-    # Validate session exists and caller owns it
-    # TODO: Implement actual ownership validation via transport
-    with _sessions_lock:
-        if session_id not in _sessions:
-            return _err(rid, -32602, f"session not found: {session_id}")
 
-    owner_data = params.get("owner", {})
-    owner = ManagedModelOwner(
-        platform_origin=str(owner_data.get("platform_origin", "")),
-        user_id=str(owner_data.get("user_id", ""))
-    )
+def _managed_method(name):
+    def decorate(fn):
+        def handler(rid, params):
+            from . import server as srv
+            try:
+                sid = _managed_text(params, "session_id")
+                peer = srv.current_transport()
+                if peer is None:
+                    raise ManagedBindingError("managed_binding_forbidden")
+                transport_principal(peer)
+                with srv._sessions_lock:
+                    session = srv._sessions.get(sid)
+                    if not session or session.get("_closing") or srv._session_source(session) != "desktop":
+                        raise ManagedBindingError("managed_binding_forbidden")
+                    profile = params.get("profile") or "default"
+                    if not isinstance(profile, str) or len(profile) > 256:
+                        raise ManagedBindingError("managed_binding_invalid")
+                    requested_home = srv._profile_home(None if profile == "default" else profile)
+                    from hermes_constants import get_hermes_home
+                    expected_home = Path(requested_home or get_hermes_home()).resolve()
+                    if Path(session.get("profile_home") or get_hermes_home()).resolve() != expected_home:
+                        raise ManagedBindingError("managed_binding_forbidden")
+                    return srv._ok(rid, fn(params, sid, session, peer))
+            except (ManagedBindingError, ValueError, TypeError, OverflowError, FileNotFoundError):
+                # Never echo params, credential material, URLs or raw exceptions.
+                return srv._err(rid, 4403, "managed model binding rejected",
+                            {"reason": "managed_binding_rejected"})
+        _handlers[name] = handler
+        return handler
+    return decorate
 
-    if not owner.platform_origin or not owner.user_id:
-        return _err(rid, -32602, "owner.platform_origin and owner.user_id required")
 
-    try:
-        expires_at = datetime.fromisoformat(params.get("expires_at", "").replace("Z", "+00:00"))
-    except (ValueError, AttributeError):
-        return _err(rid, -32602, "expires_at must be ISO 8601 timestamp")
+@_managed_method("session.managed_model_ticket")
+def _managed_model_ticket(params, sid, session, peer):
+    if session.get("transport") is not peer:
+        raise ManagedBindingError("managed_binding_forbidden")
+    owner, model_id = _managed_owner(params), _managed_text(params, "model_id", 128)
+    ticket = get_registry().issue(sid, session, peer, owner, model_id)
+    return {"session_ticket": ticket, "managed_model_binding": 1}
 
+
+@_managed_method("session.claim_managed_model")
+def _claim_managed_model(params, sid, session, peer):
+    revision = get_registry().claim(sid, session, peer, _managed_text(params, "session_ticket"),
+                                   _managed_owner(params), _managed_text(params, "model_id", 128))
+    return {"binding_revision": revision, "managed_model_binding": 1}
+
+
+@_managed_method("session.bind_managed_model")
+def _bind_managed_model(params, sid, session, peer):
+    owner = _managed_owner(params)
+    expires = datetime.fromisoformat(_managed_text(params, "expires_at").replace("Z", "+00:00"))
+    if expires.tzinfo is None or expires <= datetime.now(timezone.utc):
+        raise ManagedBindingError("managed_binding_expired")
+    revision = params.get("binding_revision")
+    if type(revision) is not int or revision <= 0:
+        raise ManagedBindingError("managed_binding_invalid")
+    mode = _managed_text(params, "api_mode")
+    capabilities = params.get("capabilities")
+    if (mode not in {"chat_completions", "responses", "anthropic_messages"}
+            or not isinstance(capabilities, dict) or capabilities.get("tools") is not True
+            or any(type(capabilities.get(k)) is not bool for k in ("tools", "vision", "reasoning"))
+            or _managed_text(params, "base_url", 2048) != owner.platform_origin + "/v1"):
+        raise ManagedBindingError("managed_binding_invalid")
     binding = ManagedModelBinding(
-        session_id=session_id,
-        owner=owner,
-        model_id=str(params.get("model_id", "")),
-        model=params.get("model", {}),
-        api_mode=str(params.get("api_mode", "")),
-        capabilities=params.get("capabilities", {}),
-        credential_id=str(params.get("credential_id", "")),
-        api_key=str(params.get("api_key", "")),
-        base_url=str(params.get("base_url", "")),
-        expires_at=expires_at,
-        binding_revision=int(params.get("binding_revision", 0))
-    )
-
-    registry = get_registry()
-    registry.bind(binding)
-
-    # Response contains only non-secret confirmation
-    return _ok(rid, {
-        "bound": True,
-        "model_id": binding.model_id,
-        "expires_at": binding.expires_at.isoformat()
-    })
+        session_id=sid, owner=owner, model_id=_managed_text(params, "model_id", 128),
+        model=_managed_text(params, "model", 256), api_mode=mode, capabilities=dict(capabilities),
+        credential_id=_managed_text(params, "credential_id"), api_key=_managed_text(params, "api_key", 4096),
+        base_url=params["base_url"], expires_at=expires, binding_revision=revision)
+    get_registry().bind(binding, session, peer)
+    return {"bound": True, "model_id": binding.model_id, "binding_revision": revision}
 
 
-@method("session.clear_managed_model")
-def _clear_managed_model(rid, params: dict) -> dict:
-    """Clear managed model binding for a session."""
-    from .managed_model_runtime import get_registry
-
-    session_id = params.get("session_id", "").strip()
-    if not session_id:
-        return _err(rid, -32602, "session_id required")
-
-    binding_revision = int(params.get("binding_revision", 0))
-
-    registry = get_registry()
-    cleared = registry.clear(session_id, binding_revision)
-
-    return _ok(rid, {"cleared": cleared})
+@_managed_method("session.clear_managed_model")
+def _clear_managed_model(params, sid, session, peer):
+    revision = params.get("binding_revision")
+    if type(revision) is not int or revision <= 0:
+        raise ManagedBindingError("managed_binding_invalid")
+    return {"cleared": get_registry().clear(sid, revision, peer)}
 
 
-# Publish handlers onto server.py
 def register(server):
-    """Install managed model handlers into server (matches split module pattern)."""
-    from .method_ctx import bind_module
-    bind_module(globals(), server)
+    server._methods.update(_handlers)

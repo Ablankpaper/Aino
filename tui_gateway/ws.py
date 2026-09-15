@@ -58,7 +58,6 @@ def _sanitize_ws_text(text: str) -> str:
 # Max seconds a pool-dispatched handler blocks waiting for the loop to flush a WS frame before we
 # give up waiting (the transport is NOT marked dead).
 _WS_WRITE_TIMEOUT_S = 10.0
-_WS_LOG_PAYLOAD_PREVIEW = 240
 
 # Per-token streaming frames are coalesced: buffered and flushed as a batch on a short timer instead
 # of waking the loop once per token (each wakeup competes with the agent turn for the GIL). Keep this
@@ -273,6 +272,7 @@ async def handle_ws(ws: Any, *, auth_identity: dict | None = None, subprotocol: 
             "jsonrpc": "2.0", "method": "event",
             "params": {"type": "gateway.ready", "payload": {
                 "skin": skin_payload, "change_events": True, "heartbeat": True, "replay_epoch": replay_epoch(),
+                "managed_model_binding": 1,
             }},
         })
         if ready_ok:
@@ -316,7 +316,9 @@ async def handle_ws(ws: Any, *, auth_identity: dict | None = None, subprotocol: 
                 req = json.loads(line)
             except json.JSONDecodeError as exc:
                 parse_errors += 1
-                _log.warning("ws parse error peer=%s index=%d error=%s payload=%r", peer, messages, exc, line[:_WS_LOG_PAYLOAD_PREVIEW])
+                # Malformed frames cannot be safely field-redacted and may
+                # contain credential material. Retain location/size only.
+                _log.warning("ws parse error peer=%s index=%d error=%s chars=%d", peer, messages, exc, len(line))
                 await _reply(_error(-32700, "parse error", None), "send_failed_after_parse_error",
                              "ws parse-error reply send failed peer=%s", peer)
                 continue
@@ -345,6 +347,13 @@ async def handle_ws(ws: Any, *, auth_identity: dict | None = None, subprotocol: 
     finally:
         reaped_sessions = detached_sessions = 0
         if transport is not None:
+            # Remove credentials before the first cancellable await. Transport
+            # shutdown (including ASGI task cancellation) cannot retain them.
+            from .managed_model_runtime import get_registry
+            managed = get_registry()
+            revoked = managed.detach_transport(transport)
+            if revoked:
+                await asyncio.shield(asyncio.to_thread(managed.interrupt_detached, revoked))
             server.unregister_live_transport(transport)
             # Owner-safely park browser controllers this transport registered (a same-identity reconnect may
             # deliver a terminal result for in-flight work). Offloaded: disconnect takes the controller's

@@ -45,8 +45,10 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
     }
   },
   platformModels: {
+    owner: async revision => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-models:owner', revision)),
     bind: input => ipcRenderer.invoke('aino:platform-models:bind', input),
-    list: () => ipcRenderer.invoke('aino:platform-models:list')
+    list: async () => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-models:list')),
+    clear: async input => { unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-models:clear', input)) }
   },
   getConnection: (profile, opts) => ipcRenderer.invoke('hermes:connection', profile, opts),
   // Registry-scoped backend resolution: { connectionId, profile } → descriptor.

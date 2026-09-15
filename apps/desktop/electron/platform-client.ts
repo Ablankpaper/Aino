@@ -2,9 +2,11 @@ import type {
   PhoneChallengeDTO,
   PhoneVerifyDTO,
   PlatformCaptchaProof,
+  PlatformModel,
   PlatformPublicCapabilities
 } from '../shared/platform-contract'
 
+import { parsePlatformModel } from './platform-model-contract'
 import type { PlatformTokenSet } from './platform-token-store'
 
 export const PLATFORM_PRODUCTION_ORIGIN = 'https://api.agentera.com.cn'
@@ -42,14 +44,14 @@ export interface PlatformClient {
   bindPhone(accessToken: string, input: { phone: string; challenge_id: string; code: string }): Promise<PlatformProfile>
   submitStepUp(accessToken: string, code: string): Promise<void>
   logout(refreshToken: string): Promise<void>
-  models(accessToken: string): Promise<PlatformModelDTO[]>
-  modelLease(accessToken: string, modelId: string): Promise<PlatformModelLeaseDTO>
+  models(accessToken: string): Promise<PlatformModel[]>
+  modelLease(accessToken: string, input: PlatformLeaseInput): Promise<PlatformModelLeaseDTO>
 }
 
-export interface PlatformModelDTO {
-  id: string
-  display_name: string
-  provider_label: string
+export interface PlatformLeaseInput {
+  model_id: string
+  device_id: string
+  connection_grant_id: string
 }
 
 export interface PlatformModelLeaseDTO {
@@ -57,9 +59,7 @@ export interface PlatformModelLeaseDTO {
   api_key: string
   base_url: string
   expires_at: string
-  model: PlatformModelDTO
-  api_mode: string
-  capabilities: Record<string, unknown> | {}
+  model: PlatformModel
 }
 
 function object(value: unknown): Record<string, unknown> {
@@ -213,7 +213,7 @@ export function createPlatformClient({
             ? reason
             : typeof legacyCode === 'string' && /^[A-Za-z0-9_.:-]{1,80}$/.test(legacyCode)
               ? legacyCode
-            : `http_${response.status}`
+              : `http_${response.status}`
 
         const retryHeader = response.headers.get('retry-after')
         const retry = retryHeader && /^\d+$/.test(retryHeader) ? Number(retryHeader) : undefined
@@ -416,34 +416,37 @@ export function createPlatformClient({
       await request('POST', '/auth/logout', { refresh_token: refreshToken })
     },
     async models(token) {
-      const data = await request('GET', '/models', undefined, token)
+      const data = await request('GET', '/desktop/models', undefined, token)
+
       if (!Array.isArray(data)) {
         throw new PlatformClientError('invalid_response')
       }
-      return data.map(item => {
-        const model = object(item)
-        return {
-          id: stringField(model.id),
-          display_name: stringField(model.display_name),
-          provider_label: stringField(model.provider_label)
-        }
-      })
+
+      return data.map(parsePlatformModel)
     },
-    async modelLease(token, modelId) {
-      const data = object(await request('POST', '/models/lease', { model_id: modelId }, token))
-      const model = object(data.model)
+    async modelLease(token, input) {
+      const data = object(await request('POST', '/desktop/credentials', input, token))
+      const model = parsePlatformModel(data.model)
+      const expiresAt = stringField(data.expires_at)
+      const baseUrl = stringField(data.base_url)
+
+      if (
+        model.id !== input.model_id ||
+        model.state !== 'available' ||
+        !model.capabilities.tools ||
+        !Number.isFinite(Date.parse(expiresAt)) ||
+        Date.parse(expiresAt) <= now() ||
+        baseUrl !== `${origin}/v1`
+      ) {
+        throw new PlatformClientError('invalid_response')
+      }
+
       return {
         credential_id: stringField(data.credential_id),
         api_key: stringField(data.api_key),
-        base_url: stringField(data.base_url),
-        expires_at: stringField(data.expires_at),
-        model: {
-          id: stringField(model.id),
-          display_name: stringField(model.display_name),
-          provider_label: stringField(model.provider_label)
-        },
-        api_mode: stringField(data.api_mode),
-        capabilities: typeof data.capabilities === 'object' && data.capabilities !== null ? data.capabilities : {}
+        base_url: baseUrl,
+        expires_at: expiresAt,
+        model
       }
     }
   }

@@ -1,199 +1,355 @@
-import { describe, it, expect, beforeEach } from 'vitest'
 import http from 'node:http'
 
-import type { BindPlatformModelInput, BindPlatformModelResult, PlatformModel } from '../shared/platform-contract'
-import { createPlatformRuntimeBindingController } from './platform-runtime-binding'
-import type { PlatformAuth } from './platform-auth'
+import { afterEach, expect, it } from 'vitest'
+import { WebSocketServer } from 'ws'
 
-// Stub types for the test
-interface TestLease {
-  api_key: string
-  base_url: string
-  expires_at: string
-  credential_id: string
-  model: PlatformModel
+import type { PlatformModel } from '../shared/platform-contract'
+
+import { createPlatformAuth } from './platform-auth'
+import { createPlatformClient } from './platform-client'
+import { registerPlatformIpc } from './platform-ipc'
+import { createPlatformRuntimeBindingController, openPlatformGateway } from './platform-runtime-binding'
+
+const cleanup: Array<() => void | Promise<void>> = []
+afterEach(async () => {
+  for (const stop of cleanup.splice(0).reverse()) {
+    await stop()
+  }
+})
+
+const model: PlatformModel = {
+  id: 'fixture',
+  model: 'upstream-fixture',
+  display_name: 'Fixture',
+  provider_label: 'Fixture',
+  api_mode: 'chat_completions',
+  state: 'available',
+  reason_code: null,
+  is_default: true,
+  context_window: 32000,
+  max_output_tokens: 4000,
+  capabilities: { tools: true, vision: false, reasoning: true },
+  billing_source: 'balance',
+  pricing: {
+    currency: 'USD',
+    unit: 'per_million_tokens',
+    input: '1.0',
+    output: '2.0',
+    cache_read: null,
+    cache_write: null,
+    effective_user_rate: '1',
+    detail_available: true,
+    tiers: [],
+    time_pricing: null,
+    group_peak: null
+  }
 }
 
-interface TestGateway {
-  lastTarget(): { connectionId: string; profile: string; sessionId: string }
-  lastBinding(): { api_key: string }
-}
+async function rig(options: { remote?: boolean; allow?: boolean; delayLease?: boolean } = {}) {
+  const received: Array<Record<string, unknown>> = []
+  const credentials: Record<string, unknown>[] = []
 
-interface PlatformBindingRig {
-  allowedInput: BindPlatformModelInput
-  expectedResolvedTarget: { connectionId: string; profile: string; sessionId: string }
-  testLease: TestLease
-  gateway: TestGateway
-  bind(input: BindPlatformModelInput): Promise<BindPlatformModelResult>
-  rendererEvents(): unknown[]
-}
+  let releaseLease = () => {}
 
-function createPlatformBindingRig(): PlatformBindingRig {
-  const testLease: TestLease = {
-    credential_id: 'cred_123',
-    api_key: 'sk-secret-test-key',
-    base_url: 'https://api.example.com',
-    expires_at: '2026-12-31T23:59:59Z',
-    model: {
-      id: 'model-1',
-      display_name: 'Test Model',
-      provider_label: 'Test Provider'
+  let leaseStarted = () => {}
+
+  const leaseReady = new Promise<void>(r => {
+    leaseStarted = r
+  })
+
+  let claims = 0
+  let activeRevision = 0
+  let bound: Record<string, unknown> | undefined
+  let valid = true
+  let secret = 'fixture-inference-secret'
+
+  const server = http.createServer(async (req, res) => {
+    const send = (data: unknown) => {
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ code: 0, message: 'ok', data }))
     }
-  }
 
-  const allowedInput: BindPlatformModelInput = {
-    connection_id: 'conn_test',
-    profile: 'default',
-    session_id: 'sess_allowed',
-    model_id: 'model-1',
-    expected_account_revision: 1
-  }
+    if (req.url === '/api/v1/auth/logout') {
+      return send({ success: true })
+    }
 
-  const expectedResolvedTarget = {
-    connectionId: 'conn_test',
-    profile: 'default',
-    sessionId: 'sess_allowed'
-  }
+    if (req.url === '/api/v1/auth/refresh') {
+      return send({
+        access_token: 'fixture-access',
+        refresh_token: 'fixture-refresh',
+        expires_in: 3600,
+        token_type: 'Bearer'
+      })
+    }
 
-  let lastRpcCall: { wsUrl: string; method: string; params: any } | null = null
-  const rendererEventLog: unknown[] = []
+    if (req.headers.authorization !== 'Bearer fixture-access') {
+      res.statusCode = 401
 
-  const mockAuth: PlatformAuth = {
-    initialize: async () => ({
-      revision: 1,
-      phase: 'signed_in',
-      account: { id: 'user_123', display_name: 'Test User', phone_masked: '', email: '' },
-      mode: 'development',
-      remember_state: 'session_only',
-      error: null
-    }),
-    generation: () => 1,
-    snapshot: () => ({
-      revision: 1,
-      phase: 'signed_in',
-      account: { id: 'user_123', display_name: 'Test User', phone_masked: '', email: '' },
-      mode: 'development',
-      remember_state: 'session_only',
-      error: null
-    }),
-    subscribe: () => () => {},
-    capabilities: async () => ({} as any),
-    refresh: async () => ({
-      revision: 1,
-      phase: 'signed_in',
-      account: { id: 'user_123', display_name: 'Test User', phone_masked: '', email: '', accessToken: 'access_token_test' } as any,
-      mode: 'development',
-      remember_state: 'session_only',
-      error: null
-    }),
-    retry: async () => ({} as any),
-    requestPhoneCode: async () => ({} as any),
-    verifyPhoneCode: async () => ({} as any),
-    loginExisting: async () => ({} as any),
-    completeSecondFactor: async () => ({} as any),
-    updateProfile: async () => ({} as any),
-    requestBindingCode: async () => ({} as any),
-    submitStepUp: async () => ({} as any),
-    bindPhone: async () => ({} as any),
-    logout: async () => ({} as any)
-  }
+      return send(null)
+    }
 
-  const mockClient = {
-    origin: 'https://api.test.com',
-    capabilities: async () => ({} as any),
-    profile: async () => ({} as any),
-    refresh: async () => ({} as any),
-    requestPhoneCode: async () => ({} as any),
-    verifyPhone: async () => ({} as any),
-    login: async () => ({} as any),
-    complete2FA: async () => ({} as any),
-    updateProfile: async () => ({} as any),
-    requestBindingCode: async () => ({} as any),
-    bindPhone: async () => ({} as any),
-    submitStepUp: async () => {},
-    logout: async () => {},
-    models: async () => [testLease.model],
-    modelLease: async (_token: string, _modelId: string) => ({
-      credential_id: testLease.credential_id,
-      api_key: testLease.api_key,
-      base_url: testLease.base_url,
-      expires_at: testLease.expires_at,
-      model: testLease.model,
-      api_mode: 'openai',
-      capabilities: {}
+    if (req.url === '/api/v1/user/profile') {
+      return send({ id: 17, username: 'Fixture', email: '', phone_bound: false })
+    }
+
+    if (req.url === '/api/v1/desktop/models') {
+      return send([model])
+    }
+
+    if (req.url === '/api/v1/desktop/credentials') {
+      let body = ''
+
+      for await (const chunk of req) {
+        body += chunk
+      }
+
+      credentials.push(JSON.parse(body))
+      leaseStarted()
+
+      const reply = () =>
+        send({
+          credential_id: 'lease-1',
+          api_key: secret,
+          base_url: origin + '/v1',
+          expires_at: new Date(Date.now() + 600_000).toISOString(),
+          model
+        })
+
+      if (options.delayLease) {
+        releaseLease = reply
+      } else {
+        reply()
+      }
+
+      return
+    }
+
+    res.statusCode = 404
+    send(null)
+  })
+
+  const wss = new WebSocketServer({ server })
+  wss.on('connection', (socket, req) => {
+    if (req.url !== '/api/ws?token=fixture-gateway') {
+      return socket.close(1008)
+    }
+
+    socket.on('message', raw => {
+      for (const line of raw.toString().trim().split('\n')) {
+        const req = JSON.parse(line)
+        const p = req.params
+        received.push({ method: req.method, ...p })
+        const reply = (result: unknown) => socket.send(JSON.stringify({ jsonrpc: '2.0', id: req.id, result }) + '\n')
+
+        const reject = () =>
+          socket.send(JSON.stringify({ jsonrpc: '2.0', id: req.id, error: { code: 4403, message: secret } }) + '\n')
+
+        if (req.method === 'session.claim_managed_model') {
+          if (p.session_id !== 'owned-session' || p.session_ticket !== 'owned-ticket' || p.owner.user_id !== '17') {
+            reject()
+
+            continue
+          }
+
+          reply({ managed_model_binding: 1, binding_revision: ++claims })
+        } else if (req.method === 'session.bind_managed_model') {
+          if (p.binding_revision !== claims) {
+            reject()
+
+            continue
+          }
+
+          activeRevision = p.binding_revision
+          bound = p
+          reply({ bound: true, model_id: p.model_id, binding_revision: activeRevision })
+        } else if (req.method === 'session.clear_managed_model') {
+          if (p.binding_revision === activeRevision) {
+            bound = undefined
+          }
+
+          reply({ cleared: true })
+        } else {
+          reply({})
+        }
+      }
     })
-  }
+    socket.on('close', () => {
+      bound = undefined
+    })
+  })
+  await new Promise<void>(r => server.listen(0, '127.0.0.1', r))
+  const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`
+  cleanup.push(async () => {
+    for (const socket of wss.clients) {
+      socket.terminate()
+    }
 
-  const controller = createPlatformRuntimeBindingController({
-    auth: mockAuth,
-    client: mockClient,
-    resolveConnection: async (connectionId, profile) => {
-      if (connectionId === allowedInput.connection_id && profile === allowedInput.profile) {
-        return { ws_url: 'ws://localhost:9999/gateway' }
-      }
-      return null
-    },
-    sendGatewayRpc: async (wsUrl, method, params) => {
-      lastRpcCall = { wsUrl, method, params }
-      const p = params as any
-      if (p.session_id !== allowedInput.session_id) {
-        throw new Error('Session mismatch')
-      }
+    await new Promise<void>(r => wss.close(() => r()))
+    server.closeAllConnections()
+    await new Promise<void>(r => server.close(() => r()))
+  })
+  const client = createPlatformClient({ origin, allowInsecureLoopback: true })
+
+  const auth = createPlatformAuth({
+    client,
+    now: Date.now,
+    tokenStore: {
+      load: async () => ({
+        accessToken: 'fixture-access',
+        refreshToken: 'fixture-refresh',
+        expiresAt: Date.now() + 3600_000
+      }),
+      save: async () => 'encrypted',
+      clear: async () => {}
     }
   })
 
-  const gateway: TestGateway = {
-    lastTarget: () => {
-      if (!lastRpcCall) throw new Error('No RPC call made')
-      const params = lastRpcCall.params as any
-      return {
-        connectionId: allowedInput.connection_id,
-        profile: allowedInput.profile,
-        sessionId: params.session_id
-      }
-    },
-    lastBinding: () => {
-      if (!lastRpcCall) throw new Error('No RPC call made')
-      return { api_key: (lastRpcCall.params as any).api_key }
-    }
+  expect(await auth.initialize()).toMatchObject({ phase: 'signed_in' })
+
+  const controller = createPlatformRuntimeBindingController({
+    auth,
+    origin,
+    deviceId: () => 'fixture-device',
+    confirmRemote: async () => options.allow === true,
+    resolveConnection: async () => ({
+      fingerprint: 'fixture-route',
+      host: 'fixture-host',
+      remote: options.remote === true,
+      profile: 'default',
+      isCurrent: () => valid,
+      open: () => openPlatformGateway(origin.replace('http:', 'ws:') + '/api/ws?token=fixture-gateway')
+    })
+  })
+
+  cleanup.push(() => controller.dispose())
+
+  const window = {
+    isDestroyed: () => false,
+    webContents: { isDestroyed: () => false, mainFrame: { url: 'http://127.0.0.1:5174/' }, send: () => {} }
+  }
+
+  const input = {
+    connection_id: 'fixture-connection',
+    profile: 'default',
+    session_id: 'owned-session',
+    model_id: 'fixture',
+    expected_account_revision: auth.snapshot().revision,
+    session_ticket: 'owned-ticket'
   }
 
   return {
-    allowedInput,
-    expectedResolvedTarget,
-    testLease,
-    gateway,
-    bind: input => controller.bind(input),
-    rendererEvents: () => rendererEventLog
+    auth,
+    controller,
+    window,
+    input,
+    credentials,
+    received,
+    leaseReady,
+    releaseLease: () => releaseLease(),
+    invalidate: () => {
+      valid = false
+    },
+    binding: () => bound,
+    secret
   }
 }
 
-describe('platform-runtime-binding', () => {
-  it('binds credentials to the resolved owner without returning them to the renderer', async () => {
-    const f = createPlatformBindingRig()
-    const result = await f.bind(f.allowedInput)
-
-    expect(f.gateway.lastTarget()).toEqual(f.expectedResolvedTarget)
-    expect(f.gateway.lastBinding().api_key).toBe(f.testLease.api_key)
-    expect(JSON.stringify(result)).not.toContain(f.testLease.api_key)
-    expect(f.rendererEvents()).not.toContainEqual(expect.objectContaining({ api_key: expect.anything() }))
+it('uses real auth HTTP and shared WebSocket serialization without exposing the lease in public results', async () => {
+  const f = await rig()
+  expect(await f.controller.list()).toEqual([model])
+  const response = await f.controller.bind(f.input, f.window)
+  expect(response).toMatchObject({ ok: true, ready: true, model_id: model.id, billing_source: 'aino' })
+  expect(f.credentials[0]).toMatchObject({
+    model_id: model.id,
+    device_id: 'fixture-device',
+    connection_grant_id: expect.any(String)
   })
+  expect(f.binding()).toMatchObject({
+    session_id: 'owned-session',
+    profile: 'default',
+    owner: { user_id: '17' },
+    model: model.model,
+    api_mode: model.api_mode,
+    api_key: f.secret
+  })
+  expect(JSON.stringify([response, f.auth.snapshot()])).not.toContain(f.secret)
 
-  it('rejects binding to wrong session', async () => {
-    const f = createPlatformBindingRig()
-    const wrongInput = { ...f.allowedInput, session_id: 'wrong-session-id' }
+  const renewed = await f.controller.bind(
+    { ...f.input, expected_account_revision: f.auth.snapshot().revision },
+    f.window
+  )
 
-    const result = await f.bind(wrongInput)
+  expect(renewed.ok).toBe(true)
+  expect(f.credentials[1].connection_grant_id).toBe(f.credentials[0].connection_grant_id)
+})
+
+it('does not obtain credentials for an unauthorized remote, wrong session, or stale account', async () => {
+  const remote = await rig({ remote: true })
+  expect(await remote.controller.bind(remote.input, remote.window)).toMatchObject({
+    ok: false,
+    error: { code: 'remote_not_authorized' }
+  })
+  expect(remote.credentials).toHaveLength(0)
+  const local = await rig()
+
+  for (const override of [{ session_id: 'foreign' }, { expected_account_revision: -1 }]) {
+    const result = await local.controller.bind({ ...local.input, ...override }, local.window)
     expect(result.ok).toBe(false)
-    expect((result as Extract<BindPlatformModelResult, { ok: false }>).error.code).toBeDefined()
+    expect(JSON.stringify(result)).not.toContain(local.secret)
+  }
+
+  expect(local.credentials).toHaveLength(0)
+})
+
+it.each(['logout', 'clear', 'route'] as const)('rejects a late credential response after %s', async action => {
+  const f = await rig({ delayLease: true })
+  const pending = f.controller.bind(f.input, f.window)
+  await f.leaseReady
+
+  if (action === 'logout') {
+    await f.auth.logout()
+  }
+
+  if (action === 'clear') {
+    f.controller.clear(f.input, f.window)
+  }
+
+  if (action === 'route') {
+    f.invalidate()
+  }
+
+  f.releaseLease()
+  expect((await pending).ok).toBe(false)
+  expect(f.received.some(r => r.method === 'session.bind_managed_model')).toBe(false)
+})
+
+it('keeps model IPC restricted to the registered main frame and strips extra renderer fields', async () => {
+  const f = await rig()
+  const handlers = new Map<string, (...args: any[]) => any>()
+
+  const ipc = registerPlatformIpc({
+    ipc: {
+      handle: (name, handler) => {
+        handlers.set(name, handler)
+      }
+    },
+    auth: f.auth,
+    captcha: { acquire: async () => ({}) },
+    bindingController: f.controller,
+    fromWebContents: sender => (sender === f.window.webContents ? f.window : null),
+    trustedRendererUrl: f.window.webContents.mainFrame.url
   })
 
-  it('rejects binding with stale account revision', async () => {
-    const f = createPlatformBindingRig()
-    const staleInput = { ...f.allowedInput, expected_account_revision: f.allowedInput.expected_account_revision - 1 }
-
-    const result = await f.bind(staleInput)
-    expect(result.ok).toBe(false)
-    expect((result as Extract<BindPlatformModelResult, { ok: false }>).error.code).toBe('stale_account_revision')
-  })
+  cleanup.push(() => ipc.dispose())
+  ipc.registerWindow(f.window)
+  const event = { sender: f.window.webContents, senderFrame: f.window.webContents.mainFrame }
+  const invoke = handlers.get('aino:platform-models:bind')!
+  expect(await invoke({ ...event, senderFrame: {} }, f.input)).toMatchObject({ ok: false })
+  expect(f.credentials).toHaveLength(0)
+  const result = await invoke(event, { ...f.input, api_key: 'renderer-fake-key', owner: { user_id: 'foreign' } })
+  expect(result.ok).toBe(true)
+  expect(f.binding()).toMatchObject({ owner: { user_id: '17' }, api_key: f.secret })
+  expect(JSON.stringify(result)).not.toContain(f.secret)
+  ipc.unregisterWindow(f.window)
+  expect(await invoke(event, f.input)).toMatchObject({ ok: false })
 })

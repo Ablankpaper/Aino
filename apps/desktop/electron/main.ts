@@ -277,6 +277,8 @@ import { LEGACY_OAUTH_PARTITION, resolveOauthPartition } from './oauth-partition
 import { createParentStartMarkerResolver, parentWatchdogEnv } from './parent-process-identity'
 import { registerPetOverlayIpc } from './pet-overlay-ipc'
 import { createPlatformAuth } from './platform-auth'
+import { platformBindingPrompt } from './platform-binding-prompt'
+import { resolvePlatformBindingTarget } from './platform-binding-target'
 import { createPlatformCaptcha } from './platform-captcha'
 import { createPlatformClient, resolvePlatformOrigin } from './platform-client'
 import { registerPlatformIpc } from './platform-ipc'
@@ -4856,18 +4858,24 @@ const platformCaptcha = createPlatformCaptcha({
 
 const platformBindingController = createPlatformRuntimeBindingController({
   auth: platformAuth,
-  client: platformClient,
-  resolveConnection: async (connectionId, profile) => {
-    // TODO: Wire to actual connection registry resolver
-    // For now return null (connection not found)
-    return null
-  },
-  sendGatewayRpc: async (wsUrl, method, params) => {
-    // TODO: Wire to actual gateway RPC sender
-    // For now throw error (not implemented)
-    throw new Error('Gateway RPC not wired yet')
-  }
+  origin: platformClient.origin,
+  deviceId: () => desktopInstallationId,
+  resolveConnection: (connectionId, profile) => resolvePlatformBindingTarget({
+    profile,
+    readConfiguration: () => JSON.stringify([readDesktopConnectionsRegistry(), readDesktopConnectionConfig()]),
+    readIdentity: baseUrl => {
+      const identity = _loadNativeTokens(baseUrl)
+
+      return JSON.stringify(identity ? [identity.provider, identity.userId] : null)
+    },
+    resolve: () => connectionId ? ensureRegistryBackend(connectionId, profile) : ensureBackend(profile),
+    mintTicket: mintGatewayWsTicket
+  }),
+  confirmRemote: async (window, host) =>
+    (await dialog.showMessageBox(window as BrowserWindow, platformBindingPrompt(app.getLocale(), host))).response === 1
 })
+
+app.on('will-quit', () => platformBindingController.dispose())
 
 const platformIpc = registerPlatformIpc({
   ipc: ipcMain,
@@ -8001,11 +8009,18 @@ function _loadNativeTokens(baseUrl: string): NativeTokenSet | null {
 }
 
 function _storeNativeTokens(baseUrl: string, tokens: NativeTokenSet) {
+  const previous = _loadNativeTokens(baseUrl)
+
+  if (previous?.provider !== tokens.provider || previous?.userId !== tokens.userId) {
+    platformBindingController.invalidateConnections()
+  }
+
   _nativeTokens.set(baseUrl, tokens)
   _persistNativeTokens(baseUrl, tokens)
 }
 
 function _clearNativeTokens(baseUrl: string) {
+  platformBindingController.invalidateConnections()
   _nativeTokens.delete(baseUrl)
   _persistNativeTokens(baseUrl, null)
 }
@@ -11445,6 +11460,8 @@ function sendConnectionApplied() {
 // its renderer WebSocket open and streaming as a ghost, and an edited one
 // keeps talking to the OLD endpoint until idle-reap.
 function broadcastConnectionsChanged(payload: { connectionId: string; reason: 'removed' | 'saved' | 'updated' }) {
+  platformBindingController.invalidateConnections()
+
   for (const win of BrowserWindow.getAllWindows()) {
     const { webContents } = win
 
@@ -16160,6 +16177,7 @@ ipcMain.handle('hermes:connection-config:oauth-login', async (_event, rawUrl) =>
   // window must leave it set, or the overlay's "Sign in" button starts
   // flickering again on the next retry.
   if (connected) {
+    platformBindingController.invalidateConnections()
     remoteReauthFailure = null
   }
 
@@ -16168,6 +16186,7 @@ ipcMain.handle('hermes:connection-config:oauth-login', async (_event, rawUrl) =>
 ipcMain.handle('hermes:connection-config:oauth-logout', async (_event, rawUrl) => {
   const baseUrl = normalizeRemoteBaseUrl(rawUrl)
   await clearOauthSession(baseUrl)
+  platformBindingController.invalidateConnections()
 
   // Also drop any native (RFC 8252) bearer tokens for this gateway so a
   // logout clears BOTH auth shapes.
@@ -16190,10 +16209,12 @@ ipcMain.handle('hermes:cloud:status', async () => ({
 }))
 ipcMain.handle('hermes:cloud:login', async () => {
   await openPortalLoginWindow()
+  platformBindingController.invalidateConnections()
 
   return { ok: true, signedIn: await hasLivePortalSession() }
 })
 ipcMain.handle('hermes:cloud:logout', async () => {
+  platformBindingController.invalidateConnections()
   await clearOauthSession(resolvePortalBaseUrl())
 
   return { ok: true, signedIn: await hasLivePortalSession() }

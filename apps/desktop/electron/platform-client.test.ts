@@ -24,6 +24,30 @@ afterEach(async () => {
 })
 
 describe('platform client', () => {
+  it('uses the B2 credential route and connection/device scope', async () => {
+    let observed: unknown
+
+    const origin = await serve(async (req, res) => {
+      let body = ''
+
+      for await (const chunk of req) {
+        body += chunk
+      }
+
+      observed = { path: req.url, body: JSON.parse(body) }
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ code: 'FIXTURE', message: 'stop here' }))
+    })
+
+    const client = createPlatformClient({ origin, allowInsecureLoopback: true })
+    await client
+      .modelLease('access', { device_id: 'device', connection_grant_id: 'grant', model_id: 'model' })
+      .catch(() => {})
+    expect(observed).toEqual({
+      path: '/api/v1/desktop/credentials',
+      body: { device_id: 'device', connection_grant_id: 'grant', model_id: 'model' }
+    })
+  })
   it('uses only unpackaged loopback development config and ignores it when packaged', () => {
     const read = () => JSON.stringify({ enabled: true, origin: 'http://127.0.0.1:8080' })
     expect(resolvePlatformOrigin({ isPackaged: false, readDevelopmentConfig: read })).toEqual({
@@ -72,23 +96,25 @@ describe('platform client', () => {
   it('fails closed when public settings enable conflicting captcha providers', async () => {
     const origin = await serve((_req, res) => {
       res.setHeader('content-type', 'application/json')
-      res.end(JSON.stringify({
-        code: 0,
-        message: 'ok',
-        data: {
-          desktop_api_version: 1,
-          registration_enabled: true,
-          phone_login_enabled: true,
-          phone_registration_enabled: true,
-          phone_binding_enabled: true,
-          phone_regions: ['+86'],
-          phone_code_length: 6,
-          turnstile_enabled: true,
-          turnstile_site_key: 'turnstile',
-          tencent_captcha_enabled: true,
-          tencent_captcha_app_id: 'tencent'
-        }
-      }))
+      res.end(
+        JSON.stringify({
+          code: 0,
+          message: 'ok',
+          data: {
+            desktop_api_version: 1,
+            registration_enabled: true,
+            phone_login_enabled: true,
+            phone_registration_enabled: true,
+            phone_binding_enabled: true,
+            phone_regions: ['+86'],
+            phone_code_length: 6,
+            turnstile_enabled: true,
+            turnstile_site_key: 'turnstile',
+            tencent_captcha_enabled: true,
+            tencent_captcha_app_id: 'tencent'
+          }
+        })
+      )
     })
 
     await expect(createPlatformClient({ origin, allowInsecureLoopback: true }).capabilities()).rejects.toMatchObject({
@@ -150,21 +176,25 @@ describe('platform client', () => {
       res.end(JSON.stringify({ id: 17, username: 'unwrapped', email: '' }))
     })
 
-    await expect(createPlatformClient({ origin, allowInsecureLoopback: true }).profile('access')).rejects.toMatchObject({
-      code: 'invalid_response'
-    })
+    await expect(createPlatformClient({ origin, allowInsecureLoopback: true }).profile('access')).rejects.toMatchObject(
+      {
+        code: 'invalid_response'
+      }
+    )
   })
 
   it.each([
     [{ access_token: 'access', refresh_token: 'refresh', expires_in: 0, token_type: 'Bearer' }, 'zero expiry'],
     [{ access_token: 'access', refresh_token: 'refresh', expires_in: 3600, token_type: 'Basic' }, 'non-Bearer type']
-  ])('rejects malformed token pairs: %s (%s)', async (data) => {
+  ])('rejects malformed token pairs: %s (%s)', async data => {
     const origin = await serve((_req, res) => {
       res.setHeader('content-type', 'application/json')
       res.end(JSON.stringify({ code: 0, message: 'success', data }))
     })
 
-    await expect(createPlatformClient({ origin, allowInsecureLoopback: true }).refresh('refresh')).rejects.toMatchObject({
+    await expect(
+      createPlatformClient({ origin, allowInsecureLoopback: true }).refresh('refresh')
+    ).rejects.toMatchObject({
       code: 'invalid_response'
     })
   })
@@ -176,11 +206,13 @@ describe('platform client', () => {
       res.end(JSON.stringify({ code: 403, message: 'Recent authentication required', reason: 'RECENT_AUTH_REQUIRED' }))
     })
 
-    await expect(createPlatformClient({ origin, allowInsecureLoopback: true }).profile('access')).rejects.toMatchObject({
-      code: 'RECENT_AUTH_REQUIRED',
-      authentication: false,
-      retryAfter: undefined
-    })
+    await expect(createPlatformClient({ origin, allowInsecureLoopback: true }).profile('access')).rejects.toMatchObject(
+      {
+        code: 'RECENT_AUTH_REQUIRED',
+        authentication: false,
+        retryAfter: undefined
+      }
+    )
   })
 
   it('maps API rate-limit metadata into finite safe error fields', async () => {

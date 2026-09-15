@@ -1,145 +1,352 @@
-/**
- * Platform managed model runtime binding controller.
- *
- * Securely transmits platform credentials from main process to authenticated
- * gateway connections without leaking secrets to renderer.
- */
+import { randomUUID } from 'node:crypto'
 
+import { JsonRpcGatewayClient } from '../../shared/src/json-rpc-gateway'
 import type { BindPlatformModelInput, BindPlatformModelResult, PlatformModel } from '../shared/platform-contract'
-import type { PlatformAuth } from './platform-auth'
-import type { PlatformClient } from './platform-client'
 
+import type { PlatformAuth } from './platform-auth'
+import { PlatformClientError } from './platform-client'
+
+export interface PlatformBindingTarget {
+  fingerprint: string
+  host: string
+  remote: boolean
+  profile: string
+  isCurrent(): boolean
+  open(): Promise<JsonRpcGatewayClient>
+}
+export interface PlatformBindingWindow {
+  isDestroyed(): boolean
+}
 export interface PlatformRuntimeBindingController {
-  bind(input: BindPlatformModelInput): Promise<BindPlatformModelResult>
+  owner(expectedAccountRevision: number): { platform_origin: string; user_id: string }
+  bind(
+    input: BindPlatformModelInput & { session_ticket: string },
+    window: PlatformBindingWindow
+  ): Promise<BindPlatformModelResult>
+  clear(input: { connection_id: string; profile: string; session_id: string }, window: PlatformBindingWindow): void
   list(): Promise<PlatformModel[]>
+  releaseWindow(window: PlatformBindingWindow): void
+  invalidateConnections(): void
+  dispose(): void
+}
+interface Binding {
+  target: PlatformBindingTarget
+  rpc: JsonRpcGatewayClient
+  grant: string
+  revision: number
+  session: string
+  expiry?: ReturnType<typeof setTimeout>
+}
+interface Slot {
+  intent: number
+  active?: Binding
+  pending?: Binding
 }
 
-export function createPlatformRuntimeBindingController({
-  auth,
-  client,
-  resolveConnection,
-  sendGatewayRpc
-}: {
+export function createPlatformRuntimeBindingController(options: {
   auth: PlatformAuth
-  client: PlatformClient
-  resolveConnection: (connectionId: string, profile: string) => Promise<{ ws_url: string } | null>
-  sendGatewayRpc: (wsUrl: string, method: string, params: unknown) => Promise<unknown>
+  origin: string
+  deviceId(): string
+  resolveConnection(connectionId: string, profile: string): Promise<PlatformBindingTarget>
+  confirmRemote(window: PlatformBindingWindow, host: string): Promise<boolean>
 }): PlatformRuntimeBindingController {
-  return {
-    async bind(input: BindPlatformModelInput): Promise<BindPlatformModelResult> {
-      // Validate input
-      const connectionId = String(input.connection_id || '').trim()
-      const profile = String(input.profile || '').trim()
-      const sessionId = String(input.session_id || '').trim()
-      const modelId = String(input.model_id || '').trim()
-      const expectedRevision = Number(input.expected_account_revision)
+  const { auth } = options
+  const windows = new Map<PlatformBindingWindow, Map<string, Slot>>()
+  let generation = auth.generation()
+  let disposed = false
 
-      if (!sessionId || !modelId) {
-        return { ok: false, error: { code: 'invalid_input', message: 'session_id and model_id required' } }
-      }
+  function close(binding?: Binding) {
+    if (!binding) {
+      return
+    }
 
-      // Check account state
-      const snapshot = auth.snapshot()
-      if (snapshot.phase !== 'signed_in' || !snapshot.account) {
-        return { ok: false, error: { code: 'not_authenticated', message: 'User not authenticated' } }
-      }
+    clearTimeout(binding.expiry)
+    // Socket ownership on the gateway clears both pending claims and active
+    // bindings even if the network cannot deliver a final clear RPC.
+    binding.rpc.close()
+  }
 
-      // Validate account revision
-      if (snapshot.revision !== expectedRevision) {
-        return {
-          ok: false,
-          error: { code: 'stale_account_revision', message: 'Account state has changed since request was initiated' }
-        }
-      }
+  function reset(slot: Slot) {
+    slot.intent++
+    close(slot.pending)
 
-      // Resolve connection (validate connection exists and get WS URL)
-      const connection = await resolveConnection(connectionId, profile)
-      if (!connection) {
-        return { ok: false, error: { code: 'connection_not_found', message: 'Connection not found' } }
-      }
+    if (slot.active !== slot.pending) {
+      close(slot.active)
+    }
 
-      // Fetch platform model lease (contains secrets)
-      let lease
-      try {
-        const tokens = auth.snapshot().account
-        if (!tokens) {
-          return { ok: false, error: { code: 'no_credentials', message: 'No credentials available' } }
-        }
+    slot.active = slot.pending = undefined
+  }
 
-        // Get access token from auth (this is internal, renderer never sees it)
-        const accessToken = await auth.refresh().then(s => (s.account as any)?.accessToken)
-        if (!accessToken) {
-          return { ok: false, error: { code: 'no_access_token', message: 'Failed to get access token' } }
-        }
+  function scope(input: { connection_id: string; profile: string; session_id: string }) {
+    return JSON.stringify([input.connection_id, input.profile, input.session_id])
+  }
 
-        lease = await client.modelLease(accessToken, modelId)
-      } catch (error) {
-        return {
-          ok: false,
-          error: {
-            code: typeof (error as any)?.code === 'string' ? (error as any).code : 'platform_error',
-            message: error instanceof Error ? error.message : 'Failed to fetch model lease'
-          }
-        }
-      }
-
-      // Send binding to gateway via RPC (secrets stay in main process)
-      try {
-        await sendGatewayRpc(connection.ws_url, 'session.bind_managed_model', {
-          session_id: sessionId,
-          owner: {
-            platform_origin: client.origin,
-            user_id: snapshot.account.id
-          },
-          model_id: modelId,
-          model: lease.model,
-          api_mode: lease.api_mode,
-          capabilities: lease.capabilities,
-          credential_id: lease.credential_id,
-          api_key: lease.api_key,
-          base_url: lease.base_url,
-          expires_at: lease.expires_at,
-          binding_revision: snapshot.revision
-        })
-      } catch (error) {
-        return {
-          ok: false,
-          error: {
-            code: 'gateway_error',
-            message: error instanceof Error ? error.message : 'Failed to bind model to gateway'
-          }
-        }
-      }
-
-      // Return safe result (no secrets)
-      return {
-        ok: true,
-        credential_id: lease.credential_id,
-        expires_at: lease.expires_at
-      }
-    },
-
-    async list(): Promise<PlatformModel[]> {
-      const snapshot = auth.snapshot()
-      if (snapshot.phase !== 'signed_in' || !snapshot.account) {
-        return []
-      }
-
-      try {
-        const accessToken = await auth.refresh().then(s => (s.account as any)?.accessToken)
-        if (!accessToken) {
-          return []
-        }
-
-        const models = await client.models(accessToken)
-        return models.map(m => ({
-          id: m.id,
-          display_name: m.display_name,
-          provider_label: m.provider_label
-        }))
-      } catch {
-        return []
+  function resetAll() {
+    for (const slots of windows.values()) {
+      for (const slot of slots.values()) {
+        reset(slot)
       }
     }
+
+    windows.clear()
+  }
+
+  const unsubscribe = auth.subscribe(snapshot => {
+    if (generation !== auth.generation() || snapshot.phase === 'signed_out' || snapshot.phase === 'reauth_required') {
+      generation = auth.generation()
+      resetAll()
+    }
+  })
+
+  return {
+    owner(expectedAccountRevision) {
+      const snapshot = auth.snapshot()
+
+      if (snapshot.phase !== 'signed_in' || !snapshot.account || snapshot.revision !== expectedAccountRevision) {
+        throw new Error('invalid_platform_input')
+      }
+
+      return { platform_origin: options.origin, user_id: snapshot.account.id }
+    },
+    async bind(input, window) {
+      const failure = (code: string): BindPlatformModelResult => ({ ok: false, error: { code } })
+      const snapshot = auth.snapshot()
+
+      if (!snapshot.account || snapshot.phase !== 'signed_in') {
+        return failure('not_authenticated')
+      }
+
+      if (snapshot.revision !== input.expected_account_revision) {
+        return failure('stale_account_revision')
+      }
+
+      if (
+        ![input.session_id, input.model_id, input.session_ticket].every(
+          s => typeof s === 'string' && s.length > 0 && s.length <= 256
+        )
+      ) {
+        return failure('invalid_platform_input')
+      }
+
+      if (disposed || window.isDestroyed()) {
+        return failure('binding_cancelled')
+      }
+
+      const expected = auth.generation()
+      const account = snapshot.account.id
+      const slots = windows.get(window) ?? new Map<string, Slot>()
+      windows.set(window, slots)
+      const key = scope(input)
+      const slot = slots.get(key) ?? { intent: 0 }
+      slots.set(key, slot)
+      const intent = ++slot.intent
+      let binding: Binding | undefined
+      let claimedRevision = 0
+
+      const current = () =>
+        !disposed &&
+        !window.isDestroyed() &&
+        slot.intent === intent &&
+        auth.generation() === expected &&
+        auth.snapshot().account?.id === account &&
+        auth.snapshot().phase !== 'reauth_required' &&
+        (!binding || binding.target.isCurrent())
+
+      const check = () => {
+        if (!current()) {
+          throw new Error('binding_cancelled')
+        }
+      }
+
+      try {
+        const target = await options.resolveConnection(input.connection_id, input.profile)
+        check()
+
+        if (!target.isCurrent()) {
+          throw new Error('binding_cancelled')
+        }
+
+        if (slot.active?.target.fingerprint === target.fingerprint && slot.active.rpc.connectionState === 'open') {
+          binding = slot.active
+        } else {
+          if (target.remote && !(await options.confirmRemote(window, target.host))) {
+            return failure('remote_not_authorized')
+          }
+
+          check()
+
+          if (!target.isCurrent()) {
+            throw new Error('binding_cancelled')
+          }
+
+          const rpc = await target.open()
+          binding = { target, rpc, grant: randomUUID(), revision: 0, session: input.session_id }
+
+          if (!current()) {
+            close(binding)
+            throw new Error('binding_cancelled')
+          }
+        }
+
+        slot.pending = binding
+        const owner = { platform_origin: options.origin, user_id: account }
+        const params = { session_id: input.session_id, profile: target.profile, owner, model_id: input.model_id }
+
+        // Capability and live session authorization are proven BEFORE obtaining
+        // the inference secret. Older gateways fail here without receiving a Key.
+        const claim = await binding.rpc.request<{ managed_model_binding?: number; binding_revision?: number }>(
+          'session.claim_managed_model',
+          { ...params, session_ticket: input.session_ticket }
+        )
+
+        check()
+
+        if (
+          claim.managed_model_binding !== 1 ||
+          !Number.isSafeInteger(claim.binding_revision) ||
+          claim.binding_revision! <= 0
+        ) {
+          throw new Error('unsupported_gateway')
+        }
+
+        claimedRevision = claim.binding_revision!
+
+        const lease = await auth.modelLease({
+          model_id: input.model_id,
+          device_id: options.deviceId(),
+          connection_grant_id: binding.grant
+        })
+
+        check()
+
+        const result = await binding.rpc.request<{ bound?: boolean; model_id?: string; binding_revision?: number }>(
+          'session.bind_managed_model',
+          {
+            ...params,
+            binding_revision: claimedRevision,
+            model: lease.model.model,
+            api_mode: lease.model.api_mode,
+            capabilities: lease.model.capabilities,
+            credential_id: lease.credential_id,
+            api_key: lease.api_key,
+            base_url: lease.base_url,
+            expires_at: lease.expires_at
+          }
+        )
+
+        check()
+
+        if (!result.bound || result.model_id !== input.model_id || result.binding_revision !== claimedRevision) {
+          throw new Error('invalid_binding_response')
+        }
+
+        if (slot.active !== binding) {
+          close(slot.active)
+        }
+
+        binding.revision = claimedRevision
+        clearTimeout(binding.expiry)
+        const retained = binding
+        binding.expiry = setTimeout(
+          () => {
+            if (slot.active === retained) {
+              reset(slot)
+              slots.delete(key)
+            }
+          },
+          Math.max(0, Date.parse(lease.expires_at) - Date.now())
+        )
+        binding.expiry.unref?.()
+        slot.active = binding
+        slot.pending = undefined
+
+        return { ok: true, ready: true, model_id: input.model_id, billing_source: 'aino', expires_at: lease.expires_at }
+      } catch (error) {
+        if (binding && claimedRevision) {
+          // A late response must only clear its own revision, never a newer bind.
+          await binding.rpc
+            .request(
+              'session.clear_managed_model',
+              {
+                session_id: input.session_id,
+                profile: binding.target.profile,
+                binding_revision: claimedRevision
+              },
+              2000
+            )
+            .catch(() => undefined)
+        }
+
+        if (binding && slot.active !== binding && slot.pending !== binding) {
+          close(binding)
+        }
+
+        if (slot.intent === intent) {
+          if (binding !== slot.active) {
+            close(binding)
+          }
+
+          slot.pending = undefined
+        }
+
+        const codes = new Set(['binding_cancelled', 'unsupported_gateway', 'invalid_binding_response'])
+
+        const code =
+          error instanceof PlatformClientError
+            ? error.code
+            : error instanceof Error && codes.has(error.message)
+              ? error.message
+              : 'gateway_binding_failed'
+
+        return failure(code)
+      }
+    },
+    list: () => auth.models(),
+    clear(input, window) {
+      const slots = windows.get(window)
+      const key = scope(input)
+      const slot = slots?.get(key)
+
+      if (slot) {
+        reset(slot)
+        slots?.delete(key)
+      }
+    },
+    releaseWindow(window) {
+      for (const slot of windows.get(window)?.values() ?? []) {
+        reset(slot)
+      }
+
+      windows.delete(window)
+    },
+    invalidateConnections: resetAll,
+    dispose() {
+      disposed = true
+      unsubscribe()
+      resetAll()
+    }
+  }
+}
+
+/** Auth headers are supplied only by the main-process connection resolver. */
+export async function openPlatformGateway(wsUrl: string, headers: Record<string, string> = {}) {
+  const rpc = new JsonRpcGatewayClient({
+    connectTimeoutMs: 10_000,
+    requestTimeoutMs: 10_000,
+    socketFactory: url =>
+      new (
+        WebSocket as unknown as {
+          new (url: string, options: { headers: Record<string, string> }): WebSocket
+        }
+      )(url, { headers })
+  })
+
+  try {
+    await rpc.connect(wsUrl)
+
+    return rpc
+  } catch (error) {
+    rpc.close()
+    throw error
   }
 }

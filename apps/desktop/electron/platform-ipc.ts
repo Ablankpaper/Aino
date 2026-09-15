@@ -1,9 +1,8 @@
 import type {
+  BindPlatformModelResult,
   PlatformAccountIpcResult,
   PlatformAccountSnapshot,
   PlatformCaptchaProof,
-  BindPlatformModelInput,
-  BindPlatformModelResult,
   PlatformModel
 } from '../shared/platform-contract'
 
@@ -253,34 +252,63 @@ export function registerPlatformIpc({
 
   // Platform models binding IPC handlers
   if (bindingController) {
-    ipc.handle('aino:platform-models:bind', async (event, input) => {
+    ipc.handle('aino:platform-models:owner', (event, revision) => {
       try {
         authorize(event)
+
+        return { ok: true, value: bindingController.owner(revision) }
+      } catch (error) {
+        return { ok: false, error: safeIpcError(error) }
+      }
+    })
+    ipc.handle('aino:platform-models:bind', async (event, input) => {
+      try {
+        const win = authorize(event)
         const value = record(input)
 
-        const bindInput: BindPlatformModelInput = {
+        const bindInput = {
           connection_id: boundedString(value, 'connection_id', 256),
           profile: boundedString(value, 'profile', 256),
           session_id: field(value, 'session_id', 256),
           model_id: field(value, 'model_id', 256),
-          expected_account_revision: typeof value.expected_account_revision === 'number'
-            ? value.expected_account_revision
-            : 0
+          session_ticket: field(value, 'session_ticket', 256),
+          expected_account_revision:
+            typeof value.expected_account_revision === 'number' ? value.expected_account_revision : 0
         }
 
-        return await bindingController.bind(bindInput)
+        return await bindingController.bind(bindInput, win)
       } catch (error) {
         const ipcError = safeIpcError(error)
-        return { ok: false, error: { code: ipcError.code, message: error instanceof Error ? error.message : String(error) } } satisfies BindPlatformModelResult
+
+        return { ok: false, error: { code: ipcError.code } } satisfies BindPlatformModelResult
       }
     })
 
     ipc.handle('aino:platform-models:list', async event => {
       try {
         authorize(event)
-        return await bindingController.list()
+
+        return { ok: true, value: await bindingController.list() } satisfies PlatformAccountIpcResult<PlatformModel[]>
       } catch (error) {
-        return [] as PlatformModel[]
+        return { ok: false, error: safeIpcError(error) } satisfies PlatformAccountIpcResult<PlatformModel[]>
+      }
+    })
+    ipc.handle('aino:platform-models:clear', (event, input) => {
+      try {
+        const win = authorize(event)
+        const value = record(input)
+        bindingController.clear(
+          {
+            connection_id: boundedString(value, 'connection_id', 256),
+            profile: boundedString(value, 'profile', 256),
+            session_id: field(value, 'session_id', 256)
+          },
+          win
+        )
+
+        return { ok: true, value: null }
+      } catch (error) {
+        return { ok: false, error: safeIpcError(error) }
       }
     })
   }
@@ -306,6 +334,7 @@ export function registerPlatformIpc({
   })
 
   function unregisterWindow(win: WindowLike) {
+    bindingController?.releaseWindow(win)
     windows.delete(win)
   }
 
@@ -316,6 +345,7 @@ export function registerPlatformIpc({
     },
     unregisterWindow,
     dispose() {
+      bindingController?.dispose()
       unsubscribe()
       windows.clear()
 
@@ -326,6 +356,8 @@ export function registerPlatformIpc({
       if (bindingController) {
         ipc.removeHandler?.('aino:platform-models:bind')
         ipc.removeHandler?.('aino:platform-models:list')
+        ipc.removeHandler?.('aino:platform-models:clear')
+        ipc.removeHandler?.('aino:platform-models:owner')
       }
     }
   }
