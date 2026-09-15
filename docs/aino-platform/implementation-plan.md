@@ -1,6 +1,6 @@
 # Aino 平台一体化实施总计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. 2026-09-15 最新安排：Codex 已补齐并交付 B3，用户随后交给 Claude 完成 B4–B6、C、D；入口见 [B3 后续交接](../implementation/aino-platform-claude-handoff.md)。保留双方已有提交，实际进度以 `docs/implementation/aino-platform-progress.md` 为准。执行环境没有该技能时，仍按本文件逐项实现、测试、记录，不以技能缺失阻塞。
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. 2026-09-15 最新安排：Codex 补齐 B4，用户随后交给 Claude 完成 B5–B6、C、D；入口见 [B4 后续交接](../implementation/aino-platform-claude-handoff.md)。保留双方已有提交，实际进度以 `docs/implementation/aino-platform-progress.md` 为准。执行环境没有该技能时，仍按本文件逐项实现、测试、记录，不以技能缺失阻塞。
 
 **Goal:** 让 Aino 使用真实手机号统一登录，登录后可选择平台内置模型并查看余额、充值和消费，同时保留原有自定义模型与 Agent 功能。
 

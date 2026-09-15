@@ -6,9 +6,9 @@
 
 ## 2026-09-15 续作核验
 
-最新安排：Codex 已补齐并提交 B3，后续由用户转交 Claude 完成 B4–B6、C、D。执行入口为 [Claude 交接清单](aino-platform-claude-handoff.md)。下表区分已有代码、实际自动测试和真实服务联调；后文历史记录不能替代验收证据。
+最新安排：Codex 已补齐并提交 B4，后续由用户转交 Claude 完成 B5–B6、C、D。执行入口为 [Claude 交接清单](aino-platform-claude-handoff.md)。下表区分已有代码、实际自动测试和真实服务联调；后文历史记录不能替代验收证据。
 
-当前配对：Aino B3 修复 `3b4d5d9e3f`（保留 Claude `b2afb18c5f`）；Aino-API `9de47dab1`。均为本地特性分支，未推送/合并/部署。
+当前配对：Aino B4 `f46af0c914`（保留 B3 及 Claude 的 B4 草稿并补齐）；Aino-API `9de47dab1`。交接文档提交位于 B4 之后。均为本地特性分支，未推送/合并/部署。
 
 | 阶段 | 代码状态 | 本轮验证 | 真实服务联调 |
 | --- | --- | --- | --- |
@@ -19,7 +19,8 @@
 | B1 目录与权限 | Claude 本地提交 `b180a8519` | 目录相关 Go/站点测试；B2 验收中重跑真实目录集成通过 | 未进行 |
 | B2 推理凭据 | Codex 补全并提交 `9de47dab1` | Ent/Wire 可离线生成且无漂移；9 项 B2 顶层真实 PG/Redis/HTTP 场景通过，含 B1/PhoneFlow 的 24 项组合通过；构建、相关 unit/UI 测试和新增代码 lint 通过 | 未进行 |
 | B3 可信会话绑定 | Codex 补齐并提交 `3b4d5d9e3f` | 网关 1,090 项、Electron 相关 440 项、账户/入口 UI 16 项、共享 RPC 19 项、类型检查和构建通过；最后局部修正另有定向复验，详见 B3 记录 | 未进行 |
-| B4–B6 Agent 运行时与模型 UI | 尚未实施 | 未运行 | 未进行 |
+| B4 Agent 运行时 | Codex 补齐并提交 `f46af0c914` | 125 文件/1,111 项网关及 provider 回归、平台相关 Electron 73 项、类型检查、相关 lint、构建通过；12 项真实 Agent 场景包含三协议工具往返、续租、恢复、取消、切换与 profile | 未进行 |
+| B5 辅助调用费用；B6 模型 UI | 尚未实施 | 未运行 | 未进行 |
 | C 钱包、充值、对账 | 未开始 | 未运行 | 未进行 |
 | D 完整交付 | 未开始 | 未运行 | 未进行 |
 
@@ -46,7 +47,24 @@
 
 已实现主进程真实鉴权请求、B1/B2 路由/DTO、已有连接解析、一次性会话委托、主进程专用 WS、远程确认、revision/账户竞态控制，以及网关 session/transport/expiry 清理。异常 WS 帧的日志不再包含原文。详见 [B3 验收记录](aino-platform-b3-review.md) 和 [Claude 接续入口](aino-platform-claude-handoff.md)。
 
-一次 ASGI 测试上下文关闭等待被主动停止，已改为真实 loopback socket、事件同步和有限超时；当前真实 WS 测试通过，无原样盲目重试。整体 CI 旧问题没有在此轮重复清理；不是平台全功能验收。B4 的 Agent/provider/自动续租、B5 辅助费用来源、B6 模型 UI、C 钱包和 D 仍待完成。
+一次 ASGI 测试上下文关闭等待被主动停止，已改为真实 loopback socket、事件同步和有限超时；当前真实 WS 测试通过，无原样盲目重试。整体 CI 旧问题没有在此轮重复清理；不是平台全功能验收。当时 B4–B6/C/D 待做；B4 的最新完成状态见下一节。
+
+## B4 补齐（2026-09-15）
+
+提交：`f46af0c914`。详见 [B4 验收记录](aino-platform-b4-review.md)。
+
+已完成草稿等待凭据、真实 provider/Agent/SDK 接线、三协议流式工具往返、运行时内存认证、自动续租、四种历史恢复、公开身份持久化、分支/profile、显式平台/BYOK 切换和取消。未绑定不请求、不落空会话行；续租保持 prompt/history/tools；历史原账户与费用来源不变。沿用现有配置切换确认入口，未增加模型选择 UI。
+
+验证命令与结果：
+
+- `scripts/run_tests.sh -j 3 --file-timeout 45 --file-retries 0 tests/tui_gateway/ tests/plugins/test_aino_provider.py --tb=short --show-capture=no`：最终 125 文件、1,111 项通过、0 失败，70.3 秒。
+- provider/runtime/绑定/真实 Agent 定向组合：25 项通过，含 12 项真实 Agent 场景。
+- `npm run test:desktop:platforms -- electron/platform`：7 文件、73 项通过。
+- `npm run typecheck`、`npm run build`、本轮 Python Ruff、相关 Electron ESLint（max-warnings=0）、`git diff --check` 通过。
+
+首次网关回归为 1,109 通过、1 失败，原因为新增测试读取了已创建尚未启动的线程句柄；锁内读取修复后定向及最终回归通过。另有测试夹具最初漏等异步 RPC、漏释放真实会话 lease，均按实际生命周期修正，没有跳过测试或反复原样重跑。日志在 `/tmp/aino-b4-validation.Sl2M2D/`，不提交临时文件。
+
+本轮 API 无改动、未重复跑 Go；无新模型 UI，不重复完整 UI 套件。B5/B6/C/D 与之前记录的全量 CI 旧问题继续由 Claude 完成。跨仓库真实账本、正式模型收费/短信/支付、Windows/Linux 和真实远程连接未验收；不能宣布整个平台或“登录即聊”已经上线。
 
 ## Task 0：基线和开发现场
 
@@ -249,7 +267,7 @@
 
 新增 SQL 为 `240_desktop_model_credentials.sql` 和 `241_desktop_credential_identity_revocation.sql`，已应用于隔离测试。后续 C2/C3 迁移编号至少从 242 开始并检查占用，不能照抄原计划编号覆盖 241。
 
-下一步：B3 主进程到目标会话可信绑定，详见交接清单。
+此节为 B2 历史记录；B3/B4 已完成，下一步从 B5 继续，详见交接清单。
 
 ---
 
@@ -269,7 +287,7 @@
 
 ### 当前问题
 1. **A4本地验收已完成：** 真实短信尚未验证；一项非阻塞 sender 边界和已有测试失败留待最终阶段检查
-2. **A1–A6、B1–B3 本地完成，B4–B6、C、D待完成：** 从 B4 继续；桌面内置模型、钱包充值和最终交付仍不能宣称完成
+2. **A1–A6、B1–B4 本地完成，B5–B6、C、D待完成：** 从 B5 继续；桌面内置模型选择、辅助调用费用、钱包充值和最终交付仍不能宣称完成
 3. **进度记录更正：** 两仓库 origin 均正确；此前 Aino origin 异常是文档误记，未修改远程配置
 4. **完整 Go lint 尚未通过：** 使用 CI 对应的 `golangci-lint v2.13.2` 检出手机号相关代码 7 项问题（2 项格式、4 项静态规范、1 个未使用旧方法）。已列入最终验收的定向修复清单，未忽略或关闭检查；不影响此前已通过测试的事实，但完整质量门禁仍未完成。
 5. **完整 unit 契约测试需补齐：** 管理员设置夹具与真实仓库行为不一致、响应预期缺少新增手机号字段，3 条失败已定位；默认和真实数据库集成命令通过，不替代这项待修门禁。

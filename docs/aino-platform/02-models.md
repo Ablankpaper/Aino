@@ -193,6 +193,11 @@ it('binds credentials to the resolved owner without returning them to the render
 
 ## B4：Agent 初始化、重启恢复和真实模型协议
 
+2026-09-15：本地实现已补齐；实际代码、API 差异和测试证据见 [B4 验收记录](../implementation/aino-platform-b4-review.md)。
+草稿、三协议真实 Agent 工具往返、四类恢复、profile/branch、显式切换与自动续租已覆盖。
+`resolve_managed_runtime(..., now=...)` 使用 Unix 时间戳；新增 `managed_session.py` 承接会话运行时。
+辅助任务/并发子任务的费用继承归 B5；真实商业服务与跨仓库账本验收归 D。本地通过不代表正式服务已验收。
+
 **Files（Aino）:**
 
 - Create: `plugins/model-providers/aino/__init__.py`、`plugin.yaml`。
@@ -213,7 +218,7 @@ def persisted_managed_model_metadata(binding: ManagedModelBinding) -> dict:
 
 wire API `api_mode` 到 Agent 内部模式的单一表：`chat_completions → chat_completions`，`anthropic_messages → anthropic_messages`；`responses → 既有通用 Responses 传输需要的 codex_responses`，但 provider 必须仍是 aino，不能伪装 `openai-codex` 使用其 OAuth、专属提示词或订阅协议。若现有 generic path不能满足某模型，先走该模型已验证的 chat completions/messages入口；新协议适配另列可测试小提交，不冒称支持。
 
-- [ ] **Step 1：真实 Agent 初始化/恢复红灯。** fixture 使用临时 HERMES_HOME、真实 provider discovery、真实 `_make_agent`，API 仅指向本地协议 stub，彻底清除真实凭据环境。
+- [x] **Step 1：真实 Agent 初始化/恢复红灯。** fixture 使用临时 HERMES_HOME、真实 provider discovery、真实 `_make_agent`，API 仅指向本地协议 stub，彻底清除真实凭据环境。
 
 ```python
 def test_managed_draft_without_byok_waits_for_binding(managed_gateway):
@@ -227,11 +232,11 @@ def test_managed_draft_without_byok_waits_for_binding(managed_gateway):
 ```
 
 `managed_gateway` fixture 在该测试文件建立：实际 JSON-RPC handler＋真实 builder＋本地模型协议 server；提供上述四项操作与实际请求收集，不 stub `_make_agent`。
-- [ ] **Step 2：红灯。** `scripts/run_tests.sh tests/tui_gateway/test_managed_model_runtime.py tests/tui_gateway/test_managed_model_resume.py tests/plugins/test_aino_provider.py`。
-- [ ] **Step 3：实现先草稿后绑定。** 扩展 create/resume 可选非秘密 `model_source` 和目录 ID，平台选中后延迟构建直到有效绑定；不因无BYOK落入普通 auth fallback。existing/Bot Chat/profile-following 语义保持；API能力缺失返回可恢复“不支持平台模型绑定”，BYOK仍可用。
-- [ ] **Step 4：真实协议/恢复。** 确保 `base_url` `/v1` 只加一次，messages SDK的endpoint约定正确；支持 stream、tool_calls、tool result回传、cancel和错误码。DB保存 source/owner/model而不是Key；重启恢复同模型/同费用来源，未绑定前不请求模型。更新 profile 边界、split/background/child继承。
-- [ ] **Step 5：续租、切换、缓存不变量。** 续租保持系统提示词字节、历史和工具列表不变；受控替换api_key/客户端认证不重建prompt；旧请求返回不能换掉新选模型。发出消息后的模型切换沿用现有确认/切换动作，默认只影响当前选择范围，不写坏所有profile。
-- [ ] **Step 6：验收/提交。** 实际录到两次HTTP请求的授权和工具往返，核对history persistence无秘密；相关 provider/model/resume tests和sharedUI模型状态测试。建议分成 `refactor(gateway): isolate session model runtime resolution`（若需提取）和 `feat(agent): run managed Aino models through existing transports`。
+- [x] **Step 2：红灯。** `scripts/run_tests.sh tests/tui_gateway/test_managed_model_runtime.py tests/tui_gateway/test_managed_model_resume.py tests/plugins/test_aino_provider.py`。
+- [x] **Step 3：实现先草稿后绑定。** 扩展 create/resume 可选非秘密 `model_source` 和目录 ID，平台选中后延迟构建直到有效绑定；不因无BYOK落入普通 auth fallback。existing/Bot Chat/profile-following 语义保持；API能力缺失返回可恢复“不支持平台模型绑定”，BYOK仍可用。
+- [x] **Step 4：真实协议/恢复。** 确保 `base_url` `/v1` 只加一次，messages SDK的endpoint约定正确；支持 stream、tool_calls、tool result回传、cancel和错误码。DB保存 source/owner/model而不是Key；重启恢复同模型/同费用来源，未绑定前不请求模型。更新 profile 边界、split/background/child继承。
+- [x] **Step 5：续租、切换、缓存不变量。** 续租保持系统提示词字节、历史和工具列表不变；受控替换api_key/客户端认证不重建prompt；旧请求返回不能换掉新选模型。发出消息后的模型切换沿用现有确认/切换动作，默认只影响当前选择范围，不写坏所有profile。
+- [x] **Step 6：验收/提交。** 实际录到两次HTTP请求的授权和工具往返，核对history persistence无秘密；相关 provider/model/resume tests和sharedUI模型状态测试。建议分成 `refactor(gateway): isolate session model runtime resolution`（若需提取）和 `feat(agent): run managed Aino models through existing transports`。
 
 ## B5：辅助调用、fallback 与消费关联
 
