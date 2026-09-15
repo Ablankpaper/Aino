@@ -1,10 +1,10 @@
-# Aino 平台功能：B2 修复后交给 Claude 的任务
+# Aino 平台功能：B3 补齐后交给 Claude 的任务
 
 日期：2026-09-15。本文是接续实施指令，不代表整个平台功能已经完成。
 
 ## 可直接交给 Claude 的指令
 
-请完整阅读以下文件及其中引用的设计与 A/B/C/D 四份子计划，然后从 **B3** 开始完成剩余本地实现、测试和交付：
+请完整阅读以下文件及其中引用的设计与 A/B/C/D 四份子计划，然后从 **B4** 开始完成剩余本地实现、测试和交付：
 
 1. `/Users/zizimutou/Protect/Aino/docs/implementation/aino-platform-claude-handoff.md`（本文）
 2. `/Users/zizimutou/Protect/Aino/docs/aino-platform/implementation-plan.md`
@@ -15,9 +15,9 @@
 7. `/Users/zizimutou/Protect/Aino/docs/aino-platform/04-delivery.md`
 8. `/Users/zizimutou/Protect/Aino/docs/implementation/aino-platform-progress.md`
 
-执行前核对两仓库实际分支、最新提交和未提交改动，不覆盖任何已有工作。保留已完成的 A1–A6、B1 和本次 B2；不要从账户阶段重新实施，也不要重新解决已经完成的 Ent 下载问题。
+执行前核对两仓库实际分支、最新提交和未提交改动，不覆盖任何已有工作。保留已完成的 A1–A6、B1、B2 和本次 B3；不要从账户阶段重新实施，也不要重新解决已经完成的 Ent 下载问题。
 
-按 B3 → B4 → B5 → B6 → C1–C4 → D1–D4 逐项实施、行为测试、复核、本地小提交。当前按用户偏好串行推进，不开子智能体。验证遇到同一环境问题，在没有新证据时不要盲目循环；记录命令、失败原因和人工验收项，继续不依赖该阻塞的工作。不得用跳过、固定结果或全 mock 替代真实内部链路。
+按 B4 → B5 → B6 → C1–C4 → D1–D4 逐项实施、行为测试、复核、本地小提交。当前按用户偏好串行推进，不开子智能体。验证遇到同一环境问题，在没有新证据时不要盲目循环；记录命令、失败原因和人工验收项，继续不依赖该阻塞的工作。不得用跳过、固定结果或全 mock 替代真实内部链路。
 
 只做本地开发与隔离验收。未经用户后续明确授权，不推送、不合并 main、不部署生产、不发真实短信、不调用付费模型、不实际付款。不要读取其他 IDE/工作区寻找生产秘密。完成后更新配对 SHA、进度、交付/部署/回退文档和待人工验收清单，交回用户，由 Codex 最后查漏补缺。
 
@@ -25,14 +25,14 @@
 
 | 仓库 | 路径 | 分支 | 可核对基线 |
 | --- | --- | --- | --- |
-| Aino | `/Users/zizimutou/Protect/Aino` | `codex/aino-platform-identity-models-billing` | 代码 `d4918b51ad`；当前交接/进度文档提交在其后，启动时读取实际 HEAD |
+| Aino | `/Users/zizimutou/Protect/Aino` | `codex/aino-platform-identity-models-billing` | Claude 原 B3 `b2afb18c5f`；Codex 补齐 `3b4d5d9e3f62b7fc5811f70b4724d6c76769bdba`；文档提交在其后，启动时读取实际 HEAD |
 | Aino-API | `/Users/zizimutou/Protect/Aino-API` | 同名分支 | B1 `b180a8519`；B2 `9de47dab17de239a3735963a7339c254e34878d7` |
 
 A1–A6 已完成本地账户/短信身份/桌面安全存储/独立登录窗口接线。真实短信、人机验证、Windows/Linux 安全存储并未完成正式验收。
 
 B2 已解决代码生成、Wire、原实现编译错误、无效时间索引、事务及并发唯一性、真实撤销钩子、缓存命中后鉴权、父会话轮转/注销竞态和通用密钥编辑/秘密出口。生成物已经提交；大部分新增行来自 Ent 自动生成，不能手工删掉生成文件以缩小 diff。
 
-## B3 必须使用的实际接口
+## B4–B6 必须使用的实际接口
 
 账户 API origin 是 `https://api.agentera.com.cn`，前缀 `/api/v1`。本地测试应使用隔离 HTTP fixture，不向正式服务试错。
 
@@ -54,11 +54,29 @@ B2 已解决代码生成、Wire、原实现编译错误、无效时间索引、�
 - 托管鉴权错误是 `DESKTOP_CREDENTIAL_EXPIRED` / `DESKTOP_CREDENTIAL_REVOKED`（401）、`DESKTOP_AUTH_UNAVAILABLE`（503）、`DESKTOP_CREDENTIAL_SCOPE`（403）；签发端还会返回 B1 模型/余额/权限原因码。和上游模型自己的 401 区分，不能一律自动注销或无限重试。
 - 固定计费组不能被 fallback 改写；费用仍由原有 APIKey/分组/账本链路执行。
 
+## B3 已交付的契约与续作注意
+
+B3 代码为 `3b4d5d9e3f`。修复了原提交的取 token 错位、错误 HTTP 路由/DTO、主进程占位发送、会话归属 TODO、过期/旧请求/退出清理及秘密错误出口。复用了真实 `createPlatformAuth` 的受保护请求和 `JsonRpcGatewayClient`；不能恢复 `account.accessToken` 或全局默认 Key 的做法。
+
+1. UI 接入口是 `apps/desktop/src/api/platform-models.ts: bindPlatformModel(input, snapshot)`。它用 `requestGatewayForAgent` 在该会话已有的聊天 socket 上申请一次性授权，再调用 main bridge。B4/B6 应在创建/恢复平台草稿后、发送前接这个入口，不要直接造 ticket，也不要重新实现网络代理。
+2. `platformModels.owner(revision)` 只返回 main 确认的公开账户作用域；`bind` 比原文档多一个 `session_ticket`。顺序为 `session.managed_model_ticket → session.claim_managed_model → POST /desktop/credentials → session.bind_managed_model`。聊天 socket 与 main socket 是两条连接，不能简单把二者当作同一个 transport。
+3. ticket 60 秒、单次消费，绑定真实 live session 对象、原聊天 transport、profile/source、模型和平台 owner；main claim 的网关认证主体必须与原 transport 一致。公开 session ID 和 revision 都不是凭据。超过 ticket 有效期必须由现有会话重新申请，不能复用旧票无限重试。
+4. `binding_revision` 由 gateway 单调生成，与 `expected_account_revision` 不同。异步绑定检查账户 generation、用户、窗口意图和连接配置；旧 clear 只影响对应 revision。
+5. `ManagedModelBinding.model` 是实际模型字符串，`api_mode/capabilities` 来自 B2 的嵌套 `model` DTO；`expires_at` 已解析为带时区 datetime；`api_key` 不进入 repr。B4 从 `get_registry().get(runtime_session_id, live_session)` 获取内存绑定，不能按 model_id 当作会话 ID，也不能保存整个 binding。
+6. 更新 ticket 不移除有效的旧 lease；新 lease 验证通过后替换。同一模型/账户续租可在回合中进行，正在运行的会话不能借此切换模型或账户。**自动续租调度、Agent 客户端认证更新、历史恢复仍由 B4 实现**，保持 prompt/history/tools 不变。
+7. main 使用已有安装 UUID 作为 device_id，连接授权使用规范 UUID；同一会话的已连接可信 socket 续租复用 grant。信任只在当前账户与准确连接存活期间保留，新的远程 socket 会显示原生主机/额度确认，不持久化“永远信任”。OAuth 每次新 dial 获取新 ws-ticket；明文远程拒绝，既有 SSH 隧道允许。账户、连接、OAuth 主体改变、窗口关闭/退出会撤销本地绑定。
+8. 关闭平台会话或切回 BYOK 时，B4/B6 应调用 `platformModels.clear({connection_id,profile,session_id})` 释放 main 的连接。网关本身已在 session pop、transport disconnect、到期时移除内存绑定，取消活动调用；这些不清钱包。
+9. `platformModels.list()` 返回完整公开模型/价格/能力字段；错误通过安全 IPC envelope 抛出，不能将网络失败画成“空目录”。绑定成功返回 `{ok:true,ready:true,model_id,billing_source:'aino',expires_at}`；不返回 Key、JWT 或网关 URL。
+10. 本地 HTTP fixture 与正式 origin 隔离：main 要求 lease.base_url 等于配置的平台 origin + `/v1`。当前 Go B2 固定返回正式 base_url；D 的跨仓库本地闭环需要以受控开发配置解决，不能放宽正式来源校验或把测试请求发向生产。
+
+当前绑定后只是**凭据就绪**，Agent provider/builder 尚未消费它。不要据 B3 的 `ready:true` 宣布“登录即可聊”完成；下一项就是 B4 的无 BYOK 草稿、真实 Agent/工具流式、恢复和续租。
+
+B3 验收证据见 [B3 验收记录](aino-platform-b3-review.md)。这轮未启动 Qoder、未做付费请求、未推送/合并/部署。原生远程确认在五语言字典中实现，真正的远程 TLS/SSH/平台认证联调及 Windows/Linux 验证由 D 列表执行。
+
 ## 剩余实施顺序与完成标准
 
 | 任务 | 要做的事 | 关键验收 |
 | --- | --- | --- |
-| B3 | Electron main 用现有连接注册表和 JSON-RPC，将短期凭据绑定到准确的连接/profile/session/owner | renderer 无秘密；旧 revision/晚到响应/错误会话/账户切换不能串用；远程授权和安全传输；能力探测失败保留 BYOK |
 | B4 | 接入真实 Agent 初始化、草稿延迟构建、运行时和历史恢复；第一方 aino provider 复用已有传输 | 无 BYOK 也可绑定后开始；本地协议服务实录 stream + tool_call + tool_result；重启重绑；续租不重建 prompt/history/toolset |
 | B5 | 标题、压缩、视觉、子任务和 fallback 的费用来源继承；每次 HTTP 调用可对账 | BYOK 不暗中用平台 Key；并发/线程正确传递；过期有限重试，工具副作用和已输出回答不重放 |
 | B6 | 模型设置、输入框和空白首页共用平台/自定义模型选择 | 原功能全部保留；旧用户显式 BYOK 不覆盖；新用户按服务端默认选择；价格/能力不硬编码；四语言 |
@@ -68,7 +86,7 @@ B2 已解决代码生成、Wire、原实现编译错误、无效时间索引、�
 | C4 | 我的账户增加钱包、消费、订单、设备和充值恢复 | 关闭二维码不取消；PAID 不当 COMPLETED；账户切换清缓存；有限轮询；安全打开支付 URL |
 | D | 跨仓库隔离闭环、旧数据升级、回归、部署/回退及真实验收清单 | 登录→工具往返→真实本地账本→签名支付回调→一次入账→桌面刷新；随后 BYOK 无平台扣费 |
 
-B3–B6 是桌面“登录即可选内置模型聊天”仍然缺失的部分；当前 B1/B2 的通过不代表此用户功能已经可用。C 未实施，不能宣布充值可用。
+B4–B6 是桌面“登录即可选内置模型聊天”仍然缺失的部分；当前 B1–B3 的通过不代表此用户功能已经可用。C 未实施，不能宣布充值可用。
 
 ## 已获得的验证与不要重复踩的坑
 

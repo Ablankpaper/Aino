@@ -6,10 +6,18 @@
 
 | 仓库 | 分支 | 本次恢复基线 | 最新已核对提交 |
 | --- | --- | --- | --- |
-| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | 代码 `d4918b51ad`；本交接文档提交在其后 |
+| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | B3 修复 `3b4d5d9e3f62b7fc5811f70b4724d6c76769bdba`；本文提交在其后 |
 | Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `9de47dab17de239a3735963a7339c254e34878d7` |
 
-当前 A1–A6、B1 已完成本地实现与复核，B2 已完成本地修复、定向验收和提交；B3–B6、C1–C4 和 D1–D4 尚未完成。后续交给 Claude，按 [接续清单](aino-platform-claude-handoff.md) 从 B3 开始。两仓库沿用用户的特性分支，保留此前提交。没有推送、合并 main、部署生产或进行真实短信、付费模型和支付调用。
+当前 A1–A6、B1 已完成本地实现与复核，B2、B3 已完成本地修复、定向验收和提交；B4–B6、C1–C4 和 D1–D4 尚未完成。后续交给 Claude，按 [接续清单](aino-platform-claude-handoff.md) 从 B4 开始。两仓库沿用用户的特性分支，保留此前提交。没有推送、合并 main、部署生产或进行真实短信、付费模型和支付调用。
+
+## B3 修复交付（2026-09-15）
+
+原 B3 的 mock 测试没有覆盖实际 token/HTTP/WS 链路。现已改为 main 私有鉴权请求、受保护会话 ticket/claim/bind 和现有连接解析；用户及 OAuth 身份变化、关闭、退出、过期、旧异步请求均有清理/拒绝行为。秘密只由 main 与目标网关接收，公开响应/模型目录为字段白名单，异常 WS 原文不进入日志。
+
+网关全目录 122 文件、1,090 项通过；Electron 相关 19 文件、440 项通过；账户/绑定入口 UI 16 项及共享 RPC 19 项通过；全部桌面 typecheck、构建通过。最后 OAuth 主体/日志修正分别复验 38 项 TS、7 项 Python；相关 ESLint/Ruff 通过。具体命令与边界见 [B3 验收记录](aino-platform-b3-review.md)。
+
+B3 仅证明本地可信绑定，不证明 Agent 能用该 Key 完成真实推理。没有运行整个仓库的所有 JS/Go/Python 套件，也没有真实收费、短信、支付、远程 TLS/SSH 或新原生确认界面人工验收。
 
 ## B2 修复交付（2026-09-15）
 
@@ -53,7 +61,7 @@ Ent 下载和缺失 go.sum 已解决，原锁定版本成功生成并提交实�
 
 ## 待完成门禁
 
-1. 从 B3 开始完成可信会话绑定、真实 Agent、辅助费用来源和统一模型选择；保留已交付的 B1/B2。
+1. 从 B4 开始完成真实 Agent、辅助费用来源和统一模型选择；保留已交付的 B1/B2/B3。
 2. 完成 C1–C4 余额与报价、真实消费关联、订单持久幂等和桌面充值恢复。
 3. 修复已定位的站点/Go 契约及 lint/Python 夹具问题，运行一次最终必要回归。
 4. 执行 D1 的真实内部组件跨仓库隔离闭环及旧数据升级验证。

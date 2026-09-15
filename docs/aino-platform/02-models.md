@@ -123,6 +123,8 @@ func TestDesktopLeaseCannotOutliveRevokedParentSession(t *testing.T) {
 
 ## B3：主进程到目标会话的可信绑定
 
+2026-09-15：本地实现已由 Codex 补齐并提交 `3b4d5d9e3f`。实际契约增加所属聊天 socket 的一次性 ticket/claim 步骤，详见 [B3 记录](../implementation/aino-platform-b3-review.md) 与 [交接文档](../implementation/aino-platform-claude-handoff.md)。下方最初的接口草图以这些补充和 `shared/platform-contract.ts` 为准。远程真实联调和正式收费仍由 D 验收。
+
 **Files（Aino）:**
 
 - Create: `apps/desktop/electron/platform-runtime-binding.ts`、`platform-runtime-binding.test.ts`。
@@ -169,7 +171,7 @@ session.clear_managed_model { session_id, binding_revision }
 
 在现有gateway能力响应中新增可选 `managed_model_binding: 1`，main绑定前探测该具体能力。未支持时只禁用该连接的平台模型，不以桌面版本号猜能力，也不偷偷写配置传Key。
 
-- [ ] **Step 1：main 绑定目标与秘密出口测试。**
+- [x] **Step 1：main 绑定目标与秘密出口测试。**
 
 ```ts
 it('binds credentials to the resolved owner without returning them to the renderer', async () => {
@@ -183,11 +185,11 @@ it('binds credentials to the resolved owner without returning them to the render
 ```
 
 `createPlatformBindingRig` 在本任务测试中提供实际 binding controller＋共享 RPC client 对本地受控 WS server；只替换平台 HTTP 和 resolver 输入，不能跳过 serialization。
-- [ ] **Step 2：运行红灯。** Electron binding 测试；`scripts/run_tests.sh tests/tui_gateway/test_managed_model_binding.py`。
-- [ ] **Step 3：main 解析并认证目标。** 复用既有 registry/connection/profile mapper，不接受任意 URL；远程仅 wss 或既有 SSH 隧道。首次远程授权显示目标主机和会消耗平台额度，确认后记录账户＋准确连接身份的信任；地址、认证主体或用户变化要求重新确认。
-- [ ] **Step 4：实现 RPC 生命周期。** 使用 `JsonRpcGatewayClient` 加 main socket factory，无新通用网络代理。连接 OAuth 必须取新 WS ticket；不能从 renderer 搬一个缓存 URL 偷懒。绑定后 RPC 只返回安全模型信息；session关闭、用户登出、明确失效时清内存/取消相关调用；网络短断不清用户钱包状态。
-- [ ] **Step 5：权限、异步、持久化测试。** 错误session/profile/source、旧revision、未授权远程、未登录、明文远程、非desktop会话、弱读权限、关闭后晚到响应、另一个账户都不能绑定。用临时文件系统实际检查 session/config/log 输出无 test Key，而不是扫描源代码找字面量。
-- [ ] **Step 6：回归/提交。** local/SSH/remote auth既有测试、共享WS客户端回归、Electron/UI typecheck。建议 `feat(desktop): bind platform inference leases to owned sessions`。
+- [x] **Step 2：运行红灯。** Electron binding 测试；`scripts/run_tests.sh tests/tui_gateway/test_managed_model_binding.py`。
+- [x] **Step 3：main 解析并认证目标。** 复用既有 registry/connection/profile mapper，不接受任意 URL；远程仅 wss 或既有 SSH 隧道。首次远程授权显示目标主机和会消耗平台额度，确认后记录账户＋准确连接身份的信任；地址、认证主体或用户变化要求重新确认。
+- [x] **Step 4：实现 RPC 生命周期。** 使用 `JsonRpcGatewayClient` 加 main socket factory，无新通用网络代理。连接 OAuth 必须取新 WS ticket；不能从 renderer 搬一个缓存 URL 偷懒。绑定后 RPC 只返回安全模型信息；session关闭、用户登出、明确失效时清内存/取消相关调用；网络短断不清用户钱包状态。
+- [x] **Step 5：权限、异步、持久化测试。** 错误session/profile/source、旧revision、未授权远程、未登录、明文远程、非desktop会话、弱读权限、关闭后晚到响应、另一个账户都不能绑定。用临时文件系统实际检查 session/config/log 输出无 test Key，而不是扫描源代码找字面量。
+- [x] **Step 6：回归/提交。** local/SSH/remote auth既有测试、共享WS客户端回归、Electron/UI typecheck。建议 `feat(desktop): bind platform inference leases to owned sessions`。
 
 ## B4：Agent 初始化、重启恢复和真实模型协议
 
