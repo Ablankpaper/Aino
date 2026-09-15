@@ -6,10 +6,20 @@
 
 | 仓库 | 分支 | 本次恢复基线 | 最新已核对提交 |
 | --- | --- | --- | --- |
-| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | `6f1eb0f27d`（仅进度文档） |
-| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `f6b8849e0` |
+| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | 代码 `d4918b51ad`；本交接文档提交在其后 |
+| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `9de47dab17de239a3735963a7339c254e34878d7` |
 
-当前 A1–A6 已完成本地实现与复核，B1 正在实现；B2–B6、C1–C4 和 D1–D4 尚未完成。两仓库沿用用户的特性分支，保留此前提交。没有推送、合并 main、部署生产或进行真实短信、付费模型和支付调用。
+当前 A1–A6、B1 已完成本地实现与复核，B2 已完成本地修复、定向验收和提交；B3–B6、C1–C4 和 D1–D4 尚未完成。后续交给 Claude，按 [接续清单](aino-platform-claude-handoff.md) 从 B3 开始。两仓库沿用用户的特性分支，保留此前提交。没有推送、合并 main、部署生产或进行真实短信、付费模型和支付调用。
+
+## B2 修复交付（2026-09-15）
+
+Ent 下载和缺失 go.sum 已解决，原锁定版本成功生成并提交实体/Wire。完成原子租约、短期凭据、真实撤销接线、父会话/权限校验、普通 Key 兼容、通用密钥秘密隔离和网站托管操作限制。9 项 B2 顶层真实 PG/Redis/HTTP 测试通过；包含目录/PhoneFlow 的 24 项组合通过。相关 Go unit、站点 16 项测试、类型检查、相关 ESLint、服务/站点构建通过，新增代码 lint 0 问题；生成物二次生成一致。
+
+默认 Go 全仓第一次被新增 Google 鉴权 import 遗漏阻断；修复后全部 9 个受影响包完整默认测试通过，其余包在此前全仓运行通过。全量 lint 的 7 项旧问题、原 unit/站点/Python 待修清单仍保留。不能将此写成全量 CI 已绿。
+
+浏览器使用隔离 HTTP 数据验证 `/keys` 托管行只保留删除、普通行保留原操作，以及正确删除确认；最终页面无控制台错误。截图与日志位于 `/tmp/aino-b2-validation.Bc4bcf/`，不含真实凭据；非短信/模型/支付线上验收。准确命令、限制及后续接口见接续清单。
+
+迁移新增 240 和 241，已用于隔离测试，后续不可重写。回退到不识别托管 Key 的旧服务前必须停止签发并撤销托管 Key，或使用保留租约鉴权的兼容版本。具体发布操作单仍由 D 阶段完成。
 
 完整逐项状态以 [进度记录](aino-platform-progress.md) 为准，要求与矩阵以 [总计划](../aino-platform/implementation-plan.md) 和 [验收计划](../aino-platform/04-delivery.md) 为准。
 
@@ -43,7 +53,7 @@
 
 ## 待完成门禁
 
-1. 完成 B1–B6 内置目录、租约、可信会话绑定、真实 Agent、辅助费用来源和统一模型选择。
+1. 从 B3 开始完成可信会话绑定、真实 Agent、辅助费用来源和统一模型选择；保留已交付的 B1/B2。
 2. 完成 C1–C4 余额与报价、真实消费关联、订单持久幂等和桌面充值恢复。
 3. 修复已定位的站点/Go 契约及 lint/Python 夹具问题，运行一次最终必要回归。
 4. 执行 D1 的真实内部组件跨仓库隔离闭环及旧数据升级验证。

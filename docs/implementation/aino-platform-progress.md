@@ -6,7 +6,9 @@
 
 ## 2026-09-15 续作核验
 
-用户已改为由 Codex 继续实施，不再交由 Claude 执行。下表区分已有代码、实际自动测试和真实服务联调；后文历史记录不能替代验收证据。
+最新安排：Codex 已修复 B2，后续由用户转交 Claude 完成 B3–B6、C、D。执行入口为 [Claude 交接清单](aino-platform-claude-handoff.md)。下表区分已有代码、实际自动测试和真实服务联调；后文历史记录不能替代验收证据。
+
+当前配对：Aino 代码基线 `d4918b51ad`（本次仅更新文档）；Aino-API `9de47dab1`。均为本地特性分支，未推送/合并/部署。
 
 | 阶段 | 代码状态 | 本轮验证 | 真实服务联调 |
 | --- | --- | --- | --- |
@@ -14,7 +16,9 @@
 | A4 站点页面 | 本地实现及两轮修复均已通过独立复核，最新 `f6b8849e0` | 站点 2,133 项通过、保留 2 项已记录旧失败；最终打包修复相关 10 项通过；类型/lint/构建、Go 相关包及真实 PG/Redis 定向集成通过；桌面/窄屏页面已检查 | 未进行 |
 | A5 原生平台账户 | 本地实现与四轮定向修复已通过独立复核，最新 `b5bd648df5` | 最新 62 项定向测试、类型及相关 lint 通过；此前完整 Electron 2,223 项通过、6 项原有跳过；实际 macOS 加密保存/重启/退出和原生 IPC 已验证，其他平台单独列待验收 | 未进行 |
 | A6 桌面登录接线 | 本地实现与复核完成，`ba76603774` | 7,835 项 UI、2,237 项 Electron、类型检查、相关 lint、构建及原生隔离登录流程通过 | 未进行 |
-| B 内置模型 | B1 目录与权限实施中，B2–B6 待实施 | 尚未形成新增验收结果 | 未进行 |
+| B1 目录与权限 | Claude 本地提交 `b180a8519` | 目录相关 Go/站点测试；B2 验收中重跑真实目录集成通过 | 未进行 |
+| B2 推理凭据 | Codex 补全并提交 `9de47dab1` | Ent/Wire 可离线生成且无漂移；9 项 B2 顶层真实 PG/Redis/HTTP 场景通过，含 B1/PhoneFlow 的 24 项组合通过；构建、相关 unit/UI 测试和新增代码 lint 通过 | 未进行 |
+| B3–B6 运行时与模型 UI | 未实施 | 未运行 | 未进行 |
 | C 钱包、充值、对账 | 未开始 | 未运行 | 未进行 |
 | D 完整交付 | 未开始 | 未运行 | 未进行 |
 
@@ -184,9 +188,61 @@
 
 ## B：内置模型与运行时
 
-**状态：** B1 实施中；B2–B6 待实施
+**状态：** B1、B2 本地实现完成；B3–B6 待实施，尚不能在桌面直接使用内置模型聊天
 
-从 Aino-API 官方模型目录、权限过滤与管理员配置开始；尚未完成模型调用、扣费或桌面选择接入。
+### B1：官方模型目录与 bootstrap
+
+**状态：** 本地实现、测试与复核完成
+**提交 SHA：** `b180a8519` (Aino-API)
+
+**已实现：**
+- ✅ DesktopModelService: Bootstrap(), ListForUser(), ResolveForUser() 方法
+- ✅ DesktopSettings 配置模型与验证持久化
+- ✅ 路由: GET /api/v1/desktop/bootstrap, GET /api/v1/desktop/models
+- ✅ DesktopModelsSection.vue 管理员 UI 组件
+- ✅ 与 APIKeyService、BillingService、ModelPricingResolver、BillingCacheService 集成
+
+**已获得验收：**
+- 6 项单元测试通过：settings 默认值、round-trip、权限边界、composite routing、bootstrap 默认值、auth 要求
+- 2 项集成测试通过（PostgreSQL/Redis/JWT fixtures）：真实权限过滤和订阅、真实 channel pricing 匹配账本
+- 2 项前端测试通过：DesktopModelsSection.spec.ts
+- Backend 编译、类型检查、frontend 类型检查全部通过
+- 29 个文件改动，1,332 行新增
+
+**设计合规：**
+- 永不扩大用户权限超出实际分组权限
+- 在返回目录条目前强制执行分组模型 allowlist
+- 从现有分组费率计算定价（无独立价格表）
+- 返回适用性状态：available/insufficient_balance/quota_exhausted/unavailable 及原因码
+- 公开设置暴露 desktop_enabled 能力，不泄露私有目录
+
+### B2：用户专属推理凭据与撤销
+
+**状态：** 本地实现、定向验收和本地提交完成；无线上调用
+**提交 SHA：** `9de47dab1`（Aino-API）
+
+- 修复 Ent 下载/缺失校验和、编译与 Wire 接线；使用原锁定版本，未降级 Go 或关闭校验。生成物完整入库，二次生成哈希一致。
+- 原子创建 APIKey 和租约、用户行锁、活动作用域唯一约束；相同授权并发复用、按配置 TTL 续租、到期更换，期限不超过存活 refresh session。
+- 实际注销、revoke-all、密码/身份/禁用、设备撤销均已接线，删除 TODO。缓存命中后仍重验租约/父会话/用户/分组；普通网站 Key 保留原语义。
+- Redis 原子轮转及撤销墓碑，旧 refresh hash 可定位家族用于竞争中的退出；非空历史集合不能替代存活 token。禁用再启用后旧 JWT 换 grant 也不能复活，新登录可取得新凭据。
+- 托管 Key 明确标记；通用 DTO 隐去秘密，网站禁用复制/导出/编辑/换组/重新启用，仅保留删除；只允许列明的 `/v1` 推理/模型/用量入口，拒绝其他入口与跨组 fallback。
+- `POST /api/v1/desktop/credentials`、`GET /api/v1/desktop/devices`、`DELETE /api/v1/desktop/devices/:device_id` 使用现有 JWT 主体。设备撤销要求近期认证或既有 TOTP step-up。秘密响应 `no-store`，不进入通用幂等 response cache。
+
+**证据（2026-09-15）：**
+
+- `go test -tags=integration ./internal/repository -run 'DesktopLease|DesktopCatalog|PhoneFlow' -count=1 -timeout=180s -v`：24 项顶层场景通过，9.394 秒；实际 PostgreSQL 18.1 / Redis 8.4。
+- 补充 HTTP 并发、旧 JWT/新登录、近期认证、普通 Key 编辑断言后，`-run DesktopLease`：9 项顶层场景通过，4.854 秒。
+- 相关 `unit` 标签认证/Key/Phone/Desktop：service 及 handler/dto/admin/middleware/routes 通过；包含托管秘密 DTO 和跨计费组 fallback 合同。
+- 默认 Go 全仓运行其余包通过，新增 Google 鉴权缺少 import 导致 9 个相关包首次编译失败；修复后对这些包运行完整默认测试全部通过。未将首次失败写成全量绿，最终 D 阶段需再跑一条完整命令。
+- Go 服务构建通过；本轮改动 `golangci-lint --new-from-rev` 为 0 项。全量 lint 仍有原有 7 项手机号问题，不计为已解决。
+- 站点 KeysView + locale 16 项通过；`vue-tsc -b`、相关 ESLint、Vite 构建通过。未重复运行无改动桌面 7,835/2,237 项测试。
+- Playwright 隔离页面 `http://127.0.0.1:5197/keys`（1280×720）：托管行仅删除、普通行全部原操作；点击托管删除出现正确确认，未确认删除；最终页面无控制台错误。早期测试夹具误拦截源码导致空白，已定位并缩窄拦截。此浏览器数据为替身，不替代真实后端测试。
+
+本机日志：`/tmp/aino-b2-validation.Bc4bcf/`；截图 `.playwright-cli/page-2026-09-15T06-04-11-112Z.png` 位于该目录。临时材料未提交。
+
+新增 SQL 为 `240_desktop_model_credentials.sql` 和 `241_desktop_credential_identity_revocation.sql`，已应用于隔离测试。后续 C2/C3 迁移编号至少从 242 开始并检查占用，不能照抄原计划编号覆盖 241。
+
+下一步：B3 主进程到目标会话可信绑定，详见交接清单。
 
 ---
 
@@ -206,7 +262,7 @@
 
 ### 当前问题
 1. **A4本地验收已完成：** 真实短信尚未验证；一项非阻塞 sender 边界和已有测试失败留待最终阶段检查
-2. **A1–A6 本地实现与复核已完成，B、C、D待完成：** 从 B1 继续；内置模型、钱包充值和最终交付仍不能宣称完成
+2. **A1–A6、B1、B2 本地完成，B3–B6、C、D待完成：** 从 B3 继续；桌面内置模型、钱包充值和最终交付仍不能宣称完成
 3. **进度记录更正：** 两仓库 origin 均正确；此前 Aino origin 异常是文档误记，未修改远程配置
 4. **完整 Go lint 尚未通过：** 使用 CI 对应的 `golangci-lint v2.13.2` 检出手机号相关代码 7 项问题（2 项格式、4 项静态规范、1 个未使用旧方法）。已列入最终验收的定向修复清单，未忽略或关闭检查；不影响此前已通过测试的事实，但完整质量门禁仍未完成。
 5. **完整 unit 契约测试需补齐：** 管理员设置夹具与真实仓库行为不一致、响应预期缺少新增手机号字段，3 条失败已定位；默认和真实数据库集成命令通过，不替代这项待修门禁。
