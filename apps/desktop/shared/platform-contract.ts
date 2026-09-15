@@ -98,6 +98,29 @@ export interface PlatformAccountBridge {
   onChanged(listener: (snapshot: PlatformAccountSnapshot) => void): () => void
 }
 
+export interface PlatformModel {
+  id: string
+  display_name: string
+  provider_label: string
+}
+
+export interface PlatformModelsBridge {
+  bind(input: BindPlatformModelInput): Promise<BindPlatformModelResult>
+  list(): Promise<PlatformModel[]>
+}
+
+export interface BindPlatformModelInput {
+  connection_id: string
+  profile: string
+  session_id: string
+  model_id: string
+  expected_account_revision: number
+}
+
+export type BindPlatformModelResult =
+  | { ok: true; credential_id: string; expires_at: string }
+  | { ok: false; error: { code: string; message: string } }
+
 export interface PlatformCaptchaBridge {
   getChallenge(): Promise<{ nonce: string; issued_at: number; expires_at: number }>
   submit(input: { nonce: string; proof: PlatformCaptchaProof }): Promise<void>

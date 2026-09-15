@@ -280,6 +280,7 @@ import { createPlatformAuth } from './platform-auth'
 import { createPlatformCaptcha } from './platform-captcha'
 import { createPlatformClient, resolvePlatformOrigin } from './platform-client'
 import { registerPlatformIpc } from './platform-ipc'
+import { createPlatformRuntimeBindingController } from './platform-runtime-binding'
 import { createPlatformTokenStore } from './platform-token-store'
 import {
   pendingNotice as pendingPluginCompatNotice,
@@ -4853,6 +4854,21 @@ const platformCaptcha = createPlatformCaptcha({
   randomNonce: () => crypto.randomBytes(32).toString('base64url')
 })
 
+const platformBindingController = createPlatformRuntimeBindingController({
+  auth: platformAuth,
+  client: platformClient,
+  resolveConnection: async (connectionId, profile) => {
+    // TODO: Wire to actual connection registry resolver
+    // For now return null (connection not found)
+    return null
+  },
+  sendGatewayRpc: async (wsUrl, method, params) => {
+    // TODO: Wire to actual gateway RPC sender
+    // For now throw error (not implemented)
+    throw new Error('Gateway RPC not wired yet')
+  }
+})
+
 const platformIpc = registerPlatformIpc({
   ipc: ipcMain,
   auth: platformAuth,
@@ -4860,7 +4876,8 @@ const platformIpc = registerPlatformIpc({
   fromWebContents: sender => BrowserWindow.fromWebContents(sender as Electron.WebContents),
   trustedRendererUrl: DEV_SERVER
     ? new URL('/', DEV_SERVER).toString()
-    : pathToFileURL(resolveRendererIndex()).toString()
+    : pathToFileURL(resolveRendererIndex()).toString(),
+  bindingController: platformBindingController
 })
 
 // True when `dir` lives inside the packaged app bundle / install tree.

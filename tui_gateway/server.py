@@ -2056,6 +2056,7 @@ def _session_info(agent, session: dict | None = None) -> dict:
         "profile_name": (
             _response_profile_name(Path(session["profile_home"]).name)
             if isinstance(session, dict) and session.get("profile_home") else _current_profile_name()),
+        "capabilities": {"managed_model_binding": True},
     }
     with contextlib.suppress(Exception):
         from hermes_cli import __version__, __release_date__
@@ -2380,6 +2381,7 @@ def _lazy_resume_info(cwd: str, *, model: str = "", provider: str = "", profile:
         "cwd": cwd, "branch": git_probe.branch(cwd), "project": _project_info_for_cwd(cwd),
         "model": model or _resolve_model(), "tools": {}, "skills": {}, "lazy": True,
         "desktop_contract": DESKTOP_BACKEND_CONTRACT, "profile_name": _response_profile_name(profile),
+        "capabilities": {"managed_model_binding": True},
         **({"provider": provider} if provider else {}),
     }
 
@@ -2633,6 +2635,7 @@ def _fallback_session_info(session: dict) -> dict:
     return {
         "cwd": cwd, "branch": git_probe.branch(cwd), "project": _project_info_for_cwd(cwd), "lazy": True,
         "model": _resolve_model(), "skills": {}, "tools": {}, "desktop_contract": DESKTOP_BACKEND_CONTRACT,
+        "capabilities": {"managed_model_binding": True},
     }
 
 
@@ -3194,7 +3197,8 @@ from . import (  # noqa: E402
     methods_profiles as _methods_profiles, methods_prompt as _methods_prompt, methods_session as _methods_session,
     methods_tools as _methods_tools, prompt_turn as _prompt_turn, billing_view as _billing_view,
     methods_projects as _methods_projects, methods_session_foreign as _methods_session_foreign,
-    methods_session_control as _methods_session_control, methods_account as _methods_account)
+    methods_session_control as _methods_session_control, methods_account as _methods_account,
+    methods_managed_model as _methods_managed_model)
 
 for _m in (
     _session_reaper, _session_lifecycle, _session_workdir, _compute_host_bridge, _model_switch,
@@ -3204,6 +3208,6 @@ for _m in (
     _methods_browser_control, _methods_session, _methods_prompt, _methods_config,
     _methods_config_set, _methods_complete, _methods_tools, _methods_profiles, _methods_images,
     _methods_bot_relay, _prompt_turn, _billing_view, _methods_projects, _methods_session_foreign,
-    _methods_session_control, _methods_account):
+    _methods_session_control, _methods_account, _methods_managed_model):
     _m.register(sys.modules[__name__])
 del _m

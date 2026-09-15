@@ -1,10 +1,14 @@
 import type {
   PlatformAccountIpcResult,
   PlatformAccountSnapshot,
-  PlatformCaptchaProof
+  PlatformCaptchaProof,
+  BindPlatformModelInput,
+  BindPlatformModelResult,
+  PlatformModel
 } from '../shared/platform-contract'
 
 import type { PlatformAuth } from './platform-auth'
+import type { PlatformRuntimeBindingController } from './platform-runtime-binding'
 
 interface IpcLike {
   handle(channel: string, handler: (...args: any[]) => unknown): void
@@ -47,13 +51,15 @@ export function registerPlatformIpc({
   auth,
   captcha,
   fromWebContents,
-  trustedRendererUrl
+  trustedRendererUrl,
+  bindingController
 }: {
   ipc: IpcLike
   auth: PlatformAuth
   captcha: { acquire(): Promise<PlatformCaptchaProof> }
   fromWebContents(sender: unknown): WindowLike | null
   trustedRendererUrl: string
+  bindingController?: PlatformRuntimeBindingController
 }) {
   const windows = new Set<WindowLike>()
 
@@ -245,6 +251,40 @@ export function registerPlatformIpc({
     })
   }
 
+  // Platform models binding IPC handlers
+  if (bindingController) {
+    ipc.handle('aino:platform-models:bind', async (event, input) => {
+      try {
+        authorize(event)
+        const value = record(input)
+
+        const bindInput: BindPlatformModelInput = {
+          connection_id: boundedString(value, 'connection_id', 256),
+          profile: boundedString(value, 'profile', 256),
+          session_id: field(value, 'session_id', 256),
+          model_id: field(value, 'model_id', 256),
+          expected_account_revision: typeof value.expected_account_revision === 'number'
+            ? value.expected_account_revision
+            : 0
+        }
+
+        return await bindingController.bind(bindInput)
+      } catch (error) {
+        const ipcError = safeIpcError(error)
+        return { ok: false, error: { code: ipcError.code, message: error instanceof Error ? error.message : String(error) } } satisfies BindPlatformModelResult
+      }
+    })
+
+    ipc.handle('aino:platform-models:list', async event => {
+      try {
+        authorize(event)
+        return await bindingController.list()
+      } catch (error) {
+        return [] as PlatformModel[]
+      }
+    })
+  }
+
   const unsubscribe = auth.subscribe((snapshot: PlatformAccountSnapshot) => {
     for (const win of windows) {
       try {
@@ -281,6 +321,11 @@ export function registerPlatformIpc({
 
       for (const name of Object.keys(methods)) {
         ipc.removeHandler?.(`aino:platform-account:${name}`)
+      }
+
+      if (bindingController) {
+        ipc.removeHandler?.('aino:platform-models:bind')
+        ipc.removeHandler?.('aino:platform-models:list')
       }
     }
   }

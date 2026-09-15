@@ -44,6 +44,10 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
       return () => ipcRenderer.removeListener('aino:platform-account:changed', listener)
     }
   },
+  platformModels: {
+    bind: input => ipcRenderer.invoke('aino:platform-models:bind', input),
+    list: () => ipcRenderer.invoke('aino:platform-models:list')
+  },
   getConnection: (profile, opts) => ipcRenderer.invoke('hermes:connection', profile, opts),
   // Registry-scoped backend resolution: { connectionId, profile } → descriptor.
   getConnectionFor: payload => ipcRenderer.invoke('hermes:connection:for', payload),

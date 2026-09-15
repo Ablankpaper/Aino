@@ -42,6 +42,24 @@ export interface PlatformClient {
   bindPhone(accessToken: string, input: { phone: string; challenge_id: string; code: string }): Promise<PlatformProfile>
   submitStepUp(accessToken: string, code: string): Promise<void>
   logout(refreshToken: string): Promise<void>
+  models(accessToken: string): Promise<PlatformModelDTO[]>
+  modelLease(accessToken: string, modelId: string): Promise<PlatformModelLeaseDTO>
+}
+
+export interface PlatformModelDTO {
+  id: string
+  display_name: string
+  provider_label: string
+}
+
+export interface PlatformModelLeaseDTO {
+  credential_id: string
+  api_key: string
+  base_url: string
+  expires_at: string
+  model: PlatformModelDTO
+  api_mode: string
+  capabilities: Record<string, unknown> | {}
 }
 
 function object(value: unknown): Record<string, unknown> {
@@ -396,6 +414,37 @@ export function createPlatformClient({
     },
     async logout(refreshToken) {
       await request('POST', '/auth/logout', { refresh_token: refreshToken })
+    },
+    async models(token) {
+      const data = await request('GET', '/models', undefined, token)
+      if (!Array.isArray(data)) {
+        throw new PlatformClientError('invalid_response')
+      }
+      return data.map(item => {
+        const model = object(item)
+        return {
+          id: stringField(model.id),
+          display_name: stringField(model.display_name),
+          provider_label: stringField(model.provider_label)
+        }
+      })
+    },
+    async modelLease(token, modelId) {
+      const data = object(await request('POST', '/models/lease', { model_id: modelId }, token))
+      const model = object(data.model)
+      return {
+        credential_id: stringField(data.credential_id),
+        api_key: stringField(data.api_key),
+        base_url: stringField(data.base_url),
+        expires_at: stringField(data.expires_at),
+        model: {
+          id: stringField(model.id),
+          display_name: stringField(model.display_name),
+          provider_label: stringField(model.provider_label)
+        },
+        api_mode: stringField(data.api_mode),
+        capabilities: typeof data.capabilities === 'object' && data.capabilities !== null ? data.capabilities : {}
+      }
     }
   }
 }
