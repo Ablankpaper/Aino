@@ -25,7 +25,18 @@
 - 会话创建、拆分会话和恢复提交沿现有 owner socket 完成平台绑定；平台模型不写入 BYOK 全局配置，账户切换会使旧目录结果失效。
 - 修复目录请求在同一账户刷新快照后被误丢弃而长期 loading 的竞态；平台选择状态和 wire model ID 分离，避免 session.info 覆盖目录选择。
 - 定向 UI 回归：11 个测试文件、193 项通过；类型检查和生产构建通过。完整 UI/Electron 门禁、真实模型 HTTP/扣费仍由后续 B6/D 验收完成。
-- 追加门禁核对：Electron 平台测试 164 文件/2,247 项通过；完整 UI 运行到既有 `summary-layout.test.ts` 30 秒超时和 `local-models-settings.test.tsx` quickstart 断言失败（另有 terminal-layout 2 项跳过），未将其误报为 B6 回归。
+- 追加门禁核对：Electron 平台测试 164 文件/2,247 项通过。完整 UI 最终为 852 文件通过、3 文件失败，7,842 项通过、2 项失败、2 项跳过；失败涉及 `summary-layout.test.ts` 超时、`terminal-layout.test.ts` setup 超时、`local-models-settings.test.tsx` quickstart 断言。尚无基线对照证明它们是旧问题，不能提前排除回归。日志 `/tmp/aino-b6-full-ui.log`。
+- B6 仍需补默认选择按连接/profile 隔离、账户切换草稿、模型切换回滚、排队/流式绑定、能力限制、错误恢复和原生端到端验证；不能将首个 UI 切片标为全部完成。
+
+### C1 钱包与报价（2026-09-16）
+
+- API 本地提交 `0a0df8a00`，配对桌面代码 `4fd6a06002`；没有推送、部署或真实付款。
+- `GET /desktop/billing-summary` 从当前用户读取 NUMERIC 原始十进制余额，冻结金额不重复扣除；订阅单独展示，不加入现金余额。
+- `POST /payment/quote` 复用下单的金额计算，校验渠道、限额、账户、精度和币种。报价不建单、不调用支付提供商。新增接口只支持余额充值，保留原站点订单接口。
+- 真实 PostgreSQL/Redis/JWT 集成覆盖钱包隔离、零余额有效订阅、报价与真实 EasyPay 适配器订单一致，以及修改费率/倍率后的关系；仅外部支付 HTTP 使用本地替身。
+- 定向集成 `go test -tags=integration ./internal/repository -run 'DesktopWallet|QuoteMatches|DesktopCatalog|DesktopLease' -count=1 -timeout=120s` 通过（复验 7.915s）；13 项顶层场景、含子场景共 15 项，无跳过。相邻默认/unit payment/desktop 测试、服务构建、Wire 生成、新改动 lint 和 diff 检查通过。
+- 完整默认 Go 命令 `go test ./... -count=1 -timeout=120s` 未通过：service 包达到 2 分钟总超时，最后执行到 `TestSystemOperationLockService_RenewLease`（该项当时刚开始，不能据此认定它死锁）。其余包结果在 `/tmp/aino-c1-go-default.log`；D 阶段使用合理整包预算复验，不盲目循环。
+- C2 消费关联、C3 幂等订单、C4 桌面钱包和 D 仍待完成，C1 不代表充值已可在桌面使用。
 
 ## 2026-09-15 续作核验
 
@@ -296,7 +307,7 @@
 
 ## C：钱包充值与对账
 
-**状态：** ⏸️ 未开始
+**状态：** C1 本地实现与定向验收完成；C2–C4 未完成，真实支付未验证。最新证据见文档顶部 C1 节。
 
 ---
 
