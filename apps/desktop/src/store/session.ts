@@ -1090,6 +1090,11 @@ export const $resumeExhaustedSessionId = atom<string | null>(null)
 export const $currentModel = atom(storedComposerString(COMPOSER_MODEL_KEY) ?? '')
 export const $currentProvider = atom(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
 export const $currentPlatformOwner = atom(storedComposerString(COMPOSER_PLATFORM_OWNER_KEY) ?? '')
+export const $currentPlatformDefaultResolution = atom<null | { modelId: string; ownerUserId: string }>(null)
+
+export function setCurrentPlatformDefaultResolution(selection: null | { modelId: string; ownerUserId: string }): void {
+  $currentPlatformDefaultResolution.set(selection)
+}
 
 export function setCurrentPlatformOwner(owner: string): void {
   $currentPlatformOwner.set(owner)
@@ -1160,6 +1165,7 @@ function rescopeComposerSelection(nextScope: string | null): void {
   $currentModel.set(storedComposerString(COMPOSER_MODEL_KEY) ?? '')
   $currentProvider.set(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
   $currentPlatformOwner.set(storedComposerString(COMPOSER_PLATFORM_OWNER_KEY) ?? '')
+  $currentPlatformDefaultResolution.set(null)
   $currentModelSource.set(getCurrentModelSource())
 }
 
@@ -1367,6 +1373,7 @@ export const getComposerSelectionGeneration = (): number => composerSelectionGen
 
 export const markComposerSelectionManual = (): void => {
   composerSelectionGeneration += 1
+  setCurrentPlatformDefaultResolution(null)
   setCurrentModelSource('manual')
 }
 

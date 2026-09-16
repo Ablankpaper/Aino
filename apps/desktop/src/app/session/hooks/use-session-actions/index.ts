@@ -61,6 +61,7 @@ import {
   $currentCwd,
   $currentFastMode,
   $currentModel,
+  $currentPlatformDefaultResolution,
   $currentPlatformOwner,
   $currentProvider,
   $currentReasoningEffort,
@@ -307,17 +308,25 @@ async function desktopSessionCreateParams(
   // model. Omit model/provider unless the source is manual or the automatic
   // selection is an Aino catalog model that needs managed binding.
   const selectionSource = getCurrentModelSource()
+  const model = $currentModel.get().trim()
   const provider = $currentProvider.get().trim()
-  const includesModelSelection = selectionSource === 'manual' || (selectionSource === 'default' && provider === 'aino')
+  const platformOwner = $currentPlatformOwner.get()
+  const platformDefault = $currentPlatformDefaultResolution.get()
+
+  const includesModelSelection =
+    selectionSource === 'manual' ||
+    (selectionSource === 'default' &&
+      provider === 'aino' &&
+      platformDefault?.modelId === model &&
+      platformDefault.ownerUserId === platformOwner)
 
   const selection = {
     effort: $currentReasoningEffort.get().trim(),
     fast: $currentFastMode.get(),
-    model: includesModelSelection ? $currentModel.get().trim() : '',
+    model: includesModelSelection ? model : '',
     provider: includesModelSelection ? provider : ''
   }
 
-  const platformOwner = $currentPlatformOwner.get()
   const catalog = platformModelCatalog()
 
   const modelParams = platformCreateOverrides(

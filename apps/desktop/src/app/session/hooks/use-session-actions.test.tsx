@@ -1,6 +1,7 @@
 import { registryBackendScopeKey } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
-import { act, cleanup, render, waitFor } from '@testing-library/react'
+import { QueryClient } from '@tanstack/react-query'
+import { act, cleanup, render, renderHook, waitFor } from '@testing-library/react'
 import type { MutableRefObject } from 'react'
 import { useEffect, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,6 +14,7 @@ import { noteActiveTreeGroup, revealTreePane } from '@/components/pane-shell/tre
 import {
   deleteSession,
   getAllSessionMessages,
+  getGlobalModelInfo,
   getLatestSessionMessages,
   getSession,
   type ProfileScope,
@@ -47,6 +49,7 @@ import {
   $selectedStoredSessionId,
   $sessions,
   $turnStartedAt,
+  getCurrentModelSource,
   getSessionOwnerHint,
   knownSessionOwner,
   sessionMatchesStoredId,
@@ -60,7 +63,7 @@ import {
   setCurrentFastMode,
   setCurrentModel,
   setCurrentModelSource,
-  setCurrentPlatformOwner,
+  setCurrentPlatformDefaultResolution,
   setCurrentProvider,
   setCurrentReasoningEffort,
   setMessages,
@@ -83,6 +86,7 @@ import { deferred } from '../../../test/deferred'
 import { NEW_CHAT_ROUTE, sessionRoute } from '../../routes'
 import type { ClientSessionState } from '../../types'
 
+import { useModelControls } from './use-model-controls'
 import { usePromptActions } from './use-prompt-actions'
 import { useSessionActions } from './use-session-actions'
 import { useSessionStateCache } from './use-session-state-cache'
@@ -92,6 +96,7 @@ vi.mock('@/hermes', async importOriginal => ({
   deleteSession: vi.fn(),
   getSession: vi.fn(),
   getAllSessionMessages: vi.fn(),
+  getGlobalModelInfo: vi.fn(),
   getLatestSessionMessages: vi.fn(),
   listAllProfileSessions: vi.fn(),
   setApiRequestProfile: vi.fn(),
@@ -825,6 +830,7 @@ describe('createBackendSessionForSend profile routing', () => {
     $newChatProfile.set(null)
     $newChatRoute.set(null)
     $activeGatewayProfile.set('default')
+    $activeSessionId.set(null)
     $projectScope.set(ALL_PROJECTS)
     $projectTree.set([])
     $currentCwd.set('')
@@ -833,6 +839,7 @@ describe('createBackendSessionForSend profile routing', () => {
     $currentPlatformOwner.set('')
     $currentProvider.set('')
     setCurrentModelSource('')
+    setCurrentPlatformDefaultResolution(null)
     $currentReasoningEffort.set('')
     setNewChatWorkspaceTarget(undefined)
     vi.restoreAllMocks()
@@ -943,6 +950,19 @@ describe('createBackendSessionForSend profile routing', () => {
     })
     await platformAccountActions(accountBridge).refresh()
     await platformModelCatalog().load()
+    vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
+
+    const { result: modelControls } = renderHook(() =>
+      useModelControls({
+        queryClient: new QueryClient(),
+        requestGateway: vi.fn()
+      })
+    )
+
+    await act(async () => modelControls.current.refreshCurrentModel())
+    expect($currentModel.get()).toBe('catalog-a')
+    expect($currentProvider.get()).toBe('aino')
+    expect(getCurrentModelSource()).toBe('default')
 
     const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
       order.push(method)
@@ -973,10 +993,6 @@ describe('createBackendSessionForSend profile routing', () => {
 
     setCurrentCwd('')
     setNewChatWorkspaceTarget(undefined)
-    setCurrentModel('catalog-a')
-    setCurrentProvider('aino')
-    setCurrentPlatformOwner('user-a')
-    setCurrentModelSource('default')
 
     let submitText: null | ((text: string) => Promise<boolean>) = null
     render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
@@ -996,6 +1012,119 @@ describe('createBackendSessionForSend profile routing', () => {
       { session_id: RUNTIME_SESSION_ID, text: 'first managed prompt' },
       1_800_000
     )
+    expect(requestGateway.mock.calls.find(([method]) => method === 'config.set')).toBeUndefined()
+  })
+
+  it('omits a live Aino model when a saved BYOK default is submitted before draft refresh', async () => {
+    const account = platformSnapshot()
+    const order: string[] = []
+    let createParams: Record<string, unknown> | undefined
+
+    const accountBridge: PlatformAccountBridge = {
+      status: async () => account,
+      capabilities: vi.fn(),
+      retry: async () => account,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      onChanged: () => () => undefined
+    }
+
+    const bind = vi.fn(async () => {
+      order.push('bind')
+
+      return {
+        ok: true as const,
+        ready: true as const,
+        model_id: 'catalog-a',
+        billing_source: 'aino' as const,
+        expires_at: 'later'
+      }
+    })
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: {
+          owner: async () => ({ platform_origin: 'http://127.0.0.1:1234', user_id: 'user-a' }),
+          bind,
+          clear: vi.fn(),
+          list: async () => [platformModel()]
+        }
+      }
+    })
+    await platformAccountActions(accountBridge).refresh()
+    await platformModelCatalog().load()
+    vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
+
+    const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
+      order.push(method)
+
+      if (method === 'session.create') {
+        createParams = params
+        const managed = params?.model_source === 'aino'
+
+        return {
+          session_id: RUNTIME_SESSION_ID,
+          stored_session_id: null,
+          info: managed
+            ? {
+                model_source: 'aino',
+                model_id: 'catalog-a',
+                provider: 'aino',
+                model_status: 'awaiting_managed_credentials'
+              }
+            : { model: 'openai/gpt-5.6-sol', provider: 'openai-codex' }
+        } as never
+      }
+
+      if (method === 'session.managed_model_ticket') {
+        return { managed_model_binding: 1, session_ticket: 'single-use-ticket' } as never
+      }
+
+      if (method === 'prompt.submit') {
+        return {} as never
+      }
+
+      throw new Error(`unexpected request: ${method}`)
+    })
+
+    const { result } = renderHook(() =>
+      useModelControls({
+        queryClient: new QueryClient(),
+        requestGateway
+      })
+    )
+
+    await act(async () => result.current.refreshCurrentModel())
+    expect($currentModel.get()).toBe('catalog-a')
+    expect($currentProvider.get()).toBe('aino')
+    expect(getCurrentModelSource()).toBe('default')
+
+    $activeSessionId.set('runtime-live')
+    act(() => result.current.applySavedMainModel('openai-codex', 'openai/gpt-5.6-sol'))
+
+    expect($currentModel.get()).toBe('catalog-a')
+    expect($currentProvider.get()).toBe('aino')
+    expect(getCurrentModelSource()).toBe('default')
+
+    $activeSessionId.set(null)
+    let submitText: null | ((text: string) => Promise<boolean>) = null
+    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
+    await waitFor(() => expect(submitText).not.toBeNull())
+
+    await expect(submitText!('first prompt after settings save')).resolves.toBe(true)
+    expect(createParams).not.toHaveProperty('model_source')
+    expect(createParams).not.toHaveProperty('model_id')
+    expect(order).toEqual(['session.create', 'prompt.submit'])
+    expect(bind).not.toHaveBeenCalled()
     expect(requestGateway.mock.calls.find(([method]) => method === 'config.set')).toBeUndefined()
   })
 

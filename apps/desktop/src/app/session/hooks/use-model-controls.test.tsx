@@ -12,6 +12,7 @@ import {
   getCurrentModelSource,
   setCurrentModel,
   setCurrentModelSource,
+  setCurrentPlatformDefaultResolution,
   setCurrentProvider
 } from '@/store/session'
 import * as SessionStates from '@/store/session-states'
@@ -84,6 +85,7 @@ describe('useModelControls', () => {
     $activeSessionId.set(null)
     setCurrentModel('')
     setCurrentModelSource('')
+    setCurrentPlatformDefaultResolution(null)
     setCurrentProvider('')
     SessionStates.$sessionStates.set({})
   })
@@ -95,6 +97,7 @@ describe('useModelControls', () => {
     $activeSessionId.set(null)
     setCurrentModel('')
     setCurrentModelSource('')
+    setCurrentPlatformDefaultResolution(null)
     setCurrentProvider('')
     SessionStates.$sessionStates.set({})
   })

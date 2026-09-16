@@ -14,6 +14,7 @@ import { $activeGatewayProfile } from '@/store/profile'
 import {
   $activeSessionId,
   $currentModel,
+  $currentPlatformDefaultResolution,
   $currentPlatformOwner,
   $currentProvider,
   getComposerSelectionGeneration,
@@ -21,6 +22,7 @@ import {
   markComposerSelectionManual,
   setCurrentModel,
   setCurrentModelSource,
+  setCurrentPlatformDefaultResolution,
   setCurrentProvider
 } from '@/store/session'
 import { setCurrentPlatformOwner } from '@/store/session'
@@ -95,6 +97,7 @@ export function useModelControls({
     (provider: string, model: string) => {
       const liveSessionId = $activeSessionId.get()
 
+      setCurrentPlatformDefaultResolution(null)
       setCurrentModelSource('default')
 
       if (!liveSessionId) {
@@ -193,6 +196,14 @@ export function useModelControls({
         const resolvedModel = result.model || (result.provider ? '' : platformDefault?.id || '')
         const resolvedProvider = result.provider || (resolvedModel ? 'aino' : '')
 
+        const resolvedPlatformDefault =
+          !result.model && !result.provider && resolvedProvider === 'aino' && platformDefault?.id === resolvedModel
+            ? {
+                modelId: resolvedModel,
+                ownerUserId: platformCatalog.account.get()?.account?.id || ''
+              }
+            : null
+
         if (resolvedModel) {
           setCurrentModel(resolvedModel)
         }
@@ -203,10 +214,13 @@ export function useModelControls({
 
         if (resolvedModel || resolvedProvider) {
           setCurrentModelSource('default')
+          setCurrentPlatformDefaultResolution(resolvedPlatformDefault)
 
-          if (resolvedProvider === 'aino' && platformDefault) {
-            setCurrentPlatformOwner(platformCatalog.account.get()?.account?.id || '')
+          if (resolvedPlatformDefault) {
+            setCurrentPlatformOwner(resolvedPlatformDefault.ownerUserId)
           }
+        } else {
+          setCurrentPlatformDefaultResolution(null)
         }
       } catch {
         // The delayed session.info event still updates this once the agent is ready.
@@ -245,6 +259,7 @@ export function useModelControls({
         : ($sessionStates.get()[liveSessionId!]?.provider ?? '')
 
       const prevSource = getCurrentModelSource()
+      const prevPlatformDefaultResolution = $currentPlatformDefaultResolution.get()
       const prevPlatformOwner = $currentPlatformOwner.get()
       const liveGatewayProfile = cacheProfile || $activeGatewayProfile.get()
       const catalog = platformModelCatalog()
@@ -300,6 +315,7 @@ export function useModelControls({
           setCurrentModel(prevModel)
           setCurrentProvider(prevProvider)
           setCurrentModelSource(prevSource)
+          setCurrentPlatformDefaultResolution(prevPlatformDefaultResolution)
           setCurrentPlatformOwner(prevPlatformOwner)
         } else if (liveSessionId) {
           sessionTileDelegate()?.updateSession(liveSessionId, state => ({

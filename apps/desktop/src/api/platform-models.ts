@@ -23,30 +23,42 @@ export async function bindPlatformModel(
     return { ok: false, error: { code: 'unsupported_desktop' } }
   }
 
+  let owner: Awaited<ReturnType<typeof desktop.platformModels.owner>>
+
   try {
-    const owner = await desktop.platformModels.owner(input.expected_account_revision)
+    owner = await desktop.platformModels.owner(input.expected_account_revision)
+  } catch {
+    return { ok: false, error: { code: 'gateway_binding_failed' } }
+  }
 
-    const requestOwner =
-      request ??
-      (<T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) =>
-        requestGatewayForAgent<T>(input.connection_id || null, input.profile, method, params, timeoutMs))
+  const requestOwner =
+    request ??
+    (<T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) =>
+      requestGatewayForAgent<T>(input.connection_id || null, input.profile, method, params, timeoutMs))
 
-    const ticket = await requestOwner<{ managed_model_binding?: number; session_ticket?: string }>(
+  let ticket: { managed_model_binding?: number; session_ticket?: string }
+
+  try {
+    ticket = await requestOwner<{ managed_model_binding?: number; session_ticket?: string }>(
       'session.managed_model_ticket',
       { session_id: input.session_id, model_id: input.model_id, owner },
       10_000
     )
-
-    if (ticket.managed_model_binding !== 1 || !ticket.session_ticket) {
-      return { ok: false, error: { code: 'unsupported_gateway' } }
-    }
-
-    return await desktop.platformModels.bind({ ...input, session_ticket: ticket.session_ticket })
   } catch (error) {
     if (isSessionGoneForBackgroundPolling(error)) {
       throw error
     }
 
+    return { ok: false, error: { code: 'gateway_binding_failed' } }
+  }
+
+  if (ticket.managed_model_binding !== 1 || !ticket.session_ticket) {
+    return { ok: false, error: { code: 'unsupported_gateway' } }
+  }
+
+  try {
+    return await desktop.platformModels.bind({ ...input, session_ticket: ticket.session_ticket })
+  } catch {
     return { ok: false, error: { code: 'gateway_binding_failed' } }
   }
 }

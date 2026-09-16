@@ -112,3 +112,70 @@ it('preserves a structured missing-session ticket error for stale-runtime recove
   ).rejects.toBe(stale)
   expect(bind).not.toHaveBeenCalled()
 })
+
+it.each(['owner', 'bind'] as const)('sanitizes a structured missing-session error from native %s', async stage => {
+  const account: PlatformAccountSnapshot = {
+    revision: 7,
+    phase: 'signed_in',
+    account: { id: '17', display_name: 'Fixture', email: '', phone_masked: '' },
+    mode: 'development',
+    remember_state: 'session_only',
+    error: null
+  }
+
+  const stale = new JsonRpcGatewayError(`native ${stage} session not found`, {
+    code: 4001,
+    data: { secret: 'must-not-escape' }
+  })
+
+  const bind = vi.fn(async () => {
+    if (stage === 'bind') {
+      throw stale
+    }
+
+    return {
+      ok: true as const,
+      ready: true as const,
+      model_id: 'fixture',
+      billing_source: 'aino' as const,
+      expires_at: 'later'
+    }
+  })
+
+  const bridge: PlatformModelsBridge = {
+    owner: async () => {
+      if (stage === 'owner') {
+        throw stale
+      }
+
+      return { platform_origin: 'http://127.0.0.1:1234', user_id: '17' }
+    },
+    bind,
+    clear: async () => {},
+    list: async () => []
+  }
+
+  Object.defineProperty(window, 'hermesDesktop', {
+    value: { platformModels: bridge },
+    writable: true,
+    configurable: true
+  })
+  vi.mocked(requestGatewayForAgent).mockResolvedValue({
+    managed_model_binding: 1,
+    session_ticket: 'single-use-ticket'
+  })
+
+  const failed = await bindPlatformModel(
+    {
+      connection_id: 'local',
+      profile: 'work',
+      session_id: 'runtime-session',
+      model_id: 'fixture',
+      expected_account_revision: 7
+    },
+    account
+  )
+
+  expect(failed).toEqual({ ok: false, error: { code: 'gateway_binding_failed' } })
+  expect(JSON.stringify(failed)).not.toContain('must-not-escape')
+})
