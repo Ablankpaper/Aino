@@ -51,6 +51,9 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
     clear: async input => { unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-models:clear', input)) }
   },
   platformBilling: {
+    scope: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:scope', input)),
+    summary: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:summary', input)),
+    checkoutInfo: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:checkout-info', input)),
     listUsage: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:usage', input))
   },
   getConnection: (profile, opts) => ipcRenderer.invoke('hermes:connection', profile, opts),

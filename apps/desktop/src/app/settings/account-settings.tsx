@@ -8,6 +8,7 @@ import { Users } from '@/lib/icons'
 
 import { useAccountActions } from '../account/account-context'
 
+import { PlatformWallet } from './platform-billing/wallet-view'
 import { ListRow, SectionHeading, SettingsContent } from './primitives'
 
 export function AccountSettings() {
@@ -126,6 +127,7 @@ export function AccountSettings() {
           action={<span className="break-all font-mono text-xs">{account?.id}</span>}
           title={copy.accountIdLabel}
         />
+        <PlatformWallet />
         <div className="mt-6">
           <Button disabled={state.loading} onClick={() => void actions.logout()} variant="outline">
             {copy.signOut}

@@ -251,7 +251,24 @@ export function registerPlatformIpc({
     })
   }
 
-  // Platform models binding IPC handlers
+  const billingReads = {
+    scope: (owner: string) => auth.billingScope(owner),
+    summary: (owner: string) => auth.walletSummary(owner),
+    'checkout-info': (owner: string) => auth.checkoutInfo(owner)
+  }
+
+  for (const [name, read] of Object.entries(billingReads)) {
+    ipc.handle(`aino:platform-billing:${name}`, async (event, input) => {
+      try {
+        authorize(event)
+
+        return { ok: true, value: await read(field(record(input), 'expected_user_id', 128)) }
+      } catch (error) {
+        return { ok: false, error: safeIpcError(error) }
+      }
+    })
+  }
+
   ipc.handle('aino:platform-billing:usage', async (event, input) => {
     try {
       authorize(event)
@@ -358,6 +375,11 @@ export function registerPlatformIpc({
     unregisterWindow,
     dispose() {
       ipc.removeHandler?.('aino:platform-billing:usage')
+
+      for (const name of Object.keys(billingReads)) {
+        ipc.removeHandler?.(`aino:platform-billing:${name}`)
+      }
+
       bindingController?.dispose()
       unsubscribe()
       windows.clear()

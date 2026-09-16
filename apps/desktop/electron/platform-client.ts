@@ -2,11 +2,14 @@ import type {
   PhoneChallengeDTO,
   PhoneVerifyDTO,
   PlatformCaptchaProof,
+  PlatformCheckoutInfo,
   PlatformModel,
-  PlatformPublicCapabilities
+  PlatformPublicCapabilities,
+  PlatformWalletSummary
 } from '../shared/platform-contract'
 import type { PlatformUsagePage, PlatformUsageQuery } from '../shared/platform-contract'
 
+import { parsePlatformCheckoutInfo, parsePlatformWalletSummary } from './platform-billing-contract'
 import { parsePlatformModel } from './platform-model-contract'
 import type { PlatformTokenSet } from './platform-token-store'
 import { parsePlatformUsagePage, parsePlatformUsageQuery } from './platform-usage-contract'
@@ -33,6 +36,8 @@ interface AuthExchange {
   tempToken?: string
 }
 export interface PlatformClient {
+  walletSummary(accessToken: string): Promise<PlatformWalletSummary>
+  checkoutInfo(accessToken: string): Promise<PlatformCheckoutInfo>
   listUsage(accessToken: string, input: PlatformUsageQuery): Promise<PlatformUsagePage>
   readonly origin: string
   capabilities(): Promise<PlatformPublicCapabilities>
@@ -431,6 +436,17 @@ export function createPlatformClient({
       const query = new URLSearchParams(Object.entries(parsePlatformUsageQuery(input)).map(([key, value]) => [key, String(value)]))
 
       return parsePlatformUsagePage(await request('GET', `/usage?${query}`, undefined, token))
+    },
+    async walletSummary(token) {
+      return parsePlatformWalletSummary(await request('GET', '/desktop/billing-summary', undefined, token))
+    },
+    async checkoutInfo(token) {
+      const [info, summary] = await Promise.all([
+        request('GET', '/payment/checkout-info', undefined, token),
+        request('GET', '/desktop/billing-summary', undefined, token)
+      ])
+
+      return parsePlatformCheckoutInfo(info, parsePlatformWalletSummary(summary).payment_enabled)
     },
     async modelLease(token, input) {
       const data = object(await request('POST', '/desktop/credentials', input, token))

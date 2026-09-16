@@ -24,6 +24,37 @@ afterEach(async () => {
 })
 
 describe('platform client', () => {
+  it('reads exact wallet balances separately from subscriptions and only configured desktop payment methods', async () => {
+    const summary = { currency: 'USD', balance: '1234567890.12345678', available_balance: '1234567890.12345678',
+      frozen_balance: '2.00000000', payment_enabled: false, updated_at: '2026-09-16T00:00:00Z',
+      active_subscriptions: [{ id: '7', name: 'Fixture quota', expires_at: '2026-10-16T00:00:00Z', remaining: null, unit: 'USD' }] }
+
+    const seen: string[] = []
+
+    const origin = await serve((req, res) => {
+      seen.push(`${req.method} ${req.url}`)
+      expect(req.headers.authorization).toBe('Bearer wallet-access')
+
+      const data = req.url === '/api/v1/desktop/billing-summary' ? summary : { balance_disabled: false, help_text: '',
+        methods: { alipay: { payment_type: 'alipay', currency: 'CNY', single_min: 0.01, single_max: 500 },
+          stripe: { payment_type: 'stripe', currency: 'USD', single_min: 1, single_max: 500 } }, stripe_publishable_key: 'not-for-desktop' }
+
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ code: 0, message: 'ok', data }))
+    })
+
+    const client = createPlatformClient({ origin, allowInsecureLoopback: true })
+    const wallet = await client.walletSummary('wallet-access')
+    expect(wallet.available_balance).toBe(summary.available_balance)
+    expect(wallet.frozen_balance).toBe('2.00000000')
+    expect(wallet.active_subscriptions[0].remaining).toBeNull()
+    const checkout = await client.checkoutInfo('wallet-access')
+    expect(checkout.payment_enabled).toBe(false)
+    expect(checkout.methods).toEqual([{ id: 'alipay', display_name: '', currency: 'CNY', min_amount: '0.01000000', max_amount: '500.00000000', available: false }])
+    expect(checkout).not.toHaveProperty('stripe_publishable_key')
+    expect(seen.every(request => request.startsWith('GET '))).toBe(true)
+  })
+
   it('reads exact ledger costs through a whitelisted query and removes nested key data', async () => {
     const turn = 'b8664a58-472a-4ba6-b853-94aadee41bb1'
 

@@ -197,5 +197,42 @@ export interface PlatformUsagePage {
 }
 
 export interface PlatformBillingBridge {
+  scope(input: PlatformBillingOwner): Promise<PlatformBillingScope>
+  summary(input: PlatformBillingOwner): Promise<PlatformWalletSummary>
+  checkoutInfo(input: PlatformBillingOwner): Promise<PlatformCheckoutInfo>
   listUsage(input: PlatformUsageQuery & { expected_user_id: string }): Promise<PlatformUsagePage>
+}
+
+export interface PlatformBillingOwner {
+  expected_user_id: string
+}
+
+export interface PlatformBillingScope {
+  origin: string
+  user_id: string
+  generation: number
+}
+
+export interface PlatformWalletSummary {
+  currency: 'USD'
+  balance: string
+  frozen_balance: string
+  available_balance: string
+  payment_enabled: boolean
+  active_subscriptions: Array<{ id: string; name: string; expires_at: string; remaining: string | null; unit: string }>
+  updated_at: string
+}
+
+export interface PlatformCheckoutInfo {
+  payment_enabled: boolean
+  balance_disabled: boolean
+  methods: Array<{
+    id: 'alipay' | 'wxpay'
+    display_name: string
+    currency: string
+    min_amount: string
+    max_amount: string
+    available: boolean
+  }>
+  help_text: string
 }

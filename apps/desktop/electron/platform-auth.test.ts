@@ -130,6 +130,38 @@ async function createPlatformAuthTestRig(options: { delaySave?: boolean } = {}) 
 }
 
 describe('platform auth ownership', () => {
+  it('fences wallet results by account ownership and exposes only the safe platform scope', async () => {
+    const started = deferred<void>()
+    const response = deferred<unknown>()
+
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') { return okProfile(17, 'owner') }
+
+      if (path === '/api/v1/auth/logout') { return ok({ success: true }) }
+
+      if (path === '/api/v1/desktop/billing-summary') {
+        started.resolve()
+
+        return ok(await response.promise)
+      }
+
+      return errorEnvelope(404, 'NOT_FOUND')
+    })
+
+    const auth = createAuth(origin, rememberedTokens('owner'))
+    await auth.initialize()
+    expect(auth.billingScope('17')).toEqual({ origin, user_id: '17', generation: auth.generation() })
+    expect(() => auth.walletSummary('18')).toThrow('platform_account_changed')
+    const pending = auth.walletSummary('17')
+    const rejected = expect(pending).rejects.toMatchObject({ code: 'auth_attempt_superseded' })
+    await started.promise
+    await auth.logout()
+    response.resolve({ currency: 'USD', balance: '1.00000000', available_balance: '1.00000000', frozen_balance: '0',
+      payment_enabled: false, active_subscriptions: [], updated_at: '2026-09-16T00:00:00Z' })
+    await rejected
+    expect(() => auth.billingScope('17')).toThrow()
+  })
+
   it('rejects foreign usage reads and suppresses a ledger response arriving after logout', async () => {
     const started = deferred<void>()
     const response = deferred<unknown>()

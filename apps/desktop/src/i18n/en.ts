@@ -57,6 +57,7 @@ export const en: Translations = {
   platformUsage: { pending: 'Checking charges', partial: 'Partially settled', settled: 'Charged', unverified: 'Charges not confirmed', unavailable: 'Charges temporarily unavailable', signIn: 'Sign in to the original account to view charges', retry: 'Check again',
     details: 'View details', empty: 'No settlement records yet', truncated: 'Showing the first 200 records; total charges are not yet confirmed', recordSettled: 'Settled', notCharged: 'Not charged',
     purposes: { chat: 'Chat', title: 'Conversation title', compression: 'Context compression', vision: 'Image understanding', delegation: 'Subtask', other_auxiliary: 'Other auxiliary call' } },
+  platformWallet: { title: 'Aino wallet', available: 'Available balance', frozen: 'Frozen balance', refresh: 'Refresh', updated: 'Updated', subscriptions: 'Active subscriptions', noSubscriptions: 'No active subscriptions', unlimited: 'Unlimited', expires: 'Expires', paymentDisabled: 'Recharge is currently unavailable' },
   platformModels: {
     builtIn: "Aino models",
     custom: "Custom models",

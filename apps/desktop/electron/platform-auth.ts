@@ -2,6 +2,7 @@ import type {
   PhoneVerifyDTO,
   PlatformAccountSnapshot,
   PlatformAuthResult,
+  PlatformBillingScope,
   PlatformCaptchaProof,
   PlatformPublicCapabilities
 } from '../shared/platform-contract'
@@ -20,6 +21,9 @@ interface RetainedAccount {
 }
 
 export interface PlatformAuth {
+  billingScope(expectedUserId: string): PlatformBillingScope
+  walletSummary(expectedUserId: string): ReturnType<PlatformClient['walletSummary']>
+  checkoutInfo(expectedUserId: string): ReturnType<PlatformClient['checkoutInfo']>
   listUsage(input: Parameters<PlatformClient['listUsage']>[1], expectedUserId: string): ReturnType<PlatformClient['listUsage']>
   models(): ReturnType<PlatformClient['models']>
   modelLease(input: PlatformLeaseInput): ReturnType<PlatformClient['modelLease']>
@@ -337,6 +341,23 @@ export function createPlatformAuth({
   }
 
   const api: PlatformAuth = {
+    billingScope(expectedUserId) {
+      requireTokens()
+
+      if (current.account?.id !== expectedUserId) { throw new PlatformClientError('platform_account_changed') }
+
+      return { origin: client.origin, user_id: expectedUserId, generation }
+    },
+    walletSummary(expectedUserId) {
+      api.billingScope(expectedUserId)
+
+      return authenticated(token => client.walletSummary(token), true)
+    },
+    checkoutInfo(expectedUserId) {
+      api.billingScope(expectedUserId)
+
+      return authenticated(token => client.checkoutInfo(token), true)
+    },
     listUsage(input, expectedUserId) {
       if (api.snapshot().account?.id !== expectedUserId) { throw new PlatformClientError('platform_account_changed') }
 
