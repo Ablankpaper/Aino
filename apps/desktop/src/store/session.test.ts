@@ -23,6 +23,9 @@ import {
   $connection,
   $currentCwd,
   $currentModel,
+  $currentModelSource,
+  $currentPlatformOrigin,
+  $currentPlatformOwner,
   $currentProvider,
   $selectedStoredSessionId,
   $sessions,
@@ -35,6 +38,7 @@ import {
   ensureDefaultWorkspaceCwd,
   forgetSessionOwnerHintsForConnection,
   forgetSessionOwnerHintsForSession,
+  getComposerSelectionGeneration,
   getConfiguredDefaultProjectDir,
   getRememberedRoute,
   getRememberedSessionId,
@@ -46,6 +50,7 @@ import {
   knownSessionOwner,
   knownSessionProfile,
   lineageAliases,
+  markComposerSelectionManual,
   mergeSessionPage,
   rememberedSessionProfile,
   resolveComposerSessionKey,
@@ -59,6 +64,7 @@ import {
   setCurrentCwdTransient,
   setCurrentModel,
   setCurrentModelSource,
+  setCurrentPlatformOwner,
   setCurrentProvider,
   setRememberedRoute,
   setRememberedSessionId,
@@ -127,6 +133,51 @@ describe('composer model persistence scope', () => {
     setCurrentModel('next-model')
     expect(window.localStorage.getItem('hermes.desktop.composer.model')).toBe('next-model')
     expect(window.localStorage.getItem('hermes.desktop.composer.model.registry.local.default')).toBeNull()
+  })
+
+  it('preserves a manual local selection when the same default route becomes registry-scoped', () => {
+    setCurrentModel('fixture-tool-model')
+    setCurrentProvider('aino')
+    setCurrentPlatformOwner('user-1', 'http://127.0.0.1:7001')
+    markComposerSelectionManual()
+    const generation = getComposerSelectionGeneration()
+
+    setConnection({
+      baseUrl: '',
+      connectionId: 'local',
+      mode: 'local',
+      profile: 'default',
+      registryScoped: true
+    } as never)
+
+    expect(getComposerSelectionGeneration()).toBe(generation)
+    expect($currentModel.get()).toBe('fixture-tool-model')
+    expect($currentProvider.get()).toBe('aino')
+    expect($currentPlatformOwner.get()).toBe('user-1')
+    expect($currentPlatformOrigin.get()).toBe('http://127.0.0.1:7001')
+    expect($currentModelSource.get()).toBe('manual')
+    expect(window.localStorage.getItem('hermes.desktop.composer.model.registry.local.default')).toBe('fixture-tool-model')
+  })
+
+  it('does not migrate a legacy local non-default profile selection into registry default', () => {
+    setConnection({ baseUrl: '', connectionId: 'local', mode: 'local', profile: 'research' } as never)
+    setCurrentModel('research-model')
+    setCurrentProvider('aino')
+    markComposerSelectionManual()
+    const generation = getComposerSelectionGeneration()
+
+    setConnection({
+      baseUrl: '',
+      connectionId: 'local',
+      mode: 'local',
+      profile: 'default',
+      registryScoped: true
+    } as never)
+
+    expect(getComposerSelectionGeneration()).toBe(generation + 1)
+    expect($currentModel.get()).toBe('')
+    expect($currentProvider.get()).toBe('')
+    expect($currentModelSource.get()).toBe('')
   })
 
   it('uses the live registry owner when the connection descriptor is stale', () => {

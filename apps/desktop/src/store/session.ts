@@ -36,6 +36,7 @@ const COMPOSER_PLATFORM_OWNER_KEY = 'aino.desktop.composer.platform-owner'
 const COMPOSER_PLATFORM_ORIGIN_KEY = 'aino.desktop.composer.platform-origin'
 const COMPOSER_EFFORT_KEY = 'hermes.desktop.composer.reasoning-effort'
 const COMPOSER_FAST_KEY = 'hermes.desktop.composer.fast'
+const LOCAL_DEFAULT_REGISTRY_COMPOSER_SCOPE = '.registry.local.default'
 
 // Unlike presentation-oriented $connection, this scope is published from the
 // gateway activation coordinate before profile-change effects can reseed the
@@ -1165,12 +1166,60 @@ export const $modelPickerOpen = atom(false)
 export const $modelDefaultUnavailable = atom(false)
 export const $sessionPickerOpen = atom(false)
 
-function rescopeComposerSelection(nextScope: string | null): void {
+function isLegacyLocalDefaultConnection(connection: HermesConnection | null): boolean {
+  return (
+    connection?.connectionId === 'local' &&
+    connection.mode === 'local' &&
+    connection.registryScoped !== true &&
+    (connection.profile?.trim() || 'default') === 'default'
+  )
+}
+
+function isRegistryLocalDefaultConnection(connection: HermesConnection | null): boolean {
+  return (
+    connection?.connectionId === 'local' &&
+    connection.mode === 'local' &&
+    connection.registryScoped === true &&
+    (connection.profile?.trim() || 'default') === 'default'
+  )
+}
+
+function rescopeComposerSelection(nextScope: string | null, preserveLegacyLocalSelection = false): void {
   if (nextScope === composerSelectionScope) {
     return
   }
 
+  // Electron resolves an explicit local/default route through the registry
+  // bridge after boot may have already painted that same local backend from the
+  // legacy bare scope. This promotion preserves the user's existing intent.
+  const preserveSelection =
+    preserveLegacyLocalSelection &&
+    composerSelectionScope === '' &&
+    nextScope === LOCAL_DEFAULT_REGISTRY_COMPOSER_SCOPE
+
+  const previous = preserveSelection
+    ? {
+        model: $currentModel.get(),
+        owner: $currentPlatformOwner.get(),
+        origin: $currentPlatformOrigin.get(),
+        provider: $currentProvider.get(),
+        source: getCurrentModelSource()
+      }
+    : null
+
   composerSelectionScope = nextScope
+
+  if (previous) {
+    persistString(composerSelectionKey(COMPOSER_MODEL_KEY)!, previous.model || null)
+    persistString(composerSelectionKey(COMPOSER_PROVIDER_KEY)!, previous.provider || null)
+    persistString(composerSelectionKey(COMPOSER_PLATFORM_OWNER_KEY)!, previous.owner || null)
+    persistString(composerSelectionKey(COMPOSER_PLATFORM_ORIGIN_KEY)!, previous.origin || null)
+    persistString(composerSelectionKey(COMPOSER_MODEL_SOURCE_KEY)!, previous.source || null)
+    $currentModelSource.set(previous.source)
+
+    return
+  }
+
   composerSelectionGeneration += 1
   $currentModel.set(storedComposerString(COMPOSER_MODEL_KEY) ?? '')
   $currentProvider.set(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
@@ -1194,6 +1243,7 @@ export function clearComposerSelectionOwner(): void {
 }
 
 export const setConnection = (next: Updater<HermesConnection | null>) => {
+  const previous = $connection.get()
   updateAtom($connection, next)
   // Repoint connection-scoped persistence (pins, manual session order,
   // remembered navigation) at the new backend's storage scope before any
@@ -1201,7 +1251,11 @@ export const setConnection = (next: Updater<HermesConnection | null>) => {
   // keeps the current scope.
   rescopeConnectionScopedStores($connection.get())
   syncCronModelImpactConnection($connection.get())
-  rescopeComposerSelection(composerScopeForConnection($connection.get()))
+  const current = $connection.get()
+  rescopeComposerSelection(
+    composerScopeForConnection(current),
+    isLegacyLocalDefaultConnection(previous) && isRegistryLocalDefaultConnection(current)
+  )
 }
 
 export const setGatewayState = (next: Updater<ConnectionState>) => updateAtom($gatewayState, next)
