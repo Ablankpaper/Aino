@@ -159,6 +159,8 @@ export const zh: Translations = {
     vision: "图片",
     reasoning: "推理",
     defaultModel: "新会话默认模型",
+    historyReadOnly: (owner: string) => `此会话属于原 Aino 账户 ${owner}。可以查看本地历史，但不能使用当前账户继续发送。`,
+    newChatCurrentAccount: '使用当前账户新建会话',
     followCustom: "使用自定义模型默认配置",
     defaultTag: "默认",
     not_authenticated: "请先登录 Aino 再使用此模型",

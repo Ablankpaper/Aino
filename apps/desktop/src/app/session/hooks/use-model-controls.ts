@@ -1,5 +1,5 @@
 import { type QueryClient } from '@tanstack/react-query'
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import { bindSelectedPlatformSession, clearPlatformSession } from '@/api/platform-session-binding'
 import type { ModelSelection } from '@/app/shell/model-menu-panel'
@@ -8,14 +8,18 @@ import { isBusySessionModelSwitch } from '@/lib/gateway-rpc'
 import { surfaceModelSwitchConfirm } from '@/lib/guarded-model-switch'
 import { resolveModelDefault } from '@/lib/model-default'
 import { manualPickRemoved, modelOptionsQueryKey } from '@/lib/model-options'
+import { platformDefaultScope } from '@/lib/platform-model-scope'
 import { notifyError } from '@/store/notifications'
-import { platformModelCatalog, requirePlatformSelection } from '@/store/platform-models'
+import { reconcilePlatformDraftAccount } from '@/store/platform-draft-model'
+import { platformModelCatalog, PlatformSelectionError, requirePlatformSelection } from '@/store/platform-models'
+import { platformHistoryOwner } from '@/store/platform-session-access'
 import { $activeGatewayProfile } from '@/store/profile'
 import {
   $activeSessionId,
   $currentModel,
   $currentPlatformOwner,
   $currentProvider,
+  $selectedStoredSessionId,
   getComposerSelectionGeneration,
   getCurrentModelSource,
   markComposerSelectionDefault,
@@ -50,6 +54,7 @@ export function useModelControls({
   const { t } = useI18n()
   const copy = t.desktop
   const profileRefreshEpochRef = useRef(0)
+  const handledAccountRef = useRef(platformModelCatalog().account.get())
 
   // All callbacks here read reactive session state from the store (.get())
   // rather than capturing it as a prop. The actions bag in wiring.tsx mutates
@@ -126,10 +131,21 @@ export function useModelControls({
       const profileRefreshEpoch = profileRefreshEpochRef.current
       const profile = cacheProfile || $activeGatewayProfile.get()
       const scope = cacheOwnerConnectionId ? { connectionId: cacheOwnerConnectionId, profile } : profile
+      const scopeKey = platformDefaultScope(scope).key
 
       try {
-        if ($activeSessionId.get()) {
+        if (
+          $activeSessionId.get() ||
+          $selectedStoredSessionId.get() ||
+          scopeKey !== platformDefaultScope($activeGatewayProfile.get()).key
+        ) {
           return
+        }
+
+        const account = platformModelCatalog().account.get()
+
+        if (account) {
+          reconcilePlatformDraftAccount(account)
         }
 
         // Capture intent before any catalog I/O so a picker click that lands
@@ -168,6 +184,8 @@ export function useModelControls({
         if (
           profileRefreshEpochRef.current !== profileRefreshEpoch ||
           $activeSessionId.get() ||
+          $selectedStoredSessionId.get() ||
+          scopeKey !== platformDefaultScope($activeGatewayProfile.get()).key ||
           getComposerSelectionGeneration() !== selectionGeneration ||
           keepManualPick()
         ) {
@@ -189,6 +207,8 @@ export function useModelControls({
 
           if (resolvedPlatformDefault) {
             setCurrentPlatformOwner(resolvedPlatformDefault.ownerUserId)
+          } else {
+            setCurrentPlatformOwner('')
           }
         }
       } catch {
@@ -197,6 +217,27 @@ export function useModelControls({
     },
     [cacheOwnerConnectionId, cacheProfile, queryClient]
   )
+
+  const refreshAccountModel = useCallback(() => {
+    const next = platformModelCatalog().account.get()
+    const previous = handledAccountRef.current
+    // Records the last handled transition, not a mirror used to read current
+    // identity. Activity disconnects effects while the login window is open.
+    handledAccountRef.current = next
+
+    if (
+      next?.phase === 'signed_in' &&
+      (next.account?.id !== previous?.account?.id || next.mode !== previous?.mode || previous?.phase !== 'signed_in')
+    ) {
+      void refreshCurrentModel()
+    }
+  }, [refreshCurrentModel])
+
+  useEffect(() => {
+    refreshAccountModel()
+
+    return platformModelCatalog().account.listen(refreshAccountModel)
+  }, [refreshAccountModel])
 
   // Returns whether the switch was applied so callers can await it before
   // applying follow-up changes. `true` means applied (or deferred/busy-queued
@@ -219,6 +260,13 @@ export function useModelControls({
     async (selection: ModelSelection): Promise<boolean> => {
       const primaryRuntimeId = $activeSessionId.get()
       const liveSessionId = 'sessionId' in selection ? (selection.sessionId ?? null) : primaryRuntimeId
+
+      if (platformHistoryOwner(liveSessionId) !== null) {
+        notifyError(new PlatformSelectionError('platform_account_changed'), copy.modelSwitchFailed)
+
+        return false
+      }
+
       const touchesPrimary = !liveSessionId || liveSessionId === primaryRuntimeId
 
       const prevModel = touchesPrimary ? $currentModel.get() : ($sessionStates.get()[liveSessionId!]?.model ?? '')

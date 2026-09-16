@@ -92,8 +92,8 @@ function suffixFor(entry: Pick<ScopedEntry<unknown>, 'includeProfile'>): string 
 }
 
 /** The suffix for the connection the window is currently on. */
-export function activeConnectionScopeSuffix(): string {
-  return activeSuffix
+export function activeConnectionScopeSuffix(includeProfile = true): string {
+  return includeProfile ? activeSuffix : activeGatewaySuffix
 }
 
 /** Observe gateway-identity changes (fires BEFORE scoped atoms that

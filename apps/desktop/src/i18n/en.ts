@@ -162,6 +162,8 @@ export const en: Translations = {
     vision: "Images",
     reasoning: "Reasoning",
     defaultModel: "Default for new chats",
+    historyReadOnly: (owner: string) => `This chat belongs to the original Aino account ${owner}. You can read its local history, but cannot send with the current account.`,
+    newChatCurrentAccount: 'New chat with current account',
     followCustom: "Use custom model default",
     defaultTag: "Default",
     not_authenticated: "Sign in to Aino before using this model",

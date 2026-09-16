@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react'
-import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Activity, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { platformAccountActions } from '@/api/platform'
@@ -26,6 +26,7 @@ export function AccountFlow({ actions, children }: AccountFlowProps) {
   const loginContent = useRef<HTMLDivElement>(null)
   const [windowError, setWindowError] = useState(false)
   const [workspaceReady, setWorkspaceReady] = useState(false)
+  const [workspaceMounted, setWorkspaceMounted] = useState(false)
 
   useEffect(() => {
     void actions.refresh()
@@ -42,6 +43,7 @@ export function AccountFlow({ actions, children }: AccountFlowProps) {
         .then(() => {
           if (active) {
             setWorkspaceReady(true)
+            setWorkspaceMounted(true)
           }
         })
         .catch(() => {
@@ -85,9 +87,18 @@ export function AccountFlow({ actions, children }: AccountFlowProps) {
 
   return (
     <AccountContext.Provider value={actions}>
-      {state.authenticated && workspaceReady ? (
-        children
-      ) : state.authenticated ? (
+      {workspaceMounted && (
+        <Activity mode={state.authenticated && workspaceReady ? 'visible' : 'hidden'}>
+          <div
+            className="contents"
+            hidden={!state.authenticated || !workspaceReady}
+            inert={!state.authenticated || !workspaceReady}
+          >
+            {children}
+          </div>
+        </Activity>
+      )}
+      {state.authenticated && workspaceReady ? null : state.authenticated ? (
         <main className="grid h-screen place-items-center bg-(--ui-chat-surface-background)">
           <p role="status">{windowError ? copy.errors.unavailable : copy.loadingStatus}</p>
         </main>

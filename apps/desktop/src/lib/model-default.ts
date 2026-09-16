@@ -1,11 +1,13 @@
 import { getGlobalModelInfo, type ProfileScope } from '@/hermes'
+import { platformDefaultScope } from '@/lib/platform-model-scope'
 import { platformModelCatalog, PlatformSelectionError, readPlatformDefault } from '@/store/platform-models'
 
 /** Resolve backend/default billing identity without publishing into the composer. */
 export async function resolveModelDefault(scope: ProfileScope) {
   const catalog = platformModelCatalog()
   const account = catalog.account.get()
-  const preferredId = readPlatformDefault(account?.account?.id || '')
+  const capturedScope = platformDefaultScope(scope)
+  const preferredId = readPlatformDefault(account?.account?.id || '', capturedScope, account?.mode)
   const [result] = await Promise.all([getGlobalModelInfo(scope), catalog.load()])
   const currentAccount = catalog.account.get()
 
@@ -13,7 +15,9 @@ export async function resolveModelDefault(scope: ProfileScope) {
     account?.account?.id !== currentAccount?.account?.id ||
     account?.revision !== currentAccount?.revision ||
     account?.phase !== currentAccount?.phase ||
-    preferredId !== readPlatformDefault(currentAccount?.account?.id || '')
+    account?.mode !== currentAccount?.mode ||
+    capturedScope.key !== platformDefaultScope(scope).key ||
+    preferredId !== readPlatformDefault(currentAccount?.account?.id || '', capturedScope, currentAccount?.mode)
   ) {
     throw new PlatformSelectionError('platform_account_changed')
   }

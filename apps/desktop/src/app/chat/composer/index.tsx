@@ -21,6 +21,7 @@ import { browseBackward, browseForward, deriveUserHistory, isBrowsingHistory } f
 import { POPOUT_WIDTH_REM } from '@/store/composer-popout'
 import { parkQueuedPrompts, removeQueuedPrompt, unparkQueuedPrompts } from '@/store/composer-queue'
 import { $hudMode } from '@/store/hud'
+import { platformHistoryOwner } from '@/store/platform-session-access'
 import { sessionBlockingPrompt } from '@/store/prompts'
 import { toggleReview } from '@/store/review'
 import { $gatewayState } from '@/store/session'
@@ -66,6 +67,7 @@ import { useSlashCompletions } from './hooks/use-slash-completions'
 import { useSessionStatusPresence } from './hooks/use-status-presence'
 import { ActionBadges } from './micro-actions'
 import { chipTypedPathOnSpace, pathifyRefs } from './path-refs'
+import { PlatformHistoryNotice, usePlatformHistoryOwner } from './platform-history'
 import { $projectBindingSessions } from './project-selection'
 import { QueuePanel } from './queue-panel'
 import {
@@ -115,7 +117,8 @@ export function ChatBar({
   onTranscribeAudio
 }: ChatBarProps) {
   const bindingProject = useStore($projectBindingSessions).has(sessionId ?? '')
-  const disabled = disabledProp || bindingProject
+  const historyOwner = usePlatformHistoryOwner(sessionId)
+  const disabled = disabledProp || bindingProject || historyOwner !== null
   const hudMode = useStore($hudMode)
   const hudWindowing = window.hermesDesktop?.hud?.windowing
   const hudNativeDrag = hudMode && hudWindowing?.nativeDrag === true
@@ -136,6 +139,7 @@ export function ChatBar({
   // exact pass-through, so surfaces without contributions are byte-identical.
   const onSubmit = useCallback<ChatBarProps['onSubmit']>(
     async (value, options) => {
+      if (platformHistoryOwner(sessionId) !== null) {return false}
       // Bare stop phrase typed while the voice conversation is live: end the
       // conversation (mic off, pill dismissed) instead of sending "stop" to
       // the agent. Spoken transcripts are already stop-checked inside
@@ -153,13 +157,13 @@ export function ChatBar({
 
       const draft = await runComposerMiddleware({ text: value, attachments: options?.attachments })
 
-      if (!draft) {
+      if (!draft || platformHistoryOwner(sessionId) !== null) {
         return false
       }
 
       return onSubmitProp(draft.text, { ...options, attachments: draft.attachments })
     },
-    [onSubmitProp]
+    [onSubmitProp, sessionId]
   )
 
   // Which live composer this instance IS (main | tile) — its attachment set,
@@ -1268,6 +1272,7 @@ export function ChatBar({
             }}
             ref={composerRef}
           >
+            {historyOwner !== null && <PlatformHistoryNotice ownerUserId={historyOwner} />}
             {isHelpHint && <HelpHint />}
             {trigger && !argStageEmpty && (
               <ComposerTriggerPopover

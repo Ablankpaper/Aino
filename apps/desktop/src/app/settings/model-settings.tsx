@@ -1,7 +1,5 @@
-import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { PlatformModelList } from '@/components/platform-model-list'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -33,13 +31,13 @@ import { cn } from '@/lib/utils'
 import { setMainModelAssignment } from '@/store/cron-model-impact'
 import { notifyError, readableError } from '@/store/notifications'
 import { startManualLocalEndpoint, startManualOnboarding, startManualProviderOAuth } from '@/store/onboarding'
-import { platformModelCatalog, readPlatformDefault, writePlatformDefault } from '@/store/platform-models'
 
 import { hermesConfigCacheWriter, invalidateHermesConfig, useHermesConfigRecord } from '../hooks/use-config-record'
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 
 import { CONTROL_TEXT } from './constants'
 import { getNested, setNested } from './helpers'
+import { PlatformModelSettings } from './platform-model-settings'
 import { ListRow, Pill, SectionHeading } from './primitives'
 import { useDeepLinkHighlight } from './use-deep-link-highlight'
 
@@ -203,15 +201,6 @@ interface ModelSettingsProps {
 
 export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSettingsProps) {
   const { t } = useI18n()
-  const platformCatalog = platformModelCatalog()
-  const platformAccount = useStore(platformCatalog.account)
-  const platformState = useStore(platformCatalog.state)
-  const [platformSelectedId, setPlatformSelectedId] = useState<string | undefined>()
-  useEffect(() => {
-    if (platformState.phase === 'idle') {
-      void platformCatalog.load()
-    }
-  }, [platformCatalog, platformState.phase, platformAccount?.revision])
   const m = t.settings.model
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -846,21 +835,7 @@ export function ModelSettings({ onMainModelChanged, scopeProfile }: ModelSetting
 
   return (
     <div className="grid gap-6">
-      {platformAccount?.phase === 'signed_in' && (
-        <section>
-          <SectionHeading icon={Cpu} title={t.platformModels.builtIn} />
-          <p className="mb-3 text-xs text-muted-foreground">{t.platformModels.defaultModel}</p>
-          <PlatformModelList
-            onSelect={model => {
-              writePlatformDefault(platformAccount.account?.id ?? '', model.id)
-              setPlatformSelectedId(model.id)
-
-              return true
-            }}
-            selectedId={platformSelectedId ?? readPlatformDefault(platformAccount.account?.id ?? '') ?? undefined}
-          />
-        </section>
-      )}
+      <PlatformModelSettings scopeProfile={scopeProfile} />
       <section>
         <p className="mb-3 text-xs text-muted-foreground">{m.appliesDesc}</p>
         <div className="flex flex-wrap items-center gap-2">

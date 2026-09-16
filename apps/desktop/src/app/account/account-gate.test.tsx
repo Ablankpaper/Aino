@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useEffect } from 'react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -92,6 +93,53 @@ afterEach(() => {
 })
 
 describe('standalone Aino account flow', () => {
+  it('preserves a mounted draft and attachments through the separate login window', async () => {
+    const account = { id: 'a', display_name: 'A', phone_masked: '', email: '' }
+    const platformBridge = bridge(snapshot('signed_in', account))
+    const actions = createPlatformAccountActions(platformBridge)
+    const shortcut = vi.fn()
+
+    function Draft() {
+      useEffect(() => {
+        window.addEventListener('keydown', shortcut)
+
+        return () => window.removeEventListener('keydown', shortcut)
+      }, [])
+
+      return (
+        <div>
+          <div aria-label="Draft" contentEditable role="textbox" suppressContentEditableWarning tabIndex={0} />
+          <input aria-label="Attachments" type="file" />
+        </div>
+      )
+    }
+
+    renderFlow(actions, <Draft />)
+    const draft = await screen.findByRole('textbox', { name: 'Draft' })
+    draft.focus()
+    expect(window.document.activeElement).toBe(draft)
+    draft.textContent = 'Unsent project work'
+    fireEvent.input(draft)
+    const attachment = screen.getByLabelText('Attachments') as HTMLInputElement
+    const file = new File(['notes'], 'notes.md')
+    fireEvent.change(attachment, { target: { files: [file] } })
+    const changed = vi.mocked(platformBridge.onChanged).mock.calls[0][0]
+    await act(async () => changed({ ...snapshot('signed_out'), revision: 2 }))
+    expect(screen.queryByRole('textbox', { name: 'Draft' })).toBeNull()
+    expect(draft.isConnected).toBe(true)
+    expect(draft.closest('[inert]')).not.toBeNull()
+    fireEvent.keyDown(window, { key: 'Enter' })
+    expect(shortcut).not.toHaveBeenCalled()
+    expect(window.hermesDesktop.setAccountWindowMode).toHaveBeenCalledWith('login', expect.any(Number))
+    await act(async () => changed({ ...snapshot('signed_in', { ...account, id: 'b' }), revision: 3 }))
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Draft' })).toBe(draft))
+    expect(draft.textContent).toBe('Unsent project work')
+    expect(attachment.files?.[0]).toBe(file)
+    fireEvent.keyDown(window, { key: 'Enter' })
+    expect(shortcut).toHaveBeenCalledOnce()
+    expect(window.hermesDesktop.setAccountWindowMode).toHaveBeenLastCalledWith('workspace')
+  })
+
   it('keeps the platform identity when the agent connection changes', async () => {
     const account = { id: '17', display_name: '成员', phone_masked: '+86 138****8000', email: '' }
     const platformBridge = bridge(snapshot('signed_in', account))

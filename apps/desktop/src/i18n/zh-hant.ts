@@ -145,6 +145,8 @@ export const zhHant = defineLocale({
     vision: "圖片",
     reasoning: "推理",
     defaultModel: "新對話預設模型",
+    historyReadOnly: (owner: string) => `此對話屬於原 Aino 帳戶 ${owner}。可以查看本機歷史，但不能使用目前帳戶繼續傳送。`,
+    newChatCurrentAccount: '使用目前帳戶建立新對話',
     followCustom: "使用自訂模型預設設定",
     defaultTag: "預設",
     not_authenticated: "請先登入 Aino 再使用此模型",

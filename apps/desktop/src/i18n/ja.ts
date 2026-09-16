@@ -143,6 +143,8 @@ export const ja = defineLocale({
     vision: "画像",
     reasoning: "推論",
     defaultModel: "新しいチャットの既定モデル",
+    historyReadOnly: (owner: string) => `このチャットは元の Aino アカウント ${owner} に属します。ローカル履歴は閲覧できますが、現在のアカウントでは送信できません。`,
+    newChatCurrentAccount: '現在のアカウントで新しいチャット',
     followCustom: "カスタムモデルの既定設定を使用",
     defaultTag: "既定",
     not_authenticated: "このモデルを使うには Aino にログインしてください",

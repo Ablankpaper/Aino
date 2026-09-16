@@ -1,6 +1,8 @@
 import { atom } from 'nanostores'
 import { expect, it, vi } from 'vitest'
 
+import { rescopeConnectionScopedStores } from '@/lib/connection-scoped'
+
 import type { PlatformAccountSnapshot, PlatformModel } from '../../shared/platform-contract'
 import { platformModel, platformSnapshot } from '../test/platform-model'
 
@@ -11,12 +13,29 @@ import {
   writePlatformDefault
 } from './platform-models'
 
-it('scopes the fresh-chat default to the signed-in account', () => {
+it('isolates defaults by account, connection, profile and platform environment', () => {
   writePlatformDefault('user-a', 'catalog-a')
   expect(readPlatformDefault('user-a')).toBe('catalog-a')
   expect(readPlatformDefault('user-b')).toBeNull()
   writePlatformDefault('user-a', null)
   expect(readPlatformDefault('user-a')).toBeNull()
+  const work = { connectionId: 'remote-a', profile: 'work' }
+  writePlatformDefault('user-a', 'work-model', work, 'development')
+  expect(readPlatformDefault('user-a', work, 'development')).toBe('work-model')
+  expect(readPlatformDefault('user-a', { ...work, profile: 'other' }, 'development')).toBeNull()
+  expect(readPlatformDefault('user-a', { ...work, connectionId: 'remote-b' }, 'development')).toBeNull()
+  expect(readPlatformDefault('user-b', work, 'development')).toBeNull()
+  expect(readPlatformDefault('user-a', work, 'production')).toBeNull()
+  localStorage.setItem('aino.desktop.platform-default.user-a', 'legacy-model')
+  expect(readPlatformDefault('user-a')).toBe('legacy-model')
+  expect(readPlatformDefault('user-a', 'work')).toBeNull()
+  expect(readPlatformDefault('user-a', { connectionId: 'remote-b', profile: 'default' })).toBeNull()
+  rescopeConnectionScopedStores({ mode: 'remote', baseUrl: 'https://legacy.example', profile: 'default' })
+  expect(readPlatformDefault('user-a')).toBeNull()
+  writePlatformDefault('user-a', 'legacy-remote-work', 'work')
+  rescopeConnectionScopedStores({ mode: 'remote', baseUrl: 'https://legacy.example', profile: 'work' })
+  expect(readPlatformDefault('user-a', 'work')).toBe('legacy-remote-work')
+  rescopeConnectionScopedStores({ mode: 'local', profile: 'default' })
 })
 
 it('completes an in-flight catalog load after an equivalent account snapshot refresh', async () => {

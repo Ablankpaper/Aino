@@ -8,6 +8,8 @@ import type {
   PlatformPublicCapabilities
 } from '../../shared/platform-contract'
 
+import { reconcilePlatformDraftAccount } from './platform-draft-model'
+
 export type AccountRecord = NonNullable<PlatformAccountSnapshot['account']>
 
 export interface AccountError {
@@ -77,6 +79,7 @@ function snapshotError(snapshot: PlatformAccountSnapshot): AccountError | null {
 
 export function createAccountActions(adapter: AccountAdapter) {
   const snapshot = atom<PlatformAccountSnapshot | null>(null)
+
   const state = atom<AccountState>({
     ...INITIAL_STATE,
     adapter: adapter.kind,
@@ -92,12 +95,15 @@ export function createAccountActions(adapter: AccountAdapter) {
     }
 
     snapshotRevision = next.revision
+
+    if (adapter.kind === 'platform') {
+      reconcilePlatformDraftAccount(next)
+    }
+
     snapshot.set(next)
     state.set({
       ...state.get(),
-      authenticated: Boolean(
-        next.account && next.phase !== 'signed_out' && next.phase !== 'reauth_required'
-      ),
+      authenticated: Boolean(next.account && next.phase !== 'signed_out' && next.phase !== 'reauth_required'),
       account: next.account,
       ready: true,
       loading: false,

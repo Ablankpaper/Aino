@@ -2,6 +2,7 @@ import { atom, computed, type ReadableAtom } from 'nanostores'
 
 import { platformAccountActions } from '@/api/platform'
 import { translateNow } from '@/i18n'
+import { platformDefaultScope, type PlatformDefaultScopeInput } from '@/lib/platform-model-scope'
 import { readKey, writeKey } from '@/lib/storage'
 
 import type { PlatformAccountSnapshot, PlatformModel } from '../../shared/platform-contract'
@@ -14,20 +15,36 @@ export interface PlatformCatalogState {
 
 const PLATFORM_DEFAULT_PREFIX = 'aino.desktop.platform-default.'
 
-export function platformDefaultKey(accountId: string) {
-  return `${PLATFORM_DEFAULT_PREFIX}${encodeURIComponent(accountId)}`
+export function platformDefaultKey(accountId: string, scope?: PlatformDefaultScopeInput, mode = 'production') {
+  const { key } = platformDefaultScope(scope)
+  const accountKey = `${PLATFORM_DEFAULT_PREFIX}${encodeURIComponent(accountId)}`
+
+  // The old preference has no owner coordinate. Retain it only in its
+  // deliberately legacy local/default namespace, never adopt it elsewhere.
+  return mode === 'production' && key === '["legacy-local","default"]'
+    ? accountKey
+    : `${accountKey}.scope.${encodeURIComponent(JSON.stringify([mode, key]))}`
 }
 
-export function readPlatformDefault(accountId: string): string | null {
-  return accountId ? readKey(platformDefaultKey(accountId)) : null
+export function readPlatformDefault(
+  accountId: string,
+  scope?: PlatformDefaultScopeInput,
+  mode = 'production'
+): string | null {
+  return accountId ? readKey(platformDefaultKey(accountId, scope, mode)) : null
 }
 
-export function writePlatformDefault(accountId: string, modelId: string | null) {
+export function writePlatformDefault(
+  accountId: string,
+  modelId: string | null,
+  scope?: PlatformDefaultScopeInput,
+  mode = 'production'
+) {
   if (!accountId) {
     return
   }
 
-  writeKey(platformDefaultKey(accountId), modelId)
+  writeKey(platformDefaultKey(accountId, scope, mode), modelId)
 }
 
 export class PlatformSelectionError extends Error {
