@@ -117,3 +117,62 @@ These remain explicitly out of scope and unimplemented by this slice:
 - vision/reasoning behavioral gating
 - actionable balance/quota/empty recovery
 - native renderer-to-main acceptance screenshots/tool roundtrip
+
+## Round-one review fixes
+
+Code commit: `80fae83381`
+
+### Default-resolution ambiguity
+
+Added a non-persisted exact platform-default resolution record (`modelId` + owner) that is published only when `refreshCurrentModel()` actually resolves the authenticated Aino catalog fallback. `session.create` emits managed billing metadata only when this record matches the current model and owner. Saved-default transitions, manual picks, and composer owner rescoping clear it.
+
+The positive first-send test now resolves the automatic Aino default through the real model-control hook and catalog rather than constructing ambiguous atoms directly.
+
+RED command:
+
+```bash
+cd apps/desktop
+npm run test:ui -- src/app/session/hooks/use-session-actions.test.tsx \
+  -t "omits a live Aino model when a saved BYOK default"
+```
+
+Observed: after real automatic Aino resolution, a live session, and `applySavedMainModel()` to a BYOK default, the immediate fresh send incorrectly emitted `model_source: "aino"` and `model_id: "catalog-a"`.
+
+GREEN: the same focused transition passed. The full session-action file passed 100/100, including the retained automatic-Aino create -> ticket -> native bind -> prompt path.
+
+### Native exception sanitization
+
+Split `bindPlatformModel()` into stage-specific error boundaries. Canonical runtime-gone errors are rethrown only from `session.managed_model_ticket`; exceptions from native `owner()` and `bind()`, including structured 4001 payloads, return the safe `gateway_binding_failed` result.
+
+RED command:
+
+```bash
+cd apps/desktop
+npm run test:ui -- src/api/platform-models.test.ts
+```
+
+Observed: both new native-stage rows rejected with their original structured errors instead of returning the sanitized contract.
+
+GREEN: 4/4 platform-model tests passed. The native-stage rows also assert that the returned value does not contain the private test payload.
+
+### Round-one verification
+
+```bash
+cd apps/desktop
+npm run test:ui -- \
+  src/api/platform-models.test.ts \
+  src/api/platform-session-binding.test.ts \
+  src/lib/platform-session-model.test.ts \
+  src/app/chat/composer/platform-model-selection.test.tsx \
+  src/store/session-request-router.test.ts \
+  src/store/session.test.ts \
+  src/app/session/hooks/use-model-controls.test.tsx \
+  src/app/session/hooks/use-session-actions.test.tsx \
+  src/app/session/hooks/use-prompt-actions/index.test.tsx
+```
+
+Result: 9 files passed, 410 tests passed.
+
+`npm run typecheck` passed all renderer, Electron, and E2E TypeScript projects after the controller completed the wallet module and C2 fixture correction. Scoped ESLint and `git diff --check` passed.
+
+The remaining B6 limitations listed above are unchanged; round one fixes only the two review findings.
