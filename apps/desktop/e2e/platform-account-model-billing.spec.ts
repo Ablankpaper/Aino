@@ -83,12 +83,19 @@ function assertNewGuardedBackend(sandbox: ReturnType<typeof createSandbox>, prio
 function decimalUnits(value: string): bigint {
   const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value)
 
-  if (!match || (match[3]?.length ?? 0) > 8) { throw new Error(`Unexpected fixture decimal: ${value}`) }
+  if (!match || /[1-9]/.test((match[3] ?? '').slice(8))) { throw new Error(`Unexpected fixture decimal: ${value}`) }
 
-  const units = BigInt(match[2]) * 100_000_000n + BigInt((match[3] ?? '').padEnd(8, '0'))
+  const units = BigInt(match[2]) * 100_000_000n + BigInt((match[3] ?? '').slice(0, 8).padEnd(8, '0'))
 
   return match[1] === '-' ? -units : units
 }
+
+test('fixture decimal parser preserves exact eight-place values', () => {
+  expect(decimalUnits('0.0003000000')).toBe(30_000n)
+  expect(decimalUnits('-1.250000000')).toBe(-125_000_000n)
+  expect(() => decimalUnits('0.0003000001')).toThrow('Unexpected fixture decimal')
+  expect(() => decimalUnits('not-a-decimal')).toThrow('Unexpected fixture decimal')
+})
 
 async function auditRenderer(page: Page, api: Awaited<ReturnType<typeof startRealPlatformAPI>>) {
   const publicData = await page.evaluate(async () => ({
