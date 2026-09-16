@@ -4881,6 +4881,7 @@ const platformIpc = registerPlatformIpc({
   ipc: ipcMain,
   auth: platformAuth,
   captcha: platformCaptcha,
+  openPaymentBrowser: url => shell.openExternal(url),
   fromWebContents: sender => BrowserWindow.fromWebContents(sender as Electron.WebContents),
   trustedRendererUrl: DEV_SERVER
     ? new URL('/', DEV_SERVER).toString()

@@ -200,7 +200,68 @@ export interface PlatformBillingBridge {
   scope(input: PlatformBillingOwner): Promise<PlatformBillingScope>
   summary(input: PlatformBillingOwner): Promise<PlatformWalletSummary>
   checkoutInfo(input: PlatformBillingOwner): Promise<PlatformCheckoutInfo>
+  quote(input: PaymentQuoteInput & PlatformBillingOwner): Promise<PaymentQuote>
+  createOrder(input: PlatformCreateOrderInput & PlatformBillingOwner): Promise<PlatformOrder>
+  getOrder(input: PlatformOrderReference & PlatformBillingOwner): Promise<PlatformOrder>
+  listOrders(input: PlatformOrderQuery & PlatformBillingOwner): Promise<PlatformOrderPage>
+  cancelOrder(input: PlatformOrderReference & PlatformBillingOwner): Promise<PlatformOrder>
+  openCheckout(input: PlatformOrderReference & PlatformBillingOwner): Promise<void>
   listUsage(input: PlatformUsageQuery & { expected_user_id: string }): Promise<PlatformUsagePage>
+}
+
+export interface PaymentQuoteInput {
+  amount: string
+  payment_type: 'alipay' | 'wxpay'
+  order_type: 'balance'
+}
+
+export interface PaymentQuote {
+  requested_amount: string
+  pay_amount: string
+  payment_currency: string
+  credit_amount: string
+  credit_currency: 'USD'
+  fee_amount: string
+}
+
+export interface PlatformCreateOrderInput extends PaymentQuoteInput {
+  client_order_id: string
+  expected_quote?: PaymentQuote
+}
+
+export interface PlatformOrderReference { order_id: string }
+export interface PlatformOrderQuery { page: number; page_size: number }
+
+export type PlatformOrderStatus =
+  | 'PENDING' | 'PAID' | 'RECHARGING' | 'COMPLETED' | 'EXPIRED'
+  | 'CANCELLED' | 'FAILED' | 'REFUND_REQUESTED' | 'REFUNDING'
+  | 'REFUND_PENDING' | 'PARTIALLY_REFUNDED' | 'REFUNDED' | 'REFUND_FAILED'
+
+export interface PlatformOrder {
+  order_id: string
+  out_trade_no: string
+  client_order_id: string | null
+  status: PlatformOrderStatus
+  payment_type: string
+  requested_amount: string | null
+  pay_amount: string
+  payment_currency: string
+  credit_amount: string
+  credit_currency: 'USD'
+  fee_amount: string | null
+  created_at: string
+  expires_at: string
+  can_cancel: boolean
+  confirmation_required: boolean
+  payment_unknown: boolean
+  checkout: null | { qr_code: string | null; pay_url: string | null; expires_at: string }
+}
+
+export interface PlatformOrderPage {
+  items: PlatformOrder[]
+  page: number
+  page_size: number
+  total: number
 }
 
 export interface PlatformBillingOwner {

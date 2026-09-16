@@ -51,6 +51,12 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
     clear: async input => { unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-models:clear', input)) }
   },
   platformBilling: {
+    quote: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:quote', input)),
+    createOrder: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:create-order', input)),
+    getOrder: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:get-order', input)),
+    listOrders: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:list-orders', input)),
+    cancelOrder: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:cancel-order', input)),
+    openCheckout: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:open-checkout', input)),
     scope: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:scope', input)),
     summary: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:summary', input)),
     checkoutInfo: async input => unwrapPlatformAccountIpc(await ipcRenderer.invoke('aino:platform-billing:checkout-info', input)),

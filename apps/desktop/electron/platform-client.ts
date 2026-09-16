@@ -1,9 +1,15 @@
 import type {
+  PaymentQuote,
+  PaymentQuoteInput,
   PhoneChallengeDTO,
   PhoneVerifyDTO,
   PlatformCaptchaProof,
   PlatformCheckoutInfo,
+  PlatformCreateOrderInput,
   PlatformModel,
+  PlatformOrder,
+  PlatformOrderPage,
+  PlatformOrderQuery,
   PlatformPublicCapabilities,
   PlatformWalletSummary
 } from '../shared/platform-contract'
@@ -11,6 +17,7 @@ import type { PlatformUsagePage, PlatformUsageQuery } from '../shared/platform-c
 
 import { parsePlatformCheckoutInfo, parsePlatformWalletSummary } from './platform-billing-contract'
 import { parsePlatformModel } from './platform-model-contract'
+import { parsePaymentQuote, parsePaymentQuoteInput, parsePlatformCreateOrderInput, parsePlatformOrder, parsePlatformOrderId, parsePlatformOrderPage, parsePlatformOrderQuery } from './platform-payment-contract'
 import type { PlatformTokenSet } from './platform-token-store'
 import { parsePlatformUsagePage, parsePlatformUsageQuery } from './platform-usage-contract'
 
@@ -36,6 +43,11 @@ interface AuthExchange {
   tempToken?: string
 }
 export interface PlatformClient {
+  quote(accessToken: string, input: PaymentQuoteInput): Promise<PaymentQuote>
+  createOrder(accessToken: string, input: PlatformCreateOrderInput): Promise<string>
+  getOrder(accessToken: string, orderId: string): Promise<PlatformOrder>
+  listOrders(accessToken: string, input: PlatformOrderQuery): Promise<PlatformOrderPage>
+  cancelOrder(accessToken: string, orderId: string): Promise<void>
   walletSummary(accessToken: string): Promise<PlatformWalletSummary>
   checkoutInfo(accessToken: string): Promise<PlatformCheckoutInfo>
   listUsage(accessToken: string, input: PlatformUsageQuery): Promise<PlatformUsagePage>
@@ -314,6 +326,35 @@ export function createPlatformClient({
 
   return {
     origin,
+    async quote(token, input) {
+      return parsePaymentQuote(await request('POST', '/payment/quote', parsePaymentQuoteInput(input), token))
+    },
+    async createOrder(token, input) {
+      const { amount, ...intent } = parsePlatformCreateOrderInput(input)
+
+      const data = object(await request('POST', '/payment/orders', {
+        ...intent, amount_decimal: amount, payment_source: 'aino_desktop'
+      }, token))
+
+      return parsePlatformOrderId(data.order_id, 'invalid_response')
+    },
+    async getOrder(token, orderId) {
+      const id = parsePlatformOrderId(orderId)
+      const order = parsePlatformOrder(await request('GET', `/payment/orders/${id}`, undefined, token), now())
+
+      if (order.order_id !== id) { throw new PlatformClientError('invalid_response') }
+
+      return order
+    },
+    async listOrders(token, input) {
+      const query = parsePlatformOrderQuery(input)
+      const search = new URLSearchParams({ page: String(query.page), page_size: String(query.page_size) })
+
+      return parsePlatformOrderPage(await request('GET', `/payment/orders/my?${search}`, undefined, token), now())
+    },
+    async cancelOrder(token, orderId) {
+      await request('POST', `/payment/orders/${parsePlatformOrderId(orderId)}/cancel`, {}, token)
+    },
     async capabilities() {
       const data = object(await request('GET', '/settings/public'))
 

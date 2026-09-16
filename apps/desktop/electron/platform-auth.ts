@@ -21,6 +21,11 @@ interface RetainedAccount {
 }
 
 export interface PlatformAuth {
+  quote(input: Parameters<PlatformClient['quote']>[1], expectedUserId: string): ReturnType<PlatformClient['quote']>
+  createOrder(input: Parameters<PlatformClient['createOrder']>[1], expectedUserId: string): ReturnType<PlatformClient['getOrder']>
+  getOrder(orderId: string, expectedUserId: string): ReturnType<PlatformClient['getOrder']>
+  listOrders(input: Parameters<PlatformClient['listOrders']>[1], expectedUserId: string): ReturnType<PlatformClient['listOrders']>
+  cancelOrder(orderId: string, expectedUserId: string): ReturnType<PlatformClient['getOrder']>
   billingScope(expectedUserId: string): PlatformBillingScope
   walletSummary(expectedUserId: string): ReturnType<PlatformClient['walletSummary']>
   checkoutInfo(expectedUserId: string): ReturnType<PlatformClient['checkoutInfo']>
@@ -340,7 +345,40 @@ export function createPlatformAuth({
     }
   }
 
+  async function paymentOperation<T>(owner: string, operation: (token: string) => Promise<T>, repeatSafe: boolean): Promise<T> {
+    api.billingScope(owner)
+
+    const value = await authenticated(token => {
+      api.billingScope(owner)
+
+      return operation(token)
+    }, repeatSafe)
+
+    api.billingScope(owner)
+
+    return value
+  }
+
   const api: PlatformAuth = {
+    quote: (input, owner) => paymentOperation(owner, token => client.quote(token, input), true),
+    async createOrder(input, owner) {
+      const scope = api.billingScope(owner)
+      const id = await paymentOperation(owner, token => client.createOrder(token, input), false)
+
+      if (scope.generation !== generation) { throw new PlatformClientError('auth_attempt_superseded') }
+
+      return api.getOrder(id, owner)
+    },
+    getOrder: (id, owner) => paymentOperation(owner, token => client.getOrder(token, id), true),
+    listOrders: (input, owner) => paymentOperation(owner, token => client.listOrders(token, input), true),
+    async cancelOrder(id, owner) {
+      const scope = api.billingScope(owner)
+      await paymentOperation(owner, token => client.cancelOrder(token, id), false)
+
+      if (scope.generation !== generation) { throw new PlatformClientError('auth_attempt_superseded') }
+
+      return api.getOrder(id, owner)
+    },
     billingScope(expectedUserId) {
       requireTokens()
 

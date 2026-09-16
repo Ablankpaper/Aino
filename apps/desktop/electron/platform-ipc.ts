@@ -7,6 +7,9 @@ import type {
 } from '../shared/platform-contract'
 
 import type { PlatformAuth } from './platform-auth'
+import { PlatformClientError } from './platform-client'
+import { openPlatformCheckout } from './platform-payment'
+import { parsePaymentQuoteInput, parsePlatformCreateOrderInput, parsePlatformOrderId, parsePlatformOrderQuery } from './platform-payment-contract'
 import type { PlatformRuntimeBindingController } from './platform-runtime-binding'
 import { parsePlatformUsageQuery } from './platform-usage-contract'
 
@@ -52,7 +55,8 @@ export function registerPlatformIpc({
   captcha,
   fromWebContents,
   trustedRendererUrl,
-  bindingController
+  bindingController,
+  openPaymentBrowser
 }: {
   ipc: IpcLike
   auth: PlatformAuth
@@ -60,6 +64,7 @@ export function registerPlatformIpc({
   fromWebContents(sender: unknown): WindowLike | null
   trustedRendererUrl: string
   bindingController?: PlatformRuntimeBindingController
+  openPaymentBrowser?: (url: string) => Promise<void>
 }) {
   const windows = new Set<WindowLike>()
 
@@ -257,6 +262,32 @@ export function registerPlatformIpc({
     'checkout-info': (owner: string) => auth.checkoutInfo(owner)
   }
 
+  const paymentMethods: Record<string, (source: Record<string, unknown>, owner: string) => unknown> = {
+    quote: (source, owner) => auth.quote(parsePaymentQuoteInput(source), owner),
+    'create-order': (source, owner) => auth.createOrder(parsePlatformCreateOrderInput(source), owner),
+    'get-order': (source, owner) => auth.getOrder(parsePlatformOrderId(field(source, 'order_id', 19)), owner),
+    'list-orders': (source, owner) => auth.listOrders(parsePlatformOrderQuery(source), owner),
+    'cancel-order': (source, owner) => auth.cancelOrder(parsePlatformOrderId(field(source, 'order_id', 19)), owner),
+    'open-checkout': (source, owner) => {
+      if (!openPaymentBrowser) { throw new PlatformClientError('checkout_unavailable') }
+
+      return openPlatformCheckout({ auth, orderId: parsePlatformOrderId(field(source, 'order_id', 19)), owner, openBrowser: openPaymentBrowser })
+    }
+  }
+
+  for (const [name, operation] of Object.entries(paymentMethods)) {
+    ipc.handle(`aino:platform-billing:${name}`, async (event, input) => {
+      try {
+        authorize(event)
+        const source = record(input)
+
+        return { ok: true, value: await operation(source, field(source, 'expected_user_id', 128)) }
+      } catch (error) {
+        return { ok: false, error: safeIpcError(error) }
+      }
+    })
+  }
+
   for (const [name, read] of Object.entries(billingReads)) {
     ipc.handle(`aino:platform-billing:${name}`, async (event, input) => {
       try {
@@ -374,6 +405,10 @@ export function registerPlatformIpc({
     },
     unregisterWindow,
     dispose() {
+      for (const name of Object.keys(paymentMethods)) {
+        ipc.removeHandler?.(`aino:platform-billing:${name}`)
+      }
+
       ipc.removeHandler?.('aino:platform-billing:usage')
 
       for (const name of Object.keys(billingReads)) {
