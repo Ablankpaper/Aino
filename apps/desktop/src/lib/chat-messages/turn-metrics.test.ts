@@ -39,4 +39,29 @@ describe('reply metrics hydration', () => {
     expect(old.turnMetrics).toBeUndefined()
     expect(malformed.turnMetrics).toBeUndefined()
   })
+
+  it('preserves only an explicit custom-provider billing source through history and equality', () => {
+    const [old, custom, malformed] = toChatMessages([
+      { role: 'assistant', content: 'Old reply.', display_metadata: { turn_metrics: { duration_s: 2 } } },
+      {
+        role: 'assistant',
+        content: 'Custom reply.',
+        display_metadata: { turn_metrics: { duration_s: 3, billing_source: 'custom_provider' } }
+      },
+      {
+        role: 'assistant',
+        content: 'Unknown reply.',
+        display_metadata: { turn_metrics: { duration_s: 4, billing_source: 'current_model' } }
+      }
+    ])
+
+    expect(old.turnMetrics).toEqual({ duration_s: 2 })
+    expect(custom.turnMetrics).toEqual({ duration_s: 3, billing_source: 'custom_provider' })
+    expect(malformed.turnMetrics).toEqual({ duration_s: 4 })
+    expect(chatMessagesEquivalent(custom, { ...custom, turnMetrics: { ...custom.turnMetrics } })).toBe(true)
+    expect(chatMessagesEquivalent(custom, {
+      ...custom,
+      turnMetrics: { duration_s: 3 }
+    })).toBe(false)
+  })
 })

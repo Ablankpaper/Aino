@@ -2,6 +2,7 @@ import { parseTurnBilling, type TurnBilling, turnBillingEquivalent } from './tur
 
 export interface TurnMetrics {
   billing?: TurnBilling
+  billing_source?: 'custom_provider'
   duration_s?: number
   session_elapsed_s?: number
   total_tokens?: number
@@ -41,7 +42,11 @@ export function parseTurnMetrics(value: unknown): TurnMetrics | undefined {
 
   const billing = parseTurnBilling(raw.billing)
 
-  if (billing) { metrics.billing = billing }
+  if (billing) {
+    metrics.billing = billing
+  } else if (raw.billing_source === 'custom_provider') {
+    metrics.billing_source = raw.billing_source
+  }
 
   if (!Object.keys(metrics).length) {return undefined}
 
@@ -52,5 +57,5 @@ export function parseTurnMetrics(value: unknown): TurnMetrics | undefined {
 
 export function turnMetricsEquivalent(a?: TurnMetrics, b?: TurnMetrics): boolean {
   return a === b || (NUMBER_FIELDS.every(key => a?.[key] === b?.[key]) && a?.context_estimated === b?.context_estimated &&
-    turnBillingEquivalent(a?.billing, b?.billing))
+    a?.billing_source === b?.billing_source && turnBillingEquivalent(a?.billing, b?.billing))
 }

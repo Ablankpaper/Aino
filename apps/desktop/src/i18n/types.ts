@@ -3939,6 +3939,7 @@ interface UpstreamTranslations {
         tokens: string
         context: string
         cache: string
+        customProviderBilling: string
         details: string
         sessionElapsed: string
         input: string

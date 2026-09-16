@@ -3521,6 +3521,7 @@ archiveConfirmTitle: name => `スキル「${name}」をアーカイブします�
         tokens: '使用量',
         context: 'コンテキスト',
         cache: 'キャッシュヒット',
+        customProviderBilling: '料金はカスタムプロバイダーに請求され、Aino の残高は消費しません。',
         details: '返信の使用量詳細',
         sessionElapsed: 'この返信までの会話時間',
         input: '入力',

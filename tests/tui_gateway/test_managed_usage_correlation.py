@@ -45,6 +45,45 @@ def test_managed_tool_rounds_share_turn_but_not_request_ids(managed_gateway, pro
     assert persisted[0]["calls"] == billing["calls"]
 
 
+def test_custom_reply_persists_its_source_without_relabeling_managed_history(managed_gateway):
+    from tui_gateway import server
+
+    f = managed_gateway
+    draft = f.create()
+    sid = draft["session_id"]
+    f.bind(sid)
+    f.submit(sid, "Use the managed model")
+
+    value = "fixture-byok-model --provider custom:fixture-byok --session"
+    result = f.call(
+        "config.set", session_id=sid, key="model", value=value, confirm_expensive_model=True)
+    assert "error" not in result
+    f.submit(sid, "Use my custom provider")
+
+    completed = [e["params"]["payload"] for e in f.chat.events
+                 if e.get("params", {}).get("type") == "message.complete"]
+    managed, custom = completed[-2:]
+    assert managed["turn_metrics"]["billing"]["source"] == "aino"
+    assert "billing_source" not in managed["turn_metrics"]
+    assert custom["turn_metrics"]["billing_source"] == "custom_provider"
+    assert "billing" not in custom["turn_metrics"]
+
+    selection = dict(session_id=sid, key="model", value="fixture-a", model_source="aino")
+    confirmation = f.call("config.set", **selection)
+    assert confirmation["result"]["confirm_required"] is True
+    assert "error" not in f.call("config.set", **selection, confirm_expensive_model=True)
+    f.bind(sid)
+
+    with server._session_db(server._sessions[sid]) as db:
+        messages = db.get_messages_as_conversation(server._sessions[sid]["session_key"])
+    metrics = [m["display_metadata"]["turn_metrics"] for m in messages
+               if m.get("display_metadata", {}).get("turn_metrics")]
+    assert metrics[-2]["billing"]["source"] == "aino"
+    assert "billing_source" not in metrics[-2]
+    assert metrics[-1]["billing_source"] == "custom_provider"
+    assert "billing" not in metrics[-1]
+
+
 def test_late_title_updates_original_reply_not_next_identical_reply(managed_gateway, tmp_path, monkeypatch):
     import threading
     import yaml
