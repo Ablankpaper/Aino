@@ -163,3 +163,39 @@ export interface PlatformCaptchaBridge {
   getChallenge(): Promise<{ nonce: string; issued_at: number; expires_at: number }>
   submit(input: { nonce: string; proof: PlatformCaptchaProof }): Promise<void>
 }
+
+export interface PlatformUsageQuery {
+  page: number
+  page_size: number
+  session_id?: string
+  desktop_turn_id?: string
+  desktop_call_id?: string
+  desktop_purpose?: string
+  start_date?: string
+  end_date?: string
+}
+
+export interface PlatformUsageRow {
+  id: string
+  request_id: string
+  model: string
+  session_id: string | null
+  desktop_turn_id: string | null
+  desktop_call_id: string | null
+  desktop_purpose: string | null
+  actual_cost_decimal: string | null
+  currency: 'USD'
+  settlement_status: 'pending' | 'settled' | 'not_charged' | 'unknown'
+  created_at: string
+}
+
+export interface PlatformUsagePage {
+  items: PlatformUsageRow[]
+  page: number
+  page_size: number
+  total: number
+}
+
+export interface PlatformBillingBridge {
+  listUsage(input: PlatformUsageQuery & { expected_user_id: string }): Promise<PlatformUsagePage>
+}

@@ -20,6 +20,7 @@ interface RetainedAccount {
 }
 
 export interface PlatformAuth {
+  listUsage(input: Parameters<PlatformClient['listUsage']>[1], expectedUserId: string): ReturnType<PlatformClient['listUsage']>
   models(): ReturnType<PlatformClient['models']>
   modelLease(input: PlatformLeaseInput): ReturnType<PlatformClient['modelLease']>
   initialize(): Promise<PlatformAccountSnapshot>
@@ -336,6 +337,11 @@ export function createPlatformAuth({
   }
 
   const api: PlatformAuth = {
+    listUsage(input, expectedUserId) {
+      if (api.snapshot().account?.id !== expectedUserId) { throw new PlatformClientError('platform_account_changed') }
+
+      return authenticated(token => client.listUsage(token, input), true)
+    },
     models: () => authenticated(token => client.models(token), true),
     modelLease: input => authenticated(token => client.modelLease(token, input), true),
     async initialize() {

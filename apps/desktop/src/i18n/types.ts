@@ -84,6 +84,11 @@ interface UpstreamTranslations {
     continue: string
     importError: string
   }
+  platformUsage: {
+    pending: string; partial: string; settled: string; unverified: string; unavailable: string; signIn: string; retry: string
+    details: string; empty: string; truncated: string; recordSettled: string; notCharged: string
+    purposes: { chat: string; title: string; compression: string; vision: string; delegation: string; other_auxiliary: string }
+  }
   platformModels: {
     builtIn: string
     custom: string

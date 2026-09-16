@@ -39,6 +39,9 @@ export const zhHant = defineLocale({
   webhooks: {
     webhookUrl: 'Webhook 網址'
   },
+  platformUsage: { pending: '費用核對中', partial: '部分費用已結算', settled: '本回合費用', unverified: '費用尚未核實', unavailable: '暫時無法查詢費用', signIn: '登入原帳戶後查看費用', retry: '重新核對',
+    details: '查看明細', empty: '暫無結算紀錄', truncated: '僅顯示前 200 筆紀錄，費用尚未全部核實', recordSettled: '已結算', notCharged: '不計費',
+    purposes: { chat: '對話', title: '會話標題', compression: '上下文壓縮', vision: '圖像理解', delegation: '子任務', other_auxiliary: '其他輔助呼叫' } },
   platformModels: {
     builtIn: "Aino 內建模型",
     custom: "自訂模型",

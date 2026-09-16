@@ -9,7 +9,7 @@ function rig() {
 
   const ipc = {
     handle: (channel: string, handler: (...args: any[]) => any) => handlers.set(channel, handler),
-    removeHandler: vi.fn()
+    removeHandler: vi.fn((channel: string) => handlers.delete(channel))
   }
 
   let changed: ((snapshot: any) => void) | null = null
@@ -98,6 +98,26 @@ function rig() {
 
 describe('platform account IPC', () => {
   beforeEach(() => vi.restoreAllMocks())
+
+  it('scopes usage reads to trusted windows, whitelists query fields and disposes the handler', async () => {
+    const f = rig()
+
+    ;(f.event.senderFrame as any).url = 'http://127.0.0.1:5174/'
+    f.auth.listUsage = vi.fn().mockResolvedValue({ items: [], page: 1, page_size: 50, total: 0 })
+    const handler = f.handlers.get('aino:platform-billing:usage')!
+    const input = { expected_user_id: '1', page: 1, page_size: 50, user_id: 'other', token: 'ignored' }
+    expect(await handler(f.event, input)).toMatchObject({ ok: true, value: { items: [] } })
+    expect(f.auth.listUsage).toHaveBeenCalledWith({ page: 1, page_size: 50 }, '1')
+    expect(await handler(f.event, { ...input, page_size: 101 })).toMatchObject({ ok: false })
+    expect(await handler(f.event, { ...input, expected_user_id: '' })).toMatchObject({ ok: false })
+    expect(await handler({ ...f.event, senderFrame: {} }, input)).toMatchObject({
+      ok: false, error: { code: 'unauthorized_platform_ipc' }
+    })
+    expect(f.auth.listUsage).toHaveBeenCalledTimes(1)
+    f.controller.dispose()
+    // The real registry no longer accepts reads once disposed.
+    expect(f.handlers.has('aino:platform-billing:usage')).toBe(false)
+  })
 
   it('allows only registered app windows at the trusted main-frame URL', async () => {
     const f = rig()

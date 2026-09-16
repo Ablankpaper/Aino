@@ -24,6 +24,31 @@ afterEach(async () => {
 })
 
 describe('platform client', () => {
+  it('reads exact ledger costs through a whitelisted query and removes nested key data', async () => {
+    const turn = 'b8664a58-472a-4ba6-b853-94aadee41bb1'
+
+    const origin = await serve((req, res) => {
+      const url = new URL(req.url!, 'http://localhost')
+      expect(url.pathname).toBe('/api/v1/usage')
+      expect(url.searchParams.get('desktop_turn_id')).toBe(turn)
+      expect(url.searchParams.has('user_id')).toBe(false)
+      expect(req.headers.authorization).toBe('Bearer fixture-access')
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ code: 0, message: 'ok', data: { page: 1, page_size: 50, total: 1, items: [{
+        id: 42, request_id: 'server-request', model: 'fixture-model', session_id: null, desktop_turn_id: turn,
+        desktop_call_id: 'cbec3bce-4de2-4fbe-a6ee-5ab3e7d990cb', desktop_purpose: 'chat',
+        actual_cost_decimal: '0.00000001', actual_cost: 999, settlement_status: 'settled', currency: 'USD',
+        created_at: '2026-09-16T00:00:00Z', api_key: { key: 'fixture-secret' }
+      }] } }))
+    })
+
+    const client = createPlatformClient({ origin, allowInsecureLoopback: true })
+    const page = await client.listUsage('fixture-access', { page: 1, page_size: 50, desktop_turn_id: turn })
+    expect(page.items[0].actual_cost_decimal).toBe('0.00000001')
+    expect(page.items[0]).not.toHaveProperty('api_key')
+    expect(page.items[0]).not.toHaveProperty('actual_cost')
+    expect(page.items[0].id).toBe('42')
+  })
   it('uses the B2 credential route and connection/device scope', async () => {
     let observed: unknown
 

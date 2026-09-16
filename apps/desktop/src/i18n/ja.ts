@@ -36,6 +36,9 @@ export const ja = defineLocale({
     continue: 'Hermesで続ける',
     importError: '会話を取り込めませんでした。'
   },
+  platformUsage: { pending: '料金を確認中', partial: '一部の料金が確定', settled: '今回の料金', unverified: '料金は未確認です', unavailable: '料金を一時的に取得できません', signIn: '元のアカウントにログインして料金を確認', retry: '再確認',
+    details: '明細を表示', empty: '確定済みの記録はまだありません', truncated: '最初の200件のみ表示しています。合計料金は未確定です', recordSettled: '確定済み', notCharged: '課金なし',
+    purposes: { chat: 'チャット', title: '会話タイトル', compression: 'コンテキスト圧縮', vision: '画像理解', delegation: 'サブタスク', other_auxiliary: 'その他の補助呼び出し' } },
   platformModels: {
     builtIn: "Aino モデル",
     custom: "カスタムモデル",

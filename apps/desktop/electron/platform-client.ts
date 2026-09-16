@@ -5,9 +5,11 @@ import type {
   PlatformModel,
   PlatformPublicCapabilities
 } from '../shared/platform-contract'
+import type { PlatformUsagePage, PlatformUsageQuery } from '../shared/platform-contract'
 
 import { parsePlatformModel } from './platform-model-contract'
 import type { PlatformTokenSet } from './platform-token-store'
+import { parsePlatformUsagePage, parsePlatformUsageQuery } from './platform-usage-contract'
 
 export const PLATFORM_PRODUCTION_ORIGIN = 'https://api.agentera.com.cn'
 
@@ -31,6 +33,7 @@ interface AuthExchange {
   tempToken?: string
 }
 export interface PlatformClient {
+  listUsage(accessToken: string, input: PlatformUsageQuery): Promise<PlatformUsagePage>
   readonly origin: string
   capabilities(): Promise<PlatformPublicCapabilities>
   profile(accessToken: string): Promise<PlatformProfile>
@@ -423,6 +426,11 @@ export function createPlatformClient({
       }
 
       return data.map(parsePlatformModel)
+    },
+    async listUsage(token, input) {
+      const query = new URLSearchParams(Object.entries(parsePlatformUsageQuery(input)).map(([key, value]) => [key, String(value)]))
+
+      return parsePlatformUsagePage(await request('GET', `/usage?${query}`, undefined, token))
     },
     async modelLease(token, input) {
       const data = object(await request('POST', '/desktop/credentials', input, token))

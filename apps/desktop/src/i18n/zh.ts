@@ -53,6 +53,9 @@ export const zh: Translations = {
     continue: '在 Hermes 中继续',
     importError: '无法导入此对话。'
   },
+  platformUsage: { pending: '费用核对中', partial: '部分费用已结算', settled: '本回合费用', unverified: '费用尚未核实', unavailable: '暂时无法查询费用', signIn: '登录原账户后查看费用', retry: '重新核对',
+    details: '查看明细', empty: '暂无结算记录', truncated: '仅显示前 200 条记录，费用尚未全部核实', recordSettled: '已结算', notCharged: '不计费',
+    purposes: { chat: '对话', title: '会话标题', compression: '上下文压缩', vision: '图像理解', delegation: '子任务', other_auxiliary: '其他辅助调用' } },
   platformModels: {
     builtIn: "Aino 内置模型",
     custom: "自定义模型",

@@ -8,6 +8,7 @@ import type {
 
 import type { PlatformAuth } from './platform-auth'
 import type { PlatformRuntimeBindingController } from './platform-runtime-binding'
+import { parsePlatformUsageQuery } from './platform-usage-contract'
 
 interface IpcLike {
   handle(channel: string, handler: (...args: any[]) => unknown): void
@@ -251,6 +252,17 @@ export function registerPlatformIpc({
   }
 
   // Platform models binding IPC handlers
+  ipc.handle('aino:platform-billing:usage', async (event, input) => {
+    try {
+      authorize(event)
+      const source = record(input)
+
+      return { ok: true, value: await auth.listUsage(parsePlatformUsageQuery(source), field(source, 'expected_user_id', 128)) }
+    } catch (error) {
+      return { ok: false, error: safeIpcError(error) }
+    }
+  })
+
   if (bindingController) {
     ipc.handle('aino:platform-models:owner', (event, revision) => {
       try {
@@ -345,6 +357,7 @@ export function registerPlatformIpc({
     },
     unregisterWindow,
     dispose() {
+      ipc.removeHandler?.('aino:platform-billing:usage')
       bindingController?.dispose()
       unsubscribe()
       windows.clear()

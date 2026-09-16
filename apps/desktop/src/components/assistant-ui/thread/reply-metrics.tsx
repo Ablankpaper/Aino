@@ -4,6 +4,8 @@ import { compactNumber } from '@/lib/format'
 import { ChevronDown } from '@/lib/icons'
 import type { TurnMetrics } from '@/lib/turn-metrics'
 
+import { ReplyCost } from './reply-cost'
+
 interface ReplyMetricsProps {
   metrics?: TurnMetrics
   durationS?: number
@@ -35,7 +37,7 @@ export function ReplyMetrics({ metrics, durationS }: ReplyMetricsProps) {
       : null
   ].filter((item): item is string => item !== null)
 
-  if (!items.length) {
+  if (!items.length && !metrics?.billing) {
     return null
   }
 
@@ -56,26 +58,30 @@ export function ReplyMetrics({ metrics, durationS }: ReplyMetricsProps) {
     return (
       <div className={className} data-slot="aui_reply-metrics">
         {line}
+        {metrics?.billing && <ReplyCost billing={metrics.billing} />}
       </div>
     )
   }
 
   return (
-    <details className={`${className} group/reply-metrics`} data-slot="aui_reply-metrics">
-      <summary
-        aria-label={copy.details}
-        className="flex cursor-pointer list-none items-start gap-1.5 rounded-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
-      >
-        {line}
-        <ChevronDown className="mt-0.5 size-3.5 shrink-0 transition-transform group-open/reply-metrics:rotate-180" />
-      </summary>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1.5">
-        {details.map(detail => (
-          <span className="min-w-0 [overflow-wrap:anywhere]" key={detail}>
-            {detail}
-          </span>
-        ))}
-      </div>
-    </details>
+    <div className={className} data-slot="aui_reply-metrics">
+      <details className="group/reply-metrics">
+        <summary
+          aria-label={copy.details}
+          className="flex cursor-pointer list-none items-start gap-1.5 rounded-sm hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
+        >
+          {line}
+          <ChevronDown className="mt-0.5 size-3.5 shrink-0 transition-transform group-open/reply-metrics:rotate-180" />
+        </summary>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1.5">
+          {details.map(detail => (
+            <span className="min-w-0 [overflow-wrap:anywhere]" key={detail}>
+              {detail}
+            </span>
+          ))}
+        </div>
+      </details>
+      {metrics?.billing && <ReplyCost billing={metrics.billing} />}
+    </div>
   )
 }

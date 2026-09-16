@@ -130,6 +130,39 @@ async function createPlatformAuthTestRig(options: { delaySave?: boolean } = {}) 
 }
 
 describe('platform auth ownership', () => {
+  it('rejects foreign usage reads and suppresses a ledger response arriving after logout', async () => {
+    const started = deferred<void>()
+    const response = deferred<unknown>()
+    let usageRequests = 0
+
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') { return okProfile(17, 'owner') }
+
+      if (path === '/api/v1/auth/logout') { return ok({ success: true }) }
+
+      if (path.startsWith('/api/v1/usage?')) {
+        usageRequests += 1
+        started.resolve()
+
+        return ok(await response.promise)
+      }
+
+      return errorEnvelope(404, 'NOT_FOUND')
+    })
+
+    const auth = createAuth(origin, rememberedTokens('owner'))
+    await auth.initialize()
+    expect(() => auth.listUsage({ page: 1, page_size: 50 }, '18')).toThrow('platform_account_changed')
+    expect(usageRequests).toBe(0)
+    const pending = auth.listUsage({ page: 1, page_size: 50 }, '17')
+    const rejected = expect(pending).rejects.toMatchObject({ code: 'auth_attempt_superseded' })
+    await started.promise
+    await auth.logout()
+    response.resolve({ items: [], page: 1, page_size: 50, total: 0 })
+    await rejected
+    expect(auth.snapshot().phase).toBe('signed_out')
+  })
+
   it('single-flights refresh and persists the rotated token family', async () => {
     const f = await createPlatformAuthTestRig()
     const one = f.auth.refresh()

@@ -54,6 +54,9 @@ export const en: Translations = {
     continue: 'Continue in Hermes',
     importError: 'Could not import this conversation.'
   },
+  platformUsage: { pending: 'Checking charges', partial: 'Partially settled', settled: 'Charged', unverified: 'Charges not confirmed', unavailable: 'Charges temporarily unavailable', signIn: 'Sign in to the original account to view charges', retry: 'Check again',
+    details: 'View details', empty: 'No settlement records yet', truncated: 'Showing the first 200 records; total charges are not yet confirmed', recordSettled: 'Settled', notCharged: 'Not charged',
+    purposes: { chat: 'Chat', title: 'Conversation title', compression: 'Context compression', vision: 'Image understanding', delegation: 'Subtask', other_auxiliary: 'Other auxiliary call' } },
   platformModels: {
     builtIn: "Aino models",
     custom: "Custom models",
