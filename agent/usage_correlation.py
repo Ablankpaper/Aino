@@ -46,4 +46,3 @@ class TurnCallTracker:
             self._foreground_done = True
             self._listener = listener
             self._changed()
-

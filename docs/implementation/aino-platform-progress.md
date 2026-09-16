@@ -38,6 +38,18 @@
 - 完整默认 Go 命令 `go test ./... -count=1 -timeout=120s` 未通过：service 包达到 2 分钟总超时，最后执行到 `TestSystemOperationLockService_RenewLease`（该项当时刚开始，不能据此认定它死锁）。其余包结果在 `/tmp/aino-c1-go-default.log`；D 阶段使用合理整包预算复验，不盲目循环。
 - C2 消费关联、C3 幂等订单、C4 桌面钱包和 D 仍待完成，C1 不代表充值已可在桌面使用。
 
+### C2 消费关联基础链路（2026-09-16）
+
+- 本地配对：API `66b0a0db6`、Aino `6a72a02a8d`。C2 尚未整体完成：消费查询的 main/preload 桥、有限对账重试和回复费用/明细 UI 待接入。
+- 托管 Key 才接受 UUID/用途关联；关联存入请求私有 Key 副本，不污染共享鉴权缓存，整个 `X-Aino-*` 命名空间在上游转发前剥离。普通 Key 不接受桌面归因。
+- 两条现有用量路径记录 session/turn/call/purpose；扣费事务成功才记录确定结算，失败/历史数据保持 unknown 和空的权威金额。精确金额读取 NUMERIC 文本并按原账本八位精度显示，旧 numeric actual_cost 不移除。
+- 原 `/usage`、`/usage/stats` 支持关联过滤并强制当前用户；原 `(request_id, api_key_id)` 去重保持。迁移新增 `242_desktop_usage_correlation.sql` 和 `243_desktop_usage_indexes_notx.sql`；C3 必须检查占用并从 244 或之后编号开始，不能覆盖已应用迁移。
+- 真实本地 PG/Redis/JWT → 托管 Key 鉴权 → Gateway RecordUsage → 扣费事务 → 用量读回已验证；同一请求两次写入仅扣一次，金额与余额差精确一致。此测试直接提供本地模型用量结果，不等同真实线上推理验收。
+- Python 按实际 HTTP dispatch 记录调用，标题线程也归属原回合；晚到标题只更新原回复有上界的 display metadata。复用 `session.usage` 通知，无新增模型提示/工具或查询端点。桌面保留这些字段，处理通知先于/晚于 message.complete、旧版本通知和不同账户，未把“调用结束”当“已结算”。
+- 定向 UI 31 文件/243 项通过；Python 网关＋标题/托管辅助/委托 128 文件/1,181 项通过；真实 API 集成 52 顶层场景/102 含子场景通过、0 跳过；Go 相关默认和 unit 测试通过，首次 SQL mock 列数/尾索引失败已修正夹具后复验，不放宽业务断言。
+- 类型检查、桌面构建、相关 ESLint/Ruff、API 构建、新改动 Go lint（0 issues）通过；Ent 离线重新生成无漂移。完整 UI/Go 超时等历史待核验仍以先前记录为准，本阶段没有宣称全量 CI 已绿。
+- 日志：`/tmp/aino-c2-{integration.jsonl,gateway-regression.log,final-ui.log,types.log,build.log}`。原生桌面 UI、正式短信/支付/收费模型未验证，无推送/合并/部署。
+
 ## 2026-09-15 续作核验
 
 最新安排：Codex 已补齐并提交 B4，后续由用户转交 Claude 完成 B5–B6、C、D。执行入口为 [Claude 交接清单](aino-platform-claude-handoff.md)。下表区分已有代码、实际自动测试和真实服务联调；后文历史记录不能替代验收证据。
