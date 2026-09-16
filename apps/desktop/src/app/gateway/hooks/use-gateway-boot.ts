@@ -820,7 +820,9 @@ export function useGatewayBoot({
     const offState = gateway.onState(st => {
       // Mirror to the composer only while the primary is the active profile —
       // a background secondary reconnect mustn't flip the foreground state.
-      reportPrimaryGatewayState(st)
+      if (!reportPrimaryGatewayState(gateway, st)) {
+        return
+      }
 
       if (st === 'open') {
         reconnectAttempt = 0
@@ -851,7 +853,9 @@ export function useGatewayBoot({
     const offEvent = gateway.onEvent(event => {
       const connectionId = activeGatewayConnectionId()
 
-      reportPrimaryGatewayEvent(event)
+      if (!reportPrimaryGatewayEvent(gateway, event)) {
+        return
+      }
 
       const scopedEvent = {
         ...event,
@@ -1168,7 +1172,7 @@ export function useGatewayBoot({
 
       // Mirror the current (already-open) socket state into the composer so the
       // input doesn't sit disabled after the swap.
-      reportPrimaryGatewayState(gateway.connectionState)
+      reportPrimaryGatewayState(gateway, gateway.connectionState)
 
       await callbacksRef.current.refreshHermesConfig().catch(() => undefined)
 

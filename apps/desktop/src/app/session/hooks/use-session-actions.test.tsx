@@ -33,11 +33,22 @@ import {
   takeSessionDraft
 } from '@/store/composer'
 import { requestGatewayForAgent, requestGatewayForProfile } from '@/store/gateway'
-import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
+import {
+  clearGatewayManagedCapabilities,
+  recordGatewayReadyCapability,
+  resetGatewayManagedCapability
+} from '@/store/gateway-managed-capability'
 import { $pinnedSessionIds } from '@/store/layout'
 import { $notifications, clearNotifications } from '@/store/notifications'
 import { platformModelCatalog } from '@/store/platform-models'
-import { $activeGatewayProfile, $newChatProfile, $newChatRoute, $profiles, ensureGatewayProfile } from '@/store/profile'
+import {
+  $activeGatewayProfile,
+  $newChatProfile,
+  $newChatRoute,
+  $profiles,
+  ensureGatewayAgent,
+  ensureGatewayProfile
+} from '@/store/profile'
 import { $projectScope, $projectTree, ALL_PROJECTS } from '@/store/projects'
 import {
   $activeSessionId,
@@ -1149,6 +1160,79 @@ describe('createBackendSessionForSend profile routing', () => {
     expect(requestGateway).toHaveBeenCalledWith(
       'session.create',
       expect.objectContaining({ model_source: 'aino', model_id: 'catalog-a' })
+    )
+  })
+
+  it('rejects a managed first send on its unsupported captured owner before create or prompt submit', async () => {
+    vi.mocked(requestGatewayForAgent).mockClear()
+
+    const route = {
+      connectionId: 'source-a',
+      mode: 'remote' as const,
+      profile: 'default',
+      targetProfile: 'backend-default'
+    }
+
+    $newChatProfile.set(route.profile)
+    $newChatRoute.set({ ...route })
+    setCurrentModel('catalog-a')
+    setCurrentProvider('aino')
+    setCurrentPlatformOwner('user-a')
+    setCurrentModelSource('manual')
+    recordGatewayReadyCapability(route, { type: 'gateway.ready', payload: {} })
+    const ambientRequest = vi.fn(async (_method: string) => ({} as never))
+    let submitText: null | ((text: string) => Promise<boolean>) = null
+    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={ambientRequest} />)
+    await waitFor(() => expect(submitText).not.toBeNull())
+
+    await expect(submitText!('must not leave this draft')).resolves.toBe(false)
+    expect(requestGatewayForAgent).not.toHaveBeenCalled()
+    expect(ambientRequest.mock.calls.some(([method]) => ['session.create', 'prompt.submit'].includes(method))).toBe(
+      false
+    )
+  })
+
+  it('rechecks the immutable captured route after readiness and rejects an owner replacement', async () => {
+    vi.mocked(requestGatewayForAgent).mockClear()
+
+    const route = {
+      connectionId: 'source-a',
+      mode: 'remote' as const,
+      profile: 'default',
+      targetProfile: 'backend-default'
+    }
+
+    const ready = deferred<void>()
+    vi.mocked(ensureGatewayAgent).mockReturnValueOnce(ready.promise)
+    $newChatProfile.set(route.profile)
+    $newChatRoute.set({ ...route })
+    setCurrentModel('catalog-a')
+    setCurrentProvider('aino')
+    setCurrentPlatformOwner('user-a')
+    setCurrentModelSource('manual')
+    recordGatewayReadyCapability(route, {
+      type: 'gateway.ready',
+      payload: { managed_model_binding: 1 }
+    })
+    const ambientRequest = vi.fn(async (_method: string) => ({} as never))
+    let submitText: null | ((text: string) => Promise<boolean>) = null
+    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={ambientRequest} />)
+    await waitFor(() => expect(submitText).not.toBeNull())
+
+    const submitting = submitText!('captured owner only')
+    await waitFor(() => expect(ensureGatewayAgent).toHaveBeenCalledWith('source-a', 'default'))
+    resetGatewayManagedCapability(route)
+    $activeGatewayProfile.set('replacement-profile')
+    recordGatewayReadyCapability(
+      { connectionId: 'source-b', profile: 'replacement-profile' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+    ready.resolve()
+
+    await expect(submitting).resolves.toBe(false)
+    expect(requestGatewayForAgent).not.toHaveBeenCalled()
+    expect(ambientRequest.mock.calls.some(([method]) => ['session.create', 'prompt.submit'].includes(method))).toBe(
+      false
     )
   })
 

@@ -475,13 +475,25 @@ function reportGatewayState(profile: string, state: ConnectionState): void {
   }
 }
 
-export function reportPrimaryGatewayState(state: ConnectionState): void {
+export function reportPrimaryGatewayState(gateway: HermesGateway, state: ConnectionState): boolean {
+  if (gateway !== g.primaryGateway) {
+    return false
+  }
+
   recordGatewayCapabilityState({ connectionId: g.primaryConnectionId, profile: g.primaryProfile }, state)
   reportGatewayState(g.primaryProfile, state)
+
+  return true
 }
 
-export function reportPrimaryGatewayEvent(event: GatewayEvent): void {
+export function reportPrimaryGatewayEvent(gateway: HermesGateway, event: GatewayEvent): boolean {
+  if (gateway !== g.primaryGateway) {
+    return false
+  }
+
   recordGatewayReadyCapability({ connectionId: g.primaryConnectionId, profile: g.primaryProfile }, event)
+
+  return true
 }
 
 function setActive(profile: string): void {
@@ -789,6 +801,10 @@ function createSecondary(profile: string, connectionId: null | string = null): S
   // connection id, so stamp this closure-owned profile before registry fan-in;
   // the recorder must not promote an arbitrary wire `profile` field instead.
   entry.offEvent = gateway.onEvent(event => {
+    if (g.secondaries.get(scope) !== entry) {
+      return
+    }
+
     const scopedEvent = stampSecondaryProfileOwner({ ...event, ...(connectionId ? { connectionId } : {}) }, profile)
 
     recordGatewayReadyCapability({ connectionId, profile }, event)
@@ -796,6 +812,10 @@ function createSecondary(profile: string, connectionId: null | string = null): S
     releaseTerminalTurnLease(entry.scope, event)
   })
   entry.offState = gateway.onState(state => {
+    if (g.secondaries.get(scope) !== entry) {
+      return
+    }
+
     recordGatewayCapabilityState({ connectionId, profile }, state)
     reportGatewayState(scope, state)
 

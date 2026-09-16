@@ -33,7 +33,7 @@ export interface PlatformModelListProps {
   disabled?: boolean
   onSelect: (model: PlatformModel) => Promise<boolean> | boolean | void
   onApplied?: () => void
-  managedCapability?: ManagedModelRouteCapability
+  managedCapability: ManagedModelRouteCapability
 }
 
 export function PlatformModelList({
@@ -41,7 +41,7 @@ export function PlatformModelList({
   disabled,
   onSelect,
   onApplied,
-  managedCapability = 'supported'
+  managedCapability
 }: PlatformModelListProps) {
   const { t } = useI18n()
   const copy = t.platformModels

@@ -321,10 +321,12 @@ async function desktopSessionCreateParams(
     ? { connectionId: capturedRoute.connectionId, profile: capturedRoute.targetProfile || profile }
     : profile
 
+  const managedRoute = capturedRoute ? { connectionId: capturedRoute.connectionId, profile } : platformDefaultScope(profile).route
+
   if (selectionSource !== 'manual') {
     // A persisted default or a live session's footer is not billing authority.
     // Resolve the captured owner directly, even before background effects run.
-    const resolved = await resolveModelDefault(scope)
+    const resolved = await resolveModelDefault(scope, managedRoute)
 
     if (generation !== getComposerSelectionGeneration()) {
       throw new Error(translateNow('desktop.modelSwitchFailed'))
@@ -341,7 +343,7 @@ async function desktopSessionCreateParams(
     await ensureGatewayProfile(profile)
   }
 
-  if (selection.provider === 'aino' && managedModelRouteCapability(platformDefaultScope(scope).route) !== 'supported') {
+  if (selection.provider === 'aino' && managedModelRouteCapability(managedRoute) !== 'supported') {
     throw new PlatformSelectionError('unsupported_gateway')
   }
 

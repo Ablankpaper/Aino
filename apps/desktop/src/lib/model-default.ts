@@ -1,10 +1,10 @@
 import { getGlobalModelInfo, type ProfileScope } from '@/hermes'
-import { platformDefaultScope } from '@/lib/platform-model-scope'
+import { type PlatformDefaultScope, platformDefaultScope } from '@/lib/platform-model-scope'
 import { managedModelRouteCapability } from '@/store/gateway-managed-capability'
 import { platformModelCatalog, PlatformSelectionError, readPlatformDefault } from '@/store/platform-models'
 
 /** Resolve backend/default billing identity without publishing into the composer. */
-export async function resolveModelDefault(scope: ProfileScope) {
+export async function resolveModelDefault(scope: ProfileScope, managedRoute?: PlatformDefaultScope['route']) {
   const catalog = platformModelCatalog()
   const account = catalog.account.get()
   const capturedScope = platformDefaultScope(scope)
@@ -24,7 +24,7 @@ export async function resolveModelDefault(scope: ProfileScope) {
   }
 
   const state = catalog.state.get()
-  const managedSupported = managedModelRouteCapability(capturedScope.route) === 'supported'
+  const managedSupported = managedModelRouteCapability(managedRoute ?? capturedScope.route) === 'supported'
 
   const platformDefault =
     managedSupported && state.phase === 'ready'

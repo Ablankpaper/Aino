@@ -7,6 +7,10 @@ import { resolveModelDefault } from '@/lib/model-default'
 import { manualPickRemoved, modelOptionsQueryKey } from '@/lib/model-options'
 import { platformDefaultScope } from '@/lib/platform-model-scope'
 import { switchSessionModel } from '@/lib/session-model-switch'
+import {
+  $gatewayManagedCapabilities,
+  managedModelRouteCapabilityFrom
+} from '@/store/gateway-managed-capability'
 import { reconcilePlatformDraftAccount } from '@/store/platform-draft-model'
 import { platformModelCatalog } from '@/store/platform-models'
 import { $activeGatewayProfile } from '@/store/profile'
@@ -42,6 +46,17 @@ export function useModelControls({
   const copy = t.desktop
   const profileRefreshEpochRef = useRef(0)
   const handledAccountRef = useRef(platformModelCatalog().account.get())
+
+  const initialCapabilityScope = platformDefaultScope(
+    cacheOwnerConnectionId
+      ? { connectionId: cacheOwnerConnectionId, profile: cacheProfile || $activeGatewayProfile.get() }
+      : cacheProfile || $activeGatewayProfile.get()
+  )
+
+  const handledCapabilityRef = useRef({
+    key: initialCapabilityScope.key,
+    state: managedModelRouteCapabilityFrom($gatewayManagedCapabilities.get(), initialCapabilityScope.route)
+  })
 
   // All callbacks here read reactive session state from the store (.get())
   // rather than capturing it as a prop. The actions bag in wiring.tsx mutates
@@ -225,6 +240,26 @@ export function useModelControls({
 
     return platformModelCatalog().account.listen(refreshAccountModel)
   }, [refreshAccountModel])
+
+  useEffect(
+    () =>
+      $gatewayManagedCapabilities.listen(capabilities => {
+        const profile = cacheProfile || $activeGatewayProfile.get()
+
+        const scope = platformDefaultScope(
+          cacheOwnerConnectionId ? { connectionId: cacheOwnerConnectionId, profile } : profile
+        )
+
+        const state = managedModelRouteCapabilityFrom(capabilities, scope.route)
+        const previous = handledCapabilityRef.current
+        handledCapabilityRef.current = { key: scope.key, state }
+
+        if (state === 'supported' && (previous.key !== scope.key || previous.state !== 'supported')) {
+          void refreshCurrentModel()
+        }
+      }),
+    [cacheOwnerConnectionId, cacheProfile, refreshCurrentModel]
+  )
 
   const selectModel = useCallback(
     (selection: ModelSelection): Promise<boolean> =>

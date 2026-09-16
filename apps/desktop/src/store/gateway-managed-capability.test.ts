@@ -4,6 +4,7 @@ const gatewayMocks = vi.hoisted(() => {
   const instances: Array<{
     close: ReturnType<typeof vi.fn>
     emitEvent: (event: { payload?: unknown; type: string }) => void
+    emitCapturedEvent: (event: { payload?: unknown; type: string }) => void
     emitState: (state: string) => void
   }> = []
 
@@ -35,9 +36,12 @@ vi.mock('@/hermes', () => ({
       return () => undefined
     })
     constructor() {
+      const emitCapturedEvent = (event: { payload?: unknown; type: string }) => this.eventHandler(event)
+
       gatewayMocks.instances.push({
         close: this.close,
         emitEvent: event => this.eventHandler(event),
+        emitCapturedEvent,
         emitState: state => {
           this.connectionState = state
           this.stateHandler(state)
@@ -110,13 +114,29 @@ it('keeps ready evidence on the exact connection/profile route and treats an old
 })
 
 it('records and resets the primary socket against its published owner instead of the active view', () => {
-  setPrimaryGateway({ connectionState: 'open' } as never, 'shared')
+  const gateway = { connectionState: 'open' } as never
+  setPrimaryGateway(gateway, 'shared')
   setPrimaryGatewayConnectionId('primary-source')
-  reportPrimaryGatewayEvent({ type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+  reportPrimaryGatewayEvent(gateway, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
 
   expect(managedModelRouteCapability({ connectionId: 'primary-source', profile: 'shared' })).toBe('supported')
-  reportPrimaryGatewayState('error')
+  reportPrimaryGatewayState(gateway, 'error')
   expect(managedModelRouteCapability({ connectionId: 'primary-source', profile: 'shared' })).toBe('unknown')
+})
+
+it('rejects late ready writes from a replaced primary gateway instance', () => {
+  const oldGateway = { connectionState: 'open' } as never
+  const replacement = { connectionState: 'open' } as never
+  setPrimaryGateway(oldGateway, 'shared')
+  setPrimaryGatewayConnectionId('primary-source')
+  setPrimaryGateway(replacement, 'shared')
+  setPrimaryGatewayConnectionId('primary-source')
+
+  reportPrimaryGatewayEvent(oldGateway, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+  expect(managedModelRouteCapability({ connectionId: 'primary-source', profile: 'shared' })).toBe('unknown')
+
+  reportPrimaryGatewayEvent(replacement, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+  expect(managedModelRouteCapability({ connectionId: 'primary-source', profile: 'shared' })).toBe('supported')
 })
 
 it('invalidates ready evidence on reconnect and when the connection target is replaced', async () => {
@@ -131,4 +151,17 @@ it('invalidates ready evidence on reconnect and when the connection target is re
   disposeSecondariesForConnection('source-a', { redial: true })
 
   expect(managedModelRouteCapability({ connectionId: 'source-a', profile: 'default' })).toBe('unknown')
+})
+
+it('rejects a late ready callback from a replaced secondary entry', async () => {
+  await ensureGatewayForAgent('source-a', 'default')
+  const old = gatewayMocks.instances[0]
+  disposeSecondariesForConnection('source-a', { redial: true })
+  await vi.waitFor(() => expect(gatewayMocks.instances).toHaveLength(2))
+
+  old.emitCapturedEvent({ type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+  expect(managedModelRouteCapability({ connectionId: 'source-a', profile: 'default' })).toBe('unknown')
+
+  gatewayMocks.instances[1].emitEvent({ type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+  expect(managedModelRouteCapability({ connectionId: 'source-a', profile: 'default' })).toBe('supported')
 })

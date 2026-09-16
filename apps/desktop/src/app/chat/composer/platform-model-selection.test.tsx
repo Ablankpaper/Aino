@@ -62,7 +62,7 @@ it('seeds a fresh unconfigured composer from the account catalog but preserves a
   expect([$currentProvider.get(), $currentModel.get()]).toEqual(['custom:local', 'personal-model'])
 })
 
-it('does not apply an automatic Aino default without ready evidence and still preserves BYOK', async () => {
+it('applies the automatic default when ready arrives after mount and preserves an explicit BYOK pick', async () => {
   const snapshot = platformSnapshot()
   Object.defineProperty(window, 'hermesDesktop', {
     configurable: true,
@@ -78,8 +78,25 @@ it('does not apply an automatic Aino default without ready evidence and still pr
   await act(() => result.current.refreshCurrentModel())
   expect([$currentProvider.get(), $currentModel.get()]).toEqual(['', ''])
 
-  vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: 'personal-model', provider: 'custom:local' })
-  await act(() => result.current.refreshCurrentModel(true))
+  act(() =>
+    recordGatewayReadyCapability(
+      { profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+  )
+  await waitFor(() => expect([$currentProvider.get(), $currentModel.get()]).toEqual(['aino', 'catalog-a']))
+
+  setCurrentProvider('custom:local')
+  setCurrentModel('personal-model')
+  markComposerSelectionManual()
+  act(() => clearGatewayManagedCapabilities())
+  act(() =>
+    recordGatewayReadyCapability(
+      { profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+  )
+  await act(async () => {})
   expect([$currentProvider.get(), $currentModel.get()]).toEqual(['custom:local', 'personal-model'])
 })
 

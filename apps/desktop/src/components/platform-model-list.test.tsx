@@ -33,7 +33,7 @@ it('uses catalog labels, searches and blocks unavailable models while retaining 
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
   const select = vi.fn().mockResolvedValue(true)
-  render(<PlatformModelList onSelect={select} selectedId="catalog-a" />)
+  render(<PlatformModelList managedCapability="supported" onSelect={select} selectedId="catalog-a" />)
   await screen.findByText('Fixture Model')
   expect(screen.getByText('Unavailable Fixture').closest('[cmdk-item]')?.getAttribute('aria-disabled')).toBe('true')
   fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Fixture Model' } })
@@ -42,4 +42,26 @@ it('uses catalog labels, searches and blocks unavailable models while retaining 
   await waitFor(() =>
     expect(select).toHaveBeenCalledWith(expect.objectContaining({ id: 'catalog-a', model: 'wire-model' }))
   )
+})
+
+it('fails closed when route capability is unknown', async () => {
+  const snapshot = platformSnapshot()
+  Object.defineProperty(window, 'hermesDesktop', {
+    configurable: true,
+    value: {
+      platformAccount: {
+        status: async () => snapshot,
+        capabilities: async () => ({}),
+        onChanged: () => () => undefined
+      },
+      platformModels: { list: async () => [platformModel()] }
+    }
+  })
+  await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  const select = vi.fn()
+  render(<PlatformModelList managedCapability="unknown" onSelect={select} />)
+
+  expect((await screen.findByRole('status')).textContent).toContain('does not support Aino models')
+  expect(screen.queryByRole('option', { name: /Fixture Model/ })).toBeNull()
+  expect(select).not.toHaveBeenCalled()
 })
