@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
 import { createSessionRpcDispatcher } from '@/app/contrib/session-rpc-dispatcher'
+import type { HermesApiRequest } from '@/global'
 import { getSession } from '@/hermes'
 import {
   activeGateway,
@@ -205,6 +206,20 @@ vi.mock('@/hermes', async importOriginal => ({
 
 function installDesktop(): void {
   ;(window as unknown as { hermesDesktop: unknown }).hermesDesktop = {
+    api: vi.fn(async ({ connectionId, profile, path, method = 'GET' }: HermesApiRequest) => {
+      const expectedConnectionId = ownerPort === V1_PORT ? undefined : SOURCE_ID
+
+      if (
+        path !== '/api/model/info' ||
+        method !== 'GET' ||
+        profile !== 'omar' ||
+        connectionId !== expectedConnectionId
+      ) {
+        throw new Error(`Unexpected model default read: ${method} ${path} (${connectionId}::${profile})`)
+      }
+
+      return { model: 'omar-default-model', provider: 'omar-provider' }
+    }),
     // v1 profile path (requestGatewayForProfile / ensureGatewayProfile): a
     // per-profile local backend that is NOT the registry entry.
     getConnection: vi.fn(async (profile: null | string) => {
@@ -535,6 +550,9 @@ describe('profile rail: a fresh Omar chat keeps its exact registry owner across 
     omarSocket: MockGateway
     primary: MockGateway
   }) {
+    expect(window.hermesDesktop.api).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ connectionId: SOURCE_ID, profile: 'omar', path: '/api/model/info' })
+    )
     expect(runtimeOwner).toBe(omarSocket)
     expect(ambientRequest.mock.calls.filter(call => call[0] === 'session.create' || sessionScoped(call[1]))).toEqual([])
 
@@ -739,6 +757,10 @@ describe('profile rail: a fresh Omar chat keeps its exact registry owner across 
     await settleTurn(handle!)
 
     await expect(handle!.submitText('second prompt')).resolves.toBe(true)
+    expect(desktop.api).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ profile: 'omar', path: '/api/model/info' })
+    )
+    expect(vi.mocked(desktop.api).mock.calls[0]?.[0]).not.toHaveProperty('connectionId')
 
     // The legacy owner is the bare profile: no registry route, no hint — the
     // row's profile names the same v1 pool entry that minted the runtime, and
