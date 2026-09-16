@@ -3,6 +3,7 @@ import type { PaymentQuoteInput, PlatformBillingScope } from '../../../../shared
 export interface RechargeIntent extends PaymentQuoteInput {
   client_order_id: string
   order_id: string | null
+  rejected?: true
 }
 
 interface IntentEnvironment {
@@ -15,6 +16,14 @@ function unavailable(): never {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function sameRequest(first: RechargeIntent, second: RechargeIntent) {
+  return (
+    first.client_order_id === second.client_order_id &&
+    first.amount === second.amount &&
+    first.payment_type === second.payment_type
+  )
+}
 
 export function createRechargeIntents(scope: PlatformBillingScope, environment?: IntentEnvironment) {
   const key = `aino:recharge:v1:${encodeURIComponent(scope.origin)}:${encodeURIComponent(scope.user_id)}`
@@ -60,7 +69,8 @@ export function createRechargeIntents(scope: PlatformBillingScope, environment?:
         !/^\d{1,12}(\.\d{1,8})?$/.test(data.amount) ||
         (data.payment_type !== 'alipay' && data.payment_type !== 'wxpay') ||
         data.order_type !== 'balance' ||
-        (data.order_id !== null && (typeof data.order_id !== 'string' || !/^\d{1,20}$/.test(data.order_id)))
+        (data.order_id !== null && (typeof data.order_id !== 'string' || !/^\d{1,20}$/.test(data.order_id))) ||
+        (data.rejected !== undefined && data.rejected !== true)
       ) {
         return unavailable()
       }
@@ -70,7 +80,8 @@ export function createRechargeIntents(scope: PlatformBillingScope, environment?:
         amount: data.amount,
         payment_type: data.payment_type,
         order_type: 'balance',
-        order_id: data.order_id as string | null
+        order_id: data.order_id as string | null,
+        ...(data.rejected === true ? { rejected: true as const } : {})
       }
     } catch {
       return unavailable()
@@ -91,11 +102,25 @@ export function createRechargeIntents(scope: PlatformBillingScope, environment?:
 
   return {
     read: () => lock(async () => read()),
-    begin: (input: PaymentQuoteInput) =>
+    begin: (input: PaymentQuoteInput, correction?: RechargeIntent) =>
       lock(async () => {
         const existing = read()
 
         if (existing) {
+          if (existing.rejected && !existing.order_id && correction && sameRequest(existing, correction)) {
+            // Keep the UUID: a prior/parallel dispatch can still win on the server.
+            // Its immutable fingerprint must reject a conflicting correction.
+            const corrected: RechargeIntent = {
+              ...input,
+              client_order_id: existing.client_order_id,
+              order_id: null
+            }
+
+            write(corrected)
+
+            return corrected
+          }
+
           return existing
         }
 
@@ -110,6 +135,19 @@ export function createRechargeIntents(scope: PlatformBillingScope, environment?:
         write(next)
 
         return next
+      }),
+    reject: (attempt: RechargeIntent) =>
+      lock(async () => {
+        const current = read()
+
+        if (current && !current.order_id && sameRequest(current, attempt)) {
+          const rejected: RechargeIntent = { ...current, rejected: true }
+          write(rejected)
+
+          return rejected
+        }
+
+        return current
       }),
     rememberOrder: (clientOrderId: string, orderId: string) =>
       lock(async () => {

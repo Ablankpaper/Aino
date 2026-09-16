@@ -4,6 +4,7 @@ import { defineLocale } from './define-locale'
 
 export const ja = defineLocale({
   platformRechargeErrors: {
+    conflict: '以前のリクエストで注文が作成されています。この画面を閉じ、注文履歴から元の注文を開いてください。再度支払わないでください。',
     account: 'ログイン状態が変わりました。元のアカウントに再ログインして注文を復元してください。',
     amount: '金額が決済上限または精度の要件を満たしていません。金額を変更してください。',
     recovery:

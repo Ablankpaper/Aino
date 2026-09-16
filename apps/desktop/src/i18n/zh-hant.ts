@@ -4,6 +4,7 @@ import { defineLocale } from './define-locale'
 
 export const zhHant = defineLocale({
   platformRechargeErrors: {
+    conflict: '較早的請求已建立訂單。請關閉此視窗，在訂單歷史中開啟原訂單，勿重複付款。',
     account: '登入狀態已變更，請重新登入原帳戶後恢復訂單。',
     amount: '金額不符合渠道限額或精度要求，請調整儲值金額。',
     recovery: '本機訂單恢復記錄無法使用。請關閉此視窗，從儲值訂單查詢原訂單，請勿重複下單。',

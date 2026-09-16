@@ -31,6 +31,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   reauthentication_required: 'account',
   INVALID_AMOUNT: 'amount',
   invalid_amount: 'amount',
+  IDEMPOTENCY_KEY_CONFLICT: 'conflict',
   payment_recovery_unavailable: 'recovery',
   PAYMENT_DISABLED: 'disabled',
   BALANCE_PAYMENT_DISABLED: 'disabled',
@@ -50,6 +51,7 @@ export function RechargeView({ open, onOpenChange, bridge, scope, orderId, onCre
   const input = { amount, payment_type: method?.id ?? ('alipay' as const), order_type: 'balance' as const }
   const order = flow.order
   const notified = useRef(new Set<string>())
+
   const creditedOrder =
     open && flow.credited && order ? `${scope.origin}:${scope.user_id}:${scope.generation}:${order.order_id}` : null
 
@@ -173,7 +175,7 @@ export function RechargeView({ open, onOpenChange, bridge, scope, orderId, onCre
               ) : null}
             </div>
           </div>
-        ) : flow.intent ? (
+        ) : flow.intent && !flow.intent.rejected ? (
           <div className="grid gap-4">
             <p className="text-sm">{copy.unknown}</p>
             <Button disabled={flow.busy} onClick={() => void flow.submit(flow.intent!)}>

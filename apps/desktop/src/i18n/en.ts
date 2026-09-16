@@ -21,6 +21,7 @@ const accountErrors: Record<string, string> = {
 
 export const en: Translations = {
   platformRechargeErrors: {
+    conflict: 'An earlier request already created an order. Close this window and open the original order in order history. Do not pay again.',
     account: 'Your sign-in changed. Sign in to the original account to recover the order.',
     amount: 'The amount does not meet the payment limits or precision. Adjust the recharge amount.',
     recovery:

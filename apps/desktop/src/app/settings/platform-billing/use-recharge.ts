@@ -197,7 +197,7 @@ export function useRecharge(
         return { order, quote: null, credited: false }
       }
 
-      const intent = await intents.begin(input)
+      const intent = await intents.begin(input, quote && visible.intent?.rejected ? visible.intent : undefined)
       await verify()
 
       if (generation !== lifecycle.current.generation) {
@@ -210,15 +210,34 @@ export function useRecharge(
         return { intent, ...(await refreshOrder(intent.order_id)), quote: null }
       }
 
+      if (
+        intent.rejected ||
+        (quote && (intent.amount !== input.amount || intent.payment_type !== input.payment_type))
+      ) {
+        return { intent, quote: null }
+      }
+
       // Only an explicit click dispatches a mutation. Unknown-result retries keep the UUID.
-      const order = await bridge.createOrder({
-        amount: intent.amount,
-        payment_type: intent.payment_type,
-        order_type: 'balance',
-        client_order_id: intent.client_order_id,
-        ...(quote ? { expected_quote: quote } : {}),
-        expected_user_id: owner
-      })
+      let order: PlatformOrder
+
+      try {
+        order = await bridge.createOrder({
+          amount: intent.amount,
+          payment_type: intent.payment_type,
+          order_type: 'balance',
+          client_order_id: intent.client_order_id,
+          ...(quote ? { expected_quote: quote } : {}),
+          expected_user_id: owner
+        })
+      } catch (error) {
+        if (paymentErrorCode(error) !== 'INVALID_AMOUNT') {
+          throw error
+        }
+
+        const rejected = await intents.reject(intent)
+
+        return { intent: rejected, quote: null, error: 'INVALID_AMOUNT' }
+      }
 
       await intents.rememberOrder(intent.client_order_id, order.order_id)
 

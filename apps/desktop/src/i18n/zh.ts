@@ -21,6 +21,7 @@ const accountErrors: Record<string, string> = {
 
 export const zh: Translations = {
   platformRechargeErrors: {
+    conflict: '较早的请求已创建订单。请关闭此窗口，在订单历史中打开原订单，不要重复付款。',
     account: '登录状态已变化，请重新登录原账户后恢复订单。',
     amount: '金额不符合渠道限额或精度要求，请调整充值金额。',
     recovery: '本地订单恢复记录不可用。请关闭此窗口，从充值订单中查询原订单，不要重复下单。',
