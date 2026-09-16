@@ -4,6 +4,8 @@ import type { MutableRefObject } from 'react'
 import { useEffect, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { platformAccountActions } from '@/api/platform'
+import { createSessionRpcDispatcher } from '@/app/contrib/session-rpc-dispatcher'
 import { getSession } from '@/hermes'
 import { I18nProvider, setRuntimeI18nLocale } from '@/i18n'
 import { textPart } from '@/lib/chat-messages'
@@ -14,6 +16,7 @@ import { requestGatewayForAgent } from '@/store/gateway'
 import { $goalsBySession, setSessionGoal } from '@/store/goals'
 import { $hudMode } from '@/store/hud'
 import { $notifications, clearNotifications } from '@/store/notifications'
+import { platformModelCatalog } from '@/store/platform-models'
 import {
   $busy,
   $connection,
@@ -29,6 +32,7 @@ import {
 } from '@/store/session'
 import { dropSessionState, publishSessionState } from '@/store/session-states'
 import { $wakeWord, resetWakeWordState } from '@/store/wake-word'
+import { platformModel, platformSnapshot } from '@/test/platform-model'
 import type { SessionInfo } from '@/types/hermes'
 
 import { clearSingleFlightSessionResumeState } from './single-flight-resume'
@@ -54,7 +58,8 @@ vi.mock('@/hermes', () => ({
 
 vi.mock('@/store/gateway', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  requestGatewayForAgent: vi.fn()
+  requestGatewayForAgent: vi.fn(),
+  retainGatewayForSessionTurn: vi.fn(async () => () => undefined)
 }))
 
 // The active id the desktop holds is the *runtime* session id from
@@ -1814,9 +1819,7 @@ describe('usePromptActions slash.exec dispatch payloads', () => {
 
     await handle!.submitText('/goal 继续执行这项工作')
 
-    expect(renderedSeedTexts(states).join('\n')).toContain(
-      '会话忙碌中——消息已排队，将在当前回合结束后发送'
-    )
+    expect(renderedSeedTexts(states).join('\n')).toContain('会话忙碌中——消息已排队，将在当前回合结束后发送')
 
     dropSessionState(RUNTIME_SESSION_ID)
     $queuedPromptsBySession.set({})
@@ -3746,10 +3749,15 @@ describe('usePromptActions eager-upload races', () => {
 describe('usePromptActions sleep/wake session recovery', () => {
   const STORED_SESSION_ID = 'stored-db-xyz789'
   const RECOVERED_SESSION_ID = 'rt-recovered-456'
+  const STALE_PLATFORM_SESSION_ID = 'rt-platform-stale'
 
   afterEach(() => {
     cleanup()
     $turnStartedAt.set(null)
+    dropSessionState(STALE_PLATFORM_SESSION_ID)
+    dropSessionState(RECOVERED_SESSION_ID)
+    setSessions([])
+    Reflect.deleteProperty(window, 'hermesDesktop')
     vi.restoreAllMocks()
   })
 
@@ -3848,6 +3856,170 @@ describe('usePromptActions sleep/wake session recovery', () => {
     expect(bindingPublished).toBe(true)
     expect(calls.map(call => call.method)).toEqual(['prompt.submit', 'session.resume', 'prompt.submit'])
     expect(calls[2]?.params).toEqual({ session_id: RECOVERED_SESSION_ID, text: 'remote follow-up after reap' })
+  })
+
+  it.each([
+    { label: 'ordinary', options: undefined, queued: false },
+    {
+      label: 'queued',
+      options: {
+        fromQueue: true,
+        sessionId: STALE_PLATFORM_SESSION_ID,
+        storedSessionId: STORED_SESSION_ID
+      },
+      queued: true
+    }
+  ])('rebinds a recovered Aino runtime before one $label prompt submit', async ({ options, queued }) => {
+    vi.mocked(requestGatewayForAgent).mockClear()
+    const account = platformSnapshot()
+
+    const accountBridge = {
+      status: async () => account,
+      capabilities: vi.fn(),
+      retry: async () => account,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      onChanged: () => () => undefined
+    }
+
+    const calls: Array<{ method: string; sessionId: unknown }> = []
+
+    const bind = vi.fn(async (input: { session_id: string }) => {
+      calls.push({ method: 'bind', sessionId: input.session_id })
+
+      return {
+        ok: true as const,
+        ready: true as const,
+        model_id: 'catalog-a',
+        billing_source: 'aino' as const,
+        expires_at: 'later'
+      }
+    })
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: {
+          owner: async () => ({ platform_origin: 'http://127.0.0.1:1234', user_id: 'user-a' }),
+          bind,
+          clear: vi.fn(),
+          list: async () => [platformModel()]
+        }
+      }
+    })
+    await platformAccountActions(accountBridge).refresh()
+    await platformModelCatalog().load()
+
+    const platformState = {
+      ...createClientSessionState(STORED_SESSION_ID),
+      model: 'catalog-a',
+      provider: 'aino',
+      platformModel: {
+        modelId: 'catalog-a',
+        ownerUserId: 'user-a',
+        status: 'ready' as const
+      }
+    }
+
+    publishSessionState(STALE_PLATFORM_SESSION_ID, platformState)
+    setSessions([
+      sessionInfo({
+        connection_id: 'local',
+        id: STORED_SESSION_ID,
+        profile: 'work'
+      })
+    ])
+
+    vi.mocked(requestGatewayForAgent).mockImplementation((async (
+      _connectionId: string,
+      _profile: string,
+      method: string,
+      params?: Record<string, unknown>
+    ) => {
+      calls.push({ method, sessionId: params?.session_id })
+
+      if (method === 'session.managed_model_ticket' && params?.session_id === STALE_PLATFORM_SESSION_ID) {
+        throw new JsonRpcGatewayError('session not found', { code: 4001 })
+      }
+
+      if (method === 'session.resume') {
+        return { session_id: RECOVERED_SESSION_ID }
+      }
+
+      if (method === 'session.managed_model_ticket') {
+        return { managed_model_binding: 1, session_ticket: 'single-use-ticket' }
+      }
+
+      return {}
+    }) as never)
+
+    const runtimeIds = { current: new Map([[STORED_SESSION_ID, STALE_PLATFORM_SESSION_ID]]) }
+    const selectedStoredSessionIdRef: MutableRefObject<string | null> = { current: STORED_SESSION_ID }
+    const activeSessionIdRef: MutableRefObject<string | null> = { current: STALE_PLATFORM_SESSION_ID }
+
+    const requestGateway = createSessionRpcDispatcher({
+      ambientRequest: vi.fn(async () => {
+        throw new Error('unexpected ambient request')
+      }),
+      runtimeIdByStoredSessionIdRef: runtimeIds,
+      selectedStoredSessionIdRef,
+      sessionStateByRuntimeIdRef: { current: new Map() }
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <Harness
+        activeSessionId={STALE_PLATFORM_SESSION_ID}
+        activeSessionIdRef={activeSessionIdRef}
+        getRuntimeIdForStoredSession={storedId => runtimeIds.current.get(storedId) ?? null}
+        onReady={value => (handle = value)}
+        onUpdateState={(runtimeId, storedId) => {
+          if (runtimeId === RECOVERED_SESSION_ID && storedId === STORED_SESSION_ID) {
+            runtimeIds.current.set(STORED_SESSION_ID, runtimeId)
+            publishSessionState(runtimeId, platformState)
+          }
+        }}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+        runtimeIdByStoredSessionIdRef={runtimeIds}
+        selectedStoredSessionIdRef={selectedStoredSessionIdRef}
+        storedSessionId={STORED_SESSION_ID}
+      />
+    )
+
+    expect(await handle!.submitText('managed follow-up', options)).toBe(true)
+    expect(calls).toEqual([
+      { method: 'session.managed_model_ticket', sessionId: STALE_PLATFORM_SESSION_ID },
+      { method: 'session.resume', sessionId: STORED_SESSION_ID },
+      { method: 'session.managed_model_ticket', sessionId: RECOVERED_SESSION_ID },
+      { method: 'bind', sessionId: RECOVERED_SESSION_ID },
+      { method: 'prompt.submit', sessionId: RECOVERED_SESSION_ID }
+    ])
+    expect(calls.filter(({ method }) => method === 'prompt.submit')).toHaveLength(1)
+    expect(
+      vi.mocked(requestGatewayForAgent).mock.calls.filter(([, , method]) => method === 'prompt.submit')
+    ).toHaveLength(1)
+    expect(calls.find(({ method }) => method === 'config.set')).toBeUndefined()
+    expect(vi.mocked(requestGatewayForAgent)).toHaveBeenLastCalledWith(
+      'local',
+      'work',
+      'prompt.submit',
+      {
+        session_id: RECOVERED_SESSION_ID,
+        text: 'managed follow-up',
+        ...(queued ? { queued: true } : {})
+      },
+      1_800_000,
+      undefined
+    )
   })
 
   it('resumes the stored session and retries once when reloadFromMessage (regenerate) reports "session not found"', async () => {

@@ -5,6 +5,7 @@ import type { MutableRefObject } from 'react'
 import { useEffect, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { platformAccountActions } from '@/api/platform'
 import { NO_PROJECT_ID } from '@/app/chat/sidebar/projects/workspace-groups'
 import { resolveSessionRpcOwner } from '@/app/contrib/wiring-routing'
 import { $terminalTakeover, setTerminalTakeover } from '@/app/right-sidebar/store'
@@ -26,6 +27,7 @@ import { clearSessionDraft, stashSessionDraft, takeSessionDraft } from '@/store/
 import { requestGatewayForAgent, requestGatewayForProfile } from '@/store/gateway'
 import { $pinnedSessionIds } from '@/store/layout'
 import { $notifications, clearNotifications } from '@/store/notifications'
+import { platformModelCatalog } from '@/store/platform-models'
 import { $activeGatewayProfile, $newChatProfile, $newChatRoute, $profiles, ensureGatewayProfile } from '@/store/profile'
 import { $projectScope, $projectTree, ALL_PROJECTS } from '@/store/projects'
 import {
@@ -35,6 +37,7 @@ import {
   $currentCwd,
   $currentFastMode,
   $currentModel,
+  $currentPlatformOwner,
   $currentProvider,
   $currentReasoningEffort,
   $messages,
@@ -57,6 +60,7 @@ import {
   setCurrentFastMode,
   setCurrentModel,
   setCurrentModelSource,
+  setCurrentPlatformOwner,
   setCurrentProvider,
   setCurrentReasoningEffort,
   setMessages,
@@ -71,12 +75,15 @@ import { $removedSessionIds, $sessionMutationsInFlight } from '@/store/session-r
 import { requestForSessionProfile, type SessionProfileRoute } from '@/store/session-request-router'
 import { $sessionTiles, sessionTileOwnerRoute } from '@/store/session-states'
 import { $sessionSeenCounts, $unreadFinishedMarkers } from '@/store/session-unread'
+import { platformModel, platformSnapshot } from '@/test/platform-model'
 
 import sessionResumeActiveTurn from '../../../../../../tests/fixtures/session-resume-active-turn.json'
+import type { PlatformAccountBridge } from '../../../../shared/platform-contract'
 import { deferred } from '../../../test/deferred'
 import { NEW_CHAT_ROUTE, sessionRoute } from '../../routes'
 import type { ClientSessionState } from '../../types'
 
+import { usePromptActions } from './use-prompt-actions'
 import { useSessionActions } from './use-session-actions'
 import { useSessionStateCache } from './use-session-state-cache'
 
@@ -183,6 +190,94 @@ function Harness({
   useEffect(() => {
     onReady(actions)
   }, [actions, onReady])
+
+  return null
+}
+
+function FirstSendHarness({
+  onReady,
+  requestGateway
+}: {
+  onReady: (submitText: (text: string) => Promise<boolean>) => void
+  requestGateway: <T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) => Promise<T>
+}) {
+  const activeSessionIdRef = useRef<string | null>(null)
+  const selectedStoredSessionIdRef = useRef<string | null>(null)
+  const runtimeIdByStoredSessionIdRef = useRef(new Map<string, string>())
+  const sessionStateByRuntimeIdRef = useRef(new Map<string, ClientSessionState>())
+  const busyRef = useRef(false)
+  const creatingSessionRef = useRef(false)
+
+  const ensureSessionState = (sessionId: string, storedSessionId?: null | string) => {
+    const existing = sessionStateByRuntimeIdRef.current.get(sessionId)
+
+    if (existing) {
+      return existing
+    }
+
+    const created = createClientSessionState(storedSessionId ?? null)
+    sessionStateByRuntimeIdRef.current.set(sessionId, created)
+
+    if (storedSessionId) {
+      runtimeIdByStoredSessionIdRef.current.set(storedSessionId, sessionId)
+    }
+
+    return created
+  }
+
+  const updateSessionState = (
+    sessionId: string,
+    updater: (state: ClientSessionState) => ClientSessionState,
+    storedSessionId?: null | string
+  ) => {
+    const next = updater(ensureSessionState(sessionId, storedSessionId))
+    sessionStateByRuntimeIdRef.current.set(sessionId, next)
+
+    return next
+  }
+
+  const sessionActions = useSessionActions({
+    activeSessionId: null,
+    activeSessionIdRef,
+    busyRef,
+    creatingSessionRef,
+    ensureSessionState,
+    getRouteToken: () => 'new-chat',
+    getRoutedStoredSessionId: () => null,
+    navigate: vi.fn(),
+    requestGateway,
+    resetViewSync: vi.fn(),
+    runtimeIdByStoredSessionIdRef,
+    selectedStoredSessionId: null,
+    selectedStoredSessionIdRef,
+    sessionStateByRuntimeIdRef,
+    syncSessionStateToView: vi.fn(),
+    updateSessionState
+  })
+
+  const promptActions = usePromptActions({
+    activeSessionId: null,
+    activeSessionIdRef,
+    branchCurrentSession: async () => true,
+    busyRef,
+    createBackendSessionForSend: sessionActions.createBackendSessionForSend,
+    getRoutedStoredSessionId: () => null,
+    getRuntimeIdForStoredSession: storedId => runtimeIdByStoredSessionIdRef.current.get(storedId) ?? null,
+    getRouteToken: () => 'new-chat',
+    openMemoryGraph: () => undefined,
+    refreshSessions: async () => undefined,
+    requestGateway,
+    resumeStoredSession: () => undefined,
+    runtimeIdByStoredSessionIdRef,
+    selectedStoredSessionIdRef,
+    startFreshSessionDraft: sessionActions.startFreshSessionDraft,
+    sttEnabled: false,
+    updateSessionState
+  })
+
+  useEffect(() => {
+    onReady(promptActions.submitText)
+  }, [onReady, promptActions.submitText])
 
   return null
 }
@@ -735,6 +830,7 @@ describe('createBackendSessionForSend profile routing', () => {
     $currentCwd.set('')
     $currentFastMode.set(false)
     $currentModel.set('')
+    $currentPlatformOwner.set('')
     $currentProvider.set('')
     setCurrentModelSource('')
     $currentReasoningEffort.set('')
@@ -799,6 +895,108 @@ describe('createBackendSessionForSend profile routing', () => {
 
     expect(params).not.toHaveProperty('model')
     expect(params).not.toHaveProperty('provider')
+  })
+
+  it('creates and binds an automatically selected Aino default without writing BYOK config', async () => {
+    const account = platformSnapshot()
+    const order: string[] = []
+
+    const accountBridge: PlatformAccountBridge = {
+      status: async () => account,
+      capabilities: vi.fn(),
+      retry: async () => account,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      onChanged: () => () => undefined
+    }
+
+    const bind = vi.fn(async () => {
+      order.push('bind')
+
+      return {
+        ok: true as const,
+        ready: true as const,
+        model_id: 'catalog-a',
+        billing_source: 'aino' as const,
+        expires_at: 'later'
+      }
+    })
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: {
+          owner: async () => ({ platform_origin: 'http://127.0.0.1:1234', user_id: 'user-a' }),
+          bind,
+          clear: vi.fn(),
+          list: async () => [platformModel()]
+        }
+      }
+    })
+    await platformAccountActions(accountBridge).refresh()
+    await platformModelCatalog().load()
+
+    const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
+      order.push(method)
+
+      if (method === 'session.create') {
+        return {
+          session_id: RUNTIME_SESSION_ID,
+          stored_session_id: null,
+          info: {
+            model_source: 'aino',
+            model_id: 'catalog-a',
+            provider: 'aino',
+            model_status: 'awaiting_managed_credentials'
+          }
+        } as never
+      }
+
+      if (method === 'session.managed_model_ticket') {
+        return { managed_model_binding: 1, session_ticket: 'single-use-ticket' } as never
+      }
+
+      if (method === 'prompt.submit') {
+        return {} as never
+      }
+
+      throw new Error(`unexpected request: ${method}`)
+    })
+
+    setCurrentCwd('')
+    setNewChatWorkspaceTarget(undefined)
+    setCurrentModel('catalog-a')
+    setCurrentProvider('aino')
+    setCurrentPlatformOwner('user-a')
+    setCurrentModelSource('default')
+
+    let submitText: null | ((text: string) => Promise<boolean>) = null
+    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
+    await waitFor(() => expect(submitText).not.toBeNull())
+
+    await act(async () => {
+      await submitText!('first managed prompt')
+    })
+
+    expect(requestGateway).toHaveBeenCalledWith(
+      'session.create',
+      expect.objectContaining({ model_source: 'aino', model_id: 'catalog-a' })
+    )
+    expect(order).toEqual(['session.create', 'session.managed_model_ticket', 'bind', 'prompt.submit'])
+    expect(requestGateway).toHaveBeenCalledWith(
+      'prompt.submit',
+      { session_id: RUNTIME_SESSION_ID, text: 'first managed prompt' },
+      1_800_000
+    )
+    expect(requestGateway.mock.calls.find(([method]) => method === 'config.set')).toBeUndefined()
   })
 
   it('still sends an explicit manual pick as a per-session override', async () => {

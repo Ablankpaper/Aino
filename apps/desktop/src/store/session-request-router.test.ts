@@ -1,4 +1,11 @@
+import { JsonRpcGatewayError } from '@hermes/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { platformAccountActions } from '@/api/platform'
+import { createClientSessionState } from '@/lib/chat-runtime'
+import { platformModelCatalog } from '@/store/platform-models'
+import { dropSessionState, publishSessionState } from '@/store/session-states'
+import { platformModel, platformSnapshot } from '@/test/platform-model'
 
 import { isSessionGone, latchSessionGone, resetBackgroundPollingGuard } from './session-gone-latch'
 
@@ -22,7 +29,8 @@ const secondaryGateways: Array<{
 
 let promptAckStatus: null | string = null
 
-vi.mock('@/hermes', () => ({
+vi.mock('@/hermes', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   HermesGateway: class {
     connectionState = 'closed'
     eventHandler: ((event: { payload?: Record<string, unknown>; session_id?: string; type: string }) => void) | null =
@@ -65,7 +73,11 @@ vi.mock('@/hermes', () => ({
   },
   setApiRequestConnection: vi.fn()
 }))
-vi.mock('@/store/session', () => ({ setConnection: vi.fn(), setGatewayState: vi.fn() }))
+vi.mock('@/store/session', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  setConnection: vi.fn(),
+  setGatewayState: vi.fn()
+}))
 vi.mock('@/store/notify-baseline', () => ({ markNativeNotifyBaseline: vi.fn() }))
 
 const {
@@ -96,6 +108,52 @@ function installDesktop(): void {
   }
 }
 
+async function installPlatformModels(bind: ReturnType<typeof vi.fn>): Promise<void> {
+  const account = platformSnapshot()
+
+  const accountBridge = {
+    status: async () => account,
+    capabilities: vi.fn(),
+    retry: async () => account,
+    requestPhoneCode: vi.fn(),
+    verifyPhoneCode: vi.fn(),
+    loginExisting: vi.fn(),
+    completeSecondFactor: vi.fn(),
+    updateProfile: vi.fn(),
+    requestBindingCode: vi.fn(),
+    submitStepUp: vi.fn(),
+    bindPhone: vi.fn(),
+    logout: vi.fn(),
+    onChanged: () => () => undefined
+  }
+
+  const desktop = (window as unknown as { hermesDesktop: Record<string, unknown> }).hermesDesktop
+  Object.assign(desktop, {
+    platformAccount: accountBridge,
+    platformModels: {
+      owner: async () => ({ platform_origin: 'http://127.0.0.1:1234', user_id: 'user-a' }),
+      bind,
+      clear: vi.fn(),
+      list: async () => [platformModel()]
+    }
+  })
+  await platformAccountActions(accountBridge).refresh()
+  await platformModelCatalog().load()
+}
+
+function publishManagedSession(runtimeId: string): void {
+  publishSessionState(runtimeId, {
+    ...createClientSessionState('stored-managed'),
+    model: 'catalog-a',
+    provider: 'aino',
+    platformModel: {
+      modelId: 'catalog-a',
+      ownerUserId: 'user-a',
+      status: 'ready'
+    }
+  })
+}
+
 function makePrimary() {
   return {
     connectionState: 'open',
@@ -116,6 +174,8 @@ afterEach(() => {
   closeSecondaryGateways()
   vi.clearAllMocks()
   resetBackgroundPollingGuard()
+  dropSessionState('rt-managed')
+  dropSessionState('rt-stale-managed')
   delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
 })
 
@@ -387,6 +447,74 @@ describe('requestForSessionProfile', () => {
       1_800_000,
       controller.signal
     )
+  })
+
+  it('binds an Aino session on its owning profile before prompt.submit', async () => {
+    const primary = makePrimary()
+    setPrimaryGateway(primary as never, 'default')
+    installDesktop()
+    const order: string[] = []
+
+    const bind = vi.fn(async () => {
+      order.push('bind')
+
+      return {
+        ok: true as const,
+        ready: true as const,
+        model_id: 'catalog-a',
+        billing_source: 'aino' as const,
+        expires_at: 'later'
+      }
+    })
+
+    await installPlatformModels(bind)
+    publishManagedSession('rt-managed')
+    await ensureGatewayForProfile('work')
+    secondaryGateways[0].request.mockImplementation(async (method: string) => {
+      order.push(method)
+
+      return method === 'session.managed_model_ticket'
+        ? { managed_model_binding: 1, session_ticket: 'single-use-ticket' }
+        : { status: 'queued' }
+    })
+    const ambient = vi.fn(async () => ({ ambient: true }))
+
+    await requestForSessionProfile('work', ambient as never, 'prompt.submit', {
+      session_id: 'rt-managed',
+      text: 'hello'
+    })
+
+    expect(order).toEqual(['session.managed_model_ticket', 'bind', 'prompt.submit'])
+    expect(bind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        profile: 'work',
+        session_id: 'rt-managed',
+        session_ticket: 'single-use-ticket'
+      })
+    )
+    expect(ambient).not.toHaveBeenCalled()
+  })
+
+  it('preserves a stale Aino ticket error for the caller recovery policy', async () => {
+    const primary = makePrimary()
+    setPrimaryGateway(primary as never, 'default')
+    installDesktop()
+    const bind = vi.fn()
+    await installPlatformModels(bind)
+    publishManagedSession('rt-stale-managed')
+    await ensureGatewayForProfile('work')
+    const stale = new JsonRpcGatewayError('session not found', { code: 4001 })
+    secondaryGateways[0].request.mockRejectedValue(stale)
+    const ambient = vi.fn(async () => ({ ambient: true }))
+
+    await expect(
+      requestForSessionProfile('work', ambient as never, 'prompt.submit', {
+        session_id: 'rt-stale-managed',
+        text: 'hello'
+      })
+    ).rejects.toBe(stale)
+    expect(bind).not.toHaveBeenCalled()
+    expect(ambient).not.toHaveBeenCalled()
   })
 
   it('forwards timeout and abort signal onto the owning connection socket', async () => {

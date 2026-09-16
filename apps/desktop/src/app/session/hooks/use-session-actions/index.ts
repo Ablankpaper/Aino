@@ -1,10 +1,8 @@
 import { useStore } from '@nanostores/react'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 import type { NavigateFunction } from 'react-router'
-import { createPlatformDraft } from '@/api/platform-session-binding'
-import { platformCreateOverrides } from '@/lib/platform-session-model'
-import { platformModelCatalog } from '@/store/platform-models'
 
+import { createPlatformDraft } from '@/api/platform-session-binding'
 import { NO_PROJECT_ID } from '@/app/chat/sidebar/projects/workspace-groups'
 import { graftRefreshedTailOntoBackfill } from '@/app/chat/transcript-backfill'
 import { revealTreePane } from '@/components/pane-shell/tree/store'
@@ -27,6 +25,7 @@ import {
 } from '@/lib/chat-messages'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { recoverInFlightTurnJournal } from '@/lib/inflight-turn-journal'
+import { platformCreateOverrides } from '@/lib/platform-session-model'
 import { setSessionYolo } from '@/lib/yolo-session'
 import { $clarifyRequests } from '@/store/clarify'
 import { migrateSessionDraft } from '@/store/composer'
@@ -40,6 +39,7 @@ import {
 import { $gatewaySwitching } from '@/store/gateway-switch'
 import { $pinnedSessionIds } from '@/store/layout'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
+import { platformModelCatalog } from '@/store/platform-models'
 import {
   $activeGatewayProfile,
   $gatewaySwapTarget,
@@ -289,8 +289,10 @@ function reconcileAuthoritativeMessages(
 // chat on the launch (default) profile — the "rubberbands back to default" bug.
 // A no-op for single-profile/local-pooled users (a backend resolves its own launch
 // profile to None). Effort/fast still ride as per-session overrides. Model and
-// provider only ride when the composer source is 'manual' — a default-sourced
-// value is a mirror of Settings → Model and must not pin the new chat.
+// provider only ride when the composer source is 'manual', except an Aino
+// default: it must carry its managed-billing identity into draft binding.
+// Other default-sourced values mirror Settings → Model and must not pin the
+// new chat.
 async function desktopSessionCreateParams(
   cwd: string,
   capturedRoute = resolveNewChatOwnerRoute()
@@ -302,19 +304,29 @@ async function desktopSessionCreateParams(
   // Settings → Model while a session is live leaves $currentModel painted with
   // the live agent (applySavedMainModel) and only flips the source to 'default'.
   // Shipping that stale value as an override pins every new chat to the old
-  // model. Omit model/provider unless the source is 'manual'.
-  const isManualSelection = getCurrentModelSource() === 'manual'
+  // model. Omit model/provider unless the source is manual or the automatic
+  // selection is an Aino catalog model that needs managed binding.
+  const selectionSource = getCurrentModelSource()
+  const provider = $currentProvider.get().trim()
+  const includesModelSelection = selectionSource === 'manual' || (selectionSource === 'default' && provider === 'aino')
 
   const selection = {
     effort: $currentReasoningEffort.get().trim(),
     fast: $currentFastMode.get(),
-    model: isManualSelection ? $currentModel.get().trim() : '',
-    provider: isManualSelection ? $currentProvider.get().trim() : ''
+    model: includesModelSelection ? $currentModel.get().trim() : '',
+    provider: includesModelSelection ? provider : ''
   }
+
   const platformOwner = $currentPlatformOwner.get()
   const catalog = platformModelCatalog()
-  const modelParams = platformCreateOverrides(selection.provider, selection.model, platformOwner,
-    catalog.account.get(), catalog.state.get().models)
+
+  const modelParams = platformCreateOverrides(
+    selection.provider,
+    selection.model,
+    platformOwner,
+    catalog.account.get(),
+    catalog.state.get().models
+  )
 
   const profile = capturedRoute?.profile || $newChatProfile.get() || normalizeProfileKey($activeGatewayProfile.get())
 
@@ -324,15 +336,18 @@ async function desktopSessionCreateParams(
     await ensureGatewayProfile(profile)
   }
 
-  return { platformOwner, params: {
-    cols: 96,
-    source: 'desktop',
-    ...(cwd && { cwd }),
-    ...(profile ? { profile: capturedRoute?.targetProfile || profile } : {}),
-    ...modelParams,
-    ...(selection.effort ? { reasoning_effort: selection.effort } : {}),
-    fast: selection.fast
-  } }
+  return {
+    platformOwner,
+    params: {
+      cols: 96,
+      source: 'desktop',
+      ...(cwd && { cwd }),
+      ...(profile ? { profile: capturedRoute?.targetProfile || profile } : {}),
+      ...modelParams,
+      ...(selection.effort ? { reasoning_effort: selection.effort } : {}),
+      fast: selection.fast
+    }
+  }
 }
 
 interface FreshSessionDraftOptions {
@@ -584,9 +599,14 @@ export function useSessionActions({
 
         try {
           created = await createPlatformDraft(
-            capturedRoute ? (method, payload) => requestGatewayForAgent(capturedRoute.connectionId,
-              capturedRoute.profile, method, payload) : requestGateway,
-            params, platformOwner, capturedRoute)
+            capturedRoute
+              ? (method, payload) =>
+                  requestGatewayForAgent(capturedRoute.connectionId, capturedRoute.profile, method, payload)
+              : requestGateway,
+            params,
+            platformOwner,
+            capturedRoute
+          )
 
           stored = created.stored_session_id ?? null
 
@@ -761,6 +781,7 @@ export function useSessionActions({
           options?.cwd === null ? '' : typeof options?.cwd === 'string' ? options.cwd.trim() : resolveNewSessionCwd()
 
         const prepared = await desktopSessionCreateParams(cwd, capturedRoute)
+
         const params = {
           ...prepared.params,
           ...(workspaceScope.workspaceMode === 'bots' ? { hidden: true } : {})
@@ -778,9 +799,14 @@ export function useSessionActions({
 
         try {
           created = await createPlatformDraft(
-            capturedRoute ? (method, payload) => requestGatewayForAgent(capturedRoute.connectionId,
-              capturedRoute.profile, method, payload) : requestGateway,
-            params, prepared.platformOwner, capturedRoute)
+            capturedRoute
+              ? (method, payload) =>
+                  requestGatewayForAgent(capturedRoute.connectionId, capturedRoute.profile, method, payload)
+              : requestGateway,
+            params,
+            prepared.platformOwner,
+            capturedRoute
+          )
 
           stored = created.stored_session_id
 

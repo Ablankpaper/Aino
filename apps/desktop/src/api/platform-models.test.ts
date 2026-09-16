@@ -1,3 +1,4 @@
+import { JsonRpcGatewayError } from '@hermes/shared'
 import { afterEach, expect, it, vi } from 'vitest'
 
 import { requestGatewayForAgent } from '@/store/gateway'
@@ -59,6 +60,55 @@ it('requests the ticket on the session owner route before calling the native bin
   bind.mockClear()
   expect((await bindPlatformModel({ ...input, expected_account_revision: 6 }, account)).ok).toBe(false)
   vi.mocked(requestGatewayForAgent).mockRejectedValue(new Error('raw remote error'))
-  expect((await bindPlatformModel(input, account)).ok).toBe(false)
+  const failed = await bindPlatformModel(input, account)
+
+  expect(failed).toEqual({ ok: false, error: { code: 'gateway_binding_failed' } })
+  expect(JSON.stringify(failed)).not.toContain('raw remote error')
+  expect(bind).not.toHaveBeenCalled()
+})
+
+it('preserves a structured missing-session ticket error for stale-runtime recovery', async () => {
+  const account: PlatformAccountSnapshot = {
+    revision: 7,
+    phase: 'signed_in',
+    account: { id: '17', display_name: 'Fixture', email: '', phone_masked: '' },
+    mode: 'development',
+    remember_state: 'session_only',
+    error: null
+  }
+
+  const stale = new JsonRpcGatewayError('session not found', {
+    code: 4001,
+    data: { session_id: 'old-runtime' }
+  })
+
+  const bind = vi.fn()
+
+  const bridge: PlatformModelsBridge = {
+    owner: async () => ({ platform_origin: 'http://127.0.0.1:1234', user_id: '17' }),
+    bind,
+    clear: async () => {},
+    list: async () => []
+  }
+
+  Object.defineProperty(window, 'hermesDesktop', {
+    value: { platformModels: bridge },
+    writable: true,
+    configurable: true
+  })
+  vi.mocked(requestGatewayForAgent).mockRejectedValue(stale)
+
+  await expect(
+    bindPlatformModel(
+      {
+        connection_id: 'local',
+        profile: 'work',
+        session_id: 'old-runtime',
+        model_id: 'fixture',
+        expected_account_revision: 7
+      },
+      account
+    )
+  ).rejects.toBe(stale)
   expect(bind).not.toHaveBeenCalled()
 })
