@@ -1220,6 +1220,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
               void refreshCurrentModel()
               void queryClient.invalidateQueries({ queryKey: ['model-options'] })
             }}
+            ownerConnectionId={activeConnectionId || undefined}
             profile={activeGatewayProfile}
             requestGateway={requestGateway}
           />

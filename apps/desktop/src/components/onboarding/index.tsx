@@ -38,6 +38,7 @@ import {
   ProviderRow,
   sortProviders
 } from './providers'
+import { usePlatformOnboardingReady } from './use-platform-onboarding'
 
 export {
   FeaturedProviderRow,
@@ -55,6 +56,7 @@ import { requestGatewayForProfile } from '@/store/gateway'
 interface DesktopOnboardingOverlayProps {
   enabled: boolean
   onCompleted?: () => void
+  ownerConnectionId?: string
   profile: string
   requestGateway: OnboardingContext['requestGateway']
 }
@@ -189,6 +191,7 @@ const ONBOARDING_EXIT_MS = 1180
 export function DesktopOnboardingOverlay({
   enabled,
   onCompleted,
+  ownerConnectionId,
   profile,
   requestGateway
 }: DesktopOnboardingOverlayProps) {
@@ -198,6 +201,11 @@ export function DesktopOnboardingOverlay({
   const onCompletedRef = useRef(onCompleted)
   onCompletedRef.current = onCompleted
   const targetProfile = onboarding.targetProfile ?? profile
+
+  const platformReady = usePlatformOnboardingReady(enabled && !onboarding.manual, {
+    connectionId: ownerConnectionId,
+    profile
+  })
 
   // Async flows retain the initiating route even after the overlay closes.
   const ctx = useMemo<OnboardingContext>(
@@ -275,6 +283,10 @@ export function DesktopOnboardingOverlay({
   // EXCEPTION: manual mode (user opened the selector from a working app to
   // add/switch a provider) shows the overlay regardless of configured state.
   if (onboarding.configured === true && !onboarding.manual) {
+    return null
+  }
+
+  if (platformReady && !onboarding.manual && (onboarding.flow.status === 'idle' || onboarding.flow.status === 'success')) {
     return null
   }
 
