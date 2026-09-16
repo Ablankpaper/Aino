@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 import type { NavigateFunction } from 'react-router'
 
+import { platformAccountActions } from '@/api/platform'
 import { createPlatformDraft, type PlatformDraftAuthority } from '@/api/platform-session-binding'
 import { NO_PROJECT_ID } from '@/app/chat/sidebar/projects/workspace-groups'
 import { graftRefreshedTailOntoBackfill } from '@/app/chat/transcript-backfill'
@@ -355,7 +356,15 @@ async function desktopSessionCreateParams(
   const catalog = platformModelCatalog()
 
   if (selection.provider === 'aino') {
-    await catalog.owner.load()
+    const accountBridge = window.hermesDesktop?.platformAccount
+
+    if (accountBridge) {
+      // A picker can precede a missed IPC account publication. Refresh before
+      // capturing draft authority so the native revision and owner agree.
+      await platformAccountActions(accountBridge).refresh()
+    }
+
+    await catalog.load()
     const authoritativeOwner = catalog.owner.state.get().owner
     const account = catalog.account.get()
 
@@ -364,6 +373,11 @@ async function desktopSessionCreateParams(
       !authoritativeOwner ||
       account?.phase !== 'signed_in' ||
       account.account?.id !== authoritativeOwner.user_id ||
+      (selectionSource === 'manual' &&
+        (!platformOwner ||
+          !platformOrigin ||
+          platformOwner !== authoritativeOwner.user_id ||
+          platformOrigin !== authoritativeOwner.platform_origin)) ||
       (platformOrigin && platformOrigin !== authoritativeOwner.platform_origin)
     ) {
       throw new PlatformSelectionError('platform_account_changed')

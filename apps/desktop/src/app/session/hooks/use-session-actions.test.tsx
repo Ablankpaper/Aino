@@ -58,6 +58,7 @@ import {
   $currentCwd,
   $currentFastMode,
   $currentModel,
+  $currentPlatformOrigin,
   $currentPlatformOwner,
   $currentProvider,
   $currentReasoningEffort,
@@ -1157,6 +1158,100 @@ describe('createBackendSessionForSend profile routing', () => {
     expect(requestGateway.mock.calls.find(([method]) => method === 'config.set')).toBeUndefined()
   })
 
+  it('refreshes a missed same-owner account revision before a manual Aino first send', async () => {
+    $activeSessionId.set(null)
+    $selectedStoredSessionId.set(null)
+    setCurrentModel('')
+    setCurrentProvider('')
+    setCurrentPlatformOwner('')
+    setCurrentModelSource('')
+    setAwaitingResponse(false)
+    setBusy(false)
+    $activeGatewayProfile.set('default')
+
+    let snapshot: PlatformAccountSnapshot = platformSnapshot('user-a', 3)
+
+    const bind = vi.fn(async () => ({
+      ok: true as const,
+      ready: true as const,
+      model_id: 'catalog-a',
+      billing_source: 'aino' as const,
+      expires_at: 'later'
+    }))
+
+    const accountBridge: PlatformAccountBridge = {
+      status: vi.fn(async () => snapshot),
+      capabilities: vi.fn(async () => ({} as never)),
+      retry: async () => snapshot,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      // Main's revision publication is intentionally missed by this renderer.
+      onChanged: () => () => undefined
+    }
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.create') {
+        return {
+          session_id: RUNTIME_SESSION_ID,
+          info: { model_source: 'aino', model_id: 'catalog-a', provider: 'aino', model_status: 'awaiting_managed_credentials' }
+        } as never
+      }
+
+      if (method === 'session.managed_model_ticket') {
+        return { managed_model_binding: 1, session_ticket: 'ticket' } as never
+      }
+
+      throw new Error(`unexpected ${method}`)
+    })
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: {
+          owner: async (revision: number) => {
+            if (revision !== snapshot.revision) {
+              throw new Error('stale main revision')
+            }
+
+            return { user_id: 'user-a', platform_origin: 'http://127.0.0.1:7001' }
+          },
+          bind,
+          clear: vi.fn(),
+          list: async () => [platformModel()]
+        }
+      }
+    })
+    await platformAccountActions(accountBridge).refresh()
+    await platformModelCatalog().load()
+    recordGatewayReadyCapability(
+      { profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+
+    const { result: controls } = renderHook(() => useModelControls({ queryClient: new QueryClient(), requestGateway }))
+    await expect(controls.current.selectModel({ model: 'catalog-a', provider: 'aino' })).resolves.toBe(true)
+    expect([$currentPlatformOwner.get(), $currentPlatformOrigin.get()]).toEqual(['user-a', 'http://127.0.0.1:7001'])
+
+    snapshot = platformSnapshot('user-a', 4)
+    let handle: HarnessHandle | null = null
+    render(<Harness onReady={value => (handle = value)} requestGateway={requestGateway} />)
+    await waitFor(() => expect(handle).not.toBeNull())
+
+    await expect(handle!.createBackendSessionForSend()).resolves.toBe(RUNTIME_SESSION_ID)
+    expect(bind).toHaveBeenCalledOnce()
+    expect(bind).toHaveBeenCalledWith(expect.objectContaining({ expected_account_revision: 4 }))
+    expect(accountBridge.status).toHaveBeenCalledTimes(2)
+    expect(requestGateway.mock.calls.map(([method]) => method)).toEqual(['session.create', 'session.managed_model_ticket'])
+  })
+
   it('rejects a deferred first send after its captured commercial authority changes', async () => {
     const deferredCreate = await prepareDeferredManagedCreate()
     let submitText: null | ((text: string) => Promise<boolean>) = null
@@ -1242,7 +1337,7 @@ describe('createBackendSessionForSend profile routing', () => {
     await platformModelCatalog().load()
     setCurrentModel('catalog-a')
     setCurrentProvider('aino')
-    setCurrentPlatformOwner('user-a')
+    setCurrentPlatformOwner('user-a', 'http://127.0.0.1:1234')
     setCurrentModelSource('manual')
     $composerDraft.set('keep the blocked draft')
 
