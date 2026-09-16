@@ -69,6 +69,8 @@ export function useTurnCost(billing: TurnBilling) {
       try {
         const rows: PlatformUsageRow[] = []
         let allPages = false
+        let expectedTotal: number | undefined
+        const uniqueRowIds = new Set<string>()
 
         for (let page = 1; page <= 4 && alive; page += 1) {
           const result = await bridge.listUsage({
@@ -79,11 +81,29 @@ export function useTurnCost(billing: TurnBilling) {
             desktop_turn_id: billing.turn_id
           })
 
-          rows.push(...result.items)
+          const pageRows = result.items.slice(0, 50)
 
-          if (result.items.length < 50) {
+          rows.push(...pageRows)
+          pageRows.forEach(row => uniqueRowIds.add(row.id))
+
+          if (
+            result.page !== page ||
+            result.page_size !== 50 ||
+            result.items.length > 50 ||
+            (expectedTotal !== undefined && result.total !== expectedTotal)
+          ) {
+            break
+          }
+
+          expectedTotal = result.total
+
+          if (uniqueRowIds.size === expectedTotal) {
             allPages = true
 
+            break
+          }
+
+          if (uniqueRowIds.size > expectedTotal || result.items.length === 0) {
             break
           }
         }

@@ -51,4 +51,41 @@ describe('authoritative turn fees', () => {
       )
     ).toEqual({ status: 'pending', amount: null })
   })
+
+  it('keeps distinct ledger rows for one call ambiguous instead of reporting their cost as final', () => {
+    const calls = [crypto.randomUUID(), crypto.randomUUID()]
+
+    const billing: TurnBilling = {
+      source: 'aino',
+      user_id: '17',
+      session_id: crypto.randomUUID(),
+      turn_id: crypto.randomUUID(),
+      status: 'pending',
+      calls_complete: true,
+      revision: 3,
+      calls: calls.map(call_id => ({ call_id, purpose: 'chat' }))
+    }
+
+    const row = (id: string, desktop_call_id: string, amount: string): PlatformUsageRow => ({
+      id,
+      request_id: id,
+      model: 'fixture',
+      session_id: billing.session_id,
+      desktop_turn_id: billing.turn_id,
+      desktop_call_id,
+      desktop_purpose: 'chat',
+      actual_cost_decimal: amount,
+      currency: 'USD',
+      settlement_status: 'settled',
+      created_at: '2026-09-16T00:00:00Z'
+    })
+
+    expect(
+      reconcileTurnUsage(
+        billing,
+        [row('1', calls[0], '0.10000000'), row('2', calls[0], '0.20000000'), row('3', calls[1], '0.30000000')],
+        true
+      )
+    ).toEqual({ status: 'partial', amount: '0.30000000' })
+  })
 })

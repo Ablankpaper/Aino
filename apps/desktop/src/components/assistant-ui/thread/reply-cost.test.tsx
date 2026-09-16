@@ -140,16 +140,53 @@ it('pauses hidden-window polling and discards ledger data that arrives after an 
   const visibility = vi.spyOn(window.document, 'visibilityState', 'get').mockReturnValue('hidden')
   const { billing, listUsage, snapshot, page } = fixture()
   let finish!: (value: PlatformUsagePage) => void
-  listUsage.mockImplementation(() => new Promise<PlatformUsagePage>(resolve => { finish = resolve }))
-  render(<I18nProvider configClient={null} initialLocale="zh"><ReplyCost billing={billing} /></I18nProvider>)
-  await act(async () => { await vi.advanceTimersByTimeAsync(120000) })
+  listUsage.mockImplementation(
+    () =>
+      new Promise<PlatformUsagePage>(resolve => {
+        finish = resolve
+      })
+  )
+  render(
+    <I18nProvider configClient={null} initialLocale="zh">
+      <ReplyCost billing={billing} />
+    </I18nProvider>
+  )
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(120000)
+  })
   expect(listUsage).not.toHaveBeenCalled()
   visibility.mockReturnValue('visible')
   act(() => window.document.dispatchEvent(new Event('visibilitychange')))
   expect(listUsage).toHaveBeenCalledTimes(1)
   act(() => snapshot.set({ ...snapshot.get()!, account: { ...snapshot.get()!.account!, id: '18' } }))
-  await act(async () => { finish(page); await vi.advanceTimersByTimeAsync(120000) })
+  await act(async () => {
+    finish(page)
+    await vi.advanceTimersByTimeAsync(120000)
+  })
   expect(screen.queryByText(/0.01 USD/)).toBeNull()
   expect(screen.queryByRole('button', { name: '查看明细' })).toBeNull()
   expect(listUsage).toHaveBeenCalledTimes(1)
+})
+
+it.each([
+  ['an unmet total', { page: 1, page_size: 50, total: 2 }],
+  ['a drifted page', { page: 2, page_size: 50, total: 1 }],
+  ['a drifted page size', { page: 1, page_size: 25, total: 1 }]
+])('keeps a matching settled row partial when pagination reports %s', async (_case, metadata) => {
+  vi.useFakeTimers()
+  const { billing, listUsage, page } = fixture()
+  billing.calls = billing.calls.slice(0, 1)
+  listUsage.mockResolvedValue({ ...page, ...metadata })
+
+  render(
+    <I18nProvider configClient={null} initialLocale="zh">
+      <ReplyCost billing={billing} />
+    </I18nProvider>
+  )
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0)
+  })
+
+  expect(screen.getByText(/部分费用已结算.*0.01 USD/)).toBeTruthy()
+  expect(screen.queryByText(/本回合费用.*0.01 USD/)).toBeNull()
 })

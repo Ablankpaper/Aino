@@ -49,7 +49,11 @@ export function parsePlatformUsageQuery(raw: unknown): PlatformUsageQuery {
 
     const value = text(input[key])
 
-    if (!value || value.length > 255 || [...value].some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) {
+    if (
+      !value ||
+      value.length > 255 ||
+      [...value].some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)
+    ) {
       return invalid('invalid_platform_input')
     }
 
@@ -70,7 +74,11 @@ export function parsePlatformUsagePage(value: unknown): PlatformUsagePage {
     const row = object(value)
     const status = row.settlement_status
 
-    if (!['pending', 'settled', 'not_charged', 'unknown'].includes(String(status)) || row.currency !== 'USD') {
+    if (
+      typeof status !== 'string' ||
+      !['pending', 'settled', 'not_charged', 'unknown'].includes(status) ||
+      row.currency !== 'USD'
+    ) {
       return invalid()
     }
 

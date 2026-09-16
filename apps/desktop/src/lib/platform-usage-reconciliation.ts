@@ -24,6 +24,7 @@ export function reconcileTurnUsage(billing: TurnBilling, rows: PlatformUsageRow[
   const expected = new Set(billing.calls.map(call => call.call_id))
   const observed = new Set<string>()
   const seen = new Map<string, PlatformUsageRow>()
+  const rowsByCall = new Map<string, PlatformUsageRow[]>()
 
   for (const row of rows) {
     if (row.session_id !== billing.session_id || row.desktop_turn_id !== billing.turn_id || !row.desktop_call_id) {
@@ -45,10 +46,23 @@ export function reconcileTurnUsage(billing: TurnBilling, rows: PlatformUsageRow[
 
     seen.set(row.id, row)
     observed.add(row.desktop_call_id)
+    const callRows = rowsByCall.get(row.desktop_call_id) ?? []
+    callRows.push(row)
+    rowsByCall.set(row.desktop_call_id, callRows)
 
     if (!expected.has(row.desktop_call_id)) {
       uncertain = true
     }
+  }
+
+  for (const callRows of rowsByCall.values()) {
+    if (callRows.length !== 1) {
+      uncertain = true
+
+      continue
+    }
+
+    const [row] = callRows
 
     const amount = units(row.actual_cost_decimal)
 
