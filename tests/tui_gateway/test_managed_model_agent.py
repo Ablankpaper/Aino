@@ -35,6 +35,9 @@ def result(response):
 @pytest.fixture
 def managed_gateway(tmp_path, monkeypatch):
     requests = []
+    request_headers = []
+    response_status = {}
+    request_condition = threading.Condition()
     hold, entered, release = threading.Event(), threading.Event(), threading.Event()
 
     class Model(BaseHTTPRequestHandler):
@@ -47,7 +50,20 @@ def managed_gateway(tmp_path, monkeypatch):
                 self.send_response(404)
                 self.end_headers()
                 return
-            requests.append((self.path, self.headers.get("Authorization"), body))
+            with request_condition:
+                requests.append((self.path, self.headers.get("Authorization"), body))
+                request_headers.append(dict(self.headers))
+                request_condition.notify_all()
+            if status := response_status.get(self.headers.get("Authorization")):
+                status, code = status if isinstance(status, tuple) else (status, None)
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                error = ({"code": code, "message": "fixture refusal"} if code else {
+                    "error": {"message": "fixture refusal", "type": "api_error",
+                              "code": "upstream_auth_failed" if status == 401 else "insufficient_balance"}})
+                self.wfile.write(json.dumps(error).encode())
+                return
             if hold.is_set():
                 entered.set()
                 if not release.wait(timeout=5):
@@ -60,7 +76,7 @@ def managed_gateway(tmp_path, monkeypatch):
                 for event in events_for(self.path, body, tmp_path / "sample.txt"):
                     self.wfile.write(("event: " + event["type"] + "\ndata: " + json.dumps(event) + "\n\n").encode())
                 return
-            has_result = any(m.get("role") == "tool" for m in body["messages"])
+            has_result = not body.get("tools") or any(m.get("role") == "tool" for m in body["messages"])
             tool_call = {"id": "call-fixture", "type": "function", "function": {
                 "name": "read_file", "arguments": json.dumps({"path": str(tmp_path / "sample.txt")})}}
             delta = {"content": "Local model finished."} if has_result else {
@@ -128,7 +144,7 @@ def managed_gateway(tmp_path, monkeypatch):
             sessions.append(draft["session_id"])
             return draft
 
-        def bind(self, sid, key="fixture-secret-one", owner_id="user-one", model_id="fixture-a"):
+        def bind(self, sid, key="fixture-secret-one", owner_id="user-one", model_id="fixture-a", vision=False):
             params = {"session_id": sid, "model_id": model_id, "owner": {
                 "platform_origin": origin, "user_id": owner_id}}
             ticket = result(self.call("session.managed_model_ticket", **params))["session_ticket"]
@@ -137,7 +153,7 @@ def managed_gateway(tmp_path, monkeypatch):
             payload = {**params, "binding_revision": revision, "api_key": key, "credential_id": "lease",
                 "base_url": origin + "/v1", "model": "fixture-upstream" if model_id == "fixture-a" else "fixture-other",
                 "api_mode": self.protocol,
-                "capabilities": {"tools": True, "vision": False, "reasoning": False},
+                "capabilities": {"tools": True, "vision": vision, "reasoning": False},
                 "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=50)).isoformat()}
             result(self.call("session.bind_managed_model", peer=controller, **payload))
             return payload
@@ -158,6 +174,9 @@ def managed_gateway(tmp_path, monkeypatch):
 
     rig = Rig()
     rig.requests, rig.db, rig.chat, rig.controller, rig.sessions = requests, db, chat, controller, sessions
+    rig.request_headers = request_headers
+    rig.response_status = response_status
+    rig.request_condition = request_condition
     rig.hold, rig.entered, rig.release = hold, entered, release
     try:
         yield rig

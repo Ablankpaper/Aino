@@ -273,7 +273,11 @@ def _build_child_agent(
     if parent_sid and getattr(child, "_session_init_model_config", None) is not None:
         child._session_init_model_config["_delegate_from"] = parent_sid
     # Shared pool lets children rotate credentials on rate limits.
-    child_pool = _resolve_child_credential_pool(rt["provider"], parent_agent, rt["base_url"])
+    from agent.auxiliary_billing_scope import ManagedCredential
+    if isinstance(rt["api_key"], ManagedCredential):
+        child._managed_model_metadata = dict(getattr(parent_agent, "_managed_model_metadata", None) or {})
+    child_pool = (None if isinstance(rt["api_key"], ManagedCredential) else
+                  _resolve_child_credential_pool(rt["provider"], parent_agent, rt["base_url"]))
     if child_pool is not None:
         child._credential_pool = child_pool
 

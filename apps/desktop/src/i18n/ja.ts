@@ -160,6 +160,7 @@ export const ja = defineLocale({
   },
 
   notifications: {
+    auxiliaryBillingSource: (provider: string) => `補助タスクは ${provider} を使用します。料金はそのプロバイダーに請求され、Aino の残高は消費しません。`,
     region: '通知',
     hide: '非表示',
     show: '表示',

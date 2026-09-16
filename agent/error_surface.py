@@ -30,6 +30,8 @@ LAYER_DISK = "disk"
 # failure_reason → UI layer. Unlisted reasons fall back to LAYER_PROVIDER:
 # every FailoverReason comes from classifying a provider call.
 _REASON_TO_LAYER = {
+    "managed_credential_expired": LAYER_AUTH, "managed_credential_revoked": LAYER_AUTH,
+    "managed_auth_unavailable": LAYER_AUTH, "managed_balance_unavailable": LAYER_BILLING,
     "auth": LAYER_AUTH, "auth_permanent": LAYER_AUTH, "billing": LAYER_BILLING, "billing_unverified": LAYER_BILLING,
 }
 

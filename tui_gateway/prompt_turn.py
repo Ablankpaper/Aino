@@ -150,6 +150,7 @@ class _TurnScopes:
     home: Any = None  # per-turn HERMES_HOME override for a resumed remote profile
     secret: Any = None
     terminal: Any = None
+    billing: Any = None
 
 
 def _route_turn_images(agent, prompt: Any, images: list[str]) -> Any:
@@ -470,6 +471,8 @@ def _prepare_turn_input(sid: str, session: dict, st: _TurnRun, text: Any, images
         _sync_agent_compression_with_config(sid, session)
     _sync_bot_capabilities(sid, session)  # Bot Chat: adopt Settings->Capabilities edits
     st.agent = agent = session["agent"]
+    from tui_gateway.managed_model_usage import begin_managed_usage
+    scopes.billing = begin_managed_usage(agent)
     from tui_gateway.turn_metrics import begin_turn_metrics
     st.metrics_start = begin_turn_metrics(agent, session)
     # Snapshot after the model sync: a deferred switch's history mutation belongs to this turn.
@@ -745,6 +748,9 @@ def _finish_turn(sid: str, session: dict, st: _TurnRun) -> None:
         except Exception:
             logger.debug("TUI one-turn model restore failed", exc_info=True)
     scopes = st.scopes
+    if scopes.billing is not None:
+        from tui_gateway.managed_model_usage import end_managed_usage
+        end_managed_usage(scopes.billing)
     with contextlib.suppress(Exception):
         if scopes.approval is not None:
             from tools.approval_context import reset_current_session_key

@@ -3199,7 +3199,10 @@ Summary generation was unavailable, so this is a best-effort deterministic fallb
         if self.summary_model:
             call_kwargs["model"] = self.summary_model
         # Pinned route (stall fallback) overrides task routing so the retry leaves the stalled backend.
-        call_kwargs.update(_pinned_summary_call_kwargs())
+        pinned_route = _pinned_summary_call_kwargs()
+        from agent.auxiliary_billing_scope import ManagedCredential
+        if not isinstance(self.api_key, ManagedCredential):
+            call_kwargs.update(pinned_route)
         # Compression is atomic: protect the in-flight summary call from a mid-turn gateway interrupt.
         # Without this, an incoming user message aborts the summary and compression falls back to a degraded
         # static marker, losing the real handoff (#23975). Re-entrant: a main-model retry (_generate_summary
@@ -3480,7 +3483,10 @@ Write only the summary body. Do not include any preamble or prefix."""
             )
         # A distinct summary model gets ONE main-model retry: a specific reason for known transient classes,
         # else a best-effort "failed" retry — losing N turns is worse than one extra summary attempt.
-        if self.summary_model and self.summary_model != self.model and not getattr(self, "_summary_model_fallen_back", False):
+        from agent.auxiliary_billing_scope import ManagedCredential
+        if (self.summary_model and self.summary_model != self.model
+                and not isinstance(self.api_key, ManagedCredential)
+                and not getattr(self, "_summary_model_fallen_back", False)):
             self._fallback_to_main_for_compression(e, kind.fallback_reason())
             # Retry immediately on the main model.
             return self._generate_summary(turns_to_summarize, focus_topic=focus_topic, memory_context=memory_context)

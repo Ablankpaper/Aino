@@ -240,6 +240,8 @@ def test_managed_draft_without_byok_waits_for_binding(managed_gateway):
 
 ## B5：辅助调用、fallback 与消费关联
 
+**2026-09-16：本地实现与相关验收完成。** 详见 [B5 验收记录](../implementation/aino-platform-b5-review.md)。当前采用 B4 主进程主动续租；推理拒绝后不自动重放已付费回合，保留结构化错误供 B6 恢复入口使用。实际账本对账及单次调用 ID 持久化仍由 C2 完成。
+
 **Files（Aino）:**
 
 - Create: `tui_gateway/managed_model_usage.py`（回合/调用 ID 与账本展示元数据）。
@@ -261,7 +263,7 @@ class BillingScope:
 
 这个对象是runtime metadata，不追加到模型system/user消息。HTTP对账头：`X-Aino-Session-Id`、`X-Aino-Turn-Id`、`X-Aino-Call-Id`、`X-Aino-Purpose`；每一次实际HTTP调用唯一call ID，同回合共享turn ID；native自动重试是否实际发出要在transport位置记录。它们不替代服务端生成/上游确认的billing request ID。
 
-- [ ] **Step 1：实际解析链红灯。**
+- [x] **Step 1：实际解析链红灯。**
 
 ```python
 def test_byok_auxiliary_never_uses_platform_lease(billing_scope_rig):
@@ -273,11 +275,11 @@ def test_byok_auxiliary_never_uses_platform_lease(billing_scope_rig):
 ```
 
 `billing_scope_rig` 使用真实 `agent.auxiliary_client` imports和fake HTTP endpoints，test credential明显标记；不能把 `_resolve_auto_route` mock 成期望值。
-- [ ] **Step 2：红灯。** `scripts/run_tests.sh tests/agent/test_managed_billing_scope.py tests/tui_gateway/test_managed_usage_correlation.py`。
-- [ ] **Step 3：传递作用域。** 沿现有 runtime main/contextvars/path propagation传递，进程/线程需要明确复制；禁止进程全局最后登录账户。默认所有继承的aux费用来源跟主会话，显式配置另一个provider则向用户显示并尊重；不能静默启用第三方fallback。
-- [ ] **Step 4：鉴权/流恢复。** 区分本方 `credential_expired` 与上游401；前者可请求main续租并在未生成内容时最多一次安全重试。已输出内容、已调用工具、支付结果未知等不重放整轮。余额/订阅不足保留输入和历史，给充值/选模型入口。
-- [ ] **Step 5：覆盖实际消费者。** 主回答、标题、压缩、vision路由、子任务、并行会话，已有explicit auxiliary override和cron持久运行限制；ContextVar跨线程/子进程需要真实验证。压缩是原有唯一允许的历史变更，此功能不增加其他缓存破坏。
-- [ ] **Step 6：回归/提交。** 相关Agent/provider/fallback/delegation压缩测试；建议 `feat(agent): preserve billing source across auxiliary calls`。
+- [x] **Step 2：红灯。** `scripts/run_tests.sh tests/agent/test_managed_billing_scope.py tests/tui_gateway/test_managed_usage_correlation.py`。
+- [x] **Step 3：传递作用域。** 沿现有 runtime main/contextvars/path propagation传递，进程/线程需要明确复制；禁止进程全局最后登录账户。默认所有继承的aux费用来源跟主会话，显式配置另一个provider则向用户显示并尊重；不能静默启用第三方fallback。
+- [x] **Step 4：鉴权/流恢复。** 区分本方 `credential_expired` 与上游401；前者可请求main续租并在未生成内容时最多一次安全重试。已输出内容、已调用工具、支付结果未知等不重放整轮。余额/订阅不足保留输入和历史，给充值/选模型入口。当前不启用错误后的自动重放；选择/充值入口在 B6/C4 接线。
+- [x] **Step 5：覆盖实际消费者。** 主回答、标题、压缩、vision路由、子任务、并行会话，已有explicit auxiliary override和cron持久运行限制；ContextVar跨线程/子进程需要真实验证。压缩是原有唯一允许的历史变更，此功能不增加其他缓存破坏。当前托管子任务为进程内线程，未支持凭据序列化到 compute-host。
+- [x] **Step 6：回归/提交。** 相关Agent/provider/fallback/delegation压缩测试；建议 `feat(agent): preserve billing source across auxiliary calls`。
 
 ## B6：模型设置、输入框、空白首页与错误恢复
 

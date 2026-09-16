@@ -224,6 +224,7 @@ interface UpstreamTranslations {
   }
 
   notifications: {
+    auxiliaryBillingSource: (provider: string) => string
     region: string
     hide: string
     show: string

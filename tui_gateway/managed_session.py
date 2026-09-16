@@ -64,7 +64,19 @@ def runtime_for_session(sid):
             raise ManagedBindingError("managed_model_identity_mismatch")
         return current.api_key
 
-    runtime["api_key"] = current_key
+    def on_override(provider, purpose):
+        current_key()
+        server._emit("notification.show", sid, {
+            "text": f"Auxiliary calls use {provider}; charges belong to that provider, not Aino.",
+            "code": "auxiliary_billing_override", "billing_source": provider,
+            "purpose": purpose, "key": f"billing.source.{purpose}", "kind": "ttl", "ttl_ms": 12000, "level": "info"})
+
+    from agent.auxiliary_billing_scope import ManagedCredential
+    from .managed_model_usage import usage_session_id
+    runtime["api_key"] = ManagedCredential(
+        current_key, binding.owner.user_id, usage_session_id(session),
+        binding.model, binding.base_url, runtime["api_mode"], bool(binding.capabilities.get("vision")),
+        on_override=on_override)
     return runtime.pop("model"), runtime
 
 

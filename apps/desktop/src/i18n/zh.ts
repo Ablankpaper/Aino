@@ -210,6 +210,7 @@ export const zh: Translations = {
   },
 
   notifications: {
+    auxiliaryBillingSource: (provider: string) => `辅助任务使用 ${provider}，费用由该服务商收取，不消耗 Aino 余额。`,
     region: '通知',
     hide: '隐藏',
     show: '显示',

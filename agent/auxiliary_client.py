@@ -169,6 +169,8 @@ def _create_openai_client(*, api_key: str, base_url: str, **kwargs: Any) -> Any:
         # Availability probe: resolved credentials/base_url are the answer.
         return _AuxProbeClientStub(api_key=api_key, base_url=base_url)
     kwargs = {**_openai_http_client_kwargs(base_url), **kwargs}
+    from agent.auxiliary_billing_scope import configure_managed_http
+    configure_managed_http(kwargs, api_key)
     # OpenCode Zen free tier: the keyless placeholder must never hit the wire (relay 401s any
     # unrecognized bearer) — blank the Authorization header.
     with contextlib.suppress(Exception):
@@ -2336,6 +2338,9 @@ def _read_main_api_key_if_same_host(aux_base_url: str) -> str:
     Unconditional inheritance would leak the credential to any misconfigured host; mismatch keeps ``no-key-required`` → 401.
     """
     aux_host = base_url_hostname(aux_base_url)
+    from agent.auxiliary_billing_scope import managed_runtime
+    if managed_runtime(_normalize_main_runtime(None)):
+        return ""
     if not aux_host or aux_host != base_url_hostname(_read_main_base_url()):
         return ""
     return _read_main_api_key()
@@ -4251,7 +4256,11 @@ def _to_async_client(sync_client, model: str, is_vision: bool = False):
     if _client_declares(sync_client, "HERMES_SKIP_ASYNC_WRAP"):
         return sync_client, model
     sync_base_url = str(sync_client.base_url)
-    async_kwargs = {"api_key": sync_client.api_key, "base_url": sync_base_url}
+    from agent.auxiliary_billing_scope import ManagedCredential
+    async_key = getattr(sync_client, "_api_key_provider", None) or sync_client.api_key
+    # The hook obtains the managed key at dispatch; AsyncOpenAI awaits callables.
+    async_kwargs = {"api_key": "managed-credential" if isinstance(async_key, ManagedCredential)
+                    else sync_client.api_key, "base_url": sync_base_url}
     if base_url_host_matches(sync_base_url, "openrouter.ai"):
         headers = _apply_user_default_headers(build_or_headers())
     elif _is_official_codex_base_url(sync_base_url):
@@ -4271,6 +4280,8 @@ def _to_async_client(sync_client, model: str, is_vision: bool = False):
     # Hermes owns the auxiliary retry/timeout budget; disable SDK-internal retries.
     # See #54465.
     async_kwargs.setdefault("max_retries", 0)
+    from agent.auxiliary_billing_scope import configure_managed_http
+    configure_managed_http(async_kwargs, async_key, async_mode=True)
     return AsyncOpenAI(**async_kwargs), model
 
 
@@ -4404,6 +4415,7 @@ class _ResolveRequest(NamedTuple):
     main_runtime: Optional[Dict[str, Any]]
     is_vision: bool
     task: Optional[str]
+    strict_billing: bool = False
 
 
 _ResolveResult = Tuple[Optional[Any], Optional[str]]
@@ -4578,7 +4590,8 @@ def _resolve_custom_branch(req: _ResolveRequest) -> _ResolveResult:
         return _route_client(req, client, final_model)
     # Try custom first, then API-key providers (Codex excluded here:
     # falling through to Codex with no model is a stale-constant trap).
-    for try_fn in (_try_custom_endpoint, _resolve_api_key_provider):
+    candidates = (_try_custom_endpoint,) if req.strict_billing else (_try_custom_endpoint, _resolve_api_key_provider)
+    for try_fn in candidates:
         client, default = try_fn()
         if client is not None:
             final_model = _normalize_resolved_model(model or default, provider)
@@ -4846,6 +4859,17 @@ def resolve_provider_client(
     # (e.g. "kimi" → "kimi-coding") is still reachable via the named-custom branch.
     original_provider = (provider or "").strip().lower()
     provider = _normalize_aux_provider(provider)
+    from agent.auxiliary_billing_scope import resolve_managed_auxiliary
+    managed = resolve_managed_auxiliary(
+        _normalize_main_runtime(main_runtime), original_provider or provider, model, explicit_base_url, explicit_api_key,
+        api_mode, "vision" if is_vision else task, async_mode=async_mode, raw_codex=raw_codex)
+    if managed is not None:
+        return managed
+    from agent.auxiliary_billing_scope import managed_runtime
+    strict_billing = managed_runtime(_normalize_main_runtime(main_runtime))
+    if strict_billing:
+        # An explicit BYOK route must not borrow platform auth from main_runtime.
+        main_runtime = {}
     # MoA chokepoint: "moa" is not an HTTP provider; resolve to the aggregator so direct callers don't
     # dead-end in unknown-provider. Unresolvable preset → leave untouched for the normal diagnostic.
     if provider == "moa":
@@ -4889,7 +4913,7 @@ def resolve_provider_client(
         model = _get_aux_model_for_provider(provider) or _read_main_model_for_aux() or model
     req = _ResolveRequest(
         provider, original_provider, model, async_mode, raw_codex,
-        explicit_base_url, explicit_api_key, api_mode, main_runtime, is_vision, task,
+        explicit_base_url, explicit_api_key, api_mode, main_runtime, is_vision, task, strict_billing,
     )
     branch = _EXPLICIT_PROVIDER_BRANCHES.get(provider)
     if branch is not None:
@@ -4913,7 +4937,7 @@ def get_text_auxiliary_client(task: str = "", *, main_runtime: Optional[Dict[str
     provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(task or None)
     return resolve_provider_client(
         provider, model=model, explicit_base_url=base_url, explicit_api_key=api_key,
-        api_mode=api_mode, main_runtime=main_runtime,
+        api_mode=api_mode, main_runtime=main_runtime, task=task,
     )
 
 
@@ -5097,6 +5121,12 @@ def resolve_vision_provider_client(
         "vision", provider, model, base_url, api_key
     )
     requested = _normalize_vision_provider(requested)
+    from agent.auxiliary_billing_scope import resolve_managed_auxiliary
+    managed = resolve_managed_auxiliary(
+        runtime, requested, resolved_model, resolved_base_url, resolved_api_key,
+        resolved_api_mode, "vision", async_mode=async_mode)
+    if managed is not None:
+        return "aino", *managed
     if resolved_base_url:
         provider_for_base_override = requested if requested and requested not in {"", "auto"} else "custom"
         client, final_model = resolve_provider_client(
@@ -5192,9 +5222,12 @@ def _client_cache_key(
 ) -> tuple:
     runtime = _normalize_main_runtime(main_runtime)
     # `auto` resolves through the main runtime and task-specific policy, so both join the key.
-    runtime_key = tuple(_runtime_cache_discriminator(f, runtime.get(f, "")) for f in _MAIN_RUNTIME_FIELDS) if provider == "auto" else ()
-    task_key = (task or "", _task_prefers_fast_model(task)) if provider == "auto" else ""
-    pool_hint = _pool_cache_hint(provider, main_runtime=main_runtime)
+    from agent.auxiliary_billing_scope import managed_runtime, billing_scope
+    managed = managed_runtime(runtime)
+    runtime_key = tuple(_runtime_cache_discriminator(f, runtime.get(f, "")) for f in _MAIN_RUNTIME_FIELDS) if provider == "auto" or managed else ()
+    task_key = (task or "", _task_prefers_fast_model(task)) if provider == "auto" or managed else ""
+    pool_hint = _pool_cache_hint(provider, main_runtime=main_runtime) if not managed else (
+        getattr(runtime.get("api_key"), "scope", None) or billing_scope.get() or object())
     # Model MUST be in the key: concurrent calls to the same endpoint with different models would
     # share an entry, and the second builder's _store_cached_client would close the first's client.
     model_key = model or runtime.get("model", "")
@@ -5423,7 +5456,8 @@ def _get_cached_client(
     # resolve_api_key_provider_credentials prefers env vars, which would bypass pool rotation
     # and retry an exhausted key.
     effective_api_key = api_key
-    if not effective_api_key:
+    from agent.auxiliary_billing_scope import managed_runtime
+    if not effective_api_key and not managed_runtime(runtime):
         _pe = _peek_pool_entry(_normalize_aux_provider(provider))
         if _pe is not None:
             effective_api_key = _pool_runtime_api_key(_pe) or api_key
@@ -6509,13 +6543,15 @@ def _resolve_call_client(
     """Resolve the client for one aux call: vision chain, or cached text client with the
     explicit-provider fallback_chain / auto-chain rescue; RuntimeError when nothing is configured."""
     effective_provider = resolved_provider
+    from agent.auxiliary_billing_scope import managed_runtime
+    strict_billing = managed_runtime(main_runtime)
     if task == "vision":
         effective_provider, client, final_model = resolve_vision_provider_client(
             provider=resolved_provider if resolved_provider != "auto" else provider,
             model=resolved_model or model, base_url=resolved_base_url or base_url,
             api_key=resolved_api_key or api_key, async_mode=async_mode, main_runtime=main_runtime,
         )
-        if client is None and resolved_provider != "auto" and not resolved_base_url:
+        if client is None and not strict_billing and resolved_provider != "auto" and not resolved_base_url:
             logger.warning("Vision provider %s unavailable, falling back to auto vision backends",
                            resolved_provider)
             effective_provider, client, final_model = resolve_vision_provider_client(
@@ -6529,7 +6565,7 @@ def _resolve_call_client(
             api_key=resolved_api_key, api_mode=resolved_api_mode, main_runtime=main_runtime,
             task=task)
         effective_provider = _effective_provider_for_client(client, resolved_provider)
-        if client is None:
+        if client is None and not strict_billing:
             # Explicit provider with no credentials: honor the task fallback_chain before
             # raising (fallback entries may use OAuth / credential-pool auth).
             _explicit = (resolved_provider or "").strip().lower()
@@ -6926,6 +6962,9 @@ def _aux_recovery_ladder(
     resp, first_err, kwargs = yield from _ladder_parameter_rungs(first_err, route, kwargs, max_tokens)
     if first_err is None:
         return resp
+    from agent.auxiliary_billing_scope import managed_runtime
+    if managed_runtime(main_runtime):
+        raise first_err
     client_is_nous = (resolved_provider == "nous"
                       or base_url_host_matches(base_info, "inference-api.nousresearch.com"))
     resp, first_err = yield from _ladder_nous_rungs(first_err, route, kwargs, client_is_nous)

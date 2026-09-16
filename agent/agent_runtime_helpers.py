@@ -1757,6 +1757,8 @@ def create_openai_client(agent, client_kwargs: dict, *, reason: str, shared: boo
     )
     # ``process_bootstrap.OpenAI`` is a lazy SDK proxy; resolved at call time so tests can patch it.
     from agent import process_bootstrap
+    from agent.auxiliary_billing_scope import configure_managed_http
+    configure_managed_http(client_kwargs, client_kwargs.get("api_key"))
     client = process_bootstrap.OpenAI(**client_kwargs)
     _ra().logger.info("OpenAI client created (%s, shared=%s) %s", reason, shared, agent._client_log_context())
     return client

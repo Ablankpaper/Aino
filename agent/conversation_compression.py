@@ -838,6 +838,9 @@ def _retry_compression_on_fallback_chain(
     hard_cancel = getattr(telemetry_agent, "_hard_interrupt_requested", None)
     if callable(getattr(hard_cancel, "is_set", None)) and hard_cancel.is_set():
         return None
+    from agent.auxiliary_billing_scope import ManagedCredential
+    if isinstance(getattr(telemetry_agent, "api_key", None), ManagedCredential):
+        return None
     route = resolve_compression_fallback_route()
     if route is None:
         return None

@@ -337,6 +337,8 @@ def _build_anthropic_client_with_bearer_hook(
     from agent.azure_identity_adapter import build_bearer_http_client
     normalized_base_url, kwargs = _base_client_kwargs(base_url, timeout)
     kwargs["http_client"] = build_bearer_http_client(token_provider, timeout=kwargs["timeout"])
+    from agent.auxiliary_billing_scope import configure_managed_http
+    configure_managed_http(kwargs, token_provider)
     kwargs["auth_token"] = "entra-id-bearer-via-http-hook"
     headers = _beta_header(_common_betas_for_base_url(normalized_base_url, drop_context_1m_beta=drop_context_1m_beta))
     return _new_sdk_client(sdk, kwargs, headers)

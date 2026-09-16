@@ -4,6 +4,19 @@
 **执行者：** Claude Code（前期）与 Codex（复核及续作）
 **总计划：** [implementation-plan.md](/Users/zizimutou/Protect/Aino/docs/aino-platform/implementation-plan.md)
 
+## 2026-09-16 Codex 接手续作
+
+用户已暂停 Claude，后续由 Codex 按 B5 → B6 → C → D 串行开发，不启用子智能体。保留下面的历史交接记录，但其中“交给 Claude”的安排已失效。
+
+- B5 本地实现、相关验收完成，随本次阶段提交保存；Aino-API 仍为 `9de47dab17de239a3735963a7339c254e34878d7`，本轮没有 API 改动。
+- 平台主回答/标题/压缩/视觉/子任务继承相同授权和费用来源；BYOK 独立，缺失自定义配置不能自动发现其他付费提供商。
+- 每个实际 HTTP 请求携带独立 call ID，同回合共享 turn ID；压缩续接和工作区恢复保持计费会话 ID，显式分支分开。回复仅记录 `pending` 关联元数据，不冒充已结算费用。
+- 过期、撤销、上游鉴权、余额/订阅不足分类；不重放整轮，不重建 prompt 来续租。短时平台授权不能被保存为无人值守定时任务的凭据。
+- 最新相关回归 131 文件/1,388 项通过；B4/B5 定向 49 项通过；桌面通知 21 项、类型检查、相关 Ruff/ESLint、构建及 diff 检查通过。详见 [B5 验收记录](aino-platform-b5-review.md)。
+- B6 模型 UI、C 钱包充值/真实消费对账、D 完整交付仍未完成。真实短信、模型收费、支付及 Windows/Linux 仍未验收。
+- 较大范围 Python 回归为 8,976 通过、4 失败、29 跳过，另 1 文件超时。本次计费关联失败已修复并复验；其他失败/超时单独列入 D，不以局部通过宣称整体全绿。
+- 无推送、main 合并、生产部署、真实付费操作，也没有打开 Qoder 或其他 IDE。
+
 ## 2026-09-15 续作核验
 
 最新安排：Codex 已补齐并提交 B4，后续由用户转交 Claude 完成 B5–B6、C、D。执行入口为 [Claude 交接清单](aino-platform-claude-handoff.md)。下表区分已有代码、实际自动测试和真实服务联调；后文历史记录不能替代验收证据。

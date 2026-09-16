@@ -75,6 +75,8 @@ def finish_turn_metrics(agent, session, start, usage, text, *, persist, monotoni
             metrics[key] = value
     if "context_percent" in metrics and isinstance(usage.get("context_estimated"), bool):
         metrics["context_estimated"] = usage["context_estimated"]
+    from tui_gateway.managed_model_usage import current_usage_metadata
+    metrics.update(current_usage_metadata())
     if persist and text:
         _persist_metrics(agent, session, start, text, metrics)
     return metrics

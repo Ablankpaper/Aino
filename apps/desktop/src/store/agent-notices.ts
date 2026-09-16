@@ -1,3 +1,4 @@
+import { translateNow } from '@/i18n'
 import type { NativeNotificationInput } from '@/store/native-notifications'
 import { dismissNotification, type NotificationInput, type NotificationKind, notify } from '@/store/notifications'
 
@@ -18,6 +19,9 @@ import { dismissNotification, type NotificationInput, type NotificationKind, not
  *   (self-expires after `ttl_ms`).
  */
 export interface AgentNoticePayload {
+  code?: string
+  billing_source?: string
+  purpose?: string
   text?: string
   level?: string
   kind?: string
@@ -109,7 +113,9 @@ export function noticeAccent(payload: AgentNoticePayload | undefined): string | 
  *   instead of stacking, and a key-matched `notification.clear` can dismiss it.
  */
 export function noticeToToast(payload: AgentNoticePayload | undefined): NotificationInput | null {
-  const text = payload?.text?.trim()
+  const text = payload?.code === 'auxiliary_billing_override' && payload.billing_source
+    ? translateNow('notifications.auxiliaryBillingSource', payload.billing_source)
+    : payload?.text?.trim()
 
   if (!text) {
     return null

@@ -217,6 +217,7 @@ export const en: Translations = {
   },
 
   notifications: {
+    auxiliaryBillingSource: (provider: string) => `Auxiliary calls use ${provider}. Charges belong to that provider, not your Aino balance.`,
     region: 'Notifications',
     hide: 'Hide',
     show: 'Show',

@@ -446,6 +446,13 @@ def _resolve_child_runtime(
     ``override_provider`` clears the parent's ACP transport, fallback chain and OpenRouter routing filters so the
     pinned provider is actually honoured."""
     effective_model = model or parent_agent.model
+    from agent.auxiliary_billing_scope import ManagedCredential
+    parent_managed = isinstance(parent_api_key, ManagedCredential)
+    if parent_managed and (override_base_url or override_provider) and not override_api_key:
+        raise ValueError(
+            "managed platform credentials cannot be used with a delegation endpoint/provider override; "
+            "provide an explicit BYOK api_key or inherit the parent route"
+        )
     effective_provider = override_provider or getattr(parent_agent, "provider", None)
     effective_base_url = override_base_url or _inherit_parent_base_url(parent_agent, parent_agent.base_url)
     # api_mode: each provider has its own wire, so a different provider re-derives (None) instead of inheriting (404s
@@ -526,4 +533,6 @@ def _resolve_child_runtime(
     child_max_tokens = getattr(parent_agent, "max_tokens", None)
     if isinstance(child_max_tokens, int):
         kwargs["max_tokens"] = child_max_tokens
+    from agent.auxiliary_billing_scope import constrain_managed_child
+    constrain_managed_child(kwargs, parent_api_key)
     return kwargs

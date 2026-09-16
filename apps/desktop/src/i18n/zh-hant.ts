@@ -159,6 +159,7 @@ export const zhHant = defineLocale({
   },
 
   notifications: {
+    auxiliaryBillingSource: (provider: string) => `輔助任務使用 ${provider}，費用由該服務商收取，不消耗 Aino 餘額。`,
     region: '通知',
     hide: '隱藏',
     show: '顯示',

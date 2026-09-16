@@ -1,5 +1,7 @@
 import { beforeEach, expect, test } from 'vitest'
 
+import { setRuntimeI18nLocale } from '@/i18n'
+
 import {
   type AgentNoticePayload,
   clearAgentNotice,
@@ -25,6 +27,25 @@ function usage(overrides: Partial<AgentNoticePayload> = {}): AgentNoticePayload 
 
 beforeEach(() => {
   clearNotifications()
+})
+
+test('localizes an explicit auxiliary billing source notice without losing the selected provider', () => {
+  setRuntimeI18nLocale('zh')
+
+  try {
+    const toast = noticeToToast({
+      text: 'External auxiliary provider configured',
+      code: 'auxiliary_billing_override',
+      billing_source: 'custom:fixture-byok',
+      key: 'billing.source.compression'
+    } as AgentNoticePayload)
+
+    expect(toast?.message).toContain('custom:fixture-byok')
+    expect(toast?.message).toContain('费用')
+    expect(toast?.message).not.toContain('External auxiliary')
+  } finally {
+    setRuntimeI18nLocale('en')
+  }
 })
 
 // ── noticeToToast: the whole mapping contract ────────────────────────────────

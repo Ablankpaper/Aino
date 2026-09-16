@@ -1606,6 +1606,8 @@ def _compute_provider_model_snapshots(
     normalized_base_url = _normalize_base_url(base_url)
     if bool(no_agent):
         return None, None
+    from agent.auxiliary_billing_scope import require_persistent_model_authority
+    require_persistent_model_authority(normalized_provider, from_session=True)
 
     provider_snapshot: Optional[str] = None
     model_snapshot: Optional[str] = None
@@ -1625,6 +1627,7 @@ def _compute_provider_model_snapshots(
     if normalized_model is None:
         with contextlib.suppress(Exception):
             model_snapshot = _resolve_default_model_snapshot() or None
+    require_persistent_model_authority(provider_snapshot)
     return provider_snapshot, model_snapshot
 
 

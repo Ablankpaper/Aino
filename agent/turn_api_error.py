@@ -76,6 +76,10 @@ def handle_api_error(
         thinking_spinner = None
     if agent.thinking_callback:
         agent.thinking_callback("")
+    from agent.managed_inference_errors import managed_failure_result
+    managed_failure = managed_failure_result(agent, api_error, messages, api_call_count)
+    if managed_failure is not None:
+        return _verdict("return", managed_failure)
 
     _recovered, active_system_prompt = recover_before_classification(
         agent, api_error, messages=messages, api_messages=api_messages, api_kwargs=api_kwargs,
