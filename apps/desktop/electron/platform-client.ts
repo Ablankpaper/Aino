@@ -307,7 +307,8 @@ export function createPlatformClient({
 
     return {
       id: String(numberField(data.id)),
-      display_name: stringField(data.display_name ?? data.username),
+      // Phone registration need not assign a name; the UI uses the masked identity.
+      display_name: stringField(data.display_name ?? data.username, true),
       phone_masked: data.phone_bound === true ? stringField(phone.subject_hint ?? '', true) : '',
       email: stringField(data.email ?? '', true)
     }

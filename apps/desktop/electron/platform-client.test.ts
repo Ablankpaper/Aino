@@ -149,6 +149,46 @@ describe('platform client', () => {
     })
   })
 
+  it('preserves an unnamed phone account for the existing masked-identity UI fallback', async () => {
+    let names: Record<string, unknown> = { username: '' }
+
+    const origin = await serve((_req, res) => {
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ code: 0, message: 'ok', data: {
+        id: 17, email: '', phone_bound: true,
+        auth_bindings: { phone: { subject_hint: '+86 139****0000' } }, ...names
+      } }))
+    })
+
+    const client = createPlatformClient({ origin, allowInsecureLoopback: true })
+
+    for (const fields of [{ username: '' }, { display_name: '', username: '' }]) {
+      names = fields
+      await expect(client.profile('fixture-access')).resolves.toEqual({
+        id: '17', display_name: '', phone_masked: '+86 139****0000', email: ''
+      })
+    }
+  })
+
+  it('still rejects malformed profile names instead of coercing them into a label', async () => {
+    let names: Record<string, unknown> = {}
+
+    const origin = await serve((_req, res) => {
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ code: 0, message: 'ok', data: {
+        id: 17, email: '', phone_bound: true,
+        auth_bindings: { phone: { subject_hint: '+86 139****0000' } }, ...names
+      } }))
+    })
+
+    const client = createPlatformClient({ origin, allowInsecureLoopback: true })
+
+    for (const fields of [{ username: 42 }, { username: {} }, { username: false }, { display_name: [], username: 'Ada' }, {}]) {
+      names = fields
+      await expect(client.profile('fixture-access')).rejects.toMatchObject({ code: 'invalid_response' })
+    }
+  })
+
   it('fails closed when public settings enable conflicting captcha providers', async () => {
     const origin = await serve((_req, res) => {
       res.setHeader('content-type', 'application/json')
