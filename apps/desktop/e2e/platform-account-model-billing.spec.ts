@@ -4,7 +4,7 @@ import * as path from 'node:path'
 
 import { buildAppEnv, createSandbox, waitForAppReady, writeEnvFile, writeMockProviderConfig } from './fixtures'
 import { startMockServer } from './mock-server'
-import { fixtureEnvironment, installLoopbackNodeGuard, installLoopbackPythonGuard, launchGuardedDesktop, type NativeState, persistedFixtureText, startRealPlatformAPI } from './platform-real-api'
+import { fixtureEnvironment, installLoopbackNodeGuard, installLoopbackPythonGuard, isExpectedBlockedThemeFontRequest, KNOWN_BLOCKED_THEME_FONT_URL, launchGuardedDesktop, type NativeState, type NativeTransportAudit, persistedFixtureText, startRealPlatformAPI } from './platform-real-api'
 import { expect, type Page, test } from './test'
 
 interface NativeWindow {
@@ -17,47 +17,23 @@ interface NativeWindow {
 
 type NativeLaunch = Awaited<ReturnType<typeof launchGuardedDesktop>>
 
-interface NativeLaunchAudit {
-  unexpectedRendererDestinations: string[]
-  knownBlockedThemeFontRequests: string[]
-}
+test('transport audit accepts only the inert denied theme stylesheet shape', () => {
+  const stylesheet = { url: KNOWN_BLOCKED_THEME_FONT_URL, method: 'GET', resourceType: 'stylesheet', hasUploadData: false, hasAuthorization: false }
 
-const KNOWN_BLOCKED_THEME_FONT_URL = 'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap'
-
-function classifyBlockedChromiumRequests(requests: string[]) {
-  return {
-    knownThemeFontRequests: requests.filter(request => request === KNOWN_BLOCKED_THEME_FONT_URL),
-    unexpectedRequests: requests.filter(request => request !== KNOWN_BLOCKED_THEME_FONT_URL)
-  }
-}
-
-test('transport audit records the denied theme font but rejects other external requests', () => {
-  expect(classifyBlockedChromiumRequests([KNOWN_BLOCKED_THEME_FONT_URL, 'https://fixture.invalid/unexpected'])).toEqual({
-    knownThemeFontRequests: [KNOWN_BLOCKED_THEME_FONT_URL],
-    unexpectedRequests: ['https://fixture.invalid/unexpected']
-  })
+  expect(isExpectedBlockedThemeFontRequest(stylesheet)).toBe(true)
+  expect(isExpectedBlockedThemeFontRequest({ ...stylesheet, resourceType: 'xhr' })).toBe(false)
+  expect(isExpectedBlockedThemeFontRequest({ ...stylesheet, method: 'POST', hasUploadData: true })).toBe(false)
+  expect(isExpectedBlockedThemeFontRequest({ ...stylesheet, hasAuthorization: true })).toBe(false)
+  expect(isExpectedBlockedThemeFontRequest({ ...stylesheet, hasUploadData: true })).toBe(false)
+  expect(isExpectedBlockedThemeFontRequest({ ...stylesheet, url: 'https://fixture.invalid/stylesheet' })).toBe(false)
 })
 
-function observeNativeLaunch({ app, page }: NativeLaunch, consoleLines: string[]): NativeLaunchAudit {
-  const unexpectedRendererDestinations: string[] = []
-  const knownBlockedThemeFontRequests: string[] = []
-
-  page.on('request', request => {
-    const url = new URL(request.url())
-
-    if (['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol) && !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) {
-      if (url.href === KNOWN_BLOCKED_THEME_FONT_URL) {
-        knownBlockedThemeFontRequests.push(url.href)
-      } else {
-        unexpectedRendererDestinations.push(url.href)
-      }
-    }
-  })
+function observeNativeLaunch({ app, page, transportAudit }: NativeLaunch, consoleLines: string[]): NativeTransportAudit {
   page.on('console', message => consoleLines.push(message.text()))
   app.process().stdout?.on('data', value => consoleLines.push(String(value)))
   app.process().stderr?.on('data', value => consoleLines.push(String(value)))
 
-  return { unexpectedRendererDestinations, knownBlockedThemeFontRequests }
+  return transportAudit
 }
 
 function assertNativeGuardsReady(sandbox: ReturnType<typeof createSandbox>, app: NativeLaunch['app']) {
@@ -72,31 +48,42 @@ function deniedDestinations(sandbox: ReturnType<typeof createSandbox>, marker: s
   return fs.existsSync(markerPath) ? fs.readFileSync(markerPath, 'utf8').trim().split('\n').filter(Boolean) : []
 }
 
-function assertNoBlockedTransport(sandbox: ReturnType<typeof createSandbox>, launchAudits: NativeLaunchAudit[]) {
+async function assertNoBlockedTransport(sandbox: ReturnType<typeof createSandbox>, launchAudits: NativeTransportAudit[]) {
+  await Promise.all(launchAudits.flatMap(audit => audit.pending))
   expect(launchAudits.flatMap(audit => audit.unexpectedRendererDestinations)).toEqual([])
-  expect(launchAudits.flatMap(audit => audit.knownBlockedThemeFontRequests).every(request => request === KNOWN_BLOCKED_THEME_FONT_URL)).toBe(true)
+  expect(launchAudits.flatMap(audit => audit.knownBlockedThemeFontHosts).every(host => host === 'fonts.googleapis.com')).toBe(true)
 
   for (const marker of ['blocked-network.txt', 'blocked-node-network.txt']) {
     expect(deniedDestinations(sandbox, marker), `${marker}: denied destinations`).toEqual([])
   }
 
-  const chromium = classifyBlockedChromiumRequests(deniedDestinations(sandbox, 'blocked-chromium-network.txt'))
+  const unexpectedChromiumHosts = deniedDestinations(sandbox, 'blocked-chromium-network.txt')
 
-  expect(chromium.unexpectedRequests, 'blocked-chromium-network.txt: denied destinations').toEqual([])
-  expect(chromium.knownThemeFontRequests).not.toEqual([])
+  const expectedFontHosts = launchAudits.flatMap(audit => {
+    const candidates = deniedDestinations(sandbox, `blocked-chromium-font-candidate-${audit.mainPid}.txt`)
+    const verified = deniedDestinations(sandbox, `verified-theme-font-denial-${audit.mainPid}.txt`)
 
-  return chromium
+    expect(deniedDestinations(sandbox, `font-observer-error-${audit.mainPid}.txt`)).toEqual([])
+    expect(deniedDestinations(sandbox, `unexpected-theme-font-shape-${audit.mainPid}.txt`)).toEqual([])
+    expect(candidates, `every font candidate from launch ${audit.mainPid} must be independently verified`).toEqual(verified)
+
+    return candidates
+  })
+
+  expect(unexpectedChromiumHosts, 'blocked-chromium-network.txt: denied destinations').toEqual([])
+  expect(expectedFontHosts).not.toEqual([])
+  expect(expectedFontHosts.every(host => host === 'fonts.googleapis.com')).toBe(true)
+
+  return { expectedFontHosts }
 }
 
-function chromiumGuardProofMarkers(sandbox: ReturnType<typeof createSandbox>) {
-  return classifyBlockedChromiumRequests(deniedDestinations(sandbox, 'blocked-chromium-network.txt'))
-}
+function assertChromiumGuardProof(sandbox: ReturnType<typeof createSandbox>, mainPid: number) {
+  const expectedFontHosts = deniedDestinations(sandbox, `blocked-chromium-font-candidate-${mainPid}.txt`)
+  const unexpectedHosts = deniedDestinations(sandbox, 'blocked-chromium-network.txt')
 
-function assertChromiumGuardProof(sandbox: ReturnType<typeof createSandbox>) {
-  const chromium = chromiumGuardProofMarkers(sandbox)
-
-  expect(chromium.knownThemeFontRequests).toContain(KNOWN_BLOCKED_THEME_FONT_URL)
-  expect(chromium.unexpectedRequests).toContain('https://fixture.invalid/guard-proof')
+  expect(expectedFontHosts).toContain('fonts.googleapis.com')
+  expect(unexpectedHosts).toContain('fixture.invalid')
+  expect(unexpectedHosts).toContain('fonts.googleapis.com')
 }
 
 function pythonGuardPids(sandbox: ReturnType<typeof createSandbox>): Set<number> {
@@ -228,7 +215,17 @@ print(json.dumps({'credential_read_denied_before_spawn':denied,'spawned_commands
     expect(chromiumProof).toBe(true)
     expect(fs.readFileSync(path.join(sandbox.hermesHome, 'blocked-chromium-network.txt'), 'utf8')).toContain('fixture.invalid')
 
-    const fontProof = await launched.app.evaluate(async ({ net }) => {
+    const fontProof = await launched.page.evaluate(url => new Promise<boolean>(resolve => {
+      const link = document.createElement('link')
+
+      link.rel = 'stylesheet'
+      link.href = url
+      link.onload = () => resolve(false)
+      link.onerror = () => resolve(true)
+      document.head.appendChild(link)
+    }), KNOWN_BLOCKED_THEME_FONT_URL)
+
+    const sameURLFetchProof = await launched.app.evaluate(async ({ net }) => {
       try {
         await net.fetch('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap')
 
@@ -239,7 +236,32 @@ print(json.dumps({'credential_read_denied_before_spawn':denied,'spawned_commands
     })
 
     expect(fontProof).toBe(true)
-    assertChromiumGuardProof(sandbox)
+    expect(sameURLFetchProof).toBe(true)
+    assertChromiumGuardProof(sandbox, launchAudit.mainPid)
+    await Promise.all(launchAudit.pending)
+    const candidates = deniedDestinations(sandbox, `blocked-chromium-font-candidate-${launchAudit.mainPid}.txt`)
+
+    expect(deniedDestinations(sandbox, `font-observer-error-${launchAudit.mainPid}.txt`)).toEqual([])
+    expect(candidates).toEqual(deniedDestinations(sandbox, `verified-theme-font-denial-${launchAudit.mainPid}.txt`))
+    expect(launchAudit.unexpectedRendererDestinations).toEqual([])
+
+    await launched.app.context().setExtraHTTPHeaders({ Authorization: 'Bearer fixture-denied-font-probe' })
+
+    const authFontProof = await launched.page.evaluate(url => new Promise<boolean>(resolve => {
+      const link = document.createElement('link')
+
+      link.rel = 'stylesheet'
+      link.href = url
+      link.onload = () => resolve(false)
+      link.onerror = () => resolve(true)
+      document.head.appendChild(link)
+    }), KNOWN_BLOCKED_THEME_FONT_URL)
+
+    await launched.app.context().setExtraHTTPHeaders({})
+    await Promise.all(launchAudit.pending)
+    expect(authFontProof).toBe(true)
+    expect(launchAudit.unexpectedRendererDestinations).toEqual(['fonts.googleapis.com'])
+    expect(deniedDestinations(sandbox, `unexpected-theme-font-shape-${launchAudit.mainPid}.txt`)).toEqual(['fonts.googleapis.com'])
 
     const proof = await launched.app.evaluate(async () => {
       try { await globalThis.fetch('https://fixture.invalid/guard-proof');
@@ -251,7 +273,6 @@ print(json.dumps({'credential_read_denied_before_spawn':denied,'spawned_commands
 
     expect(proof).toBe(true)
     expect(fs.readFileSync(path.join(sandbox.hermesHome, 'blocked-node-network.txt'), 'utf8')).toContain('fixture.invalid')
-    expect(launchAudit.unexpectedRendererDestinations).toEqual([])
     console.log('Guard proof: actual Electron main and Chromium guards active before bootstrap; nonloopback fetch denied before transport; Python credential read denied with zero subprocesses')
   } finally {
     await launched?.app.close().catch(() => undefined)
@@ -267,7 +288,7 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
   const byok = await startMockServer()
   let launched: NativeLaunch | null = null
   const consoleLines: string[] = []
-  const launchAudits: NativeLaunchAudit[] = []
+  const launchAudits: NativeTransportAudit[] = []
   let stage = 'launch'
   let primaryError: unknown
   const cleanupErrors: unknown[] = []
@@ -359,7 +380,7 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     await page.keyboard.press('Escape')
 
     const initialAudit = await auditRenderer(page, api)
-    assertNoBlockedTransport(sandbox, launchAudits)
+    await assertNoBlockedTransport(sandbox, launchAudits)
     expect(fs.existsSync(path.join(sandbox.hermesHome, 'node-network-guard-active'))).toBe(true)
     await page.screenshot({ path: testInfo.outputPath('platform-native-tool-reply.png') })
     // Custom provider is introduced only AFTER proving fresh no-BYOK use.
@@ -390,7 +411,7 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     await expect.poll(async () => (await api.control<NativeState>('state')).usage_calls).toBe(beforeResume.usage_calls + 2)
     await expect(resumeComposerForm.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
     const restartAudit = await auditRenderer(restarted, api)
-    assertNoBlockedTransport(sandbox, launchAudits)
+    await assertNoBlockedTransport(sandbox, launchAudits)
     await launched.app.close()
     launched = null
 
@@ -412,7 +433,7 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     stage = 'custom-provider-switch'
     await customProvider.locator('[data-tour="model-pill"]').first().click()
     await customProvider.getByRole('button', { name: 'Custom models', exact: true }).click()
-    await customProvider.getByRole('menuitem', { name: /mock-model/ }).first().click()
+    await customProvider.getByRole('menuitem', { name: /Mock Model/ }).first().click()
     const beforeBYOK = await api.control<NativeState>('state')
     const byokComposer = customProvider.locator('[contenteditable="true"]').first()
     await byokComposer.click()
@@ -425,13 +446,13 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     expect(afterBYOK.usage_calls).toBe(beforeBYOK.usage_calls)
     expect(fs.readFileSync(path.join(sandbox.hermesHome, 'config.yaml'), 'utf8')).toContain(byok.url)
     const byokAudit = await auditRenderer(customProvider, api)
-    const transport = assertNoBlockedTransport(sandbox, launchAudits)
-    const receipt = { run_id: api.info.run_id, api_sha: api.apiSha, aino_sha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), initial, settled, cancelled, paid, beforeBYOK, afterBYOK, initialAudit, restartAudit, byokAudit, transport: { known_public_font: { url: KNOWN_BLOCKED_THEME_FONT_URL, blocked: true, fallback_used: true, denied_requests: transport.knownThemeFontRequests } }, api_log: api.logPath }
+    const transport = await assertNoBlockedTransport(sandbox, launchAudits)
+    const receipt = { run_id: api.info.run_id, api_sha: api.apiSha, aino_sha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), initial, settled, cancelled, paid, beforeBYOK, afterBYOK, initialAudit, restartAudit, byokAudit, transport: { known_public_font: { host: 'fonts.googleapis.com', attempted: true, blocked_before_transport: true, delivered: false, denied_hosts: transport.expectedFontHosts } }, api_log: api.logPath }
     await testInfo.attach('native-receipt', { body: JSON.stringify(receipt, null, 2), contentType: 'application/json' })
     fs.writeFileSync(path.join(api.dir, 'native-receipt.json'), JSON.stringify(receipt, null, 2), { mode: 0o600 })
     await launched.app.close()
     launched = null
-    assertNoBlockedTransport(sandbox, launchAudits)
+    await assertNoBlockedTransport(sandbox, launchAudits)
     const persistedAudit = await api.control<{ leaked: boolean }>('audit', JSON.stringify([...persistedFixtureText(sandbox.hermesHome), ...persistedFixtureText(sandbox.userDataDir), fs.readFileSync(api.logPath, 'utf8'), ...consoleLines]))
     expect(persistedAudit.leaked).toBe(false)
   } catch (error) {

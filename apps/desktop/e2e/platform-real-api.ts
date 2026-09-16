@@ -9,6 +9,31 @@ import { _electron } from '@playwright/test'
 import { findElectron } from './fixtures'
 import { installErrorBannerGuard } from './test'
 
+export const KNOWN_BLOCKED_THEME_FONT_URL = 'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap'
+
+export interface ChromiumRequestShape {
+  url: string
+  method: string
+  resourceType: string
+  hasUploadData: boolean
+  hasAuthorization: boolean
+}
+
+export interface NativeTransportAudit {
+  mainPid: number
+  unexpectedRendererDestinations: string[]
+  knownBlockedThemeFontHosts: string[]
+  pending: Promise<void>[]
+}
+
+export function isExpectedBlockedThemeFontRequest(request: ChromiumRequestShape): boolean {
+  return request.url === KNOWN_BLOCKED_THEME_FONT_URL
+    && request.method === 'GET'
+    && request.resourceType === 'stylesheet'
+    && !request.hasUploadData
+    && !request.hasAuthorization
+}
+
 export interface NativeManifest {
   origin: string
   nonce: string
@@ -135,6 +160,43 @@ const { app, session } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const guardedSessions = new WeakSet();
+const KNOWN_BLOCKED_THEME_FONT_URL = ${JSON.stringify(KNOWN_BLOCKED_THEME_FONT_URL)};
+const isExpectedThemeFont = ${isExpectedBlockedThemeFontRequest.toString()};
+function auditMarker(name, host) {
+  fs.appendFileSync(path.join(process.env.HERMES_HOME, name + '-' + process.pid + '.txt'), host + '\\n');
+}
+// Observe before production creates its first window. This never continues or
+// redirects requests; the independent onBeforeRequest guard cancels transport.
+app.on('web-contents-created', (_event, contents) => {
+  try {
+    contents.debugger.attach('1.3');
+    let tearingDown = false;
+    contents.once('destroyed', () => { tearingDown = true; });
+    app.once('before-quit', () => { tearingDown = true; });
+    contents.debugger.on('detach', () => {
+      if (!tearingDown && !contents.isDestroyed()) auditMarker('font-observer-error', 'unexpected-detach');
+    });
+    contents.debugger.on('message', (_event, method, params) => {
+      if (method !== 'Network.requestWillBeSent') return;
+      try {
+        const request = params.request;
+        const url = new URL(request.url);
+        if (request.url !== KNOWN_BLOCKED_THEME_FONT_URL) return;
+        const shape = {
+          url: request.url, method: request.method, resourceType: String(params.type ?? '').toLowerCase(),
+          hasUploadData: Boolean(request.hasPostData || request.postData || request.postDataEntries?.length),
+          hasAuthorization: Object.keys(request.headers).some(name => name.toLowerCase() === 'authorization')
+        };
+        auditMarker(isExpectedThemeFont(shape) ? 'verified-theme-font-denial' : 'unexpected-theme-font-shape', url.hostname);
+      } catch {
+        auditMarker('font-observer-error', 'invalid-observation');
+      }
+    });
+    contents.debugger.sendCommand('Network.enable').catch(() => auditMarker('font-observer-error', 'enable-failed'));
+  } catch {
+    auditMarker('font-observer-error', 'attach-failed');
+  }
+});
 function guardSession(target) {
   if (guardedSessions.has(target)) return;
   guardedSessions.add(target);
@@ -142,7 +204,14 @@ function guardSession(target) {
     const url = new URL(details.url);
     const allowed = ['file:', 'data:', 'blob:', 'devtools:', 'chrome:', 'chrome-extension:', 'about:'].includes(url.protocol)
       || ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
-    if (!allowed) fs.appendFileSync(path.join(process.env.HERMES_HOME, 'blocked-chromium-network.txt'), details.url + '\\n');
+    const fontCandidate = details.url === KNOWN_BLOCKED_THEME_FONT_URL
+      && details.method === 'GET'
+      && details.resourceType === 'stylesheet'
+      && (!details.uploadData || details.uploadData.length === 0);
+    if (!allowed) {
+      const marker = fontCandidate ? 'blocked-chromium-font-candidate-' + process.pid + '.txt' : 'blocked-chromium-network.txt';
+      fs.appendFileSync(path.join(process.env.HERMES_HOME, marker), url.hostname + '\\n');
+    }
     callback({ cancel: !allowed });
   });
 }
@@ -155,10 +224,25 @@ app.setAppPath(${JSON.stringify(desktopRoot)});
 import(${JSON.stringify(mainURL)});
 `, { mode: 0o600 })
   const app = await _electron.launch({ executablePath: findElectron(), args: [entry, '--disable-gpu', '--no-sandbox'], env, cwd: desktopRoot })
+  const transportAudit: NativeTransportAudit = { mainPid: app.process().pid!, unexpectedRendererDestinations: [], knownBlockedThemeFontHosts: [], pending: [] }
+
+  // Cancellation stays at onBeforeRequest. Independently verify request headers;
+  // the audit rejects any candidate not observed here, including startup races.
+  app.context().on('request', request => {
+    const url = new URL(request.url())
+
+    if (!['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol) || ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) { return }
+    transportAudit.pending.push(request.allHeaders().then(headers => {
+      const shape = { url: url.href, method: request.method(), resourceType: request.resourceType(), hasUploadData: request.postDataBuffer() !== null, hasAuthorization: Object.keys(headers).some(name => name.toLowerCase() === 'authorization') }
+
+      if (isExpectedBlockedThemeFontRequest(shape)) { transportAudit.knownBlockedThemeFontHosts.push(url.hostname) }
+      else { transportAudit.unexpectedRendererDestinations.push(url.hostname) }
+    }).catch(() => { transportAudit.unexpectedRendererDestinations.push(url.hostname) }))
+  })
   const page = await app.firstWindow()
   installErrorBannerGuard(page)
 
-  return { app, page }
+  return { app, page, transportAudit }
 }
 
 export function persistedFixtureText(directory: string): string[] {
