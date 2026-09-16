@@ -71,13 +71,55 @@ class TestCodexAuxiliaryTimeoutFdOwnership:
         shutdown(); the real close() must land on the owning thread in the
         adapter's ``finally``."""
 
-        def _stalled():
-            deadline = time.monotonic() + 30.0
-            while time.monotonic() < deadline:
-                time.sleep(0.02)
-                yield SimpleNamespace(type="response.in_progress")
+        class _BlockedStream:
+            def __init__(self):
+                self.blocked = threading.Event()
+                self.closed = threading.Event()
 
-        adapter, events = _adapter_with_recording_client(_stalled())
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                self.blocked.set()
+                if not self.closed.wait(timeout=2):
+                    raise AssertionError("watchdog did not close the blocked stream")
+                raise RuntimeError("stream closed by watchdog")
+
+            def close(self):
+                self.closed.set()
+
+        stream = _BlockedStream()
+        timers = []
+
+        class _SynchronizedTimer:
+            """Run the real watchdog callback only after the owner blocks."""
+
+            def __init__(self, delay, callback):
+                self.delay = delay
+                self.callback = callback
+                self.cancelled = threading.Event()
+                self.finished = threading.Event()
+                self.daemon = True
+                self.thread = None
+                timers.append(self)
+
+            def start(self):
+                def _run():
+                    try:
+                        if not stream.blocked.wait(timeout=2):
+                            return
+                        if not self.cancelled.wait(timeout=self.delay):
+                            self.callback()
+                    finally:
+                        self.finished.set()
+
+                self.thread = threading.Thread(target=_run, daemon=self.daemon)
+                self.thread.start()
+
+            def cancel(self):
+                self.cancelled.set()
+
+        adapter, events = _adapter_with_recording_client(stream)
         owner_tid = threading.get_ident()
 
         def _consume(stream, *, model, on_event):
@@ -89,6 +131,7 @@ class TestCodexAuxiliaryTimeoutFdOwnership:
         with (
             patch("agent.auxiliary_client._AUX_STREAM_NO_PROGRESS_TIMEOUT_SECONDS", 0.3),
             patch("agent.auxiliary_client._evict_cached_client_instance"),
+            patch("agent.auxiliary_client.threading.Timer", _SynchronizedTimer),
             patch("agent.codex_runtime._consume_codex_event_stream", _consume),
             pytest.raises(TimeoutError),
         ):
@@ -97,8 +140,8 @@ class TestCodexAuxiliaryTimeoutFdOwnership:
                 timeout=300,
             )
 
-        # Give the daemon Timer thread a beat to finish its callback.
-        time.sleep(0.2)
+        assert len(timers) == 1
+        assert timers[0].finished.wait(timeout=2), "watchdog callback did not finish"
         actions = [a for a, _ in events]
         # Stranger thread (Timer) only shut the sockets down.
         shutdown_tids = {tid for a, tid in events if a == "shutdown"}

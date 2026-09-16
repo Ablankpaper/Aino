@@ -1684,6 +1684,7 @@ class TestMultiplexBackgroundScope:
         monkeypatch.setitem(sys.modules, "hindsight", SimpleNamespace(HindsightEmbedded=FakeHindsightEmbedded))
         monkeypatch.setitem(sys.modules, "hindsight_embed", SimpleNamespace(daemon_embed_manager=dem))
         monkeypatch.setitem(sys.modules, "hindsight_embed.daemon_embed_manager", dem)
+        monkeypatch.setattr("tools.lazy_deps.ensure", lambda feature, prompt=True: None)
         monkeypatch.setattr("plugins.memory.hindsight._check_local_runtime", lambda: (True, ""))
 
         home = tmp_path / "profiles" / "p1"

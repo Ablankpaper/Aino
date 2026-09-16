@@ -105,7 +105,11 @@ class TestConfigFilePermissions(unittest.TestCase):
             self.assertEqual(file_mode, 0o600)
 
     def test_ensure_hermes_home_sets_0700(self):
-        home = Path(self.tmpdir) / ".hermes"
+        # macOS spells tempfile paths through /tmp, a symlink to /private/tmp.
+        # Home initialization intentionally leaves permissions alone beyond a
+        # symlink boundary, so resolve the fixture root to exercise a directly
+        # owned home directory.
+        home = Path(self.tmpdir).resolve() / ".hermes"
         with patch("hermes_cli.config.get_hermes_home", return_value=home):
             from hermes_cli.config import ensure_hermes_home
             ensure_hermes_home()
