@@ -50,6 +50,9 @@ import { type FastControl, ModelEditSubmenu, resolveFastControl } from './model-
 // hover-revealed edit submenu (reasoning/fast) stays open to play with (its
 // items preventDefault on select).
 export const ModelMenuCloseContext = createContext<() => void>(() => {})
+// The host advances this token at open/close, even while Radix retains content
+// for its exit animation. Mount identity alone cannot identify an open menu.
+export const ModelMenuOpenInstanceContext = createContext<() => number>(() => 0)
 
 /** One model choice, everything a caller needs to act on a selection.
  *  `effort` is '' for "inherit the default" and 'none' for thinking off. */
@@ -137,6 +140,7 @@ export function ModelCatalogMenu({
   const copy = t.shell.modelMenu
   const copyPicker = t.modelPicker
   const closeMenu = useContext(ModelMenuCloseContext)
+  const readOpenInstance = useContext(ModelMenuOpenInstanceContext)
   const [search, setSearch] = useState('')
   const selecting = useRef(false)
   const selectionEpoch = useRef(0)
@@ -304,6 +308,7 @@ export function ModelCatalogMenu({
     selecting.current = true
     setPending(true)
     const epoch = selectionEpoch.current
+    const openInstance = readOpenInstance()
 
     try {
       const caps = provider.capabilities?.[family.id]
@@ -317,6 +322,7 @@ export function ModelCatalogMenu({
 
       if (
         (await controller.select(targetId, provider.slug)) === false ||
+        openInstance !== readOpenInstance() ||
         epoch !== selectionEpoch.current ||
         controller.selectionIsCurrent?.() === false
       ) {
@@ -347,10 +353,12 @@ export function ModelCatalogMenu({
     selecting.current = true
     setPending(true)
     const epoch = selectionEpoch.current
+    const openInstance = readOpenInstance()
 
     try {
       if (
         (await controller.select(preset, 'moa')) === false ||
+        openInstance !== readOpenInstance() ||
         epoch !== selectionEpoch.current ||
         controller.selectionIsCurrent?.() === false
       ) {

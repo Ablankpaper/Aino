@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@t
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { platformAccountActions } from '@/api/platform'
+import { ModelPill } from '@/app/chat/composer/model-pill'
 import { ModelMenuCloseContext, ModelMenuPanel } from '@/app/shell/model-menu-panel'
 import { DropdownMenu, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { modelOptionsQueryKey } from '@/lib/model-options'
@@ -180,6 +181,94 @@ function PickerHarness({ client, close }: { client: QueryClient; close: () => vo
     </DropdownMenu>
   )
 }
+
+function PillHarness({ client }: { client: QueryClient }) {
+  const { selectModel } = useModelControls({ queryClient: client, requestGateway: request as never })
+
+  return (
+    <ModelPill
+      disabled={false}
+      model={{
+        canSwitch: true,
+        model: '',
+        provider: '',
+        modelMenuContent: <ModelMenuPanel onSelectModel={selectModel} requestGateway={request as never} />
+      }}
+    />
+  )
+}
+
+it('keeps the reopened ModelPill menu when exit animation retains its pending selection content', async () => {
+  setManagedCurrent()
+  installCustomPickerRequests()
+  $modelPresets.set({ [modelPresetKey('test', 'byok-new')]: { effort: 'high', fast: true } })
+  // jsdom has no animation engine/live computed styles. Let real Radix Presence
+  // observe an unfinished exit animation; do not forceMount or remount content.
+  const computedStyle = window.getComputedStyle.bind(window)
+
+  const styles = vi.spyOn(window, 'getComputedStyle').mockImplementation((element, pseudo) => {
+    const actual = computedStyle(element, pseudo)
+
+    if (!element.matches('[data-slot="dropdown-menu-content"]')) {
+      return actual
+    }
+
+    return new Proxy(actual, {
+      get(target, property) {
+        if (property === 'animationName') {
+          return element.getAttribute('data-state') === 'closed' ? 'fixture-exit' : 'fixture-enter'
+        }
+
+        const value = Reflect.get(target, property)
+
+        return typeof value === 'function' ? value.bind(target) : value
+      }
+    })
+  })
+
+  const pending = deferred<void>()
+  clear.mockReturnValueOnce(pending.promise)
+  const client = new QueryClient()
+
+  try {
+    render(
+      <QueryClientProvider client={client}>
+        <PillHarness client={client} />
+      </QueryClientProvider>
+    )
+    const trigger = screen.getByRole('button')
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false })
+    fireEvent.click(await screen.findByRole('button', { name: 'Custom models' }))
+    const content = screen.getByRole('menu')
+    const search = content.querySelector('input')
+    fireEvent.click(await screen.findByText(/byok.*new/i))
+    await waitFor(() => expect(clear).toHaveBeenCalled())
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false })
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
+    expect(content.getAttribute('data-state')).toBe('closed')
+    expect(content.isConnected).toBe(true)
+    expect(content.querySelector('input')).toBe(search)
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false })
+    expect(screen.getAllByRole('menu')).toContain(content)
+    expect(content.querySelector('input')).toBe(search)
+    await act(async () => pending.resolve())
+    expect($sessionStates.get()['runtime-a']).toMatchObject({
+      provider: 'custom:test',
+      model: 'byok-new',
+      reasoningEffort: 'low',
+      fast: false
+    })
+    expect([$currentReasoningEffort.get(), $currentFastMode.get()]).toEqual(['low', false])
+    expect(request.mock.calls.filter(([method, params]) => method === 'config.set' && params.key !== 'model')).toEqual(
+      []
+    )
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    expect(content.getAttribute('data-state')).toBe('open')
+  } finally {
+    cleanup()
+    styles.mockRestore()
+  }
+})
 
 it('accepts a bare custom dropdown slug against canonical backend identity and can retry failed cleanup', async () => {
   setManagedCurrent()

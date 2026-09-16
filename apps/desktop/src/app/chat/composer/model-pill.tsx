@@ -1,10 +1,11 @@
 import { useStore } from '@nanostores/react'
-import { useEffect, useState } from 'react'
-import { usePlatformModels } from '@/components/platform-model-list'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useSessionView } from '@/app/chat/session-view'
 import { useTourMarker } from '@/app/chat/tour-marker'
+import { ModelMenuOpenInstanceContext } from '@/app/shell/model-catalog-menu'
 import { ModelMenuCloseContext } from '@/app/shell/model-menu-panel'
+import { usePlatformModels } from '@/components/platform-model-list'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
@@ -57,13 +58,34 @@ export function ModelPill({
   const currentModel = model.model || viewModel
   const currentProvider = model.provider || viewProvider
   const platform = usePlatformModels()
-  const platformName = currentProvider === 'aino' ? platform.models.find(row => row.id === currentModel)?.display_name : undefined
+
+  const platformName =
+    currentProvider === 'aino' ? platform.models.find(row => row.id === currentModel)?.display_name : undefined
+
   const fastMode = useStore(view.$fast)
   const reasoningEffort = useStore(view.$reasoningEffort)
   const modelSource = useStore($currentModelSource)
   const defaultEffort = useStore($defaultReasoningEffort)
   const runtimeId = useStore(view.$runtimeId)
-  const [open, setOpen] = useState(false)
+  const [menuState, setMenuState] = useState({ open: false, instance: 0 })
+  const menuStateRef = useRef(menuState)
+  const readOpenInstance = useCallback(() => menuStateRef.current.instance, [])
+
+  const setMenuOpen = useCallback((next: boolean) => {
+    const previous = menuStateRef.current
+
+    if (next !== previous.open) {
+      const current = { open: next, instance: previous.instance + 1 }
+      menuStateRef.current = current
+      setMenuState(current)
+    }
+
+    // Closing ends the menu's keyboard claim even during retained exit content.
+    if (!next) {
+      releaseTypingFocus()
+    }
+  }, [])
+
   const scope = useComposerScope()
   const hasLiveMenu = Boolean(model.modelMenuContent)
 
@@ -79,12 +101,12 @@ export function ModelPill({
         }
 
         if (hasLiveMenu) {
-          setOpen(prev => !prev)
+          setMenuOpen(!menuStateRef.current.open)
         } else {
           setModelPickerOpen(true)
         }
       }),
-    [scope.target, disabled, hasLiveMenu]
+    [scope.target, disabled, hasLiveMenu, setMenuOpen]
   )
 
   // The composer pick is sticky: a manual selection is pinned and every NEW
@@ -155,19 +177,8 @@ export function ModelPill({
     )
   }
 
-  // Closing the menu ends its claim on the keyboard: Radix restores focus to
-  // this pill (a toolbar button), so without the release the Enter that
-  // committed a model also swallows whatever you type next.
-  const setMenuOpen = (next: boolean) => {
-    setOpen(next)
-
-    if (!next) {
-      releaseTypingFocus()
-    }
-  }
-
   return (
-    <DropdownMenu onOpenChange={setMenuOpen} open={open}>
+    <DropdownMenu onOpenChange={setMenuOpen} open={menuState.open}>
       <Tip label={title} side="top">
         <DropdownMenuTrigger asChild>
           <Button
@@ -183,9 +194,17 @@ export function ModelPill({
         </DropdownMenuTrigger>
       </Tip>
       <DropdownMenuContent align="end" className="w-64 p-0" side="top" sideOffset={8}>
-        <ModelMenuCloseContext.Provider value={() => setMenuOpen(false)}>
-          {model.modelMenuContent}
-        </ModelMenuCloseContext.Provider>
+        <ModelMenuOpenInstanceContext.Provider value={readOpenInstance}>
+          <ModelMenuCloseContext.Provider
+            value={() => {
+              if (menuStateRef.current.instance === menuState.instance) {
+                setMenuOpen(false)
+              }
+            }}
+          >
+            {model.modelMenuContent}
+          </ModelMenuCloseContext.Provider>
+        </ModelMenuOpenInstanceContext.Provider>
       </DropdownMenuContent>
     </DropdownMenu>
   )
