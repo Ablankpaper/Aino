@@ -142,7 +142,7 @@ function guardSession(target) {
     const url = new URL(details.url);
     const allowed = ['file:', 'data:', 'blob:', 'devtools:', 'chrome:', 'chrome-extension:', 'about:'].includes(url.protocol)
       || ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
-    if (!allowed) fs.appendFileSync(path.join(process.env.HERMES_HOME, 'blocked-chromium-network.txt'), url.hostname + '\\n');
+    if (!allowed) fs.appendFileSync(path.join(process.env.HERMES_HOME, 'blocked-chromium-network.txt'), details.url + '\\n');
     callback({ cancel: !allowed });
   });
 }

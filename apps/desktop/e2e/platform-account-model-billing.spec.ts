@@ -19,23 +19,45 @@ type NativeLaunch = Awaited<ReturnType<typeof launchGuardedDesktop>>
 
 interface NativeLaunchAudit {
   unexpectedRendererDestinations: string[]
+  knownBlockedThemeFontRequests: string[]
 }
+
+const KNOWN_BLOCKED_THEME_FONT_URL = 'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap'
+
+function classifyBlockedChromiumRequests(requests: string[]) {
+  return {
+    knownThemeFontRequests: requests.filter(request => request === KNOWN_BLOCKED_THEME_FONT_URL),
+    unexpectedRequests: requests.filter(request => request !== KNOWN_BLOCKED_THEME_FONT_URL)
+  }
+}
+
+test('transport audit records the denied theme font but rejects other external requests', () => {
+  expect(classifyBlockedChromiumRequests([KNOWN_BLOCKED_THEME_FONT_URL, 'https://fixture.invalid/unexpected'])).toEqual({
+    knownThemeFontRequests: [KNOWN_BLOCKED_THEME_FONT_URL],
+    unexpectedRequests: ['https://fixture.invalid/unexpected']
+  })
+})
 
 function observeNativeLaunch({ app, page }: NativeLaunch, consoleLines: string[]): NativeLaunchAudit {
   const unexpectedRendererDestinations: string[] = []
+  const knownBlockedThemeFontRequests: string[] = []
 
   page.on('request', request => {
     const url = new URL(request.url())
 
     if (['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol) && !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) {
-      unexpectedRendererDestinations.push(url.hostname)
+      if (url.href === KNOWN_BLOCKED_THEME_FONT_URL) {
+        knownBlockedThemeFontRequests.push(url.href)
+      } else {
+        unexpectedRendererDestinations.push(url.href)
+      }
     }
   })
   page.on('console', message => consoleLines.push(message.text()))
   app.process().stdout?.on('data', value => consoleLines.push(String(value)))
   app.process().stderr?.on('data', value => consoleLines.push(String(value)))
 
-  return { unexpectedRendererDestinations }
+  return { unexpectedRendererDestinations, knownBlockedThemeFontRequests }
 }
 
 function assertNativeGuardsReady(sandbox: ReturnType<typeof createSandbox>, app: NativeLaunch['app']) {
@@ -44,12 +66,37 @@ function assertNativeGuardsReady(sandbox: ReturnType<typeof createSandbox>, app:
   }
 }
 
+function deniedDestinations(sandbox: ReturnType<typeof createSandbox>, marker: string): string[] {
+  const markerPath = path.join(sandbox.hermesHome, marker)
+
+  return fs.existsSync(markerPath) ? fs.readFileSync(markerPath, 'utf8').trim().split('\n').filter(Boolean) : []
+}
+
 function assertNoBlockedTransport(sandbox: ReturnType<typeof createSandbox>, launchAudits: NativeLaunchAudit[]) {
   expect(launchAudits.flatMap(audit => audit.unexpectedRendererDestinations)).toEqual([])
+  expect(launchAudits.flatMap(audit => audit.knownBlockedThemeFontRequests).every(request => request === KNOWN_BLOCKED_THEME_FONT_URL)).toBe(true)
 
-  for (const marker of ['blocked-network.txt', 'blocked-node-network.txt', 'blocked-chromium-network.txt']) {
-    expect(fs.existsSync(path.join(sandbox.hermesHome, marker))).toBe(false)
+  for (const marker of ['blocked-network.txt', 'blocked-node-network.txt']) {
+    expect(deniedDestinations(sandbox, marker), `${marker}: denied destinations`).toEqual([])
   }
+
+  const chromium = classifyBlockedChromiumRequests(deniedDestinations(sandbox, 'blocked-chromium-network.txt'))
+
+  expect(chromium.unexpectedRequests, 'blocked-chromium-network.txt: denied destinations').toEqual([])
+  expect(chromium.knownThemeFontRequests).not.toEqual([])
+
+  return chromium
+}
+
+function chromiumGuardProofMarkers(sandbox: ReturnType<typeof createSandbox>) {
+  return classifyBlockedChromiumRequests(deniedDestinations(sandbox, 'blocked-chromium-network.txt'))
+}
+
+function assertChromiumGuardProof(sandbox: ReturnType<typeof createSandbox>) {
+  const chromium = chromiumGuardProofMarkers(sandbox)
+
+  expect(chromium.knownThemeFontRequests).toContain(KNOWN_BLOCKED_THEME_FONT_URL)
+  expect(chromium.unexpectedRequests).toContain('https://fixture.invalid/guard-proof')
 }
 
 function pythonGuardPids(sandbox: ReturnType<typeof createSandbox>): Set<number> {
@@ -180,6 +227,19 @@ print(json.dumps({'credential_read_denied_before_spawn':denied,'spawned_commands
 
     expect(chromiumProof).toBe(true)
     expect(fs.readFileSync(path.join(sandbox.hermesHome, 'blocked-chromium-network.txt'), 'utf8')).toContain('fixture.invalid')
+
+    const fontProof = await launched.app.evaluate(async ({ net }) => {
+      try {
+        await net.fetch('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap')
+
+        return false
+      } catch (error) {
+        return error instanceof Error && error.message.includes('ERR_BLOCKED_BY_CLIENT')
+      }
+    })
+
+    expect(fontProof).toBe(true)
+    assertChromiumGuardProof(sandbox)
 
     const proof = await launched.app.evaluate(async () => {
       try { await globalThis.fetch('https://fixture.invalid/guard-proof');
@@ -365,8 +425,8 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     expect(afterBYOK.usage_calls).toBe(beforeBYOK.usage_calls)
     expect(fs.readFileSync(path.join(sandbox.hermesHome, 'config.yaml'), 'utf8')).toContain(byok.url)
     const byokAudit = await auditRenderer(customProvider, api)
-    assertNoBlockedTransport(sandbox, launchAudits)
-    const receipt = { run_id: api.info.run_id, api_sha: api.apiSha, aino_sha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), initial, settled, cancelled, paid, beforeBYOK, afterBYOK, initialAudit, restartAudit, byokAudit, api_log: api.logPath }
+    const transport = assertNoBlockedTransport(sandbox, launchAudits)
+    const receipt = { run_id: api.info.run_id, api_sha: api.apiSha, aino_sha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), initial, settled, cancelled, paid, beforeBYOK, afterBYOK, initialAudit, restartAudit, byokAudit, transport: { known_public_font: { url: KNOWN_BLOCKED_THEME_FONT_URL, blocked: true, fallback_used: true, denied_requests: transport.knownThemeFontRequests } }, api_log: api.logPath }
     await testInfo.attach('native-receipt', { body: JSON.stringify(receipt, null, 2), contentType: 'application/json' })
     fs.writeFileSync(path.join(api.dir, 'native-receipt.json'), JSON.stringify(receipt, null, 2), { mode: 0o600 })
     await launched.app.close()
