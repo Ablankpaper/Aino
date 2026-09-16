@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react'
 
 import { platformAccountActions } from '@/api/platform'
 
-import type { PlatformAccountSnapshot, PlatformWalletSummary } from '../../../../shared/platform-contract'
+import type {
+  PlatformAccountSnapshot,
+  PlatformBillingScope,
+  PlatformWalletSummary
+} from '../../../../shared/platform-contract'
 
 const unavailable = atom<PlatformAccountSnapshot | null>(null)
 
@@ -13,6 +17,7 @@ interface WalletResult {
   wallet: PlatformWalletSummary | null
   error: string | null
   loading: boolean
+  scope: PlatformBillingScope | null
 }
 
 export function useWallet() {
@@ -28,7 +33,7 @@ export function useWallet() {
   // Read failures publish account revisions too; they must not trigger another read.
   const key = `${snapshot?.mode}:${owner}:${available}`
   const [refresh, setRefresh] = useState(0)
-  const [result, setResult] = useState<WalletResult>({ key: '', wallet: null, error: null, loading: true })
+  const [result, setResult] = useState<WalletResult>({ key: '', wallet: null, error: null, loading: true, scope: null })
 
   useEffect(() => {
     if (!available || !owner || !bridge) {
@@ -47,6 +52,7 @@ export function useWallet() {
       inflight = true
       lastRead = Date.now()
       setResult(previous => ({
+        scope: previous.key === key ? previous.scope : null,
         key,
         wallet: previous.key === key ? previous.wallet : null,
         error: null,
@@ -68,7 +74,7 @@ export function useWallet() {
         }
 
         if (alive) {
-          setResult({ key, wallet, error: null, loading: false })
+          setResult({ key, wallet, error: null, loading: false, scope: current })
         }
       } catch (error) {
         const code =
@@ -77,7 +83,7 @@ export function useWallet() {
             : 'network_error'
 
         if (alive) {
-          setResult({ key, wallet: null, error: code, loading: false })
+          setResult({ key, wallet: null, error: code, loading: false, scope: null })
         }
       } finally {
         inflight = false
@@ -100,6 +106,7 @@ export function useWallet() {
   }, [available, bridge, key, owner, refresh])
 
   return {
+    scope: available && result.key === key ? result.scope : null,
     available,
     wallet: available && result.key === key ? result.wallet : null,
     error: available && result.key === key ? result.error : null,

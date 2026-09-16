@@ -20,6 +20,34 @@ const accountErrors: Record<string, string> = {
 }
 
 export const en: Translations = {
+  platformRechargeErrors: {
+    account: 'Your sign-in changed. Sign in to the original account to recover the order.',
+    amount: 'The amount does not meet the payment limits or precision. Adjust the recharge amount.',
+    recovery:
+      'Local order recovery is unavailable. Close this window and find the original order in recharge history. Do not create a duplicate.',
+    disabled: 'Recharge is currently unavailable. Existing orders remain accessible in order history.',
+    retry: 'Sign-in was restored. Click again to continue; the order was not automatically resubmitted.',
+    expired: 'Checkout has expired. Refresh the order to confirm its payment status.'
+  },
+  platformDevices: {
+    title: 'Device authorizations',
+    refresh: 'Refresh devices',
+    empty: 'No device authorizations',
+    active: 'Active',
+    revoked: 'Revoked',
+    lastUsed: 'Last used',
+    expires: 'Expires',
+    revoke: 'Revoke',
+    confirmTitle: 'Revoke device authorization?',
+    confirmDescription:
+      'Platform model tasks on this device may stop. Revoking this device also invalidates its sign-in session.',
+    stepUp: 'Enter your authenticator code to continue.',
+    code: 'Authenticator code',
+    verify: 'Verify',
+    reauthenticate: 'Sign out and sign in again before revoking this authorization.',
+    success: 'Authorization revoked',
+    failed: 'Device authorization could not be revoked.'
+  },
   sessionImport: {
     title: 'Continue from another app',
     subtitle: 'Bring a conversation into Hermes and pick up where you left off.',
@@ -58,6 +86,57 @@ export const en: Translations = {
     details: 'View details', empty: 'No settlement records yet', truncated: 'Showing the first 200 records; total charges are not yet confirmed', recordSettled: 'Settled', notCharged: 'Not charged',
     purposes: { chat: 'Chat', title: 'Conversation title', compression: 'Context compression', vision: 'Image understanding', delegation: 'Subtask', other_auxiliary: 'Other auxiliary call' } },
   platformWallet: { title: 'Aino wallet', available: 'Available balance', frozen: 'Frozen balance', refresh: 'Refresh', updated: 'Updated', subscriptions: 'Active subscriptions', noSubscriptions: 'No active subscriptions', unlimited: 'Unlimited', expires: 'Expires', paymentDisabled: 'Recharge is currently unavailable' },
+  platformRecharge: {
+    title: 'Recharge',
+    description: 'Credits are confirmed by the platform ledger.',
+    amount: 'Recharge amount',
+    range: 'Per-order limits',
+    quote: 'Get quote',
+    create: 'Confirm order',
+    payAmount: 'Payment amount',
+    creditAmount: 'Account credit',
+    fee: 'Fee',
+    orderId: 'Order number',
+    openPayment: 'Open payment',
+    refresh: 'Refresh order',
+    cancelOrder: 'Cancel order',
+    newOrder: 'New recharge',
+    success: 'Recharge complete',
+    confirmingBalance: 'Order completed, checking balance',
+    changedQuote: 'The final amount changed. Confirm before paying.',
+    confirmPrice: 'Confirm final amount',
+    unknown: 'The order result is not confirmed. Recover this order without paying again.',
+    resume: 'Recover original order',
+    unavailable: 'No recharge methods are available',
+    error: 'The operation could not finish. Retry or recover from order history.',
+    methods: { alipay: 'Alipay', wxpay: 'WeChat Pay' },
+    status: {
+      PENDING: 'Awaiting payment',
+      PAID: 'Paid, crediting account',
+      RECHARGING: 'Paid, crediting account',
+      COMPLETED: 'Order completed',
+      EXPIRED: 'Order expired',
+      CANCELLED: 'Order cancelled',
+      FAILED: 'Order processing failed',
+      REFUND_REQUESTED: 'Refund requested',
+      REFUNDING: 'Refund in progress',
+      REFUND_PENDING: 'Refund pending confirmation',
+      PARTIALLY_REFUNDED: 'Partially refunded',
+      REFUNDED: 'Refunded',
+      REFUND_FAILED: 'Refund failed'
+    }
+  },
+  platformBillingHistory: {
+    orders: 'Recharge orders',
+    usage: 'Usage records',
+    empty: 'No records',
+    previous: 'Previous',
+    next: 'Next',
+    open: 'Open order',
+    error: 'Could not load records',
+    retry: 'Retry',
+    qrCode: 'Payment QR code'
+  },
   platformModels: {
     builtIn: "Aino models",
     custom: "Custom models",

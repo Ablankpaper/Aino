@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Loader } from '@/components/ui/loader'
 import { useI18n } from '@/i18n'
@@ -5,13 +7,18 @@ import { CreditCard, RefreshCw } from '@/lib/icons'
 
 import { ListRow, SettingsSection } from '../primitives'
 
+import { BillingHistory } from './billing-history'
+import { PlatformDevices } from './devices-view'
+import { RechargeView } from './recharge-view'
 import { formatUsageAmount } from './usage-view'
 import { useWallet } from './use-wallet'
 
 export function PlatformWallet() {
   const { t, locale } = useI18n()
   const copy = t.platformWallet
-  const { available, wallet, loading, error, refresh } = useWallet()
+  const { available, wallet, loading, error, refresh, scope } = useWallet()
+  const [recharge, setRecharge] = useState<{ scope: string; orderId?: string } | null>(null)
+  const scopeKey = scope ? `${scope.origin}:${scope.user_id}:${scope.generation}` : ''
 
   if (!available) {
     return null
@@ -52,6 +59,20 @@ export function PlatformWallet() {
               title={copy.frozen}
             />
             {!wallet.payment_enabled && <p className="mt-2 text-xs text-muted-foreground">{copy.paymentDisabled}</p>}
+            {scope && (
+              <div className="mt-4">
+                <Button
+                  onClick={() => {
+                    setRecharge({ scope: scopeKey })
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  <CreditCard />
+                  {t.platformRecharge.title}
+                </Button>
+              </div>
+            )}
             <p className="mt-3 text-xs text-muted-foreground">
               {copy.updated}: {new Date(wallet.updated_at).toLocaleString(locale)}
             </p>
@@ -82,6 +103,34 @@ export function PlatformWallet() {
             </ul>
           )}
         </SettingsSection>
+      )}
+      {scope && window.hermesDesktop?.platformBilling && (
+        <>
+          <BillingHistory
+            bridge={window.hermesDesktop.platformBilling}
+            key={`history:${scope.origin}:${scope.user_id}:${scope.generation}`}
+            onOpenOrder={id => {
+              setRecharge({ scope: scopeKey, orderId: id })
+            }}
+            scope={scope}
+          />
+          <RechargeView
+            bridge={window.hermesDesktop.platformBilling}
+            key={`${scope.origin}:${scope.user_id}:${scope.generation}`}
+            onCredited={refresh}
+            onOpenChange={open => {
+              setRecharge(open ? { scope: scopeKey, orderId: recharge?.orderId } : null)
+
+              if (!open) {
+                refresh()
+              }
+            }}
+            open={recharge?.scope === scopeKey}
+            orderId={recharge?.scope === scopeKey ? recharge.orderId : undefined}
+            scope={scope}
+          />
+          {window.hermesDesktop.platformDevices && <PlatformDevices scope={scope} />}
+        </>
       )}
     </div>
   )

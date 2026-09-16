@@ -3,6 +3,33 @@ import { defineFieldCopy } from '@/app/settings/field-copy'
 import { defineLocale } from './define-locale'
 
 export const ja = defineLocale({
+  platformRechargeErrors: {
+    account: 'ログイン状態が変わりました。元のアカウントに再ログインして注文を復元してください。',
+    amount: '金額が決済上限または精度の要件を満たしていません。金額を変更してください。',
+    recovery:
+      'ローカルの注文復元情報を利用できません。この画面を閉じてチャージ履歴から元の注文を確認し、重複注文を避けてください。',
+    disabled: '現在チャージを利用できません。既存の注文は履歴で確認できます。',
+    retry: 'ログインを復元しました。もう一度操作してください。注文は自動再送信されていません。',
+    expired: '決済の有効期限が切れました。注文を更新して決済結果を確認してください。'
+  },
+  platformDevices: {
+    title: 'デバイス認証',
+    refresh: 'デバイスを更新',
+    empty: '認証済みデバイスはありません',
+    active: '有効',
+    revoked: '取消済み',
+    lastUsed: '最終使用',
+    expires: '有効期限',
+    revoke: '取り消す',
+    confirmTitle: 'デバイス認証を取り消しますか？',
+    confirmDescription: 'このデバイスのプラットフォームモデルのタスクが中断され、ログインセッションも無効になります。',
+    stepUp: '続けるには認証アプリのコードを入力してください。',
+    code: '認証アプリのコード',
+    verify: '確認',
+    reauthenticate: 'ログアウトして再度ログインしてから、このデバイス認証を取り消してください。',
+    success: 'デバイス認証を取り消しました',
+    failed: 'デバイス認証を取り消せませんでした。'
+  },
   sessionImport: {
     title: '別のアプリから続ける',
     subtitle: '会話をHermesに取り込み、続きを始めましょう。',
@@ -40,6 +67,57 @@ export const ja = defineLocale({
     details: '明細を表示', empty: '確定済みの記録はまだありません', truncated: '最初の200件のみ表示しています。合計料金は未確定です', recordSettled: '確定済み', notCharged: '課金なし',
     purposes: { chat: 'チャット', title: '会話タイトル', compression: 'コンテキスト圧縮', vision: '画像理解', delegation: 'サブタスク', other_auxiliary: 'その他の補助呼び出し' } },
   platformWallet: { title: 'Aino ウォレット', available: '利用可能残高', frozen: '保留中の金額', refresh: '更新', updated: '更新日時', subscriptions: '有効なサブスクリプション', noSubscriptions: '有効なサブスクリプションはありません', unlimited: '無制限', expires: '有効期限', paymentDisabled: 'チャージは現在利用できません' },
+  platformRecharge: {
+    title: 'チャージ',
+    description: '残高への反映はプラットフォームの台帳で確認されます。',
+    amount: 'チャージ金額',
+    range: '1件あたりの上限・下限',
+    quote: '見積もりを確認',
+    create: '注文を確定',
+    payAmount: '支払額',
+    creditAmount: '追加残高',
+    fee: '手数料',
+    orderId: '注文番号',
+    openPayment: '支払いへ進む',
+    refresh: '注文を更新',
+    cancelOrder: '注文を取り消す',
+    newOrder: '新しいチャージ',
+    success: 'チャージ完了',
+    confirmingBalance: '注文完了、残高を確認中',
+    changedQuote: '最終金額が変更されました。支払い前に確認してください。',
+    confirmPrice: '最終金額を確認',
+    unknown: '注文結果を確認中です。再度支払わず、元の注文を復元してください。',
+    resume: '元の注文を復元',
+    unavailable: '利用可能な支払い方法がありません',
+    error: '操作を完了できませんでした。再試行するか、注文履歴から復元してください。',
+    methods: { alipay: 'Alipay', wxpay: 'WeChat Pay' },
+    status: {
+      PENDING: '支払い待ち',
+      PAID: '支払済み、残高反映中',
+      RECHARGING: '支払済み、残高反映中',
+      COMPLETED: '注文完了',
+      EXPIRED: '注文の期限切れ',
+      CANCELLED: '注文取り消し済み',
+      FAILED: '注文処理失敗',
+      REFUND_REQUESTED: '返金申請済み',
+      REFUNDING: '返金処理中',
+      REFUND_PENDING: '返金確認待ち',
+      PARTIALLY_REFUNDED: '一部返金済み',
+      REFUNDED: '返金済み',
+      REFUND_FAILED: '返金失敗'
+    }
+  },
+  platformBillingHistory: {
+    orders: 'チャージ履歴',
+    usage: '利用履歴',
+    empty: '履歴はありません',
+    previous: '前へ',
+    next: '次へ',
+    open: '注文を表示',
+    error: '履歴を取得できません',
+    retry: '再試行',
+    qrCode: '支払い QR コード'
+  },
   platformModels: {
     builtIn: "Aino モデル",
     custom: "カスタムモデル",
