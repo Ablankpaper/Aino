@@ -9,13 +9,16 @@ def test_aino_provider_registered():
 
 
 def test_aino_provider_profile():
-    """Aino provider has correct profile attributes."""
+    """Aino remains a runtime profile without masquerading as pasted-key setup."""
     aino = get_provider_profile("aino")
     assert aino is not None
     assert aino.name == "aino"
+    assert aino.display_name == "Aino"
+    assert "session-managed" in aino.description
     assert aino.api_mode == "chat_completions"
-    assert aino.auth_type == "api_key"
+    assert aino.auth_type == "session_managed"
     assert aino.env_vars == ()  # No environment credentials
+    assert not aino.supports_health_check
     assert aino.aliases == ()
 
 

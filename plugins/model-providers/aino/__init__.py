@@ -16,10 +16,13 @@ class AinoProfile(ProviderProfile):
 aino = AinoProfile(
     name="aino",
     aliases=(),
+    display_name="Aino",
+    description="Aino platform models with session-managed credentials",
     api_mode="chat_completions",  # Default; actual mode comes from binding
     env_vars=(),  # No environment credentials
     base_url="",  # Actual base_url comes from binding
-    auth_type="api_key",
+    auth_type="session_managed",
+    supports_health_check=False,
     default_aux_model="",  # No default auxiliary model
 )
 

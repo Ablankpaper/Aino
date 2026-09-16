@@ -357,9 +357,7 @@ _canonical_slugs = {p.slug for p in CANONICAL_PROVIDERS}
 try:
     from providers import list_providers as _list_providers_for_canonical
     for _pp in _list_providers_for_canonical():
-        if _pp.name in _canonical_slugs or _pp.auth_type in {
-            "oauth_device_code", "oauth_external", "external_process", "aws_sdk", "copilot", "vertex",
-        }:
+        if _pp.name in _canonical_slugs or _pp.auth_type != "api_key":
             continue
         _label = _pp.display_name or _pp.name
         CANONICAL_PROVIDERS.append(ProviderEntry(_pp.name, _label, _pp.description or f"{_label} (direct API)"))
