@@ -1,6 +1,8 @@
 import { useStore } from '@nanostores/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useContext, useState } from 'react'
+import { PlatformModelList } from '@/components/platform-model-list'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 
 import { useSessionView } from '@/app/chat/session-view'
 import { Codicon } from '@/components/ui/codicon'
@@ -23,7 +25,7 @@ import {
 import { sessionTileDelegate } from '@/store/session-states'
 import type { ModelOptionsResponse } from '@/types/hermes'
 
-import { ModelCatalogMenu, type ModelMenuController } from './model-catalog-menu'
+import { ModelCatalogMenu, ModelMenuCloseContext, type ModelMenuController } from './model-catalog-menu'
 
 export { ModelMenuCloseContext } from './model-catalog-menu'
 
@@ -67,6 +69,9 @@ export function ModelMenuPanel({
   const currentFastMode = useStore(view.$fast)
   const currentModel = useStore(view.$model)
   const currentProvider = useStore(view.$provider)
+  const busy = useStore(view.$busy)
+  const closeMenu = useContext(ModelMenuCloseContext)
+  const [source, setSource] = useState<'aino' | 'custom'>(() => currentProvider && currentProvider !== 'aino' ? 'custom' : 'aino')
   const currentReasoningEffort = useStore(view.$reasoningEffort)
   const modelPresets = useStore($modelPresets)
   const defaultEffort = useStore($defaultReasoningEffort) || DEFAULT_REASONING_EFFORT
@@ -243,6 +248,16 @@ export function ModelMenuPanel({
   }
 
   return (
+    <>
+    {window.hermesDesktop?.platformModels && <div className="p-2">
+      <SegmentedControl value={source} onChange={setSource} options={[
+        { id: 'aino', label: t.platformModels.builtIn }, { id: 'custom', label: t.platformModels.custom }
+      ]} />
+    </div>}
+    {source === 'aino' && window.hermesDesktop?.platformModels ? <PlatformModelList
+      disabled={busy} selectedId={currentProvider === 'aino' ? currentModel : undefined}
+      onSelect={async model => (await onSelectModel({ provider: 'aino', model: model.id, sessionId: activeSessionId })) !== false}
+      onApplied={closeMenu} /> :
     <ModelCatalogMenu
       controller={controller}
       footer={
@@ -265,5 +280,7 @@ export function ModelMenuPanel({
       request={requestGateway}
       sessionId={activeSessionId}
     />
+    }
+    </>
   )
 }

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { getLocalModelsStatus } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { PlatformModelList } from './platform-model-list'
+import { SegmentedControl } from './ui/segmented-control'
 import { modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
 import { modelSearchText } from '@/lib/model-search-text'
 import { currentPickerSelection } from '@/lib/model-status-label'
@@ -41,6 +43,7 @@ interface ModelPickerDialogProps {
    * underneath and blocks pointer events.
    */
   contentClassName?: string
+  includePlatform?: boolean
 }
 
 export function ModelPickerDialog({
@@ -54,7 +57,8 @@ export function ModelPickerDialog({
   ownerConnectionId,
   profile = 'default',
   request,
-  contentClassName
+  contentClassName,
+  includePlatform = false
 }: ModelPickerDialogProps) {
   const { t } = useI18n()
   const copy = t.modelPicker
@@ -64,6 +68,7 @@ export function ModelPickerDialog({
   // it and do a plain substring filter that preserves array order — matching
   // the `hermes model` CLI picker, which shows the curated list verbatim.
   const [search, setSearch] = useState('')
+  const [source, setSource] = useState<'aino' | 'custom'>(() => currentProvider && currentProvider !== 'aino' ? 'custom' : 'aino')
 
   const modelOptions = useQuery({
     queryKey: modelOptionsQueryKey(profile, sessionId, ownerConnectionId),
@@ -189,7 +194,14 @@ export function ModelPickerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Command className="rounded-none bg-card" shouldFilter={false}>
+        {includePlatform && window.hermesDesktop?.platformModels && <div className="px-4 py-2">
+          <SegmentedControl value={source} onChange={setSource} options={[
+            { id: 'aino', label: t.platformModels.builtIn }, { id: 'custom', label: t.platformModels.custom }
+          ]} /></div>}
+        {includePlatform && source === 'aino' && window.hermesDesktop?.platformModels ? <PlatformModelList
+          selectedId={currentProvider === 'aino' ? currentModel : undefined}
+          onSelect={model => onSelect({ provider: 'aino', model: model.id })}
+          onApplied={() => onOpenChange(false)} /> : <Command className="rounded-none bg-card" shouldFilter={false}>
           <CommandInput autoFocus onValueChange={setSearch} placeholder={copy.search} value={search} />
           <CommandList className="max-h-96">
             {!loading && !error && <CommandEmpty>{copy.noModels}</CommandEmpty>}
@@ -205,7 +217,7 @@ export function ModelPickerDialog({
               search={search}
             />
           </CommandList>
-        </Command>
+        </Command>}
 
         <DialogFooter className="flex-row items-center justify-end gap-2 bg-card p-3">
           <Button onClick={addProvider} variant="ghost">

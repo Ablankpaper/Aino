@@ -196,6 +196,7 @@ export interface ClientSessionState {
   cwd: string
   model: string
   provider: string
+  platformModel?: import('@/lib/platform-session-model').PlatformSessionModel | null
   reasoningEffort: string
   serviceTier: string
   fast: boolean

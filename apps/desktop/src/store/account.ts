@@ -76,6 +76,7 @@ function snapshotError(snapshot: PlatformAccountSnapshot): AccountError | null {
 }
 
 export function createAccountActions(adapter: AccountAdapter) {
+  const snapshot = atom<PlatformAccountSnapshot | null>(null)
   const state = atom<AccountState>({
     ...INITIAL_STATE,
     adapter: adapter.kind,
@@ -85,23 +86,24 @@ export function createAccountActions(adapter: AccountAdapter) {
   let operation = 0
   let snapshotRevision = -1
 
-  const applySnapshot = (snapshot: PlatformAccountSnapshot) => {
-    if (snapshot.revision < snapshotRevision) {
+  const applySnapshot = (next: PlatformAccountSnapshot) => {
+    if (next.revision < snapshotRevision) {
       return false
     }
 
-    snapshotRevision = snapshot.revision
+    snapshotRevision = next.revision
+    snapshot.set(next)
     state.set({
       ...state.get(),
       authenticated: Boolean(
-        snapshot.account && snapshot.phase !== 'signed_out' && snapshot.phase !== 'reauth_required'
+        next.account && next.phase !== 'signed_out' && next.phase !== 'reauth_required'
       ),
-      account: snapshot.account,
+      account: next.account,
       ready: true,
       loading: false,
-      phase: snapshot.phase,
-      rememberState: snapshot.remember_state,
-      error: snapshotError(snapshot)
+      phase: next.phase,
+      rememberState: next.remember_state,
+      error: snapshotError(next)
     })
 
     return true
@@ -137,6 +139,7 @@ export function createAccountActions(adapter: AccountAdapter) {
 
   return {
     state,
+    snapshot,
     refresh: () =>
       run(
         async () => {

@@ -1,6 +1,7 @@
 import { type QueryClient } from '@tanstack/react-query'
 import { useCallback, useRef } from 'react'
 
+import { bindSelectedPlatformSession, clearPlatformSession } from '@/api/platform-session-binding'
 import type { ModelSelection } from '@/app/shell/model-menu-panel'
 import { getGlobalModelInfo } from '@/hermes'
 import { useI18n } from '@/i18n'
@@ -8,10 +9,12 @@ import { isBusySessionModelSwitch } from '@/lib/gateway-rpc'
 import { surfaceModelSwitchConfirm } from '@/lib/guarded-model-switch'
 import { manualPickRemoved, modelOptionsQueryKey } from '@/lib/model-options'
 import { notifyError } from '@/store/notifications'
+import { platformModelCatalog, readPlatformDefault, requirePlatformSelection } from '@/store/platform-models'
 import { $activeGatewayProfile } from '@/store/profile'
 import {
   $activeSessionId,
   $currentModel,
+  $currentPlatformOwner,
   $currentProvider,
   getComposerSelectionGeneration,
   getCurrentModelSource,
@@ -20,6 +23,7 @@ import {
   setCurrentModelSource,
   setCurrentProvider
 } from '@/store/session'
+import { setCurrentPlatformOwner } from '@/store/session'
 import { $sessionStates, sessionTileDelegate } from '@/store/session-states'
 import type { ModelOptionsResponse } from '@/types/hermes'
 
@@ -126,6 +130,17 @@ export function useModelControls({
           return
         }
 
+        // Capture intent before any catalog I/O so a picker click that lands
+        // while the platform list is loading wins over this refresh.
+        const selectionGeneration = getComposerSelectionGeneration()
+
+        // A signed-in Aino account owns the default for fresh drafts. Load its
+        // catalog alongside the existing gateway default lookup; an empty
+        // gateway model is intentional for newly provisioned profiles and must
+        // not leave the composer blank when a platform default is available.
+        const platformCatalog = platformModelCatalog()
+        await platformCatalog.load()
+
         // A manual pick stays sticky UNLESS it was removed from the catalog (its
         // model no longer exists on the provider), in which case keeping it would
         // 404 every new chat — fall through to reseed from the profile default.
@@ -140,7 +155,10 @@ export function useModelControls({
             modelOptionsQueryKey(cacheProfile || $activeGatewayProfile.get(), null, cacheOwnerConnectionId)
           )
 
-          return !manualPickRemoved(options?.providers, $currentProvider.get(), $currentModel.get())
+          return (
+            $currentProvider.get() === 'aino' ||
+            !manualPickRemoved(options?.providers, $currentProvider.get(), $currentModel.get())
+          )
         }
 
         if (keepManualPick()) {
@@ -150,7 +168,6 @@ export function useModelControls({
         // Snapshot the selection generation before awaiting so a picker click
         // that lands while getGlobalModelInfo is in flight wins over this older
         // default — value comparisons alone miss re-selecting the same row.
-        const selectionGeneration = getComposerSelectionGeneration()
         const result = await getGlobalModelInfo(profile)
 
         if (
@@ -162,16 +179,34 @@ export function useModelControls({
           return
         }
 
-        if (typeof result.model === 'string') {
-          setCurrentModel(result.model)
+        const accountId = platformCatalog.account.get()?.account?.id || ''
+        const preferredId = readPlatformDefault(accountId)
+
+        const platformDefault =
+          platformCatalog.state.get().phase === 'ready'
+            ? platformCatalog.state
+                .get()
+                .models.find(model => model.state === 'available' && model.id === preferredId) ||
+              platformCatalog.state.get().models.find(model => model.is_default && model.state === 'available')
+            : undefined
+
+        const resolvedModel = result.model || (result.provider ? '' : platformDefault?.id || '')
+        const resolvedProvider = result.provider || (resolvedModel ? 'aino' : '')
+
+        if (resolvedModel) {
+          setCurrentModel(resolvedModel)
         }
 
-        if (typeof result.provider === 'string') {
-          setCurrentProvider(result.provider)
+        if (resolvedProvider) {
+          setCurrentProvider(resolvedProvider)
         }
 
-        if (typeof result.model === 'string' || typeof result.provider === 'string') {
+        if (resolvedModel || resolvedProvider) {
           setCurrentModelSource('default')
+
+          if (resolvedProvider === 'aino' && platformDefault) {
+            setCurrentPlatformOwner(platformCatalog.account.get()?.account?.id || '')
+          }
         }
       } catch {
         // The delayed session.info event still updates this once the agent is ready.
@@ -210,19 +245,48 @@ export function useModelControls({
         : ($sessionStates.get()[liveSessionId!]?.provider ?? '')
 
       const prevSource = getCurrentModelSource()
+      const prevPlatformOwner = $currentPlatformOwner.get()
       const liveGatewayProfile = cacheProfile || $activeGatewayProfile.get()
+      const catalog = platformModelCatalog()
+      const account = catalog.account.get()
+      const platformOwner = account?.account?.id || ''
+
+      const owner = cacheOwnerConnectionId
+        ? { connectionId: cacheOwnerConnectionId, profile: liveGatewayProfile }
+        : liveGatewayProfile
+
+      if (selection.provider === 'aino') {
+        try {
+          requirePlatformSelection(account, catalog.state.get().models, selection.model, platformOwner)
+        } catch (error) {
+          notifyError(error, copy.modelSwitchFailed)
+
+          return false
+        }
+      }
+
+      let platformStaged = false
 
       const paintSelection = () => {
         if (touchesPrimary) {
           setCurrentModel(selection.model)
           setCurrentProvider(selection.provider)
+
+          if (selection.provider === 'aino') {
+            setCurrentPlatformOwner(platformOwner)
+          }
+
           markComposerSelectionManual()
         } else if (liveSessionId) {
           // Optimistic tile paint — session.info will confirm; rollback on error.
           sessionTileDelegate()?.updateSession(liveSessionId, state => ({
             ...state,
             model: selection.model,
-            provider: selection.provider
+            provider: selection.provider,
+            platformModel:
+              selection.provider === 'aino'
+                ? { modelId: selection.model, ownerUserId: platformOwner, status: 'awaiting_managed_credentials' }
+                : null
           }))
         }
       }
@@ -236,6 +300,7 @@ export function useModelControls({
           setCurrentModel(prevModel)
           setCurrentProvider(prevProvider)
           setCurrentModelSource(prevSource)
+          setCurrentPlatformOwner(prevPlatformOwner)
         } else if (liveSessionId) {
           sessionTileDelegate()?.updateSession(liveSessionId, state => ({
             ...state,
@@ -270,15 +335,46 @@ export function useModelControls({
       //  - MoA (mixture-of-agents) presets: a transient orchestration choice
       //    that must never become the persisted global gateway default.
       const isSessionOnlyPreset = (selection.provider || '').toLowerCase() === 'moa'
-      const scope = touchesPrimary && !isSessionOnlyPreset ? '' : ' --session'
+      const scope = touchesPrimary && !isSessionOnlyPreset && prevProvider !== 'aino' ? '' : ' --session'
 
-      const requestSwitch = (confirmExpensiveModel = false) =>
-        requestGateway<ModelSwitchResponse>('config.set', {
+      const requestSwitch = async (confirmExpensiveModel = false) => {
+        const result = await requestGateway<ModelSwitchResponse>('config.set', {
           session_id: liveSessionId,
           key: 'model',
-          value: `${selection.model} --provider ${selection.provider}${scope}`,
+          ...(selection.provider === 'aino'
+            ? { value: selection.model, model_source: 'aino' }
+            : { value: `${selection.model} --provider ${selection.provider}${scope}` }),
           ...(confirmExpensiveModel ? { confirm_expensive_model: true } : {})
         })
+
+        if (!result?.confirm_required && !result?.deferred) {
+          if (selection.provider === 'aino') {
+            platformStaged = true
+
+            const platformModel = {
+              modelId: selection.model,
+              ownerUserId: platformOwner,
+              status: 'awaiting_managed_credentials' as const
+            }
+
+            sessionTileDelegate()?.updateSession(liveSessionId, state => ({
+              ...state,
+              provider: 'aino',
+              model: selection.model,
+              platformModel
+            }))
+            await bindSelectedPlatformSession(owner, liveSessionId, platformModel, requestGateway)
+            sessionTileDelegate()?.updateSession(liveSessionId, state => ({
+              ...state,
+              platformModel: { ...platformModel, status: 'ready' }
+            }))
+          } else if (prevProvider === 'aino') {
+            await clearPlatformSession(owner, liveSessionId)
+          }
+        }
+
+        return result
+      }
 
       const finishSwitch = (result: ModelSwitchResponse | undefined) => {
         // A pick made DURING a turn is queued by the gateway and applied at the
@@ -323,7 +419,11 @@ export function useModelControls({
               cacheSelection(selection.provider, selection.model)
             },
             requestConfirmed: () => requestSwitch(true),
-            rollback: rollbackSelection
+            rollback: () => {
+              if (!platformStaged) {
+                rollbackSelection()
+              }
+            }
           })
 
           return false
@@ -338,11 +438,14 @@ export function useModelControls({
         // updated: keep the pick painted as the composer's selection, which is
         // what the NEXT turn runs anyway. Current gateways never take this
         // path — they answer `deferred`.
-        if (isBusySessionModelSwitch(err)) {
+        if (selection.provider !== 'aino' && isBusySessionModelSwitch(err)) {
           return true
         }
 
-        rollbackSelection()
+        if (!platformStaged) {
+          rollbackSelection()
+        }
+
         notifyError(err, copy.modelSwitchFailed)
 
         return false

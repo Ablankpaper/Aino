@@ -115,6 +115,13 @@ async function withRoutedTurnLease<T>(
   const release = await retainGatewayForSessionTurn(connectionId, profile, sessionId)
 
   try {
+    if (window.hermesDesktop?.platformModels) {
+      const { preparePlatformSessionRequest } = await import('@/api/platform-session-binding')
+      await preparePlatformSessionRequest(connectionId ? { connectionId, profile } : profile, method, params,
+        (name, payload, timeout) => connectionId
+          ? requestGatewayForAgent(connectionId, profile, name, payload, timeout)
+          : requestGatewayForProfile(profile, name, payload, timeout))
+    }
     const result = await request()
     resetBackgroundPollingGuardAfterRebind(method, params, result)
 
@@ -132,8 +139,13 @@ async function withRoutedTurnLease<T>(
 async function requestWithRebindGuard<T>(
   method: string,
   params: Record<string, unknown>,
-  request: () => Promise<T>
+  request: () => Promise<T>,
+  ambientRequest?: <R>(method: string, params?: Record<string, unknown>, timeoutMs?: number) => Promise<R>
 ): Promise<T> {
+  if (method === 'prompt.submit' && ambientRequest && window.hermesDesktop?.platformModels) {
+    const { preparePlatformSessionRequest } = await import('@/api/platform-session-binding')
+    await preparePlatformSessionRequest(null, method, params, ambientRequest)
+  }
   const result = await request()
   resetBackgroundPollingGuardAfterRebind(method, params, result)
 
@@ -207,14 +219,14 @@ export function requestForSessionProfile<T>(
     // for a deadline (the plugin host bridge in contrib/wiring is the only one
     // that does).
     if (signal !== undefined) {
-      return requestWithRebindGuard(method, params, () => ambientRequest<T>(method, params, timeoutMs, signal))
+      return requestWithRebindGuard(method, params, () => ambientRequest<T>(method, params, timeoutMs, signal), ambientRequest)
     }
 
     if (timeoutMs !== undefined) {
-      return requestWithRebindGuard(method, params, () => ambientRequest<T>(method, params, timeoutMs))
+      return requestWithRebindGuard(method, params, () => ambientRequest<T>(method, params, timeoutMs), ambientRequest)
     }
 
-    return requestWithRebindGuard(method, params, () => ambientRequest<T>(method, params))
+    return requestWithRebindGuard(method, params, () => ambientRequest<T>(method, params), ambientRequest)
   }
 
   const profile = normKey(ownerProfile)

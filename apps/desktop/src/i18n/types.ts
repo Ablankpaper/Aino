@@ -84,6 +84,44 @@ interface UpstreamTranslations {
     continue: string
     importError: string
   }
+  platformModels: {
+    builtIn: string
+    custom: string
+    search: string
+    signIn: string
+    loading: string
+    retry: string
+    unavailable: string
+    empty: string
+    catalogError: string
+    balance: string
+    subscription: string
+    insufficient_balance: string
+    quota_exhausted: string
+    details: string
+    input: string
+    output: string
+    cacheRead: string
+    cacheWrite: string
+    context: string
+    tools: string
+    vision: string
+    reasoning: string
+    defaultModel: string
+    followCustom: string
+    defaultTag: string
+    not_authenticated: string
+    platform_account_changed: string
+    bindingFailed: string
+    unsupported: string
+    rate: string
+    tiers: string
+    timePricing: string
+    groupPeak: string
+    unknown: string
+    supported: string
+    unsupportedCapability: string
+  }
   common: {
     apply: string
     back: string

@@ -9,7 +9,8 @@ import type {
 /** Only the chat's owning socket can delegate a live session to Electron main. */
 export async function bindPlatformModel(
   input: BindPlatformModelInput,
-  account: PlatformAccountSnapshot
+  account: PlatformAccountSnapshot,
+  request?: <T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) => Promise<T>
 ): Promise<BindPlatformModelResult> {
   if (account.phase !== 'signed_in' || !account.account || account.revision !== input.expected_account_revision) {
     return { ok: false, error: { code: 'stale_account_revision' } }
@@ -24,9 +25,9 @@ export async function bindPlatformModel(
   try {
     const owner = await desktop.platformModels.owner(input.expected_account_revision)
 
-    const ticket = await requestGatewayForAgent<{ managed_model_binding?: number; session_ticket?: string }>(
-      input.connection_id || null,
-      input.profile,
+    const requestOwner = request ?? (<T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) =>
+      requestGatewayForAgent<T>(input.connection_id || null, input.profile, method, params, timeoutMs))
+    const ticket = await requestOwner<{ managed_model_binding?: number; session_ticket?: string }>(
       'session.managed_model_ticket',
       { session_id: input.session_id, model_id: input.model_id, owner },
       10_000

@@ -1,3 +1,5 @@
+import type { PlatformRuntimeFields } from '@/lib/platform-session-model'
+
 export interface ConfigFieldSchema {
   category?: string
   description?: string
@@ -716,7 +718,7 @@ export interface SessionResumeResponse {
   turn_started_at?: number | null
 }
 
-export interface SessionRuntimeInfo {
+export interface SessionRuntimeInfo extends PlatformRuntimeFields {
   approval_mode?: 'manual' | 'off' | 'smart'
   branch?: string
   config_warning?: string

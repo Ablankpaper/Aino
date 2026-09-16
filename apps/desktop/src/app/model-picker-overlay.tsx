@@ -87,6 +87,7 @@ export function ModelPickerOverlay({
 
   return (
     <ModelPickerDialog
+      includePlatform
       currentModel={currentModel}
       currentProvider={currentProvider}
       gw={gateway}

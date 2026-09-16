@@ -1,6 +1,9 @@
 import { useStore } from '@nanostores/react'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 import type { NavigateFunction } from 'react-router'
+import { createPlatformDraft } from '@/api/platform-session-binding'
+import { platformCreateOverrides } from '@/lib/platform-session-model'
+import { platformModelCatalog } from '@/store/platform-models'
 
 import { NO_PROJECT_ID } from '@/app/chat/sidebar/projects/workspace-groups'
 import { graftRefreshedTailOntoBackfill } from '@/app/chat/transcript-backfill'
@@ -58,6 +61,7 @@ import {
   $currentCwd,
   $currentFastMode,
   $currentModel,
+  $currentPlatformOwner,
   $currentProvider,
   $currentReasoningEffort,
   $messages,
@@ -290,7 +294,7 @@ function reconcileAuthoritativeMessages(
 async function desktopSessionCreateParams(
   cwd: string,
   capturedRoute = resolveNewChatOwnerRoute()
-): Promise<Record<string, unknown>> {
+): Promise<{ params: Record<string, unknown>; platformOwner: string }> {
   // Treat Send as the linearization point for the visible selector state. The
   // profile handshake below can yield long enough for background config/model
   // refreshes to finish; reading atoms afterward would silently create the
@@ -307,6 +311,10 @@ async function desktopSessionCreateParams(
     model: isManualSelection ? $currentModel.get().trim() : '',
     provider: isManualSelection ? $currentProvider.get().trim() : ''
   }
+  const platformOwner = $currentPlatformOwner.get()
+  const catalog = platformModelCatalog()
+  const modelParams = platformCreateOverrides(selection.provider, selection.model, platformOwner,
+    catalog.account.get(), catalog.state.get().models)
 
   const profile = capturedRoute?.profile || $newChatProfile.get() || normalizeProfileKey($activeGatewayProfile.get())
 
@@ -316,17 +324,15 @@ async function desktopSessionCreateParams(
     await ensureGatewayProfile(profile)
   }
 
-  return {
+  return { platformOwner, params: {
     cols: 96,
     source: 'desktop',
     ...(cwd && { cwd }),
     ...(profile ? { profile: capturedRoute?.targetProfile || profile } : {}),
-    ...(selection.model
-      ? { model: selection.model, ...(selection.provider ? { provider: selection.provider } : {}) }
-      : {}),
+    ...modelParams,
     ...(selection.effort ? { reasoning_effort: selection.effort } : {}),
     fast: selection.fast
-  }
+  } }
 }
 
 interface FreshSessionDraftOptions {
@@ -561,7 +567,7 @@ export function useSessionActions({
         // reduce the owner to a bare profile name that later RPCs dial on a
         // different socket than the one that minted the runtime.
         const capturedRoute = resolveNewChatOwnerRoute()
-        const params = await desktopSessionCreateParams(cwd, capturedRoute)
+        const { params, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute)
 
         // Lease the owner socket for the whole create → owner-publication
         // sequence (#93602 primitive). The per-request lease inside
@@ -577,14 +583,10 @@ export function useSessionActions({
         let stored: null | string
 
         try {
-          created = capturedRoute
-            ? await requestGatewayForAgent<SessionCreateResponse>(
-                capturedRoute.connectionId,
-                capturedRoute.profile,
-                'session.create',
-                params
-              )
-            : await requestGateway<SessionCreateResponse>('session.create', params)
+          created = await createPlatformDraft(
+            capturedRoute ? (method, payload) => requestGatewayForAgent(capturedRoute.connectionId,
+              capturedRoute.profile, method, payload) : requestGateway,
+            params, platformOwner, capturedRoute)
 
           stored = created.stored_session_id ?? null
 
@@ -758,8 +760,9 @@ export function useSessionActions({
         const cwd =
           options?.cwd === null ? '' : typeof options?.cwd === 'string' ? options.cwd.trim() : resolveNewSessionCwd()
 
+        const prepared = await desktopSessionCreateParams(cwd, capturedRoute)
         const params = {
-          ...(await desktopSessionCreateParams(cwd, capturedRoute)),
+          ...prepared.params,
           ...(workspaceScope.workspaceMode === 'bots' ? { hidden: true } : {})
         }
 
@@ -774,14 +777,10 @@ export function useSessionActions({
         let stored: string | undefined
 
         try {
-          created = capturedRoute
-            ? await requestGatewayForAgent<SessionCreateResponse>(
-                capturedRoute.connectionId,
-                capturedRoute.profile,
-                'session.create',
-                params
-              )
-            : await requestGateway<SessionCreateResponse>('session.create', params)
+          created = await createPlatformDraft(
+            capturedRoute ? (method, payload) => requestGatewayForAgent(capturedRoute.connectionId,
+              capturedRoute.profile, method, payload) : requestGateway,
+            params, prepared.platformOwner, capturedRoute)
 
           stored = created.stored_session_id
 

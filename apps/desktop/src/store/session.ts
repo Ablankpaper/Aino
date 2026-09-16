@@ -32,6 +32,7 @@ const WORKSPACE_CWD_KEY = 'hermes.desktop.workspace-cwd'
 const COMPOSER_MODEL_KEY = 'hermes.desktop.composer.model'
 const COMPOSER_PROVIDER_KEY = 'hermes.desktop.composer.provider'
 const COMPOSER_MODEL_SOURCE_KEY = 'hermes.desktop.composer.model-source'
+const COMPOSER_PLATFORM_OWNER_KEY = 'aino.desktop.composer.platform-owner'
 const COMPOSER_EFFORT_KEY = 'hermes.desktop.composer.reasoning-effort'
 const COMPOSER_FAST_KEY = 'hermes.desktop.composer.fast'
 
@@ -1088,6 +1089,13 @@ export function getSessionOwnerHint(
 export const $resumeExhaustedSessionId = atom<string | null>(null)
 export const $currentModel = atom(storedComposerString(COMPOSER_MODEL_KEY) ?? '')
 export const $currentProvider = atom(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
+export const $currentPlatformOwner = atom(storedComposerString(COMPOSER_PLATFORM_OWNER_KEY) ?? '')
+
+export function setCurrentPlatformOwner(owner: string): void {
+  $currentPlatformOwner.set(owner)
+  const key = composerSelectionKey(COMPOSER_PLATFORM_OWNER_KEY)
+  if (key) persistString(key, owner || null)
+}
 export const $currentReasoningEffort = atom(storedString(COMPOSER_EFFORT_KEY) ?? '')
 export const $currentServiceTier = atom('')
 export const $currentFastMode = atom(storedBoolean(COMPOSER_FAST_KEY, false))
@@ -1151,6 +1159,7 @@ function rescopeComposerSelection(nextScope: string | null): void {
   composerSelectionScope = nextScope
   $currentModel.set(storedComposerString(COMPOSER_MODEL_KEY) ?? '')
   $currentProvider.set(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
+  $currentPlatformOwner.set(storedComposerString(COMPOSER_PLATFORM_OWNER_KEY) ?? '')
   $currentModelSource.set(getCurrentModelSource())
 }
 

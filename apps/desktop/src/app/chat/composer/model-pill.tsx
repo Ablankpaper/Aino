@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/react'
 import { useEffect, useState } from 'react'
+import { usePlatformModels } from '@/components/platform-model-list'
 
 import { useSessionView } from '@/app/chat/session-view'
 import { useTourMarker } from '@/app/chat/tour-marker'
@@ -55,6 +56,8 @@ export function ModelPill({
   const viewProvider = useStore(view.$provider)
   const currentModel = model.model || viewModel
   const currentProvider = model.provider || viewProvider
+  const platform = usePlatformModels()
+  const platformName = currentProvider === 'aino' ? platform.models.find(row => row.id === currentModel)?.display_name : undefined
   const fastMode = useStore(view.$fast)
   const reasoningEffort = useStore(view.$reasoningEffort)
   const modelSource = useStore($currentModelSource)
@@ -102,7 +105,7 @@ export function ModelPill({
     <>
       {currentModel.trim() ? (
         <span className="truncate">
-          {formatModelStatusLabel(currentModel, { defaultEffort, fastMode, reasoningEffort })}
+          {platformName || formatModelStatusLabel(currentModel, { defaultEffort, fastMode, reasoningEffort })}
         </span>
       ) : (
         <GlyphSpinner className="opacity-50" spinner="braille" />

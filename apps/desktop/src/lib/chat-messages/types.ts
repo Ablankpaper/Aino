@@ -77,6 +77,10 @@ export type GatewayEventPayload = {
   todos?: unknown
   revision?: number
   model?: string
+  model_source?: string
+  model_id?: string
+  model_status?: string
+  platform_owner?: { user_id: string; platform_origin: string }
   provider?: string
   reasoning_effort?: string
   service_tier?: string

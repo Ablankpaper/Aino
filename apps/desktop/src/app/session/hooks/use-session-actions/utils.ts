@@ -4,6 +4,7 @@ import { assistantTextPart, type ChatMessage, chatMessageText, textPart } from '
 import { normalizePersonalityValue } from '@/lib/chat-runtime'
 import { embeddedImageUrls, textWithoutEmbeddedImages } from '@/lib/embedded-images'
 import { parseErrorSurface } from '@/lib/error-surface'
+import { platformModelStatePatch } from '@/lib/platform-session-model'
 import { isMessagingSource, normalizeSessionSource } from '@/lib/session-source'
 import { turnMetricsEquivalent } from '@/lib/turn-metrics'
 import { reconcileApprovalModeForProfile } from '@/store/approval-mode'
@@ -23,6 +24,7 @@ import {
   setCurrentCwdTransient,
   setCurrentFastMode,
   setCurrentModel,
+  setCurrentPlatformOwner,
   setCurrentPersonality,
   setCurrentProvider,
   setCurrentReasoningEffort,
@@ -1582,7 +1584,7 @@ export async function resolveSessionOwner(storedSessionId: null | string): Promi
 type SessionRuntimeStatePatch = Partial<
   Pick<
     ClientSessionState,
-    'branch' | 'cwd' | 'fast' | 'model' | 'personality' | 'provider' | 'reasoningEffort' | 'serviceTier' | 'yolo'
+    'branch' | 'cwd' | 'fast' | 'model' | 'personality' | 'provider' | 'reasoningEffort' | 'serviceTier' | 'yolo' | 'platformModel'
   >
 >
 
@@ -1605,6 +1607,7 @@ interface ApplyRuntimeInfoOptions {
 /** Mirror a session's runtime state into the composer atoms the MAIN pane
  *  renders from. Foreground sessions only — see ApplyRuntimeInfoOptions. */
 function publishRuntimeToComposer(state: SessionRuntimeStatePatch): void {
+  if (state.platformModel) setCurrentPlatformOwner(state.platformModel.ownerUserId)
   if (state.model !== undefined) {
     setCurrentModel(state.model)
   }
@@ -1713,6 +1716,8 @@ export function applyRuntimeInfo(
   if (typeof info.yolo === 'boolean') {
     sessionState.yolo = info.yolo
   }
+
+  Object.assign(sessionState, platformModelStatePatch(info))
 
   if (foreground) {
     publishRuntimeToComposer(sessionState)
