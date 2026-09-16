@@ -80,6 +80,16 @@ function assertNewGuardedBackend(sandbox: ReturnType<typeof createSandbox>, prio
   expect(newGuardPids.some(pid => backendPids.has(pid))).toBe(true)
 }
 
+function decimalUnits(value: string): bigint {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value)
+
+  if (!match || (match[3]?.length ?? 0) > 8) { throw new Error(`Unexpected fixture decimal: ${value}`) }
+
+  const units = BigInt(match[2]) * 100_000_000n + BigInt((match[3] ?? '').padEnd(8, '0'))
+
+  return match[1] === '-' ? -units : units
+}
+
 async function auditRenderer(page: Page, api: Awaited<ReturnType<typeof startRealPlatformAPI>>) {
   const publicData = await page.evaluate(async () => ({
     account: await (window as unknown as NativeWindow).hermesDesktop.platformAccount.status(),
@@ -249,10 +259,14 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     await expect.poll(async () => (await api.control<NativeState>('state')).stream_started).toBe(1)
     await composerForm.getByRole('button', { name: 'Stop', exact: true }).click()
     await expect(composerForm.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
-    await expect.poll(async () => (await api.control<NativeState>('state')).stream_cancelled, { timeout: 15_000 }).toBe(1)
+    await expect.poll(async () => (await api.control<NativeState>('state')).downstream_disconnects, { timeout: 15_000 }).toBe(1)
+    await expect.poll(async () => (await api.control<NativeState>('state')).stream_drained, { timeout: 15_000 }).toBe(1)
+    await expect.poll(async () => (await api.control<NativeState>('state')).usage_calls, { timeout: 15_000 }).toBe(3)
     const cancelled = await api.control<NativeState>('state')
     expect(cancelled.model_calls).toBe(3)
+    expect(cancelled.stream_cancelled).toBe(0)
     expect(cancelled.stream_shutdowns).toBe(0)
+    expect(decimalUnits(initial.balance) - decimalUnits(cancelled.balance)).toBe(decimalUnits(cancelled.usage_cost))
 
     stage = 'native-recharge'
     await page.getByRole('button', { name: /^My account/ }).click()

@@ -30,6 +30,8 @@ export interface NativeState {
   tool_results: number
   stream_started: number
   stream_cancelled: number
+  downstream_disconnects: number
+  stream_drained: number
   stream_shutdowns: number
 }
 
