@@ -30,6 +30,7 @@ export interface NativeState {
   tool_results: number
   stream_started: number
   stream_cancelled: number
+  stream_shutdowns: number
 }
 
 export function fixtureEnvironment(): Record<string, string> {

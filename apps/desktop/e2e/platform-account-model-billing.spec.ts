@@ -191,6 +191,8 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
   const consoleLines: string[] = []
   const launchAudits: NativeLaunchAudit[] = []
   let stage = 'launch'
+  let primaryError: unknown
+  const cleanupErrors: unknown[] = []
 
   try {
     fs.writeFileSync(path.join(sandbox.hermesHome, 'config.yaml'), 'auxiliary:\n  title_generation:\n    enabled: false\n', { mode: 0o600 })
@@ -227,6 +229,8 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
 
     stage = 'first-platform-tool-turn'
     const composer = page.locator('[contenteditable="true"]').first()
+    const composerForm = composer.locator('xpath=ancestor::form')
+
     await composer.click()
     await composer.pressSequentially(`Read the isolated fixture file ${api.info.fixture_path} using read_file and verify its content.`)
     await page.keyboard.press('Enter')
@@ -238,16 +242,17 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     expect(Number(initial.balance) - Number(settled.balance)).toBeCloseTo(Number(settled.usage_cost), 8)
     stage = 'stream-cancel'
     const sessionUrl = page.url()
-    await expect(page.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
+    await expect(composerForm.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
     await composer.click()
     await composer.pressSequentially('fixture-cancel-stream')
     await page.keyboard.press('Enter')
     await expect.poll(async () => (await api.control<NativeState>('state')).stream_started).toBe(1)
-    await page.getByRole('button', { name: 'Stop', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
+    await composerForm.getByRole('button', { name: 'Stop', exact: true }).click()
+    await expect(composerForm.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
     await expect.poll(async () => (await api.control<NativeState>('state')).stream_cancelled, { timeout: 15_000 }).toBe(1)
     const cancelled = await api.control<NativeState>('state')
     expect(cancelled.model_calls).toBe(3)
+    expect(cancelled.stream_shutdowns).toBe(0)
 
     stage = 'native-recharge'
     await page.getByRole('button', { name: /^My account/ }).click()
@@ -292,13 +297,15 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     await restarted.goto(sessionUrl)
     await expect(restarted.getByText(`Verified ${api.info.fixture_content}`, { exact: false }).first()).toBeVisible({ timeout: 60_000 })
     const resumeComposer = restarted.locator('[contenteditable="true"]').first()
+    const resumeComposerForm = resumeComposer.locator('xpath=ancestor::form')
+
     const beforeResume = await api.control<NativeState>('state')
     await resumeComposer.click()
     await resumeComposer.pressSequentially(`Read the isolated file again after restart: ${api.info.fixture_path}`)
     await restarted.keyboard.press('Enter')
     await expect.poll(async () => (await api.control<NativeState>('state')).tool_results).toBe(beforeResume.tool_results + 1)
     await expect.poll(async () => (await api.control<NativeState>('state')).usage_calls).toBe(beforeResume.usage_calls + 2)
-    await expect(restarted.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
+    await expect(resumeComposerForm.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
     const restartAudit = await auditRenderer(restarted, api)
     assertNoBlockedTransport(sandbox, launchAudits)
     await launched.app.close()
@@ -345,6 +352,7 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     const persistedAudit = await api.control<{ leaked: boolean }>('audit', JSON.stringify([...persistedFixtureText(sandbox.hermesHome), ...persistedFixtureText(sandbox.userDataDir), fs.readFileSync(api.logPath, 'utf8'), ...consoleLines]))
     expect(persistedAudit.leaked).toBe(false)
   } catch (error) {
+    primaryError = error
     const state = await api.control<NativeState>('state').catch(() => null)
     const account = launched ? await launched.page.evaluate(() => (window as unknown as NativeWindow).hermesDesktop.platformAccount.status()).catch(() => null) : null
     const failure = { run_id: api.info.run_id, stage, state, account }
@@ -363,14 +371,21 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
 
     if (launched) { await launched.page.screenshot({ path: testInfo.outputPath('native-failure.png') }).catch(() => undefined) }
     console.log(`Native fixture failed at ${stage}; run_id=${api.info.run_id}; private evidence=${api.dir}`)
-    throw error
   } finally {
-    await launched?.app.close().catch(() => undefined)
+    try { await launched?.app.close() } catch (error) { cleanupErrors.push(error) }
 
-    try {
-      await api.close()
-    } finally {
-      try { await byok.close() } finally { sandbox.cleanup() }
-    }
+    try { await api.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { await byok.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { sandbox.cleanup() } catch (error) { cleanupErrors.push(error) }
   }
+
+  if (primaryError !== undefined && cleanupErrors.length > 0) {
+    throw new AggregateError([primaryError, ...cleanupErrors], 'Native fixture failed and cleanup did not complete')
+  }
+
+  if (primaryError !== undefined) { throw primaryError }
+
+  if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Native fixture cleanup failed') }
 })
