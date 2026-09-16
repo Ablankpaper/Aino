@@ -321,3 +321,22 @@ Scoped ESLint passed after formatting fixes, Prettier check passed, and `git dif
 Owned files: `src/api/models.ts`, `src/api/models.test.ts`, `src/lib/model-default.ts`, `src/app/contrib/wiring.tsx`, `src/app/session/hooks/use-model-controls.ts`, its test, `src/app/session/hooks/use-session-actions/index.ts`, its test, and `src/store/session.ts` (all under `apps/desktop/`). No billing, Electron, shared contract, locale, package or API-repository changes were staged. No production, paid requests, push or merge operations were performed.
 
 This completes only the captured-send correction. The previously listed remaining B6 slices, especially account-scoped draft/history policy, switch rollback/busy policy, capability gating and native acceptance, are still outstanding.
+
+## Captured-send integration fixture repair
+
+Test-only commit: `fde0064f71`. The final captured-intent review marked the production findings addressed and identified one incomplete native bridge in `profile-rail-fresh-chat-owner.test.tsx`. Its `installDesktop()` did not provide `api`, which the new authoritative default read requires and the production preload already exposes.
+
+The fixture now answers only `GET /api/model/info` for the expected owner: `homelab::omar` for registry cases and bare-profile `omar` for the legacy local-profile path. Unexpected endpoints, methods or owner scopes reject. All existing exact socket, durable/runtime identity, no-recovery and two-turn assertions remain intact. Additional assertions require exactly one scoped default read, with no connection tag on the legacy case. No production code changed.
+
+RED: `npm run test:ui -- src/app/session/hooks/profile-rail-fresh-chat-owner.test.tsx` reproduced 3 failed / 2 passed, each failing before the first prompt succeeded.
+
+GREEN:
+
+```bash
+cd apps/desktop
+npm run test:ui -- src/app/session/hooks/profile-rail-fresh-chat-owner.test.tsx \
+  src/app/session/hooks/use-session-actions.test.tsx \
+  src/app/session/hooks/use-model-controls.test.tsx src/api/models.test.ts
+```
+
+Result: 4 files passed, 136 tests passed. Scoped ESLint and `git diff --check` passed; Prettier formatted the one fixture. The full UI suite was not repeated. The controller owns the combined integration/typecheck gate. Remaining B6 scope is unchanged.
