@@ -8,6 +8,7 @@ import type {
 
 import type { PlatformAuth } from './platform-auth'
 import { PlatformClientError } from './platform-client'
+import { parsePlatformDeviceId } from './platform-device-contract'
 import { openPlatformCheckout } from './platform-payment'
 import { parsePaymentQuoteInput, parsePlatformCreateOrderInput, parsePlatformOrderId, parsePlatformOrderQuery } from './platform-payment-contract'
 import type { PlatformRuntimeBindingController } from './platform-runtime-binding'
@@ -56,6 +57,7 @@ export function registerPlatformIpc({
   fromWebContents,
   trustedRendererUrl,
   bindingController,
+  currentDeviceId,
   openPaymentBrowser
 }: {
   ipc: IpcLike
@@ -64,6 +66,7 @@ export function registerPlatformIpc({
   fromWebContents(sender: unknown): WindowLike | null
   trustedRendererUrl: string
   bindingController?: PlatformRuntimeBindingController
+  currentDeviceId?: () => string
   openPaymentBrowser?: (url: string) => Promise<void>
 }) {
   const windows = new Set<WindowLike>()
@@ -226,8 +229,15 @@ export function registerPlatformIpc({
     },
     'submit-step-up': (event, input) => {
       authorize(event)
+      const value = record(input)
 
-      return auth.submitStepUp({ totp_code: field(record(input), 'totp_code', 64) })
+      return auth.submitStepUp({
+        totp_code: field(value, 'totp_code', 64),
+        ...(value.expected_user_id !== undefined || value.expected_generation !== undefined ? {
+          expected_user_id: field(value, 'expected_user_id', 128),
+          expected_generation: value.expected_generation as number
+        } : {})
+      })
     },
     'bind-phone': (event, input) => {
       authorize(event)
@@ -252,6 +262,35 @@ export function registerPlatformIpc({
         return { ok: true, value: await handler(args[0], args[1]) } satisfies PlatformAccountIpcResult<unknown>
       } catch (error) {
         return { ok: false, error: safeIpcError(error) } satisfies PlatformAccountIpcResult<unknown>
+      }
+    })
+  }
+
+  const deviceMethods = {
+    list: (source: Record<string, unknown>) => auth.listDevices({
+      expected_user_id: field(source, 'expected_user_id', 128), expected_generation: source.expected_generation as number
+    }),
+    revoke: async (source: Record<string, unknown>) => {
+      const id = parsePlatformDeviceId(source.device_id)
+
+      const result = await auth.revokeDevice(id, {
+        expected_user_id: field(source, 'expected_user_id', 128), expected_generation: source.expected_generation as number
+      })
+
+      if (currentDeviceId?.().toLowerCase() === id) { bindingController?.invalidateConnections() }
+
+      return result
+    }
+  }
+
+  for (const [name, operation] of Object.entries(deviceMethods)) {
+    ipc.handle(`aino:platform-devices:${name}`, async (event, input) => {
+      try {
+        authorize(event)
+
+        return { ok: true, value: await operation(record(input)) }
+      } catch (error) {
+        return { ok: false, error: safeIpcError(error) }
       }
     })
   }
@@ -405,6 +444,10 @@ export function registerPlatformIpc({
     },
     unregisterWindow,
     dispose() {
+      for (const name of Object.keys(deviceMethods)) {
+        ipc.removeHandler?.(`aino:platform-devices:${name}`)
+      }
+
       for (const name of Object.keys(paymentMethods)) {
         ipc.removeHandler?.(`aino:platform-billing:${name}`)
       }

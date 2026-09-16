@@ -2,7 +2,7 @@ import type { GatewayWsUrlResult } from '@hermes/shared'
 import type { TranslucencyState } from '@hermes/shared/translucency'
 
 import type { PoolLimits } from '../electron/pool-limits'
-import type { PlatformAccountBridge, PlatformBillingBridge, PlatformModelsBridge } from '../shared/platform-contract'
+import type { PlatformAccountBridge, PlatformBillingBridge, PlatformDevicesBridge, PlatformModelsBridge } from '../shared/platform-contract'
 
 import type { WakeIndicatorState } from './lib/wake-indicator'
 import type {
@@ -21,6 +21,7 @@ declare global {
       platformAccount: PlatformAccountBridge
       platformModels: PlatformModelsBridge
       platformBilling?: PlatformBillingBridge
+      platformDevices?: PlatformDevicesBridge
       accountAdapter: 'legacy-development' | 'platform'
       // Resolve a backend connection. Omit `profile` (or pass the primary) for
       // the window's backend; pass a named profile to lazily spawn/reuse that

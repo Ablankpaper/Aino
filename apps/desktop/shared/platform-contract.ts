@@ -91,7 +91,7 @@ export interface PlatformAccountBridge {
   completeSecondFactor(input: { totp_code: string }): Promise<PlatformAccountSnapshot>
   updateProfile(input: { display_name: string }): Promise<PlatformAccountSnapshot>
   requestBindingCode(input: { phone: string }): Promise<PhoneChallengeDTO>
-  submitStepUp(input: { totp_code: string }): Promise<PlatformAccountSnapshot>
+  submitStepUp(input: { totp_code: string; expected_user_id?: string; expected_generation?: number }): Promise<PlatformAccountSnapshot>
   bindPhone(input: { phone: string; challenge_id: string; code: string }): Promise<PlatformAccountSnapshot>
   logout(): Promise<PlatformAccountSnapshot>
   onChanged(listener: (snapshot: PlatformAccountSnapshot) => void): () => void
@@ -207,6 +207,23 @@ export interface PlatformBillingBridge {
   cancelOrder(input: PlatformOrderReference & PlatformBillingOwner): Promise<PlatformOrder>
   openCheckout(input: PlatformOrderReference & PlatformBillingOwner): Promise<void>
   listUsage(input: PlatformUsageQuery & { expected_user_id: string }): Promise<PlatformUsagePage>
+}
+
+export interface PlatformDevice {
+  device_id: string
+  last_used_at: string
+  expires_at: string
+  revoked: boolean
+}
+
+export interface PlatformDeviceOwner {
+  expected_user_id: string
+  expected_generation: number
+}
+
+export interface PlatformDevicesBridge {
+  list(input: PlatformDeviceOwner): Promise<PlatformDevice[]>
+  revoke(input: PlatformDeviceOwner & { device_id: string }): Promise<{ revoked: true }>
 }
 
 export interface PaymentQuoteInput {

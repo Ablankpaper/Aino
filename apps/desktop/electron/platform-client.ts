@@ -6,6 +6,7 @@ import type {
   PlatformCaptchaProof,
   PlatformCheckoutInfo,
   PlatformCreateOrderInput,
+  PlatformDevice,
   PlatformModel,
   PlatformOrder,
   PlatformOrderPage,
@@ -16,6 +17,7 @@ import type {
 import type { PlatformUsagePage, PlatformUsageQuery } from '../shared/platform-contract'
 
 import { parsePlatformCheckoutInfo, parsePlatformWalletSummary } from './platform-billing-contract'
+import { parsePlatformDeviceId, parsePlatformDevices } from './platform-device-contract'
 import { parsePlatformModel } from './platform-model-contract'
 import { parsePaymentQuote, parsePaymentQuoteInput, parsePlatformCreateOrderInput, parsePlatformOrder, parsePlatformOrderId, parsePlatformOrderPage, parsePlatformOrderQuery } from './platform-payment-contract'
 import type { PlatformTokenSet } from './platform-token-store'
@@ -43,6 +45,8 @@ interface AuthExchange {
   tempToken?: string
 }
 export interface PlatformClient {
+  listDevices(accessToken: string): Promise<PlatformDevice[]>
+  revokeDevice(accessToken: string, deviceId: string): Promise<{ revoked: true }>
   quote(accessToken: string, input: PaymentQuoteInput): Promise<PaymentQuote>
   createOrder(accessToken: string, input: PlatformCreateOrderInput): Promise<string>
   getOrder(accessToken: string, orderId: string): Promise<PlatformOrder>
@@ -326,6 +330,16 @@ export function createPlatformClient({
 
   return {
     origin,
+    async listDevices(token) {
+      return parsePlatformDevices(await request('GET', '/desktop/devices', undefined, token))
+    },
+    async revokeDevice(token, deviceId) {
+      const data = object(await request('DELETE', `/desktop/devices/${parsePlatformDeviceId(deviceId)}`, undefined, token))
+
+      if (data.revoked !== true) { throw new PlatformClientError('invalid_response') }
+
+      return { revoked: true }
+    },
     async quote(token, input) {
       return parsePaymentQuote(await request('POST', '/payment/quote', parsePaymentQuoteInput(input), token))
     },

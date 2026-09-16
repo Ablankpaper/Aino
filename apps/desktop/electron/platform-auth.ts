@@ -4,6 +4,7 @@ import type {
   PlatformAuthResult,
   PlatformBillingScope,
   PlatformCaptchaProof,
+  PlatformDeviceOwner,
   PlatformPublicCapabilities
 } from '../shared/platform-contract'
 
@@ -21,6 +22,8 @@ interface RetainedAccount {
 }
 
 export interface PlatformAuth {
+  listDevices(owner: PlatformDeviceOwner): ReturnType<PlatformClient['listDevices']>
+  revokeDevice(deviceId: string, owner: PlatformDeviceOwner): ReturnType<PlatformClient['revokeDevice']>
   quote(input: Parameters<PlatformClient['quote']>[1], expectedUserId: string): ReturnType<PlatformClient['quote']>
   createOrder(input: Parameters<PlatformClient['createOrder']>[1], expectedUserId: string): ReturnType<PlatformClient['getOrder']>
   getOrder(orderId: string, expectedUserId: string): ReturnType<PlatformClient['getOrder']>
@@ -56,7 +59,7 @@ export interface PlatformAuth {
     phone: string
     captcha_proof?: PlatformCaptchaProof
   }): ReturnType<PlatformClient['requestBindingCode']>
-  submitStepUp(input: { totp_code: string }): Promise<PlatformAccountSnapshot>
+  submitStepUp(input: { totp_code: string; expected_user_id?: string; expected_generation?: number }): Promise<PlatformAccountSnapshot>
   bindPhone(input: { phone: string; challenge_id: string; code: string }): Promise<PlatformAccountSnapshot>
   logout(): Promise<PlatformAccountSnapshot>
 }
@@ -359,7 +362,31 @@ export function createPlatformAuth({
     return value
   }
 
+  function checkDeviceOwner(owner: PlatformDeviceOwner) {
+    const scope = api.billingScope(owner.expected_user_id)
+
+    if (!Number.isSafeInteger(owner.expected_generation) || scope.generation !== owner.expected_generation) {
+      throw new PlatformClientError('platform_account_changed')
+    }
+  }
+
+  async function deviceOperation<T>(owner: PlatformDeviceOwner, operation: (token: string) => Promise<T>, repeatSafe: boolean) {
+    checkDeviceOwner(owner)
+
+    const result = await authenticated(token => {
+      checkDeviceOwner(owner)
+
+      return operation(token)
+    }, repeatSafe)
+
+    checkDeviceOwner(owner)
+
+    return result
+  }
+
   const api: PlatformAuth = {
+    listDevices: owner => deviceOperation(owner, token => client.listDevices(token), true),
+    revokeDevice: (id, owner) => deviceOperation(owner, token => client.revokeDevice(token, id), false),
     quote: (input, owner) => paymentOperation(owner, token => client.quote(token, input), true),
     async createOrder(input, owner) {
       const scope = api.billingScope(owner)
@@ -535,7 +562,12 @@ export function createPlatformAuth({
     },
     async submitStepUp(input) {
       try {
-        await authenticated(token => client.submitStepUp(token, input.totp_code), false)
+        if (input.expected_user_id !== undefined || input.expected_generation !== undefined) {
+          await deviceOperation({ expected_user_id: input.expected_user_id!, expected_generation: input.expected_generation! },
+            token => client.submitStepUp(token, input.totp_code), false)
+        } else {
+          await authenticated(token => client.submitStepUp(token, input.totp_code), false)
+        }
 
         return current
       } finally {
