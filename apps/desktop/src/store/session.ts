@@ -1090,35 +1090,6 @@ export const $resumeExhaustedSessionId = atom<string | null>(null)
 export const $currentModel = atom(storedComposerString(COMPOSER_MODEL_KEY) ?? '')
 export const $currentProvider = atom(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
 export const $currentPlatformOwner = atom(storedComposerString(COMPOSER_PLATFORM_OWNER_KEY) ?? '')
-export const $currentPlatformDefaultResolution = atom<null | { modelId: string; ownerUserId: string }>(null)
-const currentPlatformDefaultResolutionFlights = new Set<Promise<void>>()
-
-export function beginCurrentPlatformDefaultResolution(): () => void {
-  let resolve!: () => void
-
-  const pending = new Promise<void>(done => {
-    resolve = done
-  })
-
-  currentPlatformDefaultResolutionFlights.add(pending)
-  $currentPlatformDefaultResolution.set(null)
-
-  return () => {
-    if (currentPlatformDefaultResolutionFlights.delete(pending)) {
-      resolve()
-    }
-  }
-}
-
-export async function awaitCurrentPlatformDefaultResolution(): Promise<void> {
-  while (currentPlatformDefaultResolutionFlights.size > 0) {
-    await Promise.all([...currentPlatformDefaultResolutionFlights])
-  }
-}
-
-export function setCurrentPlatformDefaultResolution(selection: null | { modelId: string; ownerUserId: string }): void {
-  $currentPlatformDefaultResolution.set(selection)
-}
 
 export function setCurrentPlatformOwner(owner: string): void {
   $currentPlatformOwner.set(owner)
@@ -1190,10 +1161,10 @@ function rescopeComposerSelection(nextScope: string | null): void {
   }
 
   composerSelectionScope = nextScope
+  composerSelectionGeneration += 1
   $currentModel.set(storedComposerString(COMPOSER_MODEL_KEY) ?? '')
   $currentProvider.set(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
   $currentPlatformOwner.set(storedComposerString(COMPOSER_PLATFORM_OWNER_KEY) ?? '')
-  $currentPlatformDefaultResolution.set(null)
   $currentModelSource.set(getCurrentModelSource())
 }
 
@@ -1399,9 +1370,13 @@ let composerSelectionGeneration = 0
 
 export const getComposerSelectionGeneration = (): number => composerSelectionGeneration
 
+export const markComposerSelectionDefault = (): void => {
+  composerSelectionGeneration += 1
+  setCurrentModelSource('default')
+}
+
 export const markComposerSelectionManual = (): void => {
   composerSelectionGeneration += 1
-  setCurrentPlatformDefaultResolution(null)
   setCurrentModelSource('manual')
 }
 

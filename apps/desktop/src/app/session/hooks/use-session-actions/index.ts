@@ -25,6 +25,7 @@ import {
 } from '@/lib/chat-messages'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { recoverInFlightTurnJournal } from '@/lib/inflight-turn-journal'
+import { resolveModelDefault } from '@/lib/model-default'
 import { platformCreateOverrides } from '@/lib/platform-session-model'
 import { setSessionYolo } from '@/lib/yolo-session'
 import { $clarifyRequests } from '@/store/clarify'
@@ -61,7 +62,6 @@ import {
   $currentCwd,
   $currentFastMode,
   $currentModel,
-  $currentPlatformDefaultResolution,
   $currentPlatformOwner,
   $currentProvider,
   $currentReasoningEffort,
@@ -69,7 +69,7 @@ import {
   $newChatWorkspaceTarget,
   $sessions,
   $yoloActive,
-  awaitCurrentPlatformDefaultResolution,
+  getComposerSelectionGeneration,
   getCurrentModelSource,
   getSessionOwnerHint,
   type NewChatWorkspaceTarget,
@@ -191,7 +191,6 @@ interface SessionActionsOptions {
   navigate: NavigateFunction
   onFreshDraftRouteIntent?: () => void
   requestGateway: <T>(method: string, params?: Record<string, unknown>) => Promise<T>
-  resolveCurrentModel?: () => Promise<unknown> | unknown
   resetViewSync: () => void
   runtimeIdByStoredSessionIdRef: MutableRefObject<Map<string, string>>
   selectedStoredSessionId: string | null
@@ -298,46 +297,40 @@ function reconcileAuthoritativeMessages(
 // new chat.
 async function desktopSessionCreateParams(
   cwd: string,
-  capturedRoute = resolveNewChatOwnerRoute(),
-  resolveCurrentModel?: () => Promise<unknown> | unknown
+  capturedRoute = resolveNewChatOwnerRoute()
 ): Promise<{ params: Record<string, unknown>; platformOwner: string }> {
-  // Create owns the readiness boundary: passive fresh-draft effects may not
-  // have run when the gateway-open composer accepts Enter after reload.
-  await resolveCurrentModel?.()
-
-  // A reload restores the visible default selection from scoped storage, but
-  // managed billing authority is deliberately transient. If the fresh-draft
-  // resolver is validating that restored value, wait before taking the send
-  // snapshot so an immediate Enter cannot silently omit the Aino default.
-  await awaitCurrentPlatformDefaultResolution()
-
-  // Treat Send as the linearization point for the visible selector state. The
-  // profile handshake below can yield long enough for background config/model
-  // refreshes to finish; reading atoms afterward would silently create the
-  // session with a different selection than the one the user submitted.
-  // Settings → Model while a session is live leaves $currentModel painted with
-  // the live agent (applySavedMainModel) and only flips the source to 'default'.
-  // Shipping that stale value as an override pins every new chat to the old
-  // model. Omit model/provider unless the source is manual or the automatic
-  // selection is an Aino catalog model that needs managed binding.
+  // Send captures user intent before any I/O. Manual selections never join
+  // default resolution; their provider, owner, effort and fast mode travel
+  // together even if another pick arrives during profile readiness.
   const selectionSource = getCurrentModelSource()
-  const model = $currentModel.get().trim()
-  const provider = $currentProvider.get().trim()
-  const platformOwner = $currentPlatformOwner.get()
-  const platformDefault = $currentPlatformDefaultResolution.get()
-
-  const includesModelSelection =
-    selectionSource === 'manual' ||
-    (selectionSource === 'default' &&
-      provider === 'aino' &&
-      platformDefault?.modelId === model &&
-      platformDefault.ownerUserId === platformOwner)
+  const generation = getComposerSelectionGeneration()
+  let platformOwner = $currentPlatformOwner.get()
 
   const selection = {
     effort: $currentReasoningEffort.get().trim(),
     fast: $currentFastMode.get(),
-    model: includesModelSelection ? model : '',
-    provider: includesModelSelection ? provider : ''
+    model: $currentModel.get().trim(),
+    provider: $currentProvider.get().trim()
+  }
+
+  const profile = capturedRoute?.profile || $newChatProfile.get() || normalizeProfileKey($activeGatewayProfile.get())
+
+  const scope = capturedRoute
+    ? { connectionId: capturedRoute.connectionId, profile: capturedRoute.targetProfile || profile }
+    : profile
+
+  if (selectionSource !== 'manual') {
+    // A persisted default or a live session's footer is not billing authority.
+    // Resolve the captured owner directly, even before background effects run.
+    const resolved = await resolveModelDefault(scope)
+
+    if (generation !== getComposerSelectionGeneration()) {
+      throw new Error(translateNow('desktop.modelSwitchFailed'))
+    }
+
+    selection.model = resolved.platform?.modelId || ''
+    selection.provider = resolved.platform ? 'aino' : ''
+    platformOwner = resolved.platform?.ownerUserId || ''
   }
 
   const catalog = platformModelCatalog()
@@ -349,8 +342,6 @@ async function desktopSessionCreateParams(
     catalog.account.get(),
     catalog.state.get().models
   )
-
-  const profile = capturedRoute?.profile || $newChatProfile.get() || normalizeProfileKey($activeGatewayProfile.get())
 
   if (capturedRoute) {
     await ensureGatewayAgent(capturedRoute.connectionId, profile)
@@ -414,7 +405,6 @@ export function useSessionActions({
   navigate,
   onFreshDraftRouteIntent,
   requestGateway,
-  resolveCurrentModel,
   resetViewSync,
   runtimeIdByStoredSessionIdRef,
   selectedStoredSessionId,
@@ -605,7 +595,7 @@ export function useSessionActions({
         // reduce the owner to a bare profile name that later RPCs dial on a
         // different socket than the one that minted the runtime.
         const capturedRoute = resolveNewChatOwnerRoute()
-        const { params, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute, resolveCurrentModel)
+        const { params, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute)
 
         // Lease the owner socket for the whole create → owner-publication
         // sequence (#93602 primitive). The per-request lease inside
@@ -742,7 +732,6 @@ export function useSessionActions({
       getRouteToken,
       navigate,
       requestGateway,
-      resolveCurrentModel,
       resetViewSync,
       selectedStoredSessionIdRef,
       updateSessionState
@@ -804,7 +793,7 @@ export function useSessionActions({
         const cwd =
           options?.cwd === null ? '' : typeof options?.cwd === 'string' ? options.cwd.trim() : resolveNewSessionCwd()
 
-        const prepared = await desktopSessionCreateParams(cwd, capturedRoute, resolveCurrentModel)
+        const prepared = await desktopSessionCreateParams(cwd, capturedRoute)
 
         const params = {
           ...prepared.params,
@@ -894,7 +883,7 @@ export function useSessionActions({
         notifyError(error, copy.createSessionFailed)
       }
     },
-    [copy, requestGateway, resolveCurrentModel, updateSessionState]
+    [copy, requestGateway, updateSessionState]
   )
 
   const openSettings = useCallback(() => {

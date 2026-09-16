@@ -3,27 +3,25 @@ import { useCallback, useRef } from 'react'
 
 import { bindSelectedPlatformSession, clearPlatformSession } from '@/api/platform-session-binding'
 import type { ModelSelection } from '@/app/shell/model-menu-panel'
-import { getGlobalModelInfo } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { isBusySessionModelSwitch } from '@/lib/gateway-rpc'
 import { surfaceModelSwitchConfirm } from '@/lib/guarded-model-switch'
+import { resolveModelDefault } from '@/lib/model-default'
 import { manualPickRemoved, modelOptionsQueryKey } from '@/lib/model-options'
 import { notifyError } from '@/store/notifications'
-import { platformModelCatalog, readPlatformDefault, requirePlatformSelection } from '@/store/platform-models'
+import { platformModelCatalog, requirePlatformSelection } from '@/store/platform-models'
 import { $activeGatewayProfile } from '@/store/profile'
 import {
   $activeSessionId,
   $currentModel,
-  $currentPlatformDefaultResolution,
   $currentPlatformOwner,
   $currentProvider,
-  beginCurrentPlatformDefaultResolution,
   getComposerSelectionGeneration,
   getCurrentModelSource,
+  markComposerSelectionDefault,
   markComposerSelectionManual,
   setCurrentModel,
   setCurrentModelSource,
-  setCurrentPlatformDefaultResolution,
   setCurrentProvider
 } from '@/store/session'
 import { setCurrentPlatformOwner } from '@/store/session'
@@ -98,8 +96,7 @@ export function useModelControls({
     (provider: string, model: string) => {
       const liveSessionId = $activeSessionId.get()
 
-      setCurrentPlatformDefaultResolution(null)
-      setCurrentModelSource('default')
+      markComposerSelectionDefault()
 
       if (!liveSessionId) {
         setCurrentProvider(provider)
@@ -127,26 +124,17 @@ export function useModelControls({
       }
 
       const profileRefreshEpoch = profileRefreshEpochRef.current
-      const profile = $activeGatewayProfile.get()
-      let finishPlatformDefaultResolution: null | (() => void) = null
+      const profile = cacheProfile || $activeGatewayProfile.get()
+      const scope = cacheOwnerConnectionId ? { connectionId: cacheOwnerConnectionId, profile } : profile
 
       try {
         if ($activeSessionId.get()) {
           return
         }
 
-        finishPlatformDefaultResolution = beginCurrentPlatformDefaultResolution()
-
         // Capture intent before any catalog I/O so a picker click that lands
         // while the platform list is loading wins over this refresh.
         const selectionGeneration = getComposerSelectionGeneration()
-
-        // A signed-in Aino account owns the default for fresh drafts. Load its
-        // catalog alongside the existing gateway default lookup; an empty
-        // gateway model is intentional for newly provisioned profiles and must
-        // not leave the composer blank when a platform default is available.
-        const platformCatalog = platformModelCatalog()
-        await platformCatalog.load()
 
         // A manual pick stays sticky UNLESS it was removed from the catalog (its
         // model no longer exists on the provider), in which case keeping it would
@@ -175,7 +163,7 @@ export function useModelControls({
         // Snapshot the selection generation before awaiting so a picker click
         // that lands while getGlobalModelInfo is in flight wins over this older
         // default — value comparisons alone miss re-selecting the same row.
-        const result = await getGlobalModelInfo(profile)
+        const resolved = await resolveModelDefault(scope)
 
         if (
           profileRefreshEpochRef.current !== profileRefreshEpoch ||
@@ -186,27 +174,7 @@ export function useModelControls({
           return
         }
 
-        const accountId = platformCatalog.account.get()?.account?.id || ''
-        const preferredId = readPlatformDefault(accountId)
-
-        const platformDefault =
-          platformCatalog.state.get().phase === 'ready'
-            ? platformCatalog.state
-                .get()
-                .models.find(model => model.state === 'available' && model.id === preferredId) ||
-              platformCatalog.state.get().models.find(model => model.is_default && model.state === 'available')
-            : undefined
-
-        const resolvedModel = result.model || (result.provider ? '' : platformDefault?.id || '')
-        const resolvedProvider = result.provider || (resolvedModel ? 'aino' : '')
-
-        const resolvedPlatformDefault =
-          !result.model && !result.provider && resolvedProvider === 'aino' && platformDefault?.id === resolvedModel
-            ? {
-                modelId: resolvedModel,
-                ownerUserId: platformCatalog.account.get()?.account?.id || ''
-              }
-            : null
+        const { model: resolvedModel, provider: resolvedProvider, platform: resolvedPlatformDefault } = resolved
 
         if (resolvedModel) {
           setCurrentModel(resolvedModel)
@@ -218,18 +186,13 @@ export function useModelControls({
 
         if (resolvedModel || resolvedProvider) {
           setCurrentModelSource('default')
-          setCurrentPlatformDefaultResolution(resolvedPlatformDefault)
 
           if (resolvedPlatformDefault) {
             setCurrentPlatformOwner(resolvedPlatformDefault.ownerUserId)
           }
-        } else {
-          setCurrentPlatformDefaultResolution(null)
         }
       } catch {
         // The delayed session.info event still updates this once the agent is ready.
-      } finally {
-        finishPlatformDefaultResolution?.()
       }
     },
     [cacheOwnerConnectionId, cacheProfile, queryClient]
@@ -265,7 +228,6 @@ export function useModelControls({
         : ($sessionStates.get()[liveSessionId!]?.provider ?? '')
 
       const prevSource = getCurrentModelSource()
-      const prevPlatformDefaultResolution = $currentPlatformDefaultResolution.get()
       const prevPlatformOwner = $currentPlatformOwner.get()
       const liveGatewayProfile = cacheProfile || $activeGatewayProfile.get()
       const catalog = platformModelCatalog()
@@ -321,7 +283,6 @@ export function useModelControls({
           setCurrentModel(prevModel)
           setCurrentProvider(prevProvider)
           setCurrentModelSource(prevSource)
-          setCurrentPlatformDefaultResolution(prevPlatformDefaultResolution)
           setCurrentPlatformOwner(prevPlatformOwner)
         } else if (liveSessionId) {
           sessionTileDelegate()?.updateSession(liveSessionId, state => ({

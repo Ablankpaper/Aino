@@ -25,7 +25,13 @@ import {
 import { I18nProvider, setRuntimeI18nLocale } from '@/i18n'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $clarifyRequests, clearClarifyRequest, setClarifyRequest } from '@/store/clarify'
-import { clearSessionDraft, stashSessionDraft, takeSessionDraft } from '@/store/composer'
+import {
+  $composerAttachments,
+  $composerDraft,
+  clearSessionDraft,
+  stashSessionDraft,
+  takeSessionDraft
+} from '@/store/composer'
 import { requestGatewayForAgent, requestGatewayForProfile } from '@/store/gateway'
 import { $pinnedSessionIds } from '@/store/layout'
 import { $notifications, clearNotifications } from '@/store/notifications'
@@ -39,7 +45,6 @@ import {
   $currentCwd,
   $currentFastMode,
   $currentModel,
-  $currentPlatformDefaultResolution,
   $currentPlatformOwner,
   $currentProvider,
   $currentReasoningEffort,
@@ -58,13 +63,13 @@ import {
   setActiveSessionStoredIdRotation,
   setAwaitingResponse,
   setBusy,
+  setComposerSelectionOwner,
   setConnection,
   setCronSessions,
   setCurrentCwd,
   setCurrentFastMode,
   setCurrentModel,
   setCurrentModelSource,
-  setCurrentPlatformDefaultResolution,
   setCurrentPlatformOwner,
   setCurrentProvider,
   setCurrentReasoningEffort,
@@ -125,6 +130,10 @@ vi.mock('@/components/pane-shell/tree/store', async importOriginal => ({
 }))
 
 const RUNTIME_SESSION_ID = 'rt-new-001'
+
+beforeEach(() => {
+  vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: 'backend-default', provider: 'backend-provider' })
+})
 
 type HarnessHandle = Pick<
   ReturnType<typeof useSessionActions>,
@@ -203,11 +212,9 @@ function Harness({
 
 function FirstSendHarness({
   onReady,
-  resolveCurrentModel,
   requestGateway
 }: {
   onReady: (submitText: (text: string) => Promise<boolean>) => void
-  resolveCurrentModel?: () => Promise<unknown> | unknown
   requestGateway: <T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) => Promise<T>
 }) {
   const activeSessionIdRef = useRef<string | null>(null)
@@ -255,7 +262,6 @@ function FirstSendHarness({
     getRoutedStoredSessionId: () => null,
     navigate: vi.fn(),
     requestGateway,
-    resolveCurrentModel,
     resetViewSync: vi.fn(),
     runtimeIdByStoredSessionIdRef,
     selectedStoredSessionId: null,
@@ -844,8 +850,9 @@ describe('createBackendSessionForSend profile routing', () => {
     $currentPlatformOwner.set('')
     $currentProvider.set('')
     setCurrentModelSource('')
-    setCurrentPlatformDefaultResolution(null)
     $currentReasoningEffort.set('')
+    $composerAttachments.set([])
+    $composerDraft.set('')
     setNewChatWorkspaceTarget(undefined)
     vi.restoreAllMocks()
   })
@@ -1068,13 +1075,12 @@ describe('createBackendSessionForSend profile routing', () => {
     await platformAccountActions(accountBridge).refresh()
     await platformModelCatalog().load()
 
-    // Reload shape: visible scoped values survive, but authorization proof is
-    // deliberately transient and must be revalidated by the pending refresh.
+    // Reload restores visible values only. Send must initiate its own default
+    // resolution before any passive composer refresh has run.
     setCurrentModel('catalog-a')
     setCurrentProvider('aino')
     setCurrentPlatformOwner('user-a')
     setCurrentModelSource('default')
-    $currentPlatformDefaultResolution.set(null)
     vi.mocked(getGlobalModelInfo).mockReturnValue(globalModel.promise)
 
     const requestGateway = vi.fn(async (method: string) => {
@@ -1104,7 +1110,7 @@ describe('createBackendSessionForSend profile routing', () => {
       throw new Error(`unexpected request: ${method}`)
     })
 
-    const { result: modelControls } = renderHook(() =>
+    renderHook(() =>
       useModelControls({
         queryClient: new QueryClient(),
         requestGateway
@@ -1112,13 +1118,7 @@ describe('createBackendSessionForSend profile routing', () => {
     )
 
     let submitText: null | ((text: string) => Promise<boolean>) = null
-    render(
-      <FirstSendHarness
-        onReady={value => (submitText = value)}
-        requestGateway={requestGateway}
-        resolveCurrentModel={modelControls.current.refreshCurrentModel}
-      />
-    )
+    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
     await waitFor(() => expect(submitText).not.toBeNull())
 
     let submitting!: Promise<boolean>
@@ -1141,6 +1141,112 @@ describe('createBackendSessionForSend profile routing', () => {
       expect.objectContaining({ model_source: 'aino', model_id: 'catalog-a' })
     )
   })
+
+  it('captures manual A at Send while catalog work and a later manual B remain independent', async () => {
+    const catalogReady = deferred<void>()
+    const profileReady = deferred<void>()
+    const catalogLoad = vi.spyOn(platformModelCatalog(), 'load').mockReturnValue(catalogReady.promise)
+    vi.mocked(ensureGatewayProfile).mockReturnValueOnce(profileReady.promise)
+
+    const requestGateway = vi.fn(async (method: string) =>
+      method === 'session.create'
+        ? ({ session_id: RUNTIME_SESSION_ID, stored_session_id: null } as never)
+        : ({} as never)
+    )
+
+    const { result: controls } = renderHook(() => useModelControls({ queryClient: new QueryClient(), requestGateway }))
+    await act(async () => controls.current.selectModel({ model: 'manual-a', provider: 'provider-a' }))
+    setCurrentReasoningEffort('high')
+    setCurrentFastMode(false)
+    let submitText!: (text: string) => Promise<boolean>
+    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
+    await waitFor(() => expect(submitText).toBeDefined())
+
+    let submitting!: Promise<boolean>
+    act(() => {
+      submitting = submitText('captured intent')
+    })
+    await act(async () => controls.current.selectModel({ model: 'manual-b', provider: 'provider-b' }))
+    setCurrentReasoningEffort('low')
+    setCurrentFastMode(true)
+    // Manual sends must reach profile readiness without joining catalog/default I/O.
+    const reachedProfileBeforeCatalog = vi.mocked(ensureGatewayProfile).mock.calls.length > 0
+    catalogReady.resolve()
+    profileReady.resolve()
+    await act(async () => {
+      await expect(submitting).resolves.toBe(true)
+    })
+
+    expect(requestGateway).toHaveBeenCalledWith(
+      'session.create',
+      expect.objectContaining({
+        model: 'manual-a',
+        provider: 'provider-a',
+        reasoning_effort: 'high',
+        fast: false
+      })
+    )
+    expect(reachedProfileBeforeCatalog).toBe(true)
+    expect(catalogLoad).not.toHaveBeenCalled()
+    expect($currentModel.get()).toBe('manual-b')
+    expect($currentProvider.get()).toBe('provider-b')
+    expect(getCurrentModelSource()).toBe('manual')
+    expect(requestGateway.mock.calls.filter(([method]) => method === 'prompt.submit')).toHaveLength(1)
+    const nextParams = await createWith(() => $activeSessionId.set(null))
+    expect(nextParams).toMatchObject({ model: 'manual-b', provider: 'provider-b', reasoning_effort: 'low', fast: true })
+  })
+
+  it.each(['manual', 'saved default', 'owner scope'] as const)(
+    'keeps the draft recoverable when %s changes during captured default validation',
+    async change => {
+      const globalModel = deferred<{ model: string; provider: string }>()
+      vi.mocked(getGlobalModelInfo).mockReturnValue(globalModel.promise)
+      setCurrentModel('old-default')
+      setCurrentProvider('old-provider')
+      setCurrentModelSource('default')
+      const attachment = { id: 'file-a', kind: 'file' as const, label: 'notes.txt', path: '/notes.txt' }
+      $composerDraft.set('keep this draft')
+      $composerAttachments.set([attachment])
+      clearNotifications()
+
+      const requestGateway = vi.fn(async (method: string) =>
+        method === 'session.create'
+          ? ({ session_id: RUNTIME_SESSION_ID, stored_session_id: null } as never)
+          : ({} as never)
+      )
+
+      const { result: controls } = renderHook(() =>
+        useModelControls({ queryClient: new QueryClient(), requestGateway })
+      )
+
+      let submitText!: (text: string) => Promise<boolean>
+      render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
+      await waitFor(() => expect(submitText).toBeDefined())
+      let submitting!: Promise<boolean>
+      act(() => {
+        submitting = submitText('keep this draft')
+      })
+      await waitFor(() => expect(getGlobalModelInfo).toHaveBeenCalled())
+      expect(requestGateway).not.toHaveBeenCalled()
+      await act(async () => {
+        if (change === 'manual') {
+          await controls.current.selectModel({ model: 'manual-b', provider: 'provider-b' })
+        } else if (change === 'saved default') {
+          controls.current.applySavedMainModel('new-provider', 'new-default')
+        } else {
+          setComposerSelectionOwner('another-connection', 'another-profile')
+        }
+      })
+      globalModel.resolve({ model: 'validated-old-default', provider: 'old-provider' })
+      await act(async () => {
+        await expect(submitting).resolves.toBe(false)
+      })
+      expect(requestGateway).not.toHaveBeenCalled()
+      expect($composerDraft.get()).toBe('keep this draft')
+      expect($composerAttachments.get()).toEqual([attachment])
+      expect($notifications.get().some(item => item.kind === 'error')).toBe(true)
+    }
+  )
 
   it('omits a live Aino model when a saved BYOK default is submitted before draft refresh', async () => {
     const account = platformSnapshot()
@@ -1237,6 +1343,7 @@ describe('createBackendSessionForSend profile routing', () => {
 
     $activeSessionId.set('runtime-live')
     act(() => result.current.applySavedMainModel('openai-codex', 'openai/gpt-5.6-sol'))
+    vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: 'openai/gpt-5.6-sol', provider: 'openai-codex' })
 
     expect($currentModel.get()).toBe('catalog-a')
     expect($currentProvider.get()).toBe('aino')
@@ -1334,6 +1441,7 @@ describe('createBackendSessionForSend profile routing', () => {
       'session.create',
       expect.objectContaining({ profile: 'backend-default', source: 'desktop' })
     )
+    expect(getGlobalModelInfo).toHaveBeenCalledWith({ connectionId: 'source-a', profile: 'backend-default' })
     expect(ambientRequest).not.toHaveBeenCalledWith('session.create', expect.anything())
   })
 

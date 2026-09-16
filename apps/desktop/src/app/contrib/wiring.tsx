@@ -509,7 +509,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     navigate,
     onFreshDraftRouteIntent: clearRoutedSessionIntent,
     requestGateway,
-    resolveCurrentModel: refreshCurrentModel,
     resetViewSync,
     runtimeIdByStoredSessionIdRef,
     selectedStoredSessionId,
