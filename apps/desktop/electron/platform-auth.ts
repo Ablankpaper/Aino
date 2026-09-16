@@ -589,6 +589,9 @@ export function createPlatformAuth({
       generation += 1
       pendingSecondFactor = null
       refreshFlight = null
+      // Retire local runtime authority before durable token deletion or remote
+      // revocation can stall. Controllers observe the generation via publish().
+      publish({})
 
       const promise = (async () => {
         try {

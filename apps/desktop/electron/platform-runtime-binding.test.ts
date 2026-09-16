@@ -47,16 +47,24 @@ const model: PlatformModel = {
   }
 }
 
-async function rig(options: { remote?: boolean; allow?: boolean; delayLease?: boolean } = {}) {
+async function rig(options: { delayLeaseAt?: number; delayLogout?: boolean; remote?: boolean; allow?: boolean } = {}) {
   const received: Array<Record<string, unknown>> = []
   const credentials: Record<string, unknown>[] = []
 
   let releaseLease = () => {}
 
+  let releaseLogout = () => {}
+
   let leaseStarted = () => {}
+
+  let logoutStarted = () => {}
 
   const leaseReady = new Promise<void>(r => {
     leaseStarted = r
+  })
+
+  const logoutReady = new Promise<void>(r => {
+    logoutStarted = r
   })
 
   let claims = 0
@@ -72,7 +80,14 @@ async function rig(options: { remote?: boolean; allow?: boolean; delayLease?: bo
     }
 
     if (req.url === '/api/v1/auth/logout') {
-      return send({ success: true })
+      if (options.delayLogout) {
+        logoutStarted()
+        releaseLogout = () => send({ success: true })
+      } else {
+        send({ success: true })
+      }
+
+      return
     }
 
     if (req.url === '/api/v1/auth/refresh') {
@@ -106,7 +121,6 @@ async function rig(options: { remote?: boolean; allow?: boolean; delayLease?: bo
       }
 
       credentials.push(JSON.parse(body))
-      leaseStarted()
 
       const reply = () =>
         send({
@@ -117,8 +131,9 @@ async function rig(options: { remote?: boolean; allow?: boolean; delayLease?: bo
           model
         })
 
-      if (options.delayLease) {
+      if (options.delayLeaseAt === credentials.length) {
         releaseLease = reply
+        leaseStarted()
       } else {
         reply()
       }
@@ -247,7 +262,9 @@ async function rig(options: { remote?: boolean; allow?: boolean; delayLease?: bo
     credentials,
     received,
     leaseReady,
+    logoutReady,
     releaseLease: () => releaseLease(),
+    releaseLogout: () => releaseLogout(),
     invalidate: () => {
       valid = false
     },
@@ -320,7 +337,7 @@ it('does not obtain credentials for an unauthorized remote, wrong session, or st
 })
 
 it.each(['logout', 'clear', 'route'] as const)('rejects a late credential response after %s', async action => {
-  const f = await rig({ delayLease: true })
+  const f = await rig({ delayLeaseAt: 1 })
   const pending = f.controller.bind(f.input, f.window)
   await f.leaseReady
 
@@ -339,6 +356,30 @@ it.each(['logout', 'clear', 'route'] as const)('rejects a late credential respon
   f.releaseLease()
   expect((await pending).ok).toBe(false)
   expect(f.received.some(r => r.method === 'session.bind_managed_model')).toBe(false)
+})
+
+it('revokes active and pending gateway authority before a remote logout resolves', async () => {
+  const f = await rig({ delayLeaseAt: 2, delayLogout: true })
+  expect((await f.controller.bind(f.input, f.window)).ok).toBe(true)
+  expect(f.binding()).toMatchObject({ session_id: f.input.session_id })
+
+  const pending = f.controller.bind(
+    { ...f.input, expected_account_revision: f.auth.snapshot().revision },
+    f.window
+  )
+
+  await f.leaseReady
+
+  const logout = f.auth.logout()
+  await f.logoutReady
+
+  await vi.waitFor(() => expect(f.binding()).toBeUndefined())
+  f.releaseLease()
+  expect((await pending).ok).toBe(false)
+  expect(f.received.filter(r => r.method === 'session.bind_managed_model')).toHaveLength(1)
+
+  f.releaseLogout()
+  await expect(logout).resolves.toMatchObject({ phase: 'signed_out' })
 })
 
 it('keeps model IPC restricted to the registered main frame and strips extra renderer fields', async () => {
