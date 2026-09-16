@@ -1,6 +1,5 @@
 import { translateNow, type Translations } from '@/i18n'
 import { peekCachedSlashCompletion } from '@/lib/slash-completion-cache'
-import { localizedThemeCopyNow } from '@/themes/localized'
 
 export interface CommandsCatalogSection {
   name: string

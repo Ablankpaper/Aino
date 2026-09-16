@@ -2,7 +2,7 @@ import { useStore } from '@nanostores/react'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 import type { NavigateFunction } from 'react-router'
 
-import { createPlatformDraft } from '@/api/platform-session-binding'
+import { createPlatformDraft, type PlatformDraftAuthority } from '@/api/platform-session-binding'
 import { NO_PROJECT_ID } from '@/app/chat/sidebar/projects/workspace-groups'
 import { graftRefreshedTailOntoBackfill } from '@/app/chat/transcript-backfill'
 import { revealTreePane } from '@/components/pane-shell/tree/store'
@@ -302,7 +302,7 @@ function reconcileAuthoritativeMessages(
 async function desktopSessionCreateParams(
   cwd: string,
   capturedRoute = resolveNewChatOwnerRoute()
-): Promise<{ params: Record<string, unknown>; platformOwner: string }> {
+): Promise<{ params: Record<string, unknown>; platformAuthority: PlatformDraftAuthority | null; platformOwner: string }> {
   // Send captures user intent before any I/O. Manual selections never join
   // default resolution; their provider, owner, effort and fast mode travel
   // together even if another pick arrives during profile readiness.
@@ -310,6 +310,7 @@ async function desktopSessionCreateParams(
   const generation = getComposerSelectionGeneration()
   let platformOwner = $currentPlatformOwner.get()
   let platformOrigin = $currentPlatformOrigin.get()
+  let platformAuthority: PlatformDraftAuthority | null = null
 
   const selection = {
     effort: $currentReasoningEffort.get().trim(),
@@ -370,6 +371,7 @@ async function desktopSessionCreateParams(
 
     platformOwner = authoritativeOwner.user_id
     platformOrigin = authoritativeOwner.platform_origin
+    platformAuthority = { account, owner: authoritativeOwner }
   }
 
   const modelParams = platformCreateOverrides(
@@ -387,6 +389,7 @@ async function desktopSessionCreateParams(
 
   return {
     platformOwner,
+    platformAuthority,
     params: {
       cols: 96,
       source: 'desktop',
@@ -631,7 +634,7 @@ export function useSessionActions({
         // reduce the owner to a bare profile name that later RPCs dial on a
         // different socket than the one that minted the runtime.
         const capturedRoute = resolveNewChatOwnerRoute()
-        const { params, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute)
+        const { params, platformAuthority, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute)
 
         // Lease the owner socket for the whole create → owner-publication
         // sequence (#93602 primitive). The per-request lease inside
@@ -654,7 +657,8 @@ export function useSessionActions({
               : requestGateway,
             params,
             platformOwner,
-            capturedRoute
+            capturedRoute,
+            platformAuthority
           )
 
           stored = created.stored_session_id ?? null
@@ -854,7 +858,8 @@ export function useSessionActions({
               : requestGateway,
             params,
             prepared.platformOwner,
-            capturedRoute
+            capturedRoute,
+            prepared.platformAuthority
           )
 
           stored = created.stored_session_id

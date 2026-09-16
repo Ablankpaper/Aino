@@ -18,6 +18,7 @@ import {
   getLatestSessionMessages,
   getSession,
   type ProfileScope,
+  type SessionCreateResponse,
   type SessionInfo,
   type SessionResumeResponse,
   setSessionArchived
@@ -101,7 +102,7 @@ import { $sessionSeenCounts, $unreadFinishedMarkers } from '@/store/session-unre
 import { platformModel, platformSnapshot } from '@/test/platform-model'
 
 import sessionResumeActiveTurn from '../../../../../../tests/fixtures/session-resume-active-turn.json'
-import type { PlatformAccountBridge } from '../../../../shared/platform-contract'
+import type { PlatformAccountBridge, PlatformAccountSnapshot } from '../../../../shared/platform-contract'
 import { deferred } from '../../../test/deferred'
 import { NEW_CHAT_ROUTE, sessionRoute } from '../../routes'
 import type { ClientSessionState } from '../../types'
@@ -849,6 +850,82 @@ describe('startFreshSessionDraft', () => {
 })
 
 describe('createBackendSessionForSend profile routing', () => {
+  async function prepareDeferredManagedCreate() {
+    let account: PlatformAccountSnapshot = { ...platformSnapshot(), mode: 'development' }
+    let broadcast!: (next: PlatformAccountSnapshot) => void
+    const create = deferred<SessionCreateResponse>()
+    const bind = vi.fn()
+    const clear = vi.fn()
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.create') {return create.promise as never}
+
+      if (method === 'session.close') {return {} as never}
+
+      if (method === 'session.managed_model_ticket') {throw new Error('must not mint a ticket for the newer authority')}
+
+      if (method === 'prompt.submit') {throw new Error('must not submit after authority changes')}
+      throw new Error(`unexpected request: ${method}`)
+    })
+
+    const accountBridge: PlatformAccountBridge = {
+      status: async () => account,
+      capabilities: vi.fn(),
+      retry: async () => account,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      onChanged: listener => {
+        broadcast = listener
+
+        return () => undefined
+      }
+    }
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: {
+          owner: async () => ({
+            user_id: 'user-a',
+            platform_origin: account.mode === 'development' ? 'http://127.0.0.1:7001' : 'https://api.agentera.com.cn'
+          }),
+          bind,
+          clear,
+          list: async () => [platformModel()]
+        }
+      }
+    })
+    await platformAccountActions(accountBridge).refresh()
+    await platformModelCatalog().load()
+    recordGatewayReadyCapability(
+      { profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+    setCurrentModel('catalog-a')
+    setCurrentProvider('aino')
+    setCurrentPlatformOwner('user-a', 'http://127.0.0.1:7001')
+    setCurrentModelSource('manual')
+
+    return {
+      bind,
+      clear,
+      create,
+      requestGateway,
+      switchToNewerAuthority: () => {
+        account = { ...platformSnapshot('user-a', 2), mode: 'production' }
+        broadcast(account)
+      }
+    }
+  }
+
   async function prepareManagedCatalog() {
     const account = platformSnapshot()
 
@@ -1078,6 +1155,51 @@ describe('createBackendSessionForSend profile routing', () => {
       1_800_000
     )
     expect(requestGateway.mock.calls.find(([method]) => method === 'config.set')).toBeUndefined()
+  })
+
+  it('rejects a deferred first send after its captured commercial authority changes', async () => {
+    const deferredCreate = await prepareDeferredManagedCreate()
+    let submitText: null | ((text: string) => Promise<boolean>) = null
+    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={deferredCreate.requestGateway} />)
+    await waitFor(() => expect(submitText).not.toBeNull())
+
+    const pending = submitText!('do not adopt authority B')
+    await waitFor(() =>
+      expect(deferredCreate.requestGateway.mock.calls.filter(([method]) => method === 'session.create')).toHaveLength(1)
+    )
+    deferredCreate.switchToNewerAuthority()
+    deferredCreate.create.resolve({
+      session_id: 'created-under-a',
+      info: { model_source: 'aino', model_id: 'catalog-a', provider: 'aino', model_status: 'awaiting_managed_credentials' }
+    })
+
+    await expect(pending).resolves.toBe(false)
+    expect(deferredCreate.requestGateway.mock.calls.map(([method]) => method)).toEqual(['session.create', 'session.close'])
+    expect(deferredCreate.bind).not.toHaveBeenCalled()
+    expect(deferredCreate.clear).toHaveBeenCalledOnce()
+  })
+
+  it('rejects a deferred managed tile after its captured commercial authority changes', async () => {
+    const deferredCreate = await prepareDeferredManagedCreate()
+    let handle: HarnessHandle | null = null
+    render(<Harness onReady={value => (handle = value)} requestGateway={deferredCreate.requestGateway} />)
+    await waitFor(() => expect(handle).not.toBeNull())
+
+    const pending = handle!.openNewSessionTile('center', { listed: false })
+    await waitFor(() =>
+      expect(deferredCreate.requestGateway.mock.calls.filter(([method]) => method === 'session.create')).toHaveLength(1)
+    )
+    deferredCreate.switchToNewerAuthority()
+    deferredCreate.create.resolve({
+      session_id: 'tile-created-under-a',
+      stored_session_id: 'stored-tile-created-under-a',
+      info: { model_source: 'aino', model_id: 'catalog-a', provider: 'aino', model_status: 'awaiting_managed_credentials' }
+    })
+
+    await expect(pending).resolves.toBeUndefined()
+    expect(deferredCreate.requestGateway.mock.calls.map(([method]) => method)).toEqual(['session.create', 'session.close'])
+    expect(deferredCreate.bind).not.toHaveBeenCalled()
+    expect(deferredCreate.clear).toHaveBeenCalledOnce()
   })
 
   it('preserves a quota-blocked managed draft and opens the picker without replaying it', async () => {

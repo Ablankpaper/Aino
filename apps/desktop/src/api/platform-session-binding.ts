@@ -1,13 +1,20 @@
 import type { PlatformSessionModel } from '@/lib/platform-session-model'
-import type { PlatformModelOwner } from '@/store/platform-model-owner'
+import { type PlatformModelOwner, samePlatformAccount } from '@/store/platform-model-owner'
 import { platformModelCatalog, PlatformSelectionError, requirePlatformSelection } from '@/store/platform-models'
 import type { SessionOwnerScope } from '@/store/session-request-router'
 import { $sessionStates } from '@/store/session-states'
 import type { SessionCreateResponse } from '@/types/hermes'
 
+import type { PlatformAccountSnapshot } from '../../shared/platform-contract'
+
 import { bindPlatformModel } from './platform-models'
 
 type Request = <T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) => Promise<T>
+
+export interface PlatformDraftAuthority {
+  account: PlatformAccountSnapshot
+  owner: PlatformModelOwner
+}
 
 function target(owner: SessionOwnerScope, sessionId: string) {
   return {
@@ -22,7 +29,8 @@ export async function bindSelectedPlatformSession(
   sessionId: string,
   selection: PlatformSessionModel,
   request?: Request,
-  requireKnownOwner = false
+  requireKnownOwner = false,
+  expectedAccount?: PlatformAccountSnapshot
 ): Promise<PlatformModelOwner> {
   const catalog = platformModelCatalog()
   const account = catalog.account.get()
@@ -36,6 +44,7 @@ export async function bindSelectedPlatformSession(
   const current = catalog.account.get()
 
   if (
+    (expectedAccount !== undefined && !samePlatformAccount(account, expectedAccount)) ||
     current?.revision !== account.revision ||
     current?.mode !== account.mode ||
     current?.account?.id !== account.account.id ||
@@ -55,7 +64,7 @@ export async function bindSelectedPlatformSession(
 
   if (!result.ok) {throw new PlatformSelectionError(result.error.code)}
 
-  if (catalog.account.get()?.revision !== account.revision) {throw new PlatformSelectionError('platform_account_changed')}
+  if (!samePlatformAccount(catalog.account.get(), account)) {throw new PlatformSelectionError('platform_account_changed')}
 
   return authoritativeOwner
 }
@@ -64,15 +73,37 @@ export async function createPlatformDraft(
   request: Request,
   params: Record<string, unknown>,
   ownerUserId: string,
-  owner: SessionOwnerScope
+  owner: SessionOwnerScope,
+  authority: PlatformDraftAuthority | null
 ): Promise<SessionCreateResponse> {
   if (params.model_source !== 'aino') {return request('session.create', params)}
   const catalog = platformModelCatalog()
   const modelId = String(params.model_id || '')
-  requirePlatformSelection(catalog.account.get(), catalog.state.get().models, modelId, ownerUserId)
+
+  const authorityCurrent = () => {
+    const account = catalog.account.get()
+    const currentOwner = catalog.owner.state.get().owner
+
+    return Boolean(
+      authority &&
+      samePlatformAccount(account, authority.account) &&
+      currentOwner?.user_id === authority.owner.user_id &&
+      currentOwner.platform_origin === authority.owner.platform_origin
+    )
+  }
+
+  if (!authority || !authorityCurrent() || authority.owner.user_id !== ownerUserId) {
+    throw new PlatformSelectionError('platform_account_changed')
+  }
+
+  requirePlatformSelection(authority.account, catalog.state.get().models, modelId, ownerUserId)
   const created = await request<SessionCreateResponse>('session.create', params)
 
   try {
+    if (!authorityCurrent()) {
+      throw new PlatformSelectionError('platform_account_changed')
+    }
+
     if (created.info?.model_source !== 'aino' || created.info.model_id !== modelId) {
       throw new PlatformSelectionError('unsupported_gateway')
     }
@@ -80,8 +111,10 @@ export async function createPlatformDraft(
     const authoritativeOwner = await bindSelectedPlatformSession(
       owner,
       created.session_id,
-      { modelId, ownerUserId, status: 'awaiting_managed_credentials' },
-      request
+      { modelId, ownerUserId, platformOrigin: authority.owner.platform_origin, status: 'awaiting_managed_credentials' },
+      request,
+      false,
+      authority.account
     )
 
     return {
