@@ -4,7 +4,7 @@
 
 本表逐项对应 [D 计划](../aino-platform/04-delivery.md) 的矩阵。已有分层测试不等于整条业务链通过；“部分”表示已有对应证据，但该行仍有未验证条件。尚未执行的真实短信、付费模型、支付或生产操作一律不计为通过。
 
-本次已复核代码检查点：Aino `5acc1c18b3a36d76afc31580abec3804ce56c880`，Aino-API `af10f7721299a8e2bf0a6433b6aeb44082c38bd7`。两仓库均为 `codex/aino-platform-identity-models-billing`，模型能力/恢复/origin 及未提交原生夹具不在此检查点的完成声明中。
+本次已复核代码检查点：Aino `07b77b40b15f9e5e5d9f15f7fdf014c0a10f6eaf`，Aino-API `997e0635b963af09a70b10dc7a59faa64a3711d3`。两仓库均为 `codex/aino-platform-identity-models-billing`，模型能力/恢复/origin 及未提交原生夹具不在此检查点的完成声明中。
 
 ## 证据入口
 
@@ -19,8 +19,9 @@
 | E7 | 原生首跑 `/tmp/aino-d1-native-run1.log`；修复 `8b53794e1f` | 首跑停在合法空昵称解析；16 项测试和真实 API 客户端复验通过，完整 Electron 复验未运行 |
 | E8 | C4 `7a215f2b11`；`/tmp/aino-c4-byok-round1-final-{python,ui,types,lint}.log` | 76 项 Python、39 项 UI、三个 TS 配置通过；费用来源两项问题独立复核关闭，无新增问题 |
 | E9 | [质量复核](aino-platform-quality-review.md)、[Python 夹具](aino-platform-python-fixtures.md) | 已修失败和已运行门禁；不替代最终稳定树全量回归 |
-| E10 | API `af10f7721`：`TestCompatibleOldServerRollbackRehearsal`，7.572 秒，复核通过 | 归档当前→兼容旧版→当前；数据/撤销/关闭策略精确断言，不含回退期回调、备份或真实部署 |
+| E10 | API `af10f7721`/`997e0635b`：`TestCompatibleOldServerRollbackRehearsal`，最新 7.791 秒，复核通过 | 归档当前→兼容旧版→当前；数据/撤销/关闭策略、保留签名回调一次入账，不含备份或真实部署 |
 | E11 | 原生第二次 `/tmp/aino-d1-native-run2.log` | 固定构建后在登录前的拦截器加载断言失败，12.9 秒退出；模型/支付/用量均 0，不是原生闭环通过 |
+| E12 | 原生第四次 `/tmp/aino-d1-native-run4.log`；引导修复 `07b77b40b1` | 真实 session-only 登录成功，但旧供应商引导阻塞；36 项相关测试/类型/lint 和独立复核通过，待原生新构建 |
 
 `/tmp` 是本机原始证据，不保证随源码交付。最终交付时应保留脱敏输出及命令退出状态的受控副本；不能以临时文件丢失为理由补写成功记录。
 
@@ -40,7 +41,7 @@
 | AUTH-10 | 隔离自动化通过 | E1：注册、邀请码、协议、封禁与 TOTP；正式 captcha 配置未验收 |
 | AUTH-11 | 部分 | E1/E7：占位邮箱隔离与空昵称解析已验证；完整原生手机号账户回归仍待复跑 |
 | AUTH-12 | 隔离自动化通过 | E1：最后可用身份保护，通用解绑与近期认证覆盖 |
-| DESK-01 | 部分 | E1 独立登录窗口夹具通过；E7 真实 API 首跑失败已修 parser，整条复验待做 |
+| DESK-01 | 部分 | E1 独立登录窗口夹具、E12 真实 API session-only 登录通过；首次引导已修复，完整工作区/聊天复验待做 |
 | DESK-02 | 部分 | E2/E4：连接/profile 和商业账户分离有测试；真实桌面切工作区/远程交互未完成 |
 | DESK-03 | 部分 | E1/E2：刷新单飞、广播、退出和旧结果拒绝；完整原生多窗口并发未完成 |
 | DESK-04 | 部分 | 实际 macOS 加密、重启恢复、退出清理已有 E1；Windows/Linux、拒绝/锁定 Keychain 未验证 |
@@ -50,7 +51,7 @@
 
 | ID | 当前状态 | 已有证据与尚缺条件 |
 | --- | --- | --- |
-| MODEL-01 | 部分 | E3/E4：无 BYOK 草稿→绑定→首发分层通过；真实 API＋Electron＋Agent 尚未完成 |
+| MODEL-01 | 部分 | E3/E4：无 BYOK 草稿→绑定→首发分层通过；E12 平台登录后旧引导阻塞已修，真实三层 Agent 发送仍未完成 |
 | MODEL-02 | 隔离自动化通过 | E1/E6：目录/租约与真实 APIKey group/model gate；正式逐模型配置未验收 |
 | MODEL-03 | 部分 | E3 真实 Agent 工具/流式/停止通过；E6 API 协议通过；D1 原生串联尚未完成 |
 | MODEL-04 | 部分 | E1/E2/E3 有字段白名单、秘密持久化与跨进程边界测试；原生整链落盘/日志审计待完成 |
@@ -87,7 +88,7 @@
 | --- | --- | --- |
 | UX-01 | 部分 | E5 实际组件浅/深色及现有 tokens 验收；最终原生/打包窗口未完成 |
 | UX-02 | 部分 | E1/E5 四语言、OTP/窄屏分层覆盖；新增 B6 恢复文案和最终键盘流程未完成 |
-| UPGRADE-01 | 部分 | E6 旧 schema 升级、E10 兼容旧二进制回退保留身份/账本/普通 Key 并保持托管撤销；旧客户端完整人工流程、回退期回调及备份恢复未验证 |
+| UPGRADE-01 | 部分 | E6 旧 schema 升级、E10 二进制回退保留身份/账本/Key/托管撤销和签名回调一次入账；旧客户端完整人工流程与备份恢复未验证 |
 | UPGRADE-02 | 部分 | E4 已把实际 socket 能力接到两种 picker、设置、默认与首次发送；旧事件拒绝、未知能力不发送有行为测试；完整旧版本原生交互未验证 |
 
 额外发布门禁：最小短信灰度限制在 API `6f73d6a58` 已本地实现并独立复核通过，该提交完整 unit 门禁 56 包通过/0 失败。Aino `d0e248b758` 完整 Electron 门禁 2,261 通过/6 原有跳过。
