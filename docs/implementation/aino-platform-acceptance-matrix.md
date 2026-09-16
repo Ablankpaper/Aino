@@ -4,7 +4,7 @@
 
 本表逐项对应 [D 计划](../aino-platform/04-delivery.md) 的矩阵。已有分层测试不等于整条业务链通过；“部分”表示已有对应证据，但该行仍有未验证条件。尚未执行的真实短信、付费模型、支付或生产操作一律不计为通过。
 
-本次已复核代码检查点：Aino `d0e248b7587c035d6546677ff317ea96941d6b4a`，Aino-API `6f73d6a5833266f4eca8df986dbda73e6c2f9aaf`。两仓库均为 `codex/aino-platform-identity-models-billing`，后续能力 UX 及未提交原生夹具不在此检查点的完成声明中。
+本次已复核代码检查点：Aino `5acc1c18b3a36d76afc31580abec3804ce56c880`，Aino-API `af10f7721299a8e2bf0a6433b6aeb44082c38bd7`。两仓库均为 `codex/aino-platform-identity-models-billing`，模型能力/恢复/origin 及未提交原生夹具不在此检查点的完成声明中。
 
 ## 证据入口
 
@@ -13,12 +13,14 @@
 | E1 | [阶段进度](aino-platform-progress.md)：A1–A6、B2 记录 | 真实隔离 PG/Redis/JWT 身份与租约；外部短信为替身；原生账户独立夹具不是完整 API 闭环 |
 | E2 | [B3 复核](aino-platform-b3-review.md) | main/HTTP/WS/ticket/bind、连接与主体隔离，不代表远程 TLS/SSH 人工验收 |
 | E3 | [B5 验收](aino-platform-b5-review.md)、进度中的 B4 | 实际 Agent 三协议/工具与辅助模型分层测试，不是付费供应商回执 |
-| E4 | 进度中的 B6；`52ec689c98`、`fde0064f71`、`6acd2046ca` | 发送捕获、连接/profile 默认值、账户草稿复核通过；切换事务与能力恢复仍开放 |
+| E4 | 进度中的 B6；首发/默认/草稿、`c3daa97bef` 切换及 `5acc1c18b3` 能力修复 | 发送捕获、默认作用域、账户草稿、切换与精确后端能力复核通过；模型能力/恢复与 origin 仍开放 |
 | E5 | 进度中的 C1–C4 | 真实账本/报价/订单/回调分层测试及实际渲染；完整 Electron 串联未完成 |
 | E6 | API `97e4a4812e`：`TestAinoPlatform*`；`/tmp/aino-d1-native-api-regression.log` | 实际 API 内部服务、工具协议往返、两次扣费和一次加款；此 API 场景没有运行 Python Agent |
 | E7 | 原生首跑 `/tmp/aino-d1-native-run1.log`；修复 `8b53794e1f` | 首跑停在合法空昵称解析；16 项测试和真实 API 客户端复验通过，完整 Electron 复验未运行 |
 | E8 | C4 `7a215f2b11`；`/tmp/aino-c4-byok-round1-final-{python,ui,types,lint}.log` | 76 项 Python、39 项 UI、三个 TS 配置通过；费用来源两项问题独立复核关闭，无新增问题 |
 | E9 | [质量复核](aino-platform-quality-review.md)、[Python 夹具](aino-platform-python-fixtures.md) | 已修失败和已运行门禁；不替代最终稳定树全量回归 |
+| E10 | API `af10f7721`：`TestCompatibleOldServerRollbackRehearsal`，7.572 秒，复核通过 | 归档当前→兼容旧版→当前；数据/撤销/关闭策略精确断言，不含回退期回调、备份或真实部署 |
+| E11 | 原生第二次 `/tmp/aino-d1-native-run2.log` | 固定构建后在登录前的拦截器加载断言失败，12.9 秒退出；模型/支付/用量均 0，不是原生闭环通过 |
 
 `/tmp` 是本机原始证据，不保证随源码交付。最终交付时应保留脱敏输出及命令退出状态的受控副本；不能以临时文件丢失为理由补写成功记录。
 
@@ -85,13 +87,13 @@
 | --- | --- | --- |
 | UX-01 | 部分 | E5 实际组件浅/深色及现有 tokens 验收；最终原生/打包窗口未完成 |
 | UX-02 | 部分 | E1/E5 四语言、OTP/窄屏分层覆盖；新增 B6 恢复文案和最终键盘流程未完成 |
-| UPGRADE-01 | 部分 | E6 真实旧 schema 升级保留账户/OIDC/余额/订单/订阅/Key；旧客户端及旧二进制兼容回退未完整运行 |
-| UPGRADE-02 | 未完成 | B6 仍需把 socket `gateway.ready` 能力接到两种 picker、设置和自动默认；不能拿模型能力字段替代 backend 能力 |
+| UPGRADE-01 | 部分 | E6 旧 schema 升级、E10 兼容旧二进制回退保留身份/账本/普通 Key 并保持托管撤销；旧客户端完整人工流程、回退期回调及备份恢复未验证 |
+| UPGRADE-02 | 部分 | E4 已把实际 socket 能力接到两种 picker、设置、默认与首次发送；旧事件拒绝、未知能力不发送有行为测试；完整旧版本原生交互未验证 |
 
 额外发布门禁：最小短信灰度限制在 API `6f73d6a58` 已本地实现并独立复核通过，该提交完整 unit 门禁 56 包通过/0 失败。Aino `d0e248b758` 完整 Electron 门禁 2,261 通过/6 原有跳过。
 
 Python 在 Aino `82e0ba3cc5` 的完整计划范围回归结果为 18,572 通过、3 失败、209 跳过，另 1 文件进程崩溃；后续 `5a7d7084c2`/`d0e248b758` 修正三项失败并通过 29 项定向回归和独立复核。崩溃文件一次单独诊断 10 项通过，但整套 Bus error 原因仍未查明，不标全绿。TTFB 文件使用原有 300 秒预算在 183.67 秒通过，无修改/重试。日志 `/tmp/aino-d2-python-final-82e0ba3.log`。
 
-最终稳定树 UI 与剩余 Go integration 门禁、至少一份实际打包产物、配对制品哈希和兼容回退演练仍待完成。网站 2,139 项及相关 types/lint/build 已通过，未改动区域无需重复运行。
+API `6f73d6a58` 的完整 integration 已通过：50 包通过/59 包无测试，0 失败，实际隔离 PG/Redis；包含普通夹具增强，不含额外标签的原生和回退长流程。兼容二进制回退另有 E10 通过证据。最终稳定树 UI、完整原生链路、至少一份实际打包产物和最终配对制品哈希仍待完成。网站 2,139 项及相关 types/lint/build 已通过，未改动区域无需重复运行。
 
 真实服务门禁仍全部独立待授权/待材料：正式模板正文与变量、短信接收范围及次数、逐模型预算、支付账户/金额/渠道、预发布/生产目标、协议与支持入口。当前不得宣布可正式上线。

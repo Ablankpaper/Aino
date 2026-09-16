@@ -6,10 +6,10 @@
 
 | 仓库 | 分支 | 本次恢复基线 | 最新已核对提交 |
 | --- | --- | --- | --- |
-| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | `d0e248b7587c035d6546677ff317ea96941d6b4a`；模型切换/来源修正已复核通过，能力 UX 与原生验收仍待完成，非最终制品 |
-| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `6f73d6a5833266f4eca8df986dbda73e6c2f9aaf`；API 隔离闭环/短信灰度复核通过，未提交原生夹具不计入此 SHA |
+| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | `5acc1c18b3a36d76afc31580abec3804ce56c880`；精确后端能力修复已复核，模型能力/恢复/origin 与原生验收未完成，非最终制品 |
+| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `af10f7721299a8e2bf0a6433b6aeb44082c38bd7`；隔离闭环/短信灰度/有界二进制回退已复核，未提交原生夹具不计入此 SHA |
 
-当前 A1–A6、B1–B5、C1–C3 与 C4 钱包/充值/订单/设备/费用来源切片已完成本地实现和相应复核；B6 仍在完成模型切换和能力/恢复 UX，D1–D4 最终验收未完成。Codex 继续开发，旧“交给 Claude 从 B4 开始”的交接已失效。两仓库保留此前提交。没有推送、合并 main、部署生产或进行真实短信、付费模型和支付调用。
+当前 A1–A6、B1–B5、C1–C3 与 C4 钱包/充值/订单/设备/费用来源切片已完成本地实现和相应复核；B6 模型切换及精确后端能力检测已复核，模型能力/恢复 UX 与 origin 隔离尚待完成。D1–D4 最终验收未完成。两仓库保留此前提交，没有推送、合并 main、部署生产或进行真实短信、付费模型和支付调用。
 
 ## 2026-09-16 最新验证切片
 
@@ -21,6 +21,9 @@
 | B6 固定发送时模型及原 socket | `52ec689c98`、`fde0064f71`；首发/恢复及 profile rail 修复已通过独立复核 | 默认作用域、切换及原生完整流程仍待完成 |
 | B6 作用域与账户草稿 | `6acd2046ca`：13 文件/454 项通过，独立复核通过 | 精确开发 origin、模型切换/能力和完整原生验证仍待完成 |
 | B6 模型切换事务 | `c83d5c1b71` 原实现；`82e0ba3cc5`/`c3daa97bef` 关闭四项问题，独立复核通过 | 实际保留动画 DOM 的菜单重开测试、99 项覆盖和真实 Agent 反向切换通过；完整原生链路单列 |
+| B6 精确后端能力 | `911151ea09`/`ae59e82f52`/`5acc1c18b3`：163 项覆盖通过，4 项旧行为 RED→GREEN、类型/lint 和独立复核通过 | 连接生命周期/首次发送拒绝，不代表 vision/reasoning、错误恢复或 origin 隔离已完成 |
+| D3 兼容二进制回退 | 测试提交 `af10f7721`：归档 `6f73d6a58`→`78f962607b`→`6f73d6a58`，7.572 秒，三进程就绪/exit 0；独立复核通过 | 精确身份/账本/Key/撤销/关闭策略；不含回退期回调履约、备份恢复和真实部署 |
+| D1 原生第二次固定构建 | Aino `5acc1c18b3` / API `af10f7721`＋未提交测试夹具；renderer 与开发 main 构建 exit 0；原生 12.9 秒在启动拦截器断言失败 | main SHA-256 `03ad21c2ebf97df1cf40e364fcdf996b137f1a433b87379b78aac25982722b93`；未登录，模型/支付/用量均 0；修测试入口后先验证隔离，不算业务通过 |
 | C4 非 Aino 调用来源 | `7a215f2b11`：76 项 Python、39 项 UI、三个 TS 配置及相关 lint 通过，独立复核通过 | 可与 Aino 账本费用并存，不推断外部收费；非完整原生验收 |
 | 原生空昵称修复 | `8b53794e1f`：16 项测试、真实本地 API 客户端复验、独立复核通过 | 只修合法 phone-only 空昵称解析；首轮 Electron 登录失败后的完整原生流程仍待复验 |
 | C2/C3 | 真实隔离 PG/Redis/JWT/用量/账本和签名回调竞态已有分层证据 | [进度记录](aino-platform-progress.md)，仍需 D1 串联实际 Agent 与原生桌面 |
@@ -30,6 +33,7 @@
 | UI 全量 | 最近一次 7,884 通过/3 失败；三项 profile rail 已修复并在 136 项覆盖回归通过 | 尚未在最终 B6 树重跑，不将局部修复视为全量复验 |
 | API unit/lint | `308aa7725`：56 包通过，golangci-lint 0 issues | [质量复核](aino-platform-quality-review.md)；不替代最新 tagged integration |
 | API 最新 unit/lint | `6f73d6a58`：56 包通过、53 包无测试，0 失败、exit 0；本提交仓库 lint 0 issues | `/tmp/aino-d2-api-unit-6f73d6a58.jsonl`、`/tmp/d3-phone-rollout-lint-local.log`；逐测试事件计数包含子测试 |
+| API 最新 integration | `6f73d6a58`＋普通 fixture 断言增强：50 包通过、59 包无测试，0 失败、exit 0 | `/tmp/aino-d2-api-integration-6f73d6a58.jsonl`；实际隔离 PG/Redis，不含 nativeconsumer/rollbackrehearsal 额外标签长流程 |
 | API 默认测试/生成/构建 | `97e4a4812e`：默认测试 50 包通过/59 包无测试；生成与构建 exit 0，无 Ent/Wire 漂移 | `/tmp/aino-d2-api-{default-final,generate,generated-diff,build}.log`，未来灰度代码需新门禁 |
 | API 实际内部闭环/升级 | `97e4a4812e`：32 顶层/38 含子项通过，独立复核通过；后续协议/OIDC 断言覆盖的两场景复验通过 | 实际 PG/Redis/auth/lease/gateway/ledger/callback；尚未与原生 Python Agent 连成一条链，旧二进制回退未验证 |
 | 网站全量 | `19c43905f`：286 文件/2,139 项通过 | `/tmp/aino-d-site-final.log`；旧 Stripe 夹具失败已关闭 |
@@ -94,8 +98,8 @@ Ent 下载和缺失 go.sum 已解决，原锁定版本成功生成并提交实�
 
 1. 完成 B6 能力/恢复提示、精确平台 origin 及原生验收；已过复核的模型切换、默认值作用域、账户草稿和 A/B1–B5 不重做。
 2. 在最终 D1/D2 复核费用来源与账本显示；C4 非 Aino 调用来源已过独立复核，C1–C4 稳定切片不重复重写。
-3. 完成最终必要门禁及已暴露失败的定向修正。TTFB 此前两次人工 75/60 秒预算不足，测试优化已撤回；最新未改代码的 300 秒默认门禁内 21 项通过，不再重复诊断。最新 Python 3 项失败和 1 文件崩溃仍如实保留，不能视为全绿。
-4. 完成 D1 的原生 Electron＋真实 API＋Python Agent 隔离闭环；API 内部闭环和旧 schema 升级已经复核通过，兼容旧二进制回退仍待验证。
+3. 完成最终必要门禁。TTFB 在未改代码的 300 秒默认门禁内 21 项通过；三项 Python 断言失败已修复并通过定向回归和复核。整套运行时 1 文件 Bus error 仍未根治，不反复空跑、不标全绿。
+4. 完成 D1 原生 Electron＋真实 API＋Python Agent 闭环；API 内部闭环、旧 schema 升级与有界兼容二进制回退已复核。回退期签名回调履约和备份恢复仍未验证。
 5. 整理配对提交、制品、配置、部署与回退说明；新增 SQL 保持 forward-only。
 6. 缺少外部材料或授权的项目列为人工验收项，完成其余本地开发；不盲目重复受阻命令。
 
@@ -103,4 +107,4 @@ Ent 下载和缺失 go.sum 已解决，原锁定版本成功生成并提交实�
 
 当前不能宣称“登录即可聊天和充值”已完整可用，也不能宣称全量 CI 已绿。正式上线前必须补齐模型分组/能力/价格配置、短信模板和供应商验证、支付渠道与协议配置，并在明确范围内取得真实联调证据。
 
-回退必须保留新账户、订单和账本数据；停用新充值入口不能停止已支付订单的回调履约。具体操作单已写入 Aino-API 的 `docs/aino-platform-deployment.md`；实际兼容回退 SHA、制品和演练结果仍待填写，不能直接回退到不识别新身份/订单字段的旧版本。
+回退必须保留新账户、订单和账本数据；停用新充值入口不能停止已支付订单的回调履约。API 部署操作单已记录本地兼容演练 SHA 与二进制哈希，回执 SHA-256 为 `f04ce4ea3392695446e47ba9fc04a41c498bb397f90c9873bb1c2617f00723b4`。演练未覆盖回退期签名回调履约、备份恢复或实际生产环境，不能外推为完整上线回退验收。
