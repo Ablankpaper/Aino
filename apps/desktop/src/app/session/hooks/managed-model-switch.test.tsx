@@ -5,7 +5,9 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { platformAccountActions } from '@/api/platform'
 import { ModelPill } from '@/app/chat/composer/model-pill'
 import { ModelMenuCloseContext, ModelMenuPanel } from '@/app/shell/model-menu-panel'
+import { ModelPickerDialog } from '@/components/model-picker'
 import { DropdownMenu, DropdownMenuContent } from '@/components/ui/dropdown-menu'
+import { I18nProvider } from '@/i18n'
 import { modelOptionsQueryKey } from '@/lib/model-options'
 import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { $modelPresets, modelPresetKey } from '@/store/model-presets'
@@ -107,6 +109,10 @@ beforeEach(async () => {
   )
   request = vi.fn(async (method, params) => {
     if (method === 'config.set') {
+      if (params.key === 'reasoning') {
+        return {}
+      }
+
       backend =
         params.model_source === 'aino'
           ? {
@@ -204,6 +210,23 @@ function PillHarness({ client }: { client: QueryClient }) {
         modelMenuContent: <ModelMenuPanel onSelectModel={selectModel} requestGateway={request as never} />
       }}
     />
+  )
+}
+
+function FullPickerHarness({ client }: { client: QueryClient }) {
+  const { selectModel } = useModelControls({ queryClient: client, requestGateway: request as never })
+
+  return (
+    <I18nProvider>
+      <ModelPickerDialog
+        currentModel="byok-old"
+        currentProvider="custom:test"
+        includePlatform
+        onOpenChange={() => undefined}
+        onSelect={selectModel}
+        open
+      />
+    </I18nProvider>
   )
 }
 
@@ -407,7 +430,7 @@ it('offers outstanding native cleanup after a lost reverse-switch acknowledgemen
   expect(nativeBindingRetained).toBe(true)
   await act(() => notices.notify.mock.calls.at(-1)?.[0]?.action.onClick())
   expect(nativeBindingRetained).toBe(false)
-  expect(request.mock.calls.filter(([method]) => method === 'config.set')).toHaveLength(1)
+  expect(request.mock.calls.filter(([method, params]) => method === 'config.set' && params.key === 'model')).toHaveLength(1)
   expect(request.mock.calls.some(([method]) => method === 'prompt.submit')).toBe(false)
 })
 
@@ -442,8 +465,38 @@ it('reconciles staged binding failure and retries authorization without replayin
   expect(retry).toBeDefined()
   await act(() => retry.onClick())
   expect($sessionStates.get()['runtime-a'].platformModel?.status).toBe('ready')
-  expect(request.mock.calls.filter(([method]) => method === 'config.set')).toHaveLength(1)
+  expect(request.mock.calls.filter(([method, params]) => method === 'config.set' && params.key === 'model')).toHaveLength(1)
   expect(request.mock.calls.some(([method]) => method === 'prompt.submit')).toBe(false)
+})
+
+it('clears stale live reasoning through config.set for a non-reasoning Aino selection', async () => {
+  $currentReasoningEffort.set('high')
+  const result = controls()
+
+  await act(async () => expect(await result.current.selectModel({ provider: 'aino', model: 'catalog-a' })).toBe(true))
+
+  expect(request).toHaveBeenCalledWith('config.set', { key: 'reasoning', session_id: 'runtime-a', value: '' })
+  expect($currentReasoningEffort.get()).toBe('')
+  expect($sessionStates.get()['runtime-a'].reasoningEffort).toBe('')
+})
+
+it('clears stale live reasoning through config.set from the full picker too', async () => {
+  $currentReasoningEffort.set('high')
+  const client = new QueryClient()
+
+  render(
+    <QueryClientProvider client={client}>
+      <FullPickerHarness client={client} />
+    </QueryClientProvider>
+  )
+
+  fireEvent.click(screen.getByRole('button', { name: 'Aino models' }))
+  fireEvent.click((await screen.findAllByRole('option', { name: /Fixture Model/i }))[0])
+
+  await waitFor(() =>
+    expect(request).toHaveBeenCalledWith('config.set', { key: 'reasoning', session_id: 'runtime-a', value: '' })
+  )
+  expect($currentReasoningEffort.get()).toBe('')
 })
 
 it('keeps authoritative BYOK after native cleanup fails and rejects busy managed switches before painting', async () => {

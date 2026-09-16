@@ -101,7 +101,7 @@ export function ModelEditSubmenu(props: ModelEditSubmenuProps) {
   )
 }
 
-function ModelEditSubmenuBody({
+export function ModelEditSubmenuBody({
   canDisableReasoning,
   defaultEffort,
   effort,

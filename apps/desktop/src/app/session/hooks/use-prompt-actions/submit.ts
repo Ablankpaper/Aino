@@ -1,6 +1,7 @@
 import { type MutableRefObject, useCallback } from 'react'
 
 import { PROMPT_SUBMIT_REQUEST_TIMEOUT_MS } from '@/hermes'
+import { translateNow } from '@/i18n'
 import type { Translations } from '@/i18n'
 import { type ChatMessage, textPart } from '@/lib/chat-messages'
 import { optimisticAttachmentRef } from '@/lib/chat-runtime'
@@ -12,6 +13,7 @@ import {
   stopVoicePlayback,
   takeVoicePlaybackInterrupted
 } from '@/lib/voice-playback'
+import { requestBillingSettings } from '@/store/billing-block'
 import {
   $composerAttachments,
   type ComposerAttachment,
@@ -21,8 +23,9 @@ import {
 import { $hudMode } from '@/store/hud'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
 import { consumePendingCredentialWarning, requestDesktopOnboarding } from '@/store/onboarding'
-import { platformErrorSurface, verifiedPlatformModel } from '@/store/platform-model-capability'
+import { platformErrorSurface, platformRecoveryAction, verifiedPlatformModel } from '@/store/platform-model-capability'
 import { PlatformSelectionError } from '@/store/platform-models'
+import { requestFreshSession } from '@/store/profile'
 import { isStoredTranscriptReadOnly } from '@/store/read-only-transcript'
 import {
   $currentModel,
@@ -931,11 +934,27 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
 
         if (targetIsCurrentView()) {
           if (err instanceof PlatformSelectionError) {
+            const recovery = platformRecoveryAction(err)
             notify({
               kind: 'error',
               title: copy.promptFailed,
               message: err.message,
-              action: { label: copy.chooseModel, onClick: () => setModelPickerOpen(true) }
+              action: {
+                label:
+                  recovery === 'account'
+                    ? translateNow('platformModels.myAccount')
+                    : recovery === 'new-chat'
+                      ? translateNow('platformModels.newChatCurrentAccount')
+                      : recovery === 'rebind'
+                        ? translateNow('platformModels.retry')
+                        : copy.chooseModel,
+                onClick:
+                  recovery === 'account'
+                    ? requestBillingSettings
+                    : recovery === 'new-chat'
+                      ? requestFreshSession
+                      : () => setModelPickerOpen(true)
+              }
             })
           } else {
             notifyError(err, copy.promptFailed)

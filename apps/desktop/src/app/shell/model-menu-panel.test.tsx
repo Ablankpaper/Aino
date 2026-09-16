@@ -105,7 +105,7 @@ it('uses exact ready evidence for Aino without disabling the dropdown custom cat
   expect(select).toHaveBeenCalledWith({ model: 'gemini-3.1-pro', provider: 'google', sessionId: 'runtime-1' })
 })
 
-it('clears stale live reasoning after selecting a verified non-reasoning Aino model', async () => {
+it('leaves non-reasoning cleanup to the shared managed selection path', async () => {
   Object.defineProperty(window, 'hermesDesktop', {
     configurable: true,
     value: {
@@ -133,10 +133,27 @@ it('clears stale live reasoning after selecting a verified non-reasoning Aino mo
     fireEvent.click(await content.findByRole('option', { name: /Fixture Model/ }))
   })
 
-  await vi.waitFor(() => {
-    expect($currentReasoningEffort.get()).toBe('')
+  expect($currentReasoningEffort.get()).toBe('high')
+  expect(requestGateway).not.toHaveBeenCalledWith('config.set', expect.anything())
+})
+
+it('exposes the existing live reasoning controls for a verified reasoning-capable Aino model', async () => {
+  const reasoningModel = { ...platformModel(), capabilities: { ...platformModel().capabilities, reasoning: true } }
+  Object.defineProperty(window, 'hermesDesktop', {
+    configurable: true,
+    value: {
+      platformAccount: { status: async () => platformSnapshot(), capabilities: async () => ({}), onChanged: () => () => undefined },
+      platformModels: { list: async () => [reasoningModel] }
+    }
   })
-  expect(requestGateway).toHaveBeenCalledWith('config.set', { key: 'reasoning', session_id: 'runtime-1', value: '' })
+  await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  recordGatewayReadyCapability({ profile: 'default' }, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+  $currentProvider.set('aino')
+  $currentModel.set('catalog-a')
+  $currentPlatformOwner.set('user-a')
+  renderPanel()
+
+  expect(await screen.findByText('Reasoning')).toBeTruthy()
 })
 
 function renderPanel(onSelectModel = vi.fn(), onClose = vi.fn()) {

@@ -20,12 +20,14 @@ import {
   $currentModel,
   $currentPlatformOwner,
   $currentProvider,
+  $currentReasoningEffort,
   getCurrentModelSource,
   markComposerSelectionManual,
   setCurrentModel,
   setCurrentModelSource,
   setCurrentPlatformOwner,
-  setCurrentProvider
+  setCurrentProvider,
+  setCurrentReasoningEffort
 } from '@/store/session'
 import { $sessionStates, sessionTileDelegate } from '@/store/session-states'
 import type { ModelOptionsResponse, SessionRuntimeInfo } from '@/types/hermes'
@@ -208,10 +210,42 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
       ? { modelId: selection.model, ownerUserId: account?.account?.id || '', status: 'awaiting_managed_credentials' }
       : null
 
+  const targetSupportsReasoning =
+    selection.provider !== 'aino' ||
+    Boolean(platformModelCatalog().state.get().models.find(model => model.id === selection.model)?.capabilities.reasoning)
+
   const paintTarget = () => paint(selection.model, selection.provider, targetPlatform)
   let accepted = false
   let configRequested = false
   let nativeCompleted = false
+
+  const clearUnsupportedManagedReasoning = async () => {
+    if (!targetPlatform || targetSupportsReasoning) {
+      return
+    }
+
+    const previousEffort = canPaintPrimary()
+      ? $currentReasoningEffort.get()
+      : $sessionStates.get()[sessionId!]?.reasoningEffort || ''
+
+    if (!previousEffort) {
+      return
+    }
+
+    await request('config.set', { key: 'reasoning', session_id: sessionId, value: '' })
+
+    if (!current()) {
+      return
+    }
+
+    if (canPaintPrimary()) {
+      setCurrentReasoningEffort('')
+    }
+
+    if (tileExists()) {
+      sessionTileDelegate()?.updateSession(sessionId!, state => ({ ...state, reasoningEffort: '' }))
+    }
+  }
 
   let selectedProvider = queryClient
     .getQueryData<ModelOptionsResponse>(modelOptionsQueryKey(profile, sessionId, connectionId))
@@ -367,6 +401,8 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
 
         if (managed) {
           paintTarget()
+
+          await clearUnsupportedManagedReasoning()
 
           try {
             await authorize()

@@ -4,7 +4,14 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import type { ChatBarState } from '@/app/chat/composer/types'
 import { type SessionView, SessionViewProvider } from '@/app/chat/session-view'
-import { $activeSessionId, $currentModel, setCurrentModel, setCurrentModelSource } from '@/store/session'
+import {
+  $activeSessionId,
+  $currentModel,
+  $modelDefaultUnavailable,
+  $modelPickerOpen,
+  setCurrentModel,
+  setCurrentModelSource
+} from '@/store/session'
 
 import { ModelPill } from './model-pill'
 
@@ -18,8 +25,21 @@ const modelState = (over: Partial<ChatBarState['model']> = {}): ChatBarState['mo
 afterEach(() => {
   cleanup()
   $activeSessionId.set(null)
+  $modelDefaultUnavailable.set(false)
+  $modelPickerOpen.set(false)
   setCurrentModel('')
   setCurrentModelSource('')
+})
+
+it('offers the picker instead of an endless model loader after default resolution has no model', () => {
+  $modelDefaultUnavailable.set(true)
+
+  render(<ModelPill disabled={false} model={modelState({ model: '', provider: '' })} />)
+
+  const picker = screen.getByRole('button', { name: /open model picker/i })
+  expect(screen.getByText('no model')).toBeTruthy()
+  picker.click()
+  expect($modelPickerOpen.get()).toBe(true)
 })
 
 // #62055: a manual composer pick is sticky and silently overrides the

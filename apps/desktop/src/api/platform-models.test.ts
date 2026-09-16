@@ -232,3 +232,41 @@ it.each([
   expect(result).toEqual({ ok: false, error: { code } })
   expect(JSON.stringify(result)).not.toContain('remote secret')
 })
+
+it.each([
+  ['quota_exhausted', 'quota_exhausted'],
+  ['untrusted_remote_code', 'gateway_binding_failed']
+] as const)('sanitizes resolved native bind failures to the stable allowlist', async (remoteCode, expectedCode) => {
+  const account: PlatformAccountSnapshot = {
+    revision: 7,
+    phase: 'signed_in',
+    account: { id: '17', display_name: 'Fixture', email: '', phone_masked: '' },
+    mode: 'development',
+    remember_state: 'session_only',
+    error: null
+  }
+
+  const bridge: PlatformModelsBridge = {
+    owner: async () => ({ platform_origin: 'http://127.0.0.1:1234', user_id: '17' }),
+    bind: async () => ({ ok: false, error: { code: remoteCode, message: 'remote secret must not escape' } }),
+    clear: async () => {},
+    list: async () => []
+  }
+
+  Object.defineProperty(window, 'hermesDesktop', { configurable: true, value: { platformModels: bridge } })
+  vi.mocked(requestGatewayForAgent).mockResolvedValue({ managed_model_binding: 1, session_ticket: 'ticket' })
+
+  const result = await bindPlatformModel(
+    {
+      connection_id: 'local',
+      profile: 'work',
+      session_id: 'runtime-session',
+      model_id: 'fixture',
+      expected_account_revision: 7
+    },
+    account
+  )
+
+  expect(result).toEqual({ ok: false, error: { code: expectedCode } })
+  expect(JSON.stringify(result)).not.toContain('remote secret')
+})

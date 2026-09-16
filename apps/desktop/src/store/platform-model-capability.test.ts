@@ -3,7 +3,12 @@ import { expect, it } from 'vitest'
 
 import { platformModel, platformSnapshot } from '../test/platform-model'
 
-import { platformErrorSurface, verifiedPlatformModelFrom } from './platform-model-capability'
+import {
+  platformErrorSurface,
+  platformRecoveryAction,
+  platformRecoveryActionForCode,
+  verifiedPlatformModelFrom
+} from './platform-model-capability'
 import { createPlatformModelCatalog, PlatformSelectionError } from './platform-models'
 
 it('requires a ready catalog model and its stored account owner', async () => {
@@ -30,4 +35,18 @@ it.each([
 
 it('leaves non-managed failures on the existing generic recovery path', () => {
   expect(platformErrorSurface(new Error('unrelated BYOK error'))).toBeNull()
+})
+
+it.each([
+  ['quota_exhausted', 'account'],
+  ['managed_credential_expired', 'account'],
+  ['gateway_binding_failed', 'rebind'],
+  ['platform_account_changed', 'new-chat'],
+  ['model_unavailable', 'picker']
+] as const)('assigns the stable %s failure its actionable recovery without replay', (code, action) => {
+  expect(platformRecoveryAction(new PlatformSelectionError(code))).toBe(action)
+})
+
+it('leaves unrelated deterministic provider failures on their existing recovery surface', () => {
+  expect(platformRecoveryActionForCode('provider_configuration_invalid')).toBeNull()
 })

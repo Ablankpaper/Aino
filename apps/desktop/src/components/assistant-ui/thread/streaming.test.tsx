@@ -105,6 +105,19 @@ function assistantErrorMessage(error: string): ThreadMessage {
   } as ThreadMessage
 }
 
+function assistantManagedErrorMessage(code: string): ThreadMessage {
+  return {
+    ...assistantErrorMessage('managed selection stopped'),
+    metadata: {
+      unstable_state: null,
+      unstable_annotations: [],
+      unstable_data: [],
+      steps: [],
+      custom: { errorSurface: { code, layer: 'gateway', retryable: false } }
+    }
+  } as ThreadMessage
+}
+
 function assistantReasoningMessage(text: string, running = false): ThreadMessage {
   return {
     id: 'assistant-reasoning-1',
@@ -566,6 +579,16 @@ describe('assistant-ui streaming renderer', () => {
     render(<MessageHarness message={assistantErrorMessage('OpenRouter rejected the request (403).')} />)
 
     expect(screen.getByRole('alert').textContent).toContain('OpenRouter rejected the request (403).')
+  })
+
+  it.each([
+    ['gateway_binding_failed', 'rebind'],
+    ['model_unavailable', 'picker']
+  ] as const)('renders a non-replay managed %s action', (code, action) => {
+    render(<MessageHarness message={assistantManagedErrorMessage(code)} />)
+
+    expect(screen.getByRole('button', { name: 'Choose model' }).getAttribute('data-action')).toBe(action)
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
   })
 
   it('omits the dismiss control when no onDismissError handler is supplied', () => {

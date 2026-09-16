@@ -48,8 +48,10 @@ import { useEnterAnimation } from '@/lib/use-enter-animation'
 import { cn } from '@/lib/utils'
 import { playSpeechText, stopVoicePlayback } from '@/lib/voice-playback'
 import { notifyError } from '@/store/notifications'
+import { platformRecoveryActionForCode } from '@/store/platform-model-capability'
+import { requestFreshSession } from '@/store/profile'
 import { requestSendDiagnostics } from '@/store/send-diagnostics'
-import { $connection, $currentModel } from '@/store/session'
+import { $connection, $currentModel, setModelPickerOpen } from '@/store/session'
 import { $voicePlayback } from '@/store/voice-playback'
 
 import { ReplyMetrics } from './reply-metrics'
@@ -494,6 +496,16 @@ const SwitchProviderAction: FC<{ label: string }> = ({ label }) => {
   )
 }
 
+const AccountRecoveryAction: FC<{ label: string }> = ({ label }) => {
+  const navigate = useNavigate()
+
+  return (
+    <button className="aui-error-action" data-action="account" onClick={() => navigate(`${SETTINGS_ROUTE}?tab=account`)} type="button">
+      {label}
+    </button>
+  )
+}
+
 const ErrorRecoveryActions: FC = () => {
   const { t } = useI18n()
   const copy = t.assistant.thread
@@ -525,7 +537,10 @@ const ErrorRecoveryActions: FC = () => {
 
   // Switch Provider deep-links Settings → Models for the layers where the fix
   // is provider/endpoint/auth config, not a retry.
-  const showSwitchProvider = surface != null && ['auth', 'billing', 'endpoint', 'provider'].includes(surface.layer)
+  const recovery = surface && !surface.retryable ? platformRecoveryActionForCode(surface.code) : null
+
+  const showSwitchProvider =
+    recovery === null && surface != null && ['auth', 'billing', 'endpoint', 'provider'].includes(surface.layer)
 
   const openLogs = useCallback(async () => {
     try {
@@ -568,6 +583,22 @@ const ErrorRecoveryActions: FC = () => {
         </ActionBarPrimitive.Reload>
       )}
       {showSwitchProvider && inRouter && <SwitchProviderAction label={copy.errorSwitchProvider} />}
+      {recovery === 'account' && inRouter && <AccountRecoveryAction label={t.platformModels.myAccount} />}
+      {recovery === 'new-chat' && (
+        <button className="aui-error-action" data-action="new-chat" onClick={requestFreshSession} type="button">
+          {t.platformModels.newChatCurrentAccount}
+        </button>
+      )}
+      {(recovery === 'picker' || recovery === 'rebind') && (
+        <button
+          className="aui-error-action"
+          data-action={recovery}
+          onClick={() => setModelPickerOpen(true)}
+          type="button"
+        >
+          {t.desktop.chooseModel}
+        </button>
+      )}
       {window.hermesDesktop?.logsRoot && (
         <button className="aui-error-action" onClick={() => void openLogs()} type="button">
           {remoteConnection ? copy.errorOpenDesktopLogs : copy.errorOpenLogs}

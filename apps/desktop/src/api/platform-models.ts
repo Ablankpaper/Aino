@@ -89,7 +89,13 @@ export async function bindPlatformModel(
   }
 
   try {
-    return await desktop.platformModels.bind({ ...input, session_ticket: ticket.session_ticket })
+    const result = await desktop.platformModels.bind({ ...input, session_ticket: ticket.session_ticket })
+
+    if (!result.ok) {
+      return { ok: false, error: { code: safeBindingCode(result.error) ?? 'gateway_binding_failed' } }
+    }
+
+    return result
   } catch (error) {
     return bindingFailure(error)
   }

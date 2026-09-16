@@ -12,12 +12,13 @@ import {
   managedModelRouteCapabilityFrom
 } from '@/store/gateway-managed-capability'
 import { reconcilePlatformDraftAccount } from '@/store/platform-draft-model'
-import { platformModelCatalog } from '@/store/platform-models'
+import { platformModelCatalog, PlatformSelectionError } from '@/store/platform-models'
 import { $activeGatewayProfile } from '@/store/profile'
 import {
   $activeSessionId,
   $currentModel,
   $currentProvider,
+  $modelDefaultUnavailable,
   $selectedStoredSessionId,
   getComposerSelectionGeneration,
   getCurrentModelSource,
@@ -134,6 +135,7 @@ export function useModelControls({
       const profile = cacheProfile || $activeGatewayProfile.get()
       const scope = cacheOwnerConnectionId ? { connectionId: cacheOwnerConnectionId, profile } : profile
       const scopeKey = platformDefaultScope(scope).key
+      let selectionGeneration: number | null = null
 
       try {
         if (
@@ -152,7 +154,7 @@ export function useModelControls({
 
         // Capture intent before any catalog I/O so a picker click that lands
         // while the platform list is loading wins over this refresh.
-        const selectionGeneration = getComposerSelectionGeneration()
+        selectionGeneration = getComposerSelectionGeneration()
 
         // A manual pick stays sticky UNLESS it was removed from the catalog (its
         // model no longer exists on the provider), in which case keeping it would
@@ -177,6 +179,8 @@ export function useModelControls({
         if (keepManualPick()) {
           return
         }
+
+        $modelDefaultUnavailable.set(false)
 
         // Snapshot the selection generation before awaiting so a picker click
         // that lands while getGlobalModelInfo is in flight wins over this older
@@ -205,6 +209,7 @@ export function useModelControls({
         }
 
         if (resolvedModel || resolvedProvider) {
+          $modelDefaultUnavailable.set(false)
           setCurrentModelSource('default')
 
           if (resolvedPlatformDefault) {
@@ -213,8 +218,19 @@ export function useModelControls({
             setCurrentPlatformOwner('')
           }
         }
-      } catch {
-        // The delayed session.info event still updates this once the agent is ready.
+      } catch (error) {
+        if (
+          error instanceof PlatformSelectionError &&
+          error.code === 'model_unavailable' &&
+          profileRefreshEpochRef.current === profileRefreshEpoch &&
+          !$activeSessionId.get() &&
+          !$selectedStoredSessionId.get() &&
+          scopeKey === platformDefaultScope($activeGatewayProfile.get()).key &&
+          selectionGeneration !== null &&
+          getComposerSelectionGeneration() === selectionGeneration
+        ) {
+          $modelDefaultUnavailable.set(true)
+        }
       }
     },
     [cacheOwnerConnectionId, cacheProfile, queryClient]

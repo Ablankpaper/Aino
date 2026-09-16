@@ -5,7 +5,7 @@ import { useContext, useState } from 'react'
 import { useSessionView } from '@/app/chat/session-view'
 import { PlatformModelList } from '@/components/platform-model-list'
 import { Codicon } from '@/components/ui/codicon'
-import { DropdownMenuItem, dropdownMenuRow } from '@/components/ui/dropdown-menu'
+import { DropdownMenuItem, dropdownMenuRow, DropdownMenuSub, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import type { HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
@@ -35,6 +35,7 @@ import { sessionTileDelegate } from '@/store/session-states'
 import type { ModelOptionsResponse } from '@/types/hermes'
 
 import { ModelCatalogMenu, ModelMenuCloseContext, type ModelMenuController } from './model-catalog-menu'
+import { ModelEditSubmenu } from './model-edit-submenu'
 
 export { ModelMenuCloseContext } from './model-catalog-menu'
 
@@ -104,6 +105,9 @@ export function ModelMenuPanel({
   ).key
 
   const blocked = managedModelSwitchBlocked(currentProvider, source === 'aino' ? 'aino' : '', busy || awaiting)
+
+  const activePlatformModel =
+    currentProvider === 'aino' ? verifiedPlatformModel(currentModel, currentPlatformOwner) : null
 
   // Subscribe to the SAME query the menu runs (identical key ⇒ React Query
   // dedupes, no second fetch). It must be a live subscription, not a cache
@@ -297,22 +301,38 @@ export function ModelMenuPanel({
         </p>
       )}
       {source === 'aino' && window.hermesDesktop?.platformModels ? (
-        <PlatformModelList
-          disabled={blocked}
-          managedCapability={managedCapability}
-          onApplied={closeMenu}
-          onChooseCustom={() => setSource('custom')}
-          onSelect={async model => {
-            const selected = (await onSelectModel({ provider: 'aino', model: model.id, sessionId: activeSessionId })) !== false
-
-            if (selected && currentReasoningEffort && !verifiedPlatformModel(model.id, currentPlatformOwner)?.capabilities.reasoning) {
-              void patchReasoning('', currentReasoningEffort, 'aino', model.id)
-            }
-
-            return selected
-          }}
-          selectedId={currentProvider === 'aino' ? currentModel : undefined}
-        />
+        <>
+          <PlatformModelList
+            disabled={blocked}
+            managedCapability={managedCapability}
+            onApplied={closeMenu}
+            onChooseCustom={() => setSource('custom')}
+            onSelect={model => onSelectModel({ provider: 'aino', model: model.id, sessionId: activeSessionId })}
+            selectedId={currentProvider === 'aino' ? currentModel : undefined}
+          />
+          {activePlatformModel?.capabilities.reasoning && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className={dropdownMenuRow}>
+                {t.platformModels.reasoning}
+              </DropdownMenuSubTrigger>
+              <ModelEditSubmenu
+                defaultEffort={defaultEffort}
+                effort={currentReasoningEffort}
+                fastControl={{ kind: 'none' }}
+                isActive
+                model={activePlatformModel.id}
+                onSelectModel={() => undefined}
+                onSetOptions={patch => {
+                  if (patch.effort !== undefined) {
+                    void patchReasoning(patch.effort, currentReasoningEffort, 'aino', activePlatformModel.id)
+                  }
+                }}
+                provider="aino"
+                reasoning
+              />
+            </DropdownMenuSub>
+          )}
+        </>
       ) : (
         <ModelCatalogMenu
           controller={controller}

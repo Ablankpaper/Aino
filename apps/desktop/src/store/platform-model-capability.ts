@@ -4,6 +4,33 @@ import type { PlatformModel } from '../../shared/platform-contract'
 
 import { platformModelCatalog, PlatformSelectionError } from './platform-models'
 
+export type PlatformRecoveryAction = 'account' | 'new-chat' | 'picker' | 'rebind'
+
+/** One deterministic recovery policy shared by pre-submit and retained turn errors. */
+export function platformRecoveryActionForCode(code: string): PlatformRecoveryAction | null {
+  if (['insufficient_balance', 'quota_exhausted', 'managed_balance_unavailable'].includes(code)) {
+    return 'account'
+  }
+
+  if (['not_authenticated', 'managed_auth_unavailable', 'managed_credential_expired', 'managed_credential_revoked'].includes(code)) {
+    return 'account'
+  }
+
+  if (['platform_account_changed', 'stale_account_revision'].includes(code)) {
+    return 'new-chat'
+  }
+
+  if (code === 'gateway_binding_failed') {
+    return 'rebind'
+  }
+
+  return code === 'model_unavailable' || code === 'unsupported_gateway' ? 'picker' : null
+}
+
+export function platformRecoveryAction(error: unknown): PlatformRecoveryAction | null {
+  return error instanceof PlatformSelectionError ? platformRecoveryActionForCode(error.code) : null
+}
+
 interface PlatformCatalogReader {
   account: { get(): ReturnType<typeof platformModelCatalog>['account'] extends { get(): infer T } ? T : never }
   state: { get(): ReturnType<typeof platformModelCatalog>['state'] extends { get(): infer T } ? T : never }

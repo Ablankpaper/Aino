@@ -15,7 +15,12 @@ import { useI18n } from '@/i18n'
 import { ChevronDown } from '@/lib/icons'
 import { formatModelStatusLabel } from '@/lib/model-status-label'
 import { cn } from '@/lib/utils'
-import { $currentModelSource, $defaultReasoningEffort, setModelPickerOpen } from '@/store/session'
+import {
+  $currentModelSource,
+  $defaultReasoningEffort,
+  $modelDefaultUnavailable,
+  setModelPickerOpen
+} from '@/store/session'
 
 import { onComposerModelMenuRequest } from './focus'
 import { useComposerScope } from './scope'
@@ -65,6 +70,8 @@ export function ModelPill({
   const fastMode = useStore(view.$fast)
   const reasoningEffort = useStore(view.$reasoningEffort)
   const modelSource = useStore($currentModelSource)
+  const modelDefaultUnavailableState = useStore($modelDefaultUnavailable)
+  const modelDefaultUnavailable = view.kind === 'primary' && modelDefaultUnavailableState
   const defaultEffort = useStore($defaultReasoningEffort)
   const runtimeId = useStore(view.$runtimeId)
   const [menuState, setMenuState] = useState({ open: false, instance: 0 })
@@ -129,6 +136,8 @@ export function ModelPill({
         <span className="truncate">
           {platformName || formatModelStatusLabel(currentModel, { defaultEffort, fastMode, reasoningEffort })}
         </span>
+      ) : modelDefaultUnavailable ? (
+        <span className="truncate">{copy.noModel}</span>
       ) : (
         <GlyphSpinner className="opacity-50" spinner="braille" />
       )}
@@ -153,7 +162,9 @@ export function ModelPill({
       )
     : PILL
 
-  const baseTitle = currentProvider
+  const baseTitle = modelDefaultUnavailable
+    ? copy.openModelPicker
+    : currentProvider
     ? copy.modelTitle(currentProvider, currentModel || copy.modelNone)
     : copy.switchModel
 

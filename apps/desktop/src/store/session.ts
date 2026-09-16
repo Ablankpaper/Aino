@@ -1153,6 +1153,8 @@ export const $availablePersonalities = atom<string[]>([])
 export const $introSeed = atom(0)
 export const $contextSuggestions = atom<ContextSuggestion[]>([])
 export const $modelPickerOpen = atom(false)
+/** Default resolution has completed without a usable model for this draft. */
+export const $modelDefaultUnavailable = atom(false)
 export const $sessionPickerOpen = atom(false)
 
 function rescopeComposerSelection(nextScope: string | null): void {
@@ -1325,6 +1327,11 @@ export const setAwaitingResponse = (next: Updater<boolean>) => updateAtom($await
 
 export const setCurrentModel = (next: Updater<string>) => {
   updateAtom($currentModel, next)
+
+  if ($currentModel.get().trim()) {
+    $modelDefaultUnavailable.set(false)
+  }
+
   const key = composerSelectionKey(COMPOSER_MODEL_KEY)
 
   if (key !== null) {
