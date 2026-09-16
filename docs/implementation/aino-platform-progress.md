@@ -4,25 +4,46 @@
 **执行者：** Claude Code（前期）与 Codex（复核及续作）
 **总计划：** [implementation-plan.md](/Users/zizimutou/Protect/Aino/docs/aino-platform/implementation-plan.md)
 
-## 最新接续状态（2026-09-16，优先于下方历史记录）
+## 最新接续状态（2026-09-17，优先于下方历史记录）
 
-最新已复核本地代码检查点：Aino `07b77b40b15f9e5e5d9f15f7fdf014c0a10f6eaf`，Aino-API `997e0635b963af09a70b10dc7a59faa64a3711d3`，均在 `codex/aino-platform-identity-models-billing`。B6 精确后端能力与首次引导修复已复核，模型 vision/reasoning 与错误恢复、精确平台 origin 仍待完成；D1 原生登录已通过，完整模型/充值流程待新构建复验。尚非最终交付 SHA，未推送、未合并 main、未部署或真实付费测试。逐项条件见 [验收矩阵](aino-platform-acceptance-matrix.md)。
+当前业务代码检查点：Aino `aae34d629b`，Aino-API `acc7fc760`；最新原生验收夹具为 Aino `32c0ca8eae` / API `ff00058c3`，均在 `codex/aino-platform-identity-models-billing`。无 BYOK 登录→真实 Agent 工具→停止后的尾部结算→充值→重启重新认证/历史重绑定→BYOK 的完整现有原生用例已通过，2.4 分钟、exit 0。平台累计 5 条 usage、消费 `0.0005000000` USD，充值后余额 `12.79950000` USD；BYOK 发送前后平台余额/模型调用/usage 均不变。三次启动网络/renderer 秘密审计与最后配置/会话/日志落盘审计通过；字体请求确实发生但在 transport 前被拒绝，未放开外网。最新完整 UI 874 文件/7,973 项、Electron 2,262 项及此前类型/lint 记录保留。此成功用例不覆盖整个验收矩阵，D2 正常发行启动、Python Bus error 及线上/多平台门禁仍未关闭。未推送、合并 main、部署或真实付费测试。见[脱敏回执](aino-platform-native-acceptance-20260917.json)及[验收矩阵](aino-platform-acceptance-matrix.md)。
 
 | 范围 | 当前事实 | 剩余工作 |
 | --- | --- | --- |
 | A、B1–B5 | 已有本地实现/分层集成证据保留 | 真实短信/付费模型、多平台验收不冒充通过 |
-| B6 首次发送、作用域与账户草稿 | 首发/恢复、默认作用域、草稿和模型切换已复核；`911151ea09`/`ae59e82f52`/`5acc1c18b3` 精确连接能力及首次发送拒绝已复核通过 | 模型能力/错误恢复、精确开发 origin 和完整原生 UI 验收未完成 |
-| C1–C3 | 账本查询、回合对账、幂等订单本地实现和复核完成 | 完整跨仓库 Agent → 账本 → 原生充值闭环仍归 D1 |
+| B6 首次发送、作用域与账户草稿 | 既有修复与完整 UI 7,973 项保留；原生无 BYOK 首发、重启历史与自定义模型发送均通过 | 不重做已通过部分；异常/多窗口/远程原生矩阵未全部覆盖 |
+| C1–C3 | 账本查询、回合对账、幂等订单本地实现/复核完成；实际 Agent → API 账本 → 原生充值闭环通过 | 真实供应商扣费、网站余额 UI 同屏核对仍需验收 |
 | C4 原生订单 | `789d9ddc5a`、`53a3597384`：安全 quote/create/get/list/cancel/openCheckout 和范围校验，复核通过 | 不代表真实渠道支付验收 |
 | C4 充值界面与设备 | `0922f1ce50` 充值/订单恢复/历史，`a52a047f26` 设备管理；`e9e2f36a5d`/`f497ce9ff6` 恢复修复和 `7a215f2b11` 非 Aino 调用来源修复均独立复核通过 | 完整原生验收和真实服务验证待完成 |
 | D API/站点质量 | `308aa7725` Go 契约/lint 修复；`19c43905f` Stripe 分块行为测试；unit 56 包通过、lint 0 issues，站点 286 文件/2,139 项通过；独立复核通过 | 最终生成物/构建及真实跨仓库门禁需对应最终树 |
 | D Python 夹具 | 四目录回归 18,572 通过；三项断言失败已修复并通过 29 项定向回归与独立复核；TTFB 在原有时限通过 | 1 文件整套运行时 Bus error 未复现、未根治，不把整套标全绿 |
-| D1 API 真实内部闭环与升级 | 真实内部闭环、pre-239 升级已复核；`af10f7721`/`997e0635b` 的二进制回退、精确撤销、回退期签名回调一次入账已复核 | 实际 Python Agent/原生 Electron 完整串联待新构建；备份恢复与真实环境未验收 |
-| D 完整验收与部署准备 | 手机号最小灰度限制已复核；API 完整 unit/integration 通过，网站测试/types/lint/build 通过；操作单和逐项矩阵已建立 | 最终 UI 门禁、原生闭环、实际打包产物、多平台与正式服务验证尚未完成 |
+| D1 API 真实内部闭环与升级 | 内部闭环、pre-239 升级、兼容回退/保留回调/隔离备份恢复保留；最新原生现有用例全程通过，含历史/BYOK/最终秘密审计 | 原生工作区切换、网站余额 UI 核对未纳入该用例；生产备份截止点未验收 |
+| D 完整验收与部署准备 | 最小灰度、API/站点/桌面分层门禁及现有原生成功用例通过；操作单、矩阵、受限打包烟测已有证据 | 正常发行启动、Python 崩溃根因、矩阵其余原生场景、多平台与真实服务未完成 |
 
 本次接续新增进度：
 
-- 本轮保存点：Aino `8393afa9c1e99e94246999dc0dfeb422a0083882` 已提交四项模型恢复修复，6 文件/92 项覆盖测试、全部桌面类型检查和 scoped lint 通过；独立复核尚待执行，不能标 B6 完成。API 最新 `96334f6ad` 为已复核备份测试 `414175e9f` 的部署说明。下一步先复核这份模型补丁，再实施已准备的精确 origin/历史归属切片，然后新构建执行原生闭环和实际打包验证。
+- **最新原生完整用例通过：** `/private/tmp/aino-native-final-verified-Os7n6L/`；API 证据 `aino-native-api-9efh0G`；run ID `9a5ab036-5dcb-47fb-a470-f27965c7e3e9`。测试时 HEAD 为 `3e62f7803d`＋已记录 test-only diff，该精确代码随后提交为 `32c0ca8eae`。367 个 dist 文件逐一匹配 `aae34d629b` 的固定构建，未重构生产代码；tsc/lint exit 0，原生 1/1、2.4 分钟、exit 0，API exit 0，测试容器清理完成。两次工具往返共四次调用，加停止回合一次调用，共 5 usage/3 turn；一笔充值仅加款一次；第三次启动 BYOK 成功回复且平台余额/用量不增加。重启使用新随机短信重新认证，不冒充记住登录自动恢复。
+- **夹具审计修正：** 保留 `onBeforeRequest` 早期拒绝，启动前被动观测字体请求，按主进程核对候选/无鉴权头无请求体 GET 样式表；host-only marker，不保存字体 URL query。类型/lint 及 3/3 guard/小数合同通过；独立窄审阅发现的过晚拦截/监听器覆盖已修正，随后补齐可缺省 type 和观察器失效处理，由 root 复核。前次原生在 BYOK 选择器超时，截图确认可见名为 `Mock Model` 而非内部 ID `mock-model`，仅修测试定位后复验成功。历史失败保留于 `/private/tmp/aino-native-final-20260917/`。详见[审计说明](native-font-denial-report.md)。
+
+以下为此前各次运行的历史记录；其中“待修/尚未执行”仅描述当时状态，当前待办以上表与验收矩阵为准：
+
+- Aino `dc3f0812d1` / API `ff00058c3` 使用未变更的 `aae34d629b` 业务构建：首次工具两次模型调用、停止回合一次调用，共三条 settled usage，消费 `0.0003000000` 与余额 `9.99970000` 精确相符。停止时真实下游断连、上游有限尾部 drain、无超时或清理冒充成功；充值报价 20.5 CNY/到账 2.8 USD，只有一个订单和一次支付创建，重复签名回调后 COMPLETED、余额 `12.79970000`，桌面读取与 API 相等。证据 `/private/tmp/aino-native-money-fixed-HiLLwQ/`，本地供应商替身，不代表真实付款。
+- 该次流程在充值后网络审计停止，原因仅为既有主题发起的 `fonts.googleapis.com` 样式表请求已被拦截。一次诊断 `/private/tmp/aino-native-transport-probe-VQ5q93/` 确认这一事实；不开放外网，改为明确记录指定公共样式表的预期拒绝，其他请求仍失败。重启与历史/BYOK 尚待该审计修正后验证。先前停止/小数解析/OTP 等测试夹具问题均已定向修复，以下保留历史证据，不表示这些问题仍开放。
+- 最新 Aino `71a49eac2c` / API `0d46e5e54` 在同一业务构建上复验：输入框 Stop 实际点击后，Python 记录 TCP 强制关闭、API 调用中断及回合 `interrupted`（0.3 秒）；测试仅在 `stream_cancelled === 1` 失败，清理正常、API exit 0。只读诊断确认服务端 raw Chat Completions 使用 `context.WithoutCancel` 并继续 drain 最终 usage，这是既有计费合同，不是停止未生效。正在改测试为真实下游断连、受控终态用量和一次结算，保留 cleanup 与业务计数区分；不修改生产取消/计费语义。证据 `/private/tmp/aino-native-stop-fixed-yaIR2P/`，API `aino-native-api-PizYQk`。
+- 完整 UI 在业务提交 `aae34d629b` 上复验：874 文件、7,973 项通过，107.91 秒、exit 0；日志 `/tmp/aino-ui-final-aae34d629b.{log,exit.json}`。测试夹具后续变化不影响此 UI 门禁。
+- **原生首次发送已通过：** Aino `aae34d629b` / API `acc7fc760` 修复后，无 BYOK 登录、选择、创建、绑定和实际 Python Agent `read_file` 往返成功；两条 usage、一个 turn，余额 `10.00000000 → 9.99980000` 与消费 `0.0002000000` 一致，聊天已显示费用。随后测试在停止阶段因两个同名按钮导致 strict locator 失败，实际没有点击 Stop；finally 模拟流未释放引发清理超时并遮盖原错，正修测试夹具，不归为已证明的业务取消缺陷。证据 `/private/tmp/aino-native-scope-fixed-HkCZGx/`、隔离 API `aino-native-api-Wup2Ny/native-failure.json`；进程已退出、Docker 清空。后续充值/重启尚未运行。
+- `aae34d629b` 只修改 `session.ts` 和测试：同一个明确 local/default 从 legacy 到 registry 描述符时保留 model/provider/owner/origin/source 和选择 generation；不同 profile/remote/source 仍按原隔离重置。真实 store RED→GREEN、106 项测试、相关 lint/renderer tsc 和独立复核通过。原生分段诊断的三个临时代码块已全部移除，新构建不含诊断。
+- 一次有界诊断进一步排除账户/origin 不符：capture 与 prepared 的 revision 都为 4，三项用户/站点比较全部匹配，但选择 generation 从 1 变为 2。证据 `/private/tmp/aino-native-firstsend-probe-t7CykB/` 与隔离 API 诊断目录 `aino-native-api-upGfZe`。三个临时诊断源码修改已全部移除；当前修复聚焦普通本地连接转为 registry 描述符时的同路由选择保留，不删除跨账户或真实工作区切换保护。
+- **最新原生复验失败，不能判定首发已修好：** Aino `3852268039` / API `acc7fc760` 新构建后运行 1.8 分钟、exit 1，仍在首次发送出现账户归属提示；账户保持 signed_in/revision 4，API 模型、工具、用量和支付均为 0。上述单测修复证明了一个真实状态版本边界，但不是该原生故障根因的证据。停止无变更重跑，改查完整消费者链路。原始日志 `/private/tmp/aino-native-owner-fixed-dGx4Xu/native.log`，测试容器已清空。
+- `dc693231ec` 在托管新会话发送前复用账户刷新与目录重载，修复漏收主进程账户 revision 发布时的误拒绝；`3852268039` 保证默认模型也比较刷新前后的用户与精确 origin，真实换账户在 create/ticket/bind 前停止。实际 picker 首发 RED→GREEN，补充 active/history 新 tile 跨账户 RED→GREEN；最终 session-actions 112 项、三个 TS 配置及相关 lint 通过，独立复核通过。原首轮 157 项来自工具输出，未另存 raw；P1 原始日志 `/tmp/aino-native-firstsend-owner-fix-p1-{tests,eslint,typecheck}.log`。新隔离原生测试证据目录 `/private/tmp/aino-native-owner-fixed-dGx4Xu/`，不覆盖先前失败现场。
+- 最新原生运行使用 Aino `aa3c57d989` / API `acc7fc760`：真实随机验证码登录、无 BYOK 进入工作区、目录选择及进程隔离证明通过，但首条发送被错误判为“模型属于其他账户”。失败时仍为同一已登录账户，模型/工具/消费/支付均为 0；已转入定向修复，不通过放宽归属检查或延长等待掩盖。日志 `/private/tmp/aino-native-final-pgkZu4/native.log`，API 正常退出且测试容器清空。完整业务闭环仍未通过。
+- `43d9647bc4` 修复首次创建期间账户变化，176 项覆盖测试及独立复核通过；`2ae8bd896f` 让退出立即撤销本地模型授权，不等待远端注销，32 项 Electron 与 2 项 Python 断开合同通过，独立复核通过。`6e442f68a7` 仅修测试空行。完整 UI 874 文件/7,969 项通过，107.46 秒；完整 Electron 167 文件/2,262 项通过、2 文件/6 项原有跳过，3.53 秒。最终完整 lint 为 0 errors/187 warnings，全部桌面类型检查通过。日志 `/tmp/aino-ui-final-43d9647bc4.log`、`/tmp/aino-final-2ae8bd896f-{test-desktop-platforms,fixed-lint,fixed-typecheck}.log`。
+- API `1c23701814` 去除旧 Login2FA 日志的令牌片段和邮箱，运行时日志捕获测试、handler 完整测试、vet/lint 和独立复核通过；`acc7fc760` 将测试无效 TOTP 改为确定性非数字输入。`c807e8113` 保存真实 API 原生夹具，普通相关集成 8.766 秒通过，不代表原生完整流程通过。
+- D1 新构建 types/renderer/main 通过后，因夹具复核发现 API runtime HOME 未隔离及重启审计遗漏主动停止。全部所属进程退出，测试容器清空；证据 `/private/tmp/aino-final-run-bkBrLA/controller-stop.json`。只修测试夹具后再做一次有界验证，不能登记该次业务通过。
+- D2 已真实执行生产构建与 macOS arm64 打包，两项 exit 0；产物在 `/private/tmp/aino-d2-packaged-2KZLA5/artifact/mac-arm64/Aino.app`。默认烟测发生辅助进程沙箱初始化崩溃；一次有界诊断后，显式测试用 `--no-sandbox` 配合不变的外层 OS 网络/凭据限制，10.31 秒 smoke 通过。实际 `isPackaged`、app.asar、340×603 登录窗口、production adapter/origin 和安装戳相等已验证，截图已目视检查；无 page/console errors。此结果不覆盖默认 Chromium 内层沙箱、签名、公证或正式发行。受控回执 `/private/tmp/aino-d2-packaged-2KZLA5/evidence/causal-no-chromium-sandbox/result.json`，归档 SHA-256 `0660aaa5ff17ec232a3065164dd8869aa99e0d16b3f9c9de35929c737b663f4d`。未安装到用户应用目录。
+- `8393afa9c1` 四项模型恢复修复已通过针对性复核；`816906f757` 补齐默认值和历史的精确站点归属，9 文件/177 项定向测试及类型检查通过。独立复核发现首次创建会话期间丢失捕获的账户 revision/origin，正在定向修复，不把候选视为最终完成。
+- 最终 UI 首轮完整运行（`816906f757`）：873 文件通过/1 文件失败，7,964 项通过/2 项失败，102.51 秒。失败来自 `session-request-router` 的旧测试数据缺少 `platformOrigin`；保留拒绝未知归属的生产约束，补齐测试真实字段。完整 lint 为 6 errors/197 warnings，5 项新增测试格式问题及 1 项旧未使用 import 正在修复，不批量改无关警告。日志 `/tmp/aino-{ui,lint}-final-816906f757.log` 和对应 `.exit.json`。
+- API 全分支复核已完成，没有新增阻塞项。已应用迁移 239 的五处空白格式保留 checksum，不为 diff 检查重写迁移；旧 Login2FA 日志中的临时令牌片段/邮箱正在单独清理。新增原生 API 夹具通过独立复核，随后增强前序 assistant 工具匹配和实际取消计数，相关 `TestAinoPlatform` 8.766 秒通过；完整原生取消/账本流程未运行。
 - API `414175e9f` 补齐隔离备份恢复并通过独立复核：真实 `pg_dump`→另一个空 PostgreSQL 容器/数据库的 `pg_restore`→全新 Redis 和归档实际服务启动，6.514 秒通过；身份、余额、订单、订阅、Key 撤销与迁移 checksum 保留，恢复后再次收到同一签名回调不会二次入账。相关 Go lint 0 issues。回执 SHA-256 `92ccdb38cb57a00b6b1dfd2bd4f98c1e78ddacdcd1e12239784b932bdc0f3aaa`；不是生产备份/恢复或在途付款截止点演练。
 - `4cc2fcf58f` 模型能力/恢复候选已有 305 项定向测试、类型和 lint 通过，但独立复核发现四处未覆盖链路：resolved bind 错误码白名单、按错误类型恢复、两种 picker 的 reasoning 一致性、无默认模型的终态提示。正在定向补齐，不能据测试数宣布此阶段完成。精确平台 origin/历史归属是下一切片。
 - 原生测试夹具补齐 Chromium 启动与重启隔离：测试入口在导入真实 main 前安装所有 session 的外连拦截。实际 Electron RED 在探测前拒绝未安装拦截器；GREEN 1 项/1.9 秒通过，实际 `net.fetch` 被 `ERR_BLOCKED_BY_CLIENT` 阻止，Python 凭据进程零启动断言保留，E2E 类型通过。日志 `/tmp/aino-d1-chromium-guard-{red,green,typecheck}.log`；仅证明测试隔离，不代表业务闭环通过。
@@ -44,7 +65,7 @@
 - Aino `d0e248b758` 最新完整 Electron 门禁通过：167 文件通过/2 原有跳过，2,261 项通过/6 原有跳过，exit 0，3.55 秒。日志 `/tmp/aino-d2-electron-final-d0e248.log`。后续 B6 能力任务仅修改 renderer；不能以此代替原生端到端登录、Agent 与充值验收。
 - API `6f73d6a58` 完整 integration 门禁通过：50 包通过、59 包无测试，逐测试事件 12,164 个通过/16 个跳过（含子测试），0 失败，exit 0；实际隔离 PostgreSQL/Redis，无真实供应商调用。日志 `/tmp/aino-d2-api-integration-6f73d6a58.jsonl`。此运行包含未提交原生夹具中的普通协议/OIDC 测试增强，不包含需额外 `nativeconsumer`/`rollbackrehearsal` 标签的长流程；不能混称原生或二进制回退已通过。
 
-本次最新门禁：
+此前阶段门禁（最新结果以上方为准）：
 
 - 充值/设备 UI：5 文件、14 项通过；完整 Electron：167 文件通过、2 原有跳过，2,259 项通过、6 原有跳过。
 - 最近一次完整 UI：863 文件通过、1 文件失败；7,884 项通过、3 项失败，日志 `/tmp/aino-platform-ui-full-current.log`。这 3 项已由 `fde0064f71` 补齐测试 API 夹具并在 136 项覆盖回归中通过，独立复核关闭；尚未在后续 B6 修改后的最终树重跑完整 UI。旧 summary/terminal/local-models 的失败未在本次完整运行复现。
@@ -401,15 +422,15 @@
 
 ---
 
-## D：验收、发布与交付
+## D：验收、发布与交付（历史阶段记录）
 
-**状态：** ⏸️ 未开始
+以下为进入最终验收前的历史状态，不作为当前待办。当前 D1–D4 进度及未通过门禁见文档顶部和验收矩阵。
 
 ---
 
-## 问题和阻塞项
+## 问题和阻塞项（历史交接，已由顶部最新状态覆盖）
 
-### 当前问题
+### 当时记录的问题
 1. **A4本地验收已完成：** 真实短信尚未验证；一项非阻塞 sender 边界和已有测试失败留待最终阶段检查
 2. **A1–A6、B1–B4 本地完成，B5–B6、C、D待完成：** 从 B5 继续；桌面内置模型选择、辅助调用费用、钱包充值和最终交付仍不能宣称完成
 3. **进度记录更正：** 两仓库 origin 均正确；此前 Aino origin 异常是文档误记，未修改远程配置

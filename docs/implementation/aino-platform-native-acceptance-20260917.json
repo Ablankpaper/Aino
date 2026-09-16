@@ -1,0 +1,190 @@
+{
+  "run_id": "9a5ab036-5dcb-47fb-a470-f27965c7e3e9",
+  "api_sha": "ff00058c3407a85875fe322ee56b6c914c4d5cb3",
+  "aino_sha": "3e62f7803d45b5132a20b82a0be496827873a2f2",
+  "initial": {
+    "balance": "10.00000000",
+    "downstream_disconnects": 0,
+    "model_calls": 0,
+    "orders": 0,
+    "payment_calls": 0,
+    "run_id": "9a5ab036-5dcb-47fb-a470-f27965c7e3e9",
+    "stream_cancelled": 0,
+    "stream_drained": 0,
+    "stream_shutdowns": 0,
+    "stream_started": 0,
+    "stream_timeouts": 0,
+    "tool_results": 0,
+    "usage_calls": 0,
+    "usage_cost": "0",
+    "usage_turns": 0,
+    "user_id": 1
+  },
+  "settled": {
+    "balance": "9.99980000",
+    "downstream_disconnects": 0,
+    "model_calls": 2,
+    "orders": 0,
+    "payment_calls": 0,
+    "run_id": "9a5ab036-5dcb-47fb-a470-f27965c7e3e9",
+    "stream_cancelled": 0,
+    "stream_drained": 0,
+    "stream_shutdowns": 0,
+    "stream_started": 0,
+    "stream_timeouts": 0,
+    "tool_results": 1,
+    "usage_calls": 2,
+    "usage_cost": "0.0002000000",
+    "usage_turns": 1,
+    "user_id": 1
+  },
+  "cancelled": {
+    "balance": "9.99970000",
+    "downstream_disconnects": 1,
+    "model_calls": 3,
+    "orders": 0,
+    "payment_calls": 0,
+    "run_id": "9a5ab036-5dcb-47fb-a470-f27965c7e3e9",
+    "stream_cancelled": 0,
+    "stream_drained": 1,
+    "stream_shutdowns": 0,
+    "stream_started": 1,
+    "stream_timeouts": 0,
+    "tool_results": 1,
+    "usage_calls": 3,
+    "usage_cost": "0.0003000000",
+    "usage_turns": 2,
+    "user_id": 1
+  },
+  "paid": {
+    "balance": "12.79970000",
+    "downstream_disconnects": 1,
+    "model_calls": 3,
+    "orders": 1,
+    "payment_calls": 1,
+    "run_id": "9a5ab036-5dcb-47fb-a470-f27965c7e3e9",
+    "stream_cancelled": 0,
+    "stream_drained": 1,
+    "stream_shutdowns": 0,
+    "stream_started": 1,
+    "stream_timeouts": 0,
+    "tool_results": 1,
+    "usage_calls": 3,
+    "usage_cost": "0.0003000000",
+    "usage_turns": 2,
+    "user_id": 1
+  },
+  "beforeBYOK": {
+    "balance": "12.79950000",
+    "downstream_disconnects": 1,
+    "model_calls": 5,
+    "orders": 1,
+    "payment_calls": 1,
+    "run_id": "9a5ab036-5dcb-47fb-a470-f27965c7e3e9",
+    "stream_cancelled": 0,
+    "stream_drained": 1,
+    "stream_shutdowns": 0,
+    "stream_started": 1,
+    "stream_timeouts": 0,
+    "tool_results": 2,
+    "usage_calls": 5,
+    "usage_cost": "0.0005000000",
+    "usage_turns": 3,
+    "user_id": 1
+  },
+  "afterBYOK": {
+    "balance": "12.79950000",
+    "downstream_disconnects": 1,
+    "model_calls": 5,
+    "orders": 1,
+    "payment_calls": 1,
+    "run_id": "9a5ab036-5dcb-47fb-a470-f27965c7e3e9",
+    "stream_cancelled": 0,
+    "stream_drained": 1,
+    "stream_shutdowns": 0,
+    "stream_started": 1,
+    "stream_timeouts": 0,
+    "tool_results": 2,
+    "usage_calls": 5,
+    "usage_cost": "0.0005000000",
+    "usage_turns": 3,
+    "user_id": 1
+  },
+  "initialAudit": {
+    "checked_credentials": 6,
+    "leaked": false
+  },
+  "restartAudit": {
+    "checked_credentials": 9,
+    "leaked": false
+  },
+  "byokAudit": {
+    "checked_credentials": 11,
+    "leaked": false
+  },
+  "transport": {
+    "known_public_font": {
+      "host": "fonts.googleapis.com",
+      "attempted": true,
+      "blocked_before_transport": true,
+      "delivered": false,
+      "denied_hosts": [
+        "fonts.googleapis.com",
+        "fonts.googleapis.com",
+        "fonts.googleapis.com"
+      ]
+    }
+  },
+  "verification": {
+    "date": "2026-09-17",
+    "tested_aino_head_plus_recorded_working_diff": "3e62f7803d45b5132a20b82a0be496827873a2f2",
+    "equivalent_committed_fixture": "32c0ca8eae",
+    "business_sources": {
+      "aino": "aae34d629b",
+      "api": "acc7fc760"
+    },
+    "test_file_sha256": {
+      "apps/desktop/e2e/platform-real-api.ts": "e50f934d317fc94b3475d960ea0935b89f8c57969b4ebac2d7cf95b690c602a3",
+      "apps/desktop/e2e/platform-account-model-billing.spec.ts": "a26e7de6a223cafc96210407394d156877acc2f7393d95c79f514cd12f65f667"
+    },
+    "unchanged_dist_files": 367,
+    "dist_manifest_sha256": "3ce333c2bb9e13d6230f530737f1c46ae7d874de3785da583900c6374a0c49f6",
+    "raw_receipt_sha256": "7b5872bb4a94e3700e07f7246a330fd4d5e082b6f9612f0137bd0ee729b9d80c",
+    "evidence_directory": "/private/tmp/aino-native-final-verified-Os7n6L/",
+    "commands": [
+      {
+        "command": "../../node_modules/.bin/tsc -p tsconfig.e2e.json --noEmit",
+        "exit_code": 0
+      },
+      {
+        "command": "../../node_modules/.bin/eslint e2e/platform-real-api.ts e2e/platform-account-model-billing.spec.ts",
+        "exit_code": 0
+      },
+      {
+        "command": "../../node_modules/.bin/playwright test e2e/platform-account-model-billing.spec.ts -g 'transport audit|native fixture guards|fixture decimal' --workers=1 --retries=0 --reporter=list",
+        "passed": 3,
+        "exit_code": 0
+      },
+      {
+        "command": "../../node_modules/.bin/playwright test e2e/platform-account-model-billing.spec.ts -g 'real API account' --workers=1 --retries=0 --reporter=list",
+        "passed": 1,
+        "elapsed_reported": "2.4m",
+        "exit_code": 0
+      }
+    ],
+    "checks_completed_after_raw_receipt_written": {
+      "final_post_close_network_audit": true,
+      "config_session_userdata_api_log_console_secret_audit": true,
+      "api_exit_code": 0,
+      "cleanup_completed": true
+    },
+    "limitations": [
+      "Local model/SMS/payment supplier substitutes; actual business services and isolated PostgreSQL/Redis.",
+      "Restart used fresh SMS reauthentication with session-only login; not remembered-login restore.",
+      "Current native test does not cover workspace switch or website wallet UI.",
+      "Default packaged Chromium sandbox, signing/notarization, Windows/Linux secure storage and real services remain unverified.",
+      "Whole Python suite Bus error remains unresolved; this result is not full CI green.",
+      "No push, merge, production deployment or paid external request."
+    ]
+  }
+}

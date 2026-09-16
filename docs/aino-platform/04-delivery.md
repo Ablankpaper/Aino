@@ -10,6 +10,8 @@
 
 **Spec:** [完整设计](/Users/zizimutou/Protect/Aino/docs/aino-platform/design.md)。
 
+**2026-09-17 执行回写：** 现有原生用例已完整通过，覆盖登录→Agent 工具→停止结算→充值→重启重新认证/历史重绑定→BYOK 及秘密审计（Aino 夹具 `32c0ca8eae` / API `ff00058c3`）。这不覆盖全部矩阵，原生工作区切换、网站余额 UI、正常发行启动、Python 整套 Bus error、跨平台与真实服务仍开放。逐项事实及受控回执见[验收矩阵](../implementation/aino-platform-acceptance-matrix.md)。下列复选框仅对完整满足的步骤勾选。
+
 ## Global Constraints
 
 - 遵守[总计划](/Users/zizimutou/Protect/Aino/docs/aino-platform/implementation-plan.md)，按 A → B → C → D 顺序完成。
@@ -29,7 +31,7 @@
 
 **Interfaces:** 每次测试生成 `run_id`，关联各仓库commit、独立DB/Redis、app userData、测试HERMES_HOME和人工可读报告。fake供应商数据只能来自 `fixture-*`，端到端业务service仍是真实实现。
 
-- [ ] **Step 1：建立 isolated infrastructure。** 复用项目既有testcontainers Postgres/Redis setup，不连接生产；SMS和模型/支付出口替换为协议兼容的本地服务。fake模型需要支持先tool_call、再收到tool_result后最终回答，不能只永远返回hello。
+- [x] **Step 1：建立 isolated infrastructure。** 复用项目既有testcontainers Postgres/Redis setup，不连接生产；SMS和模型/支付出口替换为协议兼容的本地服务。fake模型需要支持先tool_call、再收到tool_result后最终回答，不能只永远返回hello。
 - [ ] **Step 2：写跨仓库核心场景。**
 
 ```text
@@ -44,7 +46,7 @@ when: 重启桌面、恢复会话、切换工作区、再切换BYOK发送
 then: 身份/账户正确；Key重绑定；BYOK请求不产生Aino账本消费
 ```
 
-- [ ] **Step 3：建立老用户升级场景。** 初始DB是旧schema生成且含真实结构的email/oauth用户、余额、订单、订阅和普通Key的测试副本；执行全部新迁移后绑定phone，确认ID、余额、订单、旧登录/Key保持可用。测试此后服务端回退到已验证兼容版本。
+- [x] **Step 3：建立老用户升级场景。** 初始DB是旧schema生成且含真实结构的email/oauth用户、余额、订单、订阅和普通Key的测试副本；执行全部新迁移后绑定phone，确认ID、余额、订单、旧登录/Key保持可用。测试此后服务端回退到已验证兼容版本。
 - [ ] **Step 4：执行下表所有覆盖项。** 记录「自动化通过/人工通过/未验证/失败」，失败必须有复现路径和修复提交，不只截图。
 
 ## 必须覆盖的验收矩阵
@@ -210,7 +212,7 @@ npx playwright test e2e/platform-account-model-billing.spec.ts
 ```
 
 - [ ] **Step 1：检查差异与提交范围。** 两仓库 `git diff --check`、branch diff、status；本地含秘密文件不入Git，sample配置无真实密钥/手机号；lockfiles与生成物可解释。没有把未提交用户改动混进本任务。
-- [ ] **Step 2：对照矩阵写报告。** 每个ID有证据或明确未完成原因；失败之后的修复有复验；测试报告与最终提交相符。UI截图不能替代账本/身份数据证据。
+- [x] **Step 2：对照矩阵写报告。** 每个ID有证据或明确未完成原因；失败之后的修复有复验；测试报告与最终提交相符。UI截图不能替代账本/身份数据证据。
 - [ ] **Step 3：交付用户。** 给出两仓库分支/commit、阅读入口、安装包/启动方式、已完成与待联调项；有推送授权才推到自有origin，未授权只提供本地结果。
 - [ ] **Step 4：Codex接手时检查以下实质问题。** 这一步是后续复核责任，不在没有执行结果时打勾通过。
 
