@@ -191,6 +191,7 @@ interface SessionActionsOptions {
   navigate: NavigateFunction
   onFreshDraftRouteIntent?: () => void
   requestGateway: <T>(method: string, params?: Record<string, unknown>) => Promise<T>
+  resolveCurrentModel?: () => Promise<unknown> | unknown
   resetViewSync: () => void
   runtimeIdByStoredSessionIdRef: MutableRefObject<Map<string, string>>
   selectedStoredSessionId: string | null
@@ -297,8 +298,13 @@ function reconcileAuthoritativeMessages(
 // new chat.
 async function desktopSessionCreateParams(
   cwd: string,
-  capturedRoute = resolveNewChatOwnerRoute()
+  capturedRoute = resolveNewChatOwnerRoute(),
+  resolveCurrentModel?: () => Promise<unknown> | unknown
 ): Promise<{ params: Record<string, unknown>; platformOwner: string }> {
+  // Create owns the readiness boundary: passive fresh-draft effects may not
+  // have run when the gateway-open composer accepts Enter after reload.
+  await resolveCurrentModel?.()
+
   // A reload restores the visible default selection from scoped storage, but
   // managed billing authority is deliberately transient. If the fresh-draft
   // resolver is validating that restored value, wait before taking the send
@@ -408,6 +414,7 @@ export function useSessionActions({
   navigate,
   onFreshDraftRouteIntent,
   requestGateway,
+  resolveCurrentModel,
   resetViewSync,
   runtimeIdByStoredSessionIdRef,
   selectedStoredSessionId,
@@ -598,7 +605,7 @@ export function useSessionActions({
         // reduce the owner to a bare profile name that later RPCs dial on a
         // different socket than the one that minted the runtime.
         const capturedRoute = resolveNewChatOwnerRoute()
-        const { params, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute)
+        const { params, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute, resolveCurrentModel)
 
         // Lease the owner socket for the whole create → owner-publication
         // sequence (#93602 primitive). The per-request lease inside
@@ -735,6 +742,7 @@ export function useSessionActions({
       getRouteToken,
       navigate,
       requestGateway,
+      resolveCurrentModel,
       resetViewSync,
       selectedStoredSessionIdRef,
       updateSessionState
@@ -796,7 +804,7 @@ export function useSessionActions({
         const cwd =
           options?.cwd === null ? '' : typeof options?.cwd === 'string' ? options.cwd.trim() : resolveNewSessionCwd()
 
-        const prepared = await desktopSessionCreateParams(cwd, capturedRoute)
+        const prepared = await desktopSessionCreateParams(cwd, capturedRoute, resolveCurrentModel)
 
         const params = {
           ...prepared.params,
@@ -886,7 +894,7 @@ export function useSessionActions({
         notifyError(error, copy.createSessionFailed)
       }
     },
-    [copy, requestGateway, updateSessionState]
+    [copy, requestGateway, resolveCurrentModel, updateSessionState]
   )
 
   const openSettings = useCallback(() => {

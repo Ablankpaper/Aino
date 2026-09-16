@@ -203,9 +203,11 @@ function Harness({
 
 function FirstSendHarness({
   onReady,
+  resolveCurrentModel,
   requestGateway
 }: {
   onReady: (submitText: (text: string) => Promise<boolean>) => void
+  resolveCurrentModel?: () => Promise<unknown> | unknown
   requestGateway: <T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) => Promise<T>
 }) {
   const activeSessionIdRef = useRef<string | null>(null)
@@ -253,6 +255,7 @@ function FirstSendHarness({
     getRoutedStoredSessionId: () => null,
     navigate: vi.fn(),
     requestGateway,
+    resolveCurrentModel,
     resetViewSync: vi.fn(),
     runtimeIdByStoredSessionIdRef,
     selectedStoredSessionId: null,
@@ -1108,15 +1111,14 @@ describe('createBackendSessionForSend profile routing', () => {
       })
     )
 
-    let refresh!: Promise<void>
-
-    act(() => {
-      refresh = modelControls.current.refreshCurrentModel()
-    })
-    await waitFor(() => expect(getGlobalModelInfo).toHaveBeenCalled())
-
     let submitText: null | ((text: string) => Promise<boolean>) = null
-    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
+    render(
+      <FirstSendHarness
+        onReady={value => (submitText = value)}
+        requestGateway={requestGateway}
+        resolveCurrentModel={modelControls.current.refreshCurrentModel}
+      />
+    )
     await waitFor(() => expect(submitText).not.toBeNull())
 
     let submitting!: Promise<boolean>
@@ -1125,11 +1127,11 @@ describe('createBackendSessionForSend profile routing', () => {
       submitting = submitText!('first prompt after reload')
       await Promise.resolve()
     })
+    await waitFor(() => expect(getGlobalModelInfo).toHaveBeenCalled())
     expect(requestGateway.mock.calls.some(([method]) => method === 'session.create')).toBe(false)
 
     globalModel.resolve({ model: '', provider: '' })
     await act(async () => {
-      await refresh
       await expect(submitting).resolves.toBe(true)
     })
 
