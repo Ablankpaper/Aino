@@ -234,3 +234,48 @@ error TS2307: Cannot find module './recharge-view' or its corresponding type dec
 ```
 
 The controller-owned recharge files were not staged or modified. The remaining B6 limitations are unchanged.
+
+## Round-three pre-registration fix
+
+Code commit: `d60473ae37`
+
+Round two correctly joined refresh flights that already existed, but create could still arrive before the passive background effect registered one. The primary and split create paths now receive the existing authoritative `refreshCurrentModel` callback from production wiring and invoke/await it before snapshotting session-create parameters. They then retain the round-two overlap join, so create both initiates readiness itself and waits for any concurrent validation.
+
+No new resolver, model path, or persisted proof was introduced. The authoritative implementation remains `useModelControls.refreshCurrentModel()`; `useSessionActions` only receives it through the existing controller composition.
+
+### RED
+
+The reload invariant was changed so it mounts the real model-control and session/prompt hooks, then calls real submit without first invoking any refresh callback.
+
+```bash
+cd apps/desktop
+npm run test:ui -- src/app/session/hooks/use-session-actions.test.tsx \
+  -t "waits for pending default resolution before a reloaded automatic Aino first send"
+```
+
+Observed: after submit, `getGlobalModelInfo` was never called. This proved create did not initiate validation and the test timed out at the resolver-start assertion.
+
+### GREEN
+
+With `refreshCurrentModel` injected from production wiring, submit itself starts the held resolver. The test verifies:
+
+- `getGlobalModelInfo` is called only after submit begins;
+- `session.create` remains absent while authoritative resolution is pending;
+- after resolution, the managed create -> ticket -> native bind -> prompt sequence completes.
+
+Bounded related verification:
+
+```bash
+cd apps/desktop
+npm run test:ui -- \
+  src/app/session/hooks/use-session-actions.test.tsx \
+  src/app/session/hooks/use-model-controls.test.tsx \
+  src/store/session.test.ts \
+  src/app/contrib/surfaces.test.tsx
+```
+
+Result: 4 files passed, 230 tests passed. Scoped ESLint, Prettier, and `git diff --check` passed.
+
+After the controller completed the concurrent billing-history module, `npm run typecheck` passed all renderer, Electron, and E2E TypeScript projects. Billing, shared-contract, Electron, package, and i18n files were not staged or modified by this fix.
+
+The remaining B6 limitations are unchanged.
