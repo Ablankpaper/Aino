@@ -26,6 +26,7 @@ import {
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { recoverInFlightTurnJournal } from '@/lib/inflight-turn-journal'
 import { resolveModelDefault } from '@/lib/model-default'
+import { platformDefaultScope } from '@/lib/platform-model-scope'
 import { platformCreateOverrides } from '@/lib/platform-session-model'
 import { setSessionYolo } from '@/lib/yolo-session'
 import { $clarifyRequests } from '@/store/clarify'
@@ -37,10 +38,11 @@ import {
   requestGatewayForAgent,
   retainGatewayForAgent
 } from '@/store/gateway'
+import { managedModelRouteCapability } from '@/store/gateway-managed-capability'
 import { $gatewaySwitching } from '@/store/gateway-switch'
 import { $pinnedSessionIds } from '@/store/layout'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
-import { platformModelCatalog } from '@/store/platform-models'
+import { platformModelCatalog, PlatformSelectionError } from '@/store/platform-models'
 import {
   $activeGatewayProfile,
   $gatewaySwapTarget,
@@ -333,6 +335,16 @@ async function desktopSessionCreateParams(
     platformOwner = resolved.platform?.ownerUserId || ''
   }
 
+  if (capturedRoute) {
+    await ensureGatewayAgent(capturedRoute.connectionId, profile)
+  } else {
+    await ensureGatewayProfile(profile)
+  }
+
+  if (selection.provider === 'aino' && managedModelRouteCapability(platformDefaultScope(scope).route) !== 'supported') {
+    throw new PlatformSelectionError('unsupported_gateway')
+  }
+
   const catalog = platformModelCatalog()
 
   const modelParams = platformCreateOverrides(
@@ -342,12 +354,6 @@ async function desktopSessionCreateParams(
     catalog.account.get(),
     catalog.state.get().models
   )
-
-  if (capturedRoute) {
-    await ensureGatewayAgent(capturedRoute.connectionId, profile)
-  } else {
-    await ensureGatewayProfile(profile)
-  }
 
   return {
     platformOwner,

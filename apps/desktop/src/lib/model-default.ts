@@ -1,5 +1,6 @@
 import { getGlobalModelInfo, type ProfileScope } from '@/hermes'
 import { platformDefaultScope } from '@/lib/platform-model-scope'
+import { managedModelRouteCapability } from '@/store/gateway-managed-capability'
 import { platformModelCatalog, PlatformSelectionError, readPlatformDefault } from '@/store/platform-models'
 
 /** Resolve backend/default billing identity without publishing into the composer. */
@@ -23,14 +24,15 @@ export async function resolveModelDefault(scope: ProfileScope) {
   }
 
   const state = catalog.state.get()
+  const managedSupported = managedModelRouteCapability(capturedScope.route) === 'supported'
 
   const platformDefault =
-    state.phase === 'ready'
+    managedSupported && state.phase === 'ready'
       ? state.models.find(model => model.state === 'available' && model.id === preferredId) ||
         state.models.find(model => model.is_default && model.state === 'available')
       : undefined
 
-  if (!result.model && !result.provider && account?.phase === 'signed_in' && !platformDefault) {
+  if (!result.model && !result.provider && account?.phase === 'signed_in' && managedSupported && !platformDefault) {
     throw new PlatformSelectionError('model_unavailable')
   }
 

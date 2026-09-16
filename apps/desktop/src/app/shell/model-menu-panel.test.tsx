@@ -3,12 +3,16 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { platformAccountActions } from '@/api/platform'
 import { useModelControls } from '@/app/session/hooks/use-model-controls'
 import { DropdownMenu, DropdownMenuContent } from '@/components/ui/dropdown-menu'
+import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { $collapsedProviders, toggleCollapsedProvider } from '@/store/provider-collapse'
 import { $activeSessionId, $currentModel, $currentProvider } from '@/store/session'
 import { $sessionStates } from '@/store/session-states'
 import { deferred } from '@/test/deferred'
+import { stubResizeObserver } from '@/test/jsdom'
+import { platformModel, platformSnapshot } from '@/test/platform-model'
 
 import { ModelMenuCloseContext, ModelMenuPanel } from './model-menu-panel'
 
@@ -24,6 +28,7 @@ vi.mock('@/store/notifications', () => ({
 
 // Radix calls these on open; jsdom doesn't implement them.
 beforeAll(() => {
+  stubResizeObserver()
   Element.prototype.scrollIntoView = vi.fn()
   Element.prototype.hasPointerCapture = vi.fn(() => false)
   Element.prototype.releasePointerCapture = vi.fn()
@@ -66,7 +71,32 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   $sessionStates.set({})
+  clearGatewayManagedCapabilities()
+  Reflect.deleteProperty(window, 'hermesDesktop')
   vi.clearAllMocks()
+})
+
+it('uses exact ready evidence for Aino without disabling the dropdown custom catalog', async () => {
+  Object.defineProperty(window, 'hermesDesktop', {
+    configurable: true,
+    value: {
+      platformAccount: {
+        status: async () => platformSnapshot(),
+        capabilities: async () => ({}),
+        onChanged: () => () => undefined
+      },
+      platformModels: { list: async () => [platformModel()] }
+    }
+  })
+  await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  recordGatewayReadyCapability({ profile: 'default' }, { type: 'gateway.ready', payload: {} })
+  const select = vi.fn()
+  renderPanel(select)
+
+  expect(screen.getByRole('status').textContent).toContain('does not support Aino models')
+  fireEvent.click(screen.getByRole('button', { name: 'Custom models' }))
+  fireEvent.click(await screen.findByText(/Gemini 3\.1 Pro/i))
+  expect(select).toHaveBeenCalledWith({ model: 'gemini-3.1-pro', provider: 'google', sessionId: 'runtime-1' })
 })
 
 function renderPanel(onSelectModel = vi.fn(), onClose = vi.fn()) {

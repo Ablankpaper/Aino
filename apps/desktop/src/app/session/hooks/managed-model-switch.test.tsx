@@ -7,6 +7,7 @@ import { ModelPill } from '@/app/chat/composer/model-pill'
 import { ModelMenuCloseContext, ModelMenuPanel } from '@/app/shell/model-menu-panel'
 import { DropdownMenu, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { modelOptionsQueryKey } from '@/lib/model-options'
+import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { $modelPresets, modelPresetKey } from '@/store/model-presets'
 import { platformModelCatalog } from '@/store/platform-models'
 import { $activeGatewayProfile } from '@/store/profile'
@@ -96,6 +97,14 @@ beforeEach(async () => {
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
   await platformModelCatalog().load()
+  recordGatewayReadyCapability(
+    { profile: 'default' },
+    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+  )
+  recordGatewayReadyCapability(
+    { connectionId: 'connection-b', profile: 'profile-b' },
+    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+  )
   request = vi.fn(async (method, params) => {
     if (method === 'config.set') {
       backend =
@@ -408,6 +417,7 @@ afterEach(() => {
   $sessionStates.set({})
   $busy.set(false)
   $activeGatewayProfile.set('default')
+  clearGatewayManagedCapabilities()
   Reflect.deleteProperty(window, 'hermesDesktop')
 })
 

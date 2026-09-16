@@ -1,0 +1,134 @@
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+
+const gatewayMocks = vi.hoisted(() => {
+  const instances: Array<{
+    close: ReturnType<typeof vi.fn>
+    emitEvent: (event: { payload?: unknown; type: string }) => void
+    emitState: (state: string) => void
+  }> = []
+
+  return { instances }
+})
+
+vi.mock('@/hermes', () => ({
+  setApiRequestConnection: vi.fn(),
+  HermesGateway: class {
+    connectionState = 'closed'
+    private eventHandler: (event: { payload?: unknown; type: string }) => void = () => undefined
+    private stateHandler: (state: string) => void = () => undefined
+    close = vi.fn(() => {
+      this.connectionState = 'closed'
+      this.stateHandler('closed')
+    })
+    connect = vi.fn(async () => {
+      this.connectionState = 'open'
+      this.stateHandler('open')
+    })
+    onEvent = vi.fn((handler: typeof this.eventHandler) => {
+      this.eventHandler = handler
+
+      return () => undefined
+    })
+    onState = vi.fn((handler: typeof this.stateHandler) => {
+      this.stateHandler = handler
+
+      return () => undefined
+    })
+    constructor() {
+      gatewayMocks.instances.push({
+        close: this.close,
+        emitEvent: event => this.eventHandler(event),
+        emitState: state => {
+          this.connectionState = state
+          this.stateHandler(state)
+        }
+      })
+    }
+  }
+}))
+vi.mock('@/store/session', () => ({ setConnection: vi.fn(), setGatewayState: vi.fn() }))
+vi.mock('@/store/notify-baseline', () => ({ markNativeNotifyBaseline: vi.fn() }))
+vi.mock('@/store/session-states', () => ({
+  reconcileBusyStatesOnReconnect: vi.fn(),
+  resetTileRuntimeBindings: vi.fn()
+}))
+
+const {
+  closeSecondaryGateways,
+  configureGatewayRegistry,
+  disposeSecondariesForConnection,
+  ensureGatewayForAgent,
+  reportPrimaryGatewayEvent,
+  reportPrimaryGatewayState,
+  setPrimaryGateway,
+  setPrimaryGatewayConnectionId
+} = await import('./gateway')
+
+const { clearGatewayManagedCapabilities, managedModelRouteCapability } = await import('./gateway-managed-capability')
+
+function descriptor(connectionId: string, profile: string) {
+  return {
+    authMode: 'token',
+    baseUrl: `https://${connectionId}.invalid`,
+    connectionId,
+    mode: 'remote',
+    profile,
+    token: 'test-token',
+    wsUrl: `wss://${connectionId}.invalid/api/ws?profile=${profile}`
+  }
+}
+
+beforeEach(() => {
+  clearGatewayManagedCapabilities()
+  configureGatewayRegistry({ onEvent: vi.fn() } as never)
+  Object.defineProperty(window, 'hermesDesktop', {
+    configurable: true,
+    value: {
+      getConnectionFor: vi.fn(async ({ connectionId, profile }) => descriptor(connectionId, profile))
+    }
+  })
+})
+
+afterEach(() => {
+  closeSecondaryGateways()
+  gatewayMocks.instances.length = 0
+  Reflect.deleteProperty(window, 'hermesDesktop')
+})
+
+it('keeps ready evidence on the exact connection/profile route and treats an older peer as unsupported', async () => {
+  await ensureGatewayForAgent('source-a', 'default')
+  await ensureGatewayForAgent('source-b', 'default')
+
+  gatewayMocks.instances[0].emitEvent({
+    type: 'gateway.ready',
+    payload: { capabilities: { unrelated: 1 }, managed_model_binding: 1 }
+  })
+  gatewayMocks.instances[1].emitEvent({ type: 'gateway.ready', payload: { capabilities: {} } })
+
+  expect(managedModelRouteCapability({ connectionId: 'source-a', profile: 'default' })).toBe('supported')
+  expect(managedModelRouteCapability({ connectionId: 'source-b', profile: 'default' })).toBe('unsupported')
+})
+
+it('records and resets the primary socket against its published owner instead of the active view', () => {
+  setPrimaryGateway({ connectionState: 'open' } as never, 'shared')
+  setPrimaryGatewayConnectionId('primary-source')
+  reportPrimaryGatewayEvent({ type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+
+  expect(managedModelRouteCapability({ connectionId: 'primary-source', profile: 'shared' })).toBe('supported')
+  reportPrimaryGatewayState('error')
+  expect(managedModelRouteCapability({ connectionId: 'primary-source', profile: 'shared' })).toBe('unknown')
+})
+
+it('invalidates ready evidence on reconnect and when the connection target is replaced', async () => {
+  await ensureGatewayForAgent('source-a', 'default')
+  gatewayMocks.instances[0].emitEvent({ type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+  expect(managedModelRouteCapability({ connectionId: 'source-a', profile: 'default' })).toBe('supported')
+
+  gatewayMocks.instances[0].emitState('connecting')
+  expect(managedModelRouteCapability({ connectionId: 'source-a', profile: 'default' })).toBe('unknown')
+
+  gatewayMocks.instances[0].emitEvent({ type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+  disposeSecondariesForConnection('source-a', { redial: true })
+
+  expect(managedModelRouteCapability({ connectionId: 'source-a', profile: 'default' })).toBe('unknown')
+})

@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n'
 import { Check } from '@/lib/icons'
 import { modelSearchText } from '@/lib/model-search-text'
 import { foldIncludes } from '@/lib/text'
+import type { ManagedModelRouteCapability } from '@/store/gateway-managed-capability'
 import { notifyError } from '@/store/notifications'
 import { platformModelCatalog } from '@/store/platform-models'
 
@@ -32,9 +33,16 @@ export interface PlatformModelListProps {
   disabled?: boolean
   onSelect: (model: PlatformModel) => Promise<boolean> | boolean | void
   onApplied?: () => void
+  managedCapability?: ManagedModelRouteCapability
 }
 
-export function PlatformModelList({ selectedId, disabled, onSelect, onApplied }: PlatformModelListProps) {
+export function PlatformModelList({
+  selectedId,
+  disabled,
+  onSelect,
+  onApplied,
+  managedCapability = 'supported'
+}: PlatformModelListProps) {
   const { t } = useI18n()
   const copy = t.platformModels
   const catalog = usePlatformModels()
@@ -54,7 +62,7 @@ export function PlatformModelList({ selectedId, disabled, onSelect, onApplied }:
     catalog.models.find(model => model.id === highlighted) ?? catalog.models.find(model => model.id === selectedId)
 
   const select = async (model: PlatformModel) => {
-    if (disabled || selecting.current || model.state !== 'available') {
+    if (disabled || managedCapability !== 'supported' || selecting.current || model.state !== 'available') {
       return
     }
 
@@ -83,7 +91,11 @@ export function PlatformModelList({ selectedId, disabled, onSelect, onApplied }:
       >
         <CommandInput aria-label={copy.search} onValueChange={setSearch} placeholder={copy.search} value={search} />
         <CommandList aria-label={copy.builtIn} className="max-h-64">
-          {catalog.phase === 'signed_out' ? (
+          {managedCapability !== 'supported' ? (
+            <p className="p-3 text-xs text-muted-foreground" role="status">
+              {copy.unsupported}
+            </p>
+          ) : catalog.phase === 'signed_out' ? (
             <p className="p-3 text-xs text-muted-foreground">{copy.not_authenticated}</p>
           ) : catalog.phase === 'loading' && !models.length ? (
             <p className="p-3 text-xs text-muted-foreground" role="status">
@@ -104,7 +116,7 @@ export function PlatformModelList({ selectedId, disabled, onSelect, onApplied }:
               <CommandGroup>
                 {models.map(model => (
                   <CommandItem
-                    disabled={disabled || pending || model.state !== 'available'}
+                    disabled={disabled || pending || managedCapability !== 'supported' || model.state !== 'available'}
                     key={model.id}
                     onSelect={() => void select(model)}
                     value={model.id}

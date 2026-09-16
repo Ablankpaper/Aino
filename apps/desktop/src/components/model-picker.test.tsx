@@ -3,11 +3,14 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import type { ReactElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { platformAccountActions } from '@/api/platform'
 import { I18nProvider } from '@/i18n'
+import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { $localModelsEnabled } from '@/store/local-models-flag'
 import { $localRuntimeJobs } from '@/store/local-runtime-jobs'
 import { deferred } from '@/test/deferred'
 import { stubMenuDomApis, stubResizeObserver } from '@/test/jsdom'
+import { platformModel, platformSnapshot } from '@/test/platform-model'
 import type { LocalRuntimeJob, ModelOptionsResponse } from '@/types/hermes'
 
 import { ModelPickerDialog } from './model-picker'
@@ -141,7 +144,38 @@ it('does not dismiss a different picker owner when an earlier selection complete
 
 afterEach(() => {
   cleanup()
+  clearGatewayManagedCapabilities()
+  Reflect.deleteProperty(window, 'hermesDesktop')
   vi.clearAllMocks()
+})
+
+it('blocks Aino on an older exact route while custom providers remain selectable', async () => {
+  Object.defineProperty(window, 'hermesDesktop', {
+    configurable: true,
+    value: {
+      platformAccount: {
+        status: async () => platformSnapshot(),
+        capabilities: async () => ({}),
+        onChanged: () => () => undefined
+      },
+      platformModels: { list: async () => [platformModel()] }
+    }
+  })
+  await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  recordGatewayReadyCapability(
+    { connectionId: 'old-owner', profile: 'default' },
+    { type: 'gateway.ready', payload: {} }
+  )
+  const onSelect = vi.fn()
+
+  renderPicker({ includePlatform: true, ownerConnectionId: 'old-owner', onSelect })
+  fireEvent.click(screen.getByRole('button', { name: 'Aino models' }))
+  expect(screen.getByRole('status').textContent).toContain('does not support Aino models')
+  expect(screen.queryByRole('option', { name: /Fixture Model/ })).toBeNull()
+
+  fireEvent.click(screen.getByRole('button', { name: 'Custom models' }))
+  fireEvent.click(await screen.findByRole('option', { name: /Hermes-4.5/ }))
+  expect(onSelect).toHaveBeenCalledWith({ provider: 'nous', model: 'Hermes-4.5' })
 })
 
 describe('ModelPickerDialog download rows', () => {

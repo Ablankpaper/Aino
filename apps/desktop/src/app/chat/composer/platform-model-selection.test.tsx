@@ -7,6 +7,7 @@ import { useModelControls } from '@/app/session/hooks/use-model-controls'
 import { getGlobalModelInfo } from '@/hermes'
 import type * as Hermes from '@/hermes'
 import { $composerAttachments, $composerDraft } from '@/store/composer'
+import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { writePlatformDefault } from '@/store/platform-models'
 import {
   $activeSessionId,
@@ -36,6 +37,7 @@ afterEach(() => {
   setCurrentModel('')
   setCurrentProvider('')
   setCurrentModelSource('')
+  clearGatewayManagedCapabilities()
   vi.restoreAllMocks()
 })
 
@@ -49,10 +51,32 @@ it('seeds a fresh unconfigured composer from the account catalog but preserves a
     }
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  recordGatewayReadyCapability({ profile: 'default' }, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
   vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
   const { result } = renderHook(() => useModelControls({ queryClient: new QueryClient(), requestGateway: vi.fn() }))
   await act(() => result.current.refreshCurrentModel())
   expect([$currentProvider.get(), $currentModel.get()]).toEqual(['aino', 'catalog-a'])
+
+  vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: 'personal-model', provider: 'custom:local' })
+  await act(() => result.current.refreshCurrentModel(true))
+  expect([$currentProvider.get(), $currentModel.get()]).toEqual(['custom:local', 'personal-model'])
+})
+
+it('does not apply an automatic Aino default without ready evidence and still preserves BYOK', async () => {
+  const snapshot = platformSnapshot()
+  Object.defineProperty(window, 'hermesDesktop', {
+    configurable: true,
+    value: {
+      platformAccount: { status: async () => snapshot, capabilities: async () => ({}), onChanged: () => () => {} },
+      platformModels: { list: async () => [platformModel()] }
+    }
+  })
+  await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
+  const { result } = renderHook(() => useModelControls({ queryClient: new QueryClient(), requestGateway: vi.fn() }))
+
+  await act(() => result.current.refreshCurrentModel())
+  expect([$currentProvider.get(), $currentModel.get()]).toEqual(['', ''])
 
   vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: 'personal-model', provider: 'custom:local' })
   await act(() => result.current.refreshCurrentModel(true))
@@ -77,6 +101,7 @@ it('reconciles account broadcasts without losing draft content, project or BYOK 
     }
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  recordGatewayReadyCapability({ profile: 'default' }, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
   vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
   setCurrentProvider('aino')
   setCurrentModel('catalog-a')

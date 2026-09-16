@@ -10,6 +10,12 @@ import { markNativeNotifyBaseline } from '@/store/notify-baseline'
 import { setConnection, setGatewayState } from '@/store/session'
 import { stampSecondaryProfileOwner } from '@/store/session-event-provenance'
 
+import {
+  recordGatewayCapabilityState,
+  recordGatewayReadyCapability,
+  resetGatewayManagedCapability
+} from './gateway-managed-capability'
+
 // ── Multi-profile gateway routing ──────────────────────────────────────────
 // Concurrent sessions across profiles need concurrent sockets: the renderer's
 // event handler is already session-keyed, so the only thing stopping two
@@ -265,6 +271,10 @@ export function emitLocalGatewayEvent(event: GatewayEvent): void {
 export function setPrimaryGateway(gateway: HermesGateway | null, profile = 'default'): void {
   const next = normKey(profile)
 
+  if (g.primaryGateway !== gateway || g.primaryProfile !== next) {
+    resetGatewayManagedCapability({ connectionId: g.primaryConnectionId, profile: g.primaryProfile })
+  }
+
   if (g.primaryGateway !== gateway) {
     g.primaryConnectionId = null
   }
@@ -299,7 +309,14 @@ export function setPrimaryGatewayConnectionId(connectionId: null | string | unde
     return
   }
 
-  g.primaryConnectionId = (connectionId ?? '').trim() || null
+  const next = (connectionId ?? '').trim() || null
+
+  if (next !== g.primaryConnectionId) {
+    resetGatewayManagedCapability({ connectionId: g.primaryConnectionId, profile: g.primaryProfile })
+    resetGatewayManagedCapability({ connectionId: next, profile: g.primaryProfile })
+  }
+
+  g.primaryConnectionId = next
 
   if (g.activeKey === g.primaryProfile) {
     setApiRequestConnection(g.primaryConnectionId)
@@ -459,7 +476,12 @@ function reportGatewayState(profile: string, state: ConnectionState): void {
 }
 
 export function reportPrimaryGatewayState(state: ConnectionState): void {
+  recordGatewayCapabilityState({ connectionId: g.primaryConnectionId, profile: g.primaryProfile }, state)
   reportGatewayState(g.primaryProfile, state)
+}
+
+export function reportPrimaryGatewayEvent(event: GatewayEvent): void {
+  recordGatewayReadyCapability({ connectionId: g.primaryConnectionId, profile: g.primaryProfile }, event)
 }
 
 function setActive(profile: string): void {
@@ -769,10 +791,12 @@ function createSecondary(profile: string, connectionId: null | string = null): S
   entry.offEvent = gateway.onEvent(event => {
     const scopedEvent = stampSecondaryProfileOwner({ ...event, ...(connectionId ? { connectionId } : {}) }, profile)
 
+    recordGatewayReadyCapability({ connectionId, profile }, event)
     g.config?.onEvent(scopedEvent)
     releaseTerminalTurnLease(entry.scope, event)
   })
   entry.offState = gateway.onState(state => {
+    recordGatewayCapabilityState({ connectionId, profile }, state)
     reportGatewayState(scope, state)
 
     if (state === 'open') {

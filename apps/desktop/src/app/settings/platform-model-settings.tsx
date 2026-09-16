@@ -6,6 +6,10 @@ import { useI18n } from '@/i18n'
 import { Cpu } from '@/lib/icons'
 import { platformDefaultScope } from '@/lib/platform-model-scope'
 import { $activeConnectionId } from '@/store/connections'
+import {
+  $gatewayManagedCapabilities,
+  managedModelRouteCapabilityFrom
+} from '@/store/gateway-managed-capability'
 import { savePlatformDraftDefault } from '@/store/platform-draft-model'
 import { platformModelCatalog, readPlatformDefault } from '@/store/platform-models'
 import { $activeGatewayProfile } from '@/store/profile'
@@ -22,6 +26,8 @@ export function PlatformModelSettings({ scopeProfile }: { scopeProfile?: string 
   useStore($connection)
   useStore($activeConnectionId)
   const scope = platformDefaultScope(scopeProfile ?? activeProfile)
+  const managedCapabilities = useStore($gatewayManagedCapabilities)
+  const managedCapability = managedModelRouteCapabilityFrom(managedCapabilities, scope.route)
   const [, refreshPreference] = useState(0)
   const selectionKey = JSON.stringify([account?.account?.id, account?.mode, scope.key])
   useEffect(() => {
@@ -40,6 +46,7 @@ export function PlatformModelSettings({ scopeProfile }: { scopeProfile?: string 
       <p className="mb-3 text-xs text-muted-foreground">{t.platformModels.defaultModel}</p>
       <PlatformModelList
         key={selectionKey}
+        managedCapability={managedCapability}
         onSelect={async model => {
           const saving = savePlatformDraftDefault(account, scope, model.id)
           refreshPreference(value => value + 1)

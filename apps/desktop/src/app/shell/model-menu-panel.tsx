@@ -15,6 +15,10 @@ import { managedModelSwitchBlocked } from '@/lib/model-switch-policy'
 import { platformDefaultScope } from '@/lib/platform-model-scope'
 import { DEFAULT_REASONING_EFFORT } from '@/lib/reasoning-effort'
 import { cn } from '@/lib/utils'
+import {
+  $gatewayManagedCapabilities,
+  managedModelRouteCapabilityFrom
+} from '@/store/gateway-managed-capability'
 import { $modelPresets, applyModelPreset, modelPresetKey, setModelPreset } from '@/store/model-presets'
 import { $visibleModels } from '@/store/model-visibility'
 import { notifyError } from '@/store/notifications'
@@ -75,6 +79,12 @@ export function ModelMenuPanel({
   const busy = useStore(view.$busy)
   const awaiting = useStore(view.$awaitingResponse)
   const closeMenu = useContext(ModelMenuCloseContext)
+  const managedCapabilities = useStore($gatewayManagedCapabilities)
+
+  const managedCapability = managedModelRouteCapabilityFrom(managedCapabilities, {
+    connectionId: ownerConnectionId,
+    profile
+  })
 
   const [source, setSource] = useState<'aino' | 'custom'>(() =>
     currentProvider && currentProvider !== 'aino' ? 'custom' : 'aino'
@@ -286,6 +296,7 @@ export function ModelMenuPanel({
       {source === 'aino' && window.hermesDesktop?.platformModels ? (
         <PlatformModelList
           disabled={blocked}
+          managedCapability={managedCapability}
           onApplied={closeMenu}
           onSelect={async model =>
             (await onSelectModel({ provider: 'aino', model: model.id, sessionId: activeSessionId })) !== false

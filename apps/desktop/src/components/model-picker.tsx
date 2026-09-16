@@ -9,6 +9,10 @@ import { currentPickerSelection } from '@/lib/model-status-label'
 import { managedModelSwitchBlocked } from '@/lib/model-switch-policy'
 import { foldIncludes, normalize } from '@/lib/text'
 import { useStoreSelector } from '@/lib/use-session-slice'
+import {
+  $gatewayManagedCapabilities,
+  managedModelRouteCapabilityFrom
+} from '@/store/gateway-managed-capability'
 import { $localModelsEnabled } from '@/store/local-models-flag'
 import { $localRuntimeJobs, runningModelDownloads, watchLocalRuntimeJobs } from '@/store/local-runtime-jobs'
 import { notifyError } from '@/store/notifications'
@@ -75,6 +79,13 @@ export function ModelPickerDialog({
   const selecting = useRef(false)
   const selectionEpoch = useRef(0)
   const [pending, setPending] = useState(false)
+  const managedCapabilities = useStoreSelector($gatewayManagedCapabilities, value => value)
+
+  const managedCapability = managedModelRouteCapabilityFrom(managedCapabilities, {
+    connectionId: ownerConnectionId,
+    profile
+  })
+
   useLayoutEffect(() => {
     selectionEpoch.current += 1
   }, [open, sessionId, ownerConnectionId, profile])
@@ -251,6 +262,7 @@ export function ModelPickerDialog({
         {includePlatform && source === 'aino' && window.hermesDesktop?.platformModels ? (
           <PlatformModelList
             disabled={blocked || pending}
+            managedCapability={managedCapability}
             onSelect={model => selectModel('aino', model.id)}
             selectedId={currentProvider === 'aino' ? currentModel : undefined}
           />

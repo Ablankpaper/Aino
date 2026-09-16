@@ -33,6 +33,7 @@ import {
   liveSecondaryConnectionIds,
   pruneSecondaryGateways,
   reconnectSecondaryGateways,
+  reportPrimaryGatewayEvent,
   reportPrimaryGatewayState,
   setPrimaryGateway,
   setPrimaryGatewayConnection,
@@ -849,6 +850,8 @@ export function useGatewayBoot({
 
     const offEvent = gateway.onEvent(event => {
       const connectionId = activeGatewayConnectionId()
+
+      reportPrimaryGatewayEvent(event)
 
       const scopedEvent = {
         ...event,

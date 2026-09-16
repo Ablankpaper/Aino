@@ -33,6 +33,7 @@ import {
   takeSessionDraft
 } from '@/store/composer'
 import { requestGatewayForAgent, requestGatewayForProfile } from '@/store/gateway'
+import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { $pinnedSessionIds } from '@/store/layout'
 import { $notifications, clearNotifications } from '@/store/notifications'
 import { platformModelCatalog } from '@/store/platform-models'
@@ -854,6 +855,7 @@ describe('createBackendSessionForSend profile routing', () => {
     $composerAttachments.set([])
     $composerDraft.set('')
     setNewChatWorkspaceTarget(undefined)
+    clearGatewayManagedCapabilities()
     vi.restoreAllMocks()
   })
 
@@ -961,6 +963,10 @@ describe('createBackendSessionForSend profile routing', () => {
       }
     })
     await platformAccountActions(accountBridge).refresh()
+    recordGatewayReadyCapability(
+      { profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
     await platformModelCatalog().load()
     vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
 
@@ -1073,6 +1079,10 @@ describe('createBackendSessionForSend profile routing', () => {
       }
     })
     await platformAccountActions(accountBridge).refresh()
+    recordGatewayReadyCapability(
+      { profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
     await platformModelCatalog().load()
 
     // Reload restores visible values only. Send must initiate its own default
@@ -1294,6 +1304,10 @@ describe('createBackendSessionForSend profile routing', () => {
       }
     })
     await platformAccountActions(accountBridge).refresh()
+    recordGatewayReadyCapability(
+      { profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
     await platformModelCatalog().load()
     vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
 

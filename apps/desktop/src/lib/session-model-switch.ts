@@ -8,6 +8,7 @@ import { modelOptionsQueryKey, modelProviderMatches } from '@/lib/model-options'
 import { managedModelSwitchBlocked } from '@/lib/model-switch-policy'
 import { platformDefaultScope } from '@/lib/platform-model-scope'
 import { platformModelStatePatch, type PlatformSessionModel } from '@/lib/platform-session-model'
+import { managedModelRouteCapability } from '@/store/gateway-managed-capability'
 import { notify, notifyError } from '@/store/notifications'
 import { platformModelCatalog, PlatformSelectionError, requirePlatformSelection } from '@/store/platform-models'
 import { platformHistoryOwner } from '@/store/platform-session-access'
@@ -103,6 +104,10 @@ function captureModelSwitch({ selection, queryClient, profile, connectionId, cac
 
   if (selection.provider === 'aino') {
     try {
+      if (managedModelRouteCapability(platformDefaultScope(owner).route) !== 'supported') {
+        throw new PlatformSelectionError('unsupported_gateway')
+      }
+
       requirePlatformSelection(account, catalog.state.get().models, selection.model, account?.account?.id || '')
     } catch (error) {
       notifyError(error, copy.failed)

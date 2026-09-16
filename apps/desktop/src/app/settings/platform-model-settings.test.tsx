@@ -6,6 +6,7 @@ import { platformAccountActions } from '@/api/platform'
 import { getGlobalModelInfo } from '@/hermes'
 import type * as Hermes from '@/hermes'
 import { I18nProvider } from '@/i18n'
+import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { readPlatformDefault } from '@/store/platform-models'
 import { $activeGatewayProfile } from '@/store/profile'
 import {
@@ -46,6 +47,7 @@ afterEach(() => {
   setApiRequestConnection(null)
   setApiRequestProfile(null)
   localStorage.clear()
+  clearGatewayManagedCapabilities()
   vi.restoreAllMocks()
 })
 
@@ -63,6 +65,14 @@ it('saves the shown scope and updates only its unsent draft, respecting BYOK def
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
   setApiRequestConnection('remote-a')
+  recordGatewayReadyCapability(
+    { connectionId: 'remote-a', profile: 'other' },
+    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+  )
+  recordGatewayReadyCapability(
+    { connectionId: 'remote-a', profile: 'work' },
+    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+  )
   $activeGatewayProfile.set('work')
   setApiRequestProfile('work')
   vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
@@ -120,6 +130,10 @@ it('does not publish a delayed saved default into a different foreground connect
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
   setApiRequestConnection('source-a')
+  recordGatewayReadyCapability(
+    { connectionId: 'source-a', profile: 'default' },
+    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+  )
   const info = deferred<{ model: string; provider: string }>()
   vi.mocked(getGlobalModelInfo).mockReturnValue(info.promise)
   render(<PlatformModelSettings scopeProfile="default" />)
