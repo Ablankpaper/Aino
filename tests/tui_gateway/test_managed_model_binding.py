@@ -139,3 +139,44 @@ def test_expiry_revokes_active_call_and_close_cleans_binding(rig, monkeypatch):
     assert get_registry().get(sid) is None
     assert cancelled == [(sid, session)]
     session["running"] = False
+
+
+def test_model_options_reads_staged_and_bound_truth_without_activating_or_building(rig, monkeypatch):
+    from queue import Queue
+
+    call, create, owner, controller, stranger, _ = rig
+    sid = create()
+    session = srv._sessions[sid]
+    history = session["history"]
+    monkeypatch.setattr("hermes_cli.inventory.build_model_options_payload", lambda *a, **kw: {"providers": []})
+    responses = Queue()
+    owner.write = responses.put
+    stranger.write = responses.put
+
+    def options(peer=owner, **extra):
+        response = srv.dispatch({"id": 771, "method": "model.options", "params": {
+            "session_id": sid, "include_session_info": True, **extra}}, peer)
+        if response is not None:
+            return response
+        while True:
+            response = responses.get(timeout=10)
+            if response.get("id") == 771:
+                return response
+
+    result(call(owner, "config.set", session_id=sid, key="model", value="fixture-model", model_source="aino"))
+    staged = result(options())
+    assert staged["session_info"]["model_id"] == "fixture-model"
+    assert staged["session_info"]["model_status"] == "awaiting_managed_credentials"
+    assert "error" in options(stranger)
+    params, _ = prepare(call, sid, owner, controller)
+    rejected = call(controller, "session.bind_managed_model", **(params | {"model_id": "other-model"}))
+    assert "error" in rejected
+    assert result(options())["session_info"]["model_status"] == "awaiting_managed_credentials"
+    result(call(controller, "session.bind_managed_model", **params))
+    ready = result(options())
+    assert ready["session_info"]["model_status"] == "ready"
+    assert ready["session_info"]["platform_owner"] == params["owner"]
+    assert params["api_key"] not in json.dumps(ready)
+    assert "session_info" not in result(options(include_session_info=False))
+    assert session["agent"] is None and session["history"] is history
+    assert session["transport"] is owner

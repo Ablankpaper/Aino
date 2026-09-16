@@ -139,6 +139,8 @@ export const en: Translations = {
     qrCode: 'Payment QR code'
   },
   platformModels: {
+    switchBusy: "Wait for this chat to finish before switching to or from an Aino model.",
+    switchRecovery: "Model switch needs attention. Retry authorization, select another model, or cancel the picker. No message will be replayed.",
     builtIn: "Aino models",
     custom: "Custom models",
     search: "Search models",

@@ -7,8 +7,10 @@ import { useModelControls } from '@/app/session/hooks/use-model-controls'
 import { DropdownMenu, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { $collapsedProviders, toggleCollapsedProvider } from '@/store/provider-collapse'
 import { $activeSessionId, $currentModel, $currentProvider } from '@/store/session'
+import { $sessionStates } from '@/store/session-states'
+import { deferred } from '@/test/deferred'
 
-import { ModelMenuPanel } from './model-menu-panel'
+import { ModelMenuCloseContext, ModelMenuPanel } from './model-menu-panel'
 
 const notify = vi.fn((..._args: unknown[]) => 'confirm-toast-1')
 const notifyError = vi.fn((..._args: unknown[]) => undefined)
@@ -63,10 +65,11 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  $sessionStates.set({})
   vi.clearAllMocks()
 })
 
-function renderPanel(onSelectModel = vi.fn()) {
+function renderPanel(onSelectModel = vi.fn(), onClose = vi.fn()) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
   const requestGateway = vi.fn(async (method: string) => {
@@ -81,7 +84,9 @@ function renderPanel(onSelectModel = vi.fn()) {
     <QueryClientProvider client={client}>
       <DropdownMenu open>
         <DropdownMenuContent>
-          <ModelMenuPanel onSelectModel={onSelectModel} requestGateway={requestGateway as never} />
+          <ModelMenuCloseContext.Provider value={onClose}>
+            <ModelMenuPanel onSelectModel={onSelectModel} requestGateway={requestGateway as never} />
+          </ModelMenuCloseContext.Provider>
         </DropdownMenuContent>
       </DropdownMenu>
     </QueryClientProvider>
@@ -89,6 +94,33 @@ function renderPanel(onSelectModel = vi.fn()) {
 
   return { onSelectModel, content }
 }
+
+it('awaits custom dropdown picks, rejects duplicates and keeps a failed pick open', async () => {
+  const pending = deferred<boolean>()
+  const select = vi.fn(() => pending.promise)
+  const close = vi.fn()
+  renderPanel(select, close)
+  const row = await screen.findByText(/Gemini 3\.1 Pro/i)
+  fireEvent.click(row)
+  fireEvent.click(row)
+  expect(select).toHaveBeenCalledTimes(1)
+  expect(close).not.toHaveBeenCalled()
+  await act(async () => pending.resolve(false))
+  expect(close).not.toHaveBeenCalled()
+})
+
+it('explains and blocks the same managed-to-custom busy rule in the dropdown', async () => {
+  $currentProvider.set('aino')
+  $currentModel.set('catalog-a')
+  $sessionStates.set({ 'runtime-1': { provider: 'aino', model: 'catalog-a', busy: true, messages: [] } } as never)
+  const select = vi.fn()
+  renderPanel(select)
+  const row = (await screen.findByText(/Gemini 3\.1 Pro/i)).closest('[role="menuitem"]')!
+  expect(screen.getByRole('status').textContent).toContain('Wait for this chat')
+  expect(row.getAttribute('aria-disabled')).toBe('true')
+  fireEvent.click(row)
+  expect(select).not.toHaveBeenCalled()
+})
 
 describe('ModelMenuPanel MoA presets', () => {
   it('selecting a MoA preset switches PERSISTENTLY via onSelectModel (not the one-shot dispatch)', async () => {

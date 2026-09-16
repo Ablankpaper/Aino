@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useI18n } from '@/i18n'
 import { Check } from '@/lib/icons'
@@ -41,6 +41,7 @@ export function PlatformModelList({ selectedId, disabled, onSelect, onApplied }:
   const [search, setSearch] = useState('')
   const [highlighted, setHighlighted] = useState(selectedId || '')
   const [pending, setPending] = useState(false)
+  const selecting = useRef(false)
 
   const models = catalog.models.filter(model =>
     foldIncludes(
@@ -53,10 +54,11 @@ export function PlatformModelList({ selectedId, disabled, onSelect, onApplied }:
     catalog.models.find(model => model.id === highlighted) ?? catalog.models.find(model => model.id === selectedId)
 
   const select = async (model: PlatformModel) => {
-    if (disabled || pending || model.state !== 'available') {
+    if (disabled || selecting.current || model.state !== 'available') {
       return
     }
 
+    selecting.current = true
     setPending(true)
 
     try {
@@ -66,6 +68,7 @@ export function PlatformModelList({ selectedId, disabled, onSelect, onApplied }:
     } catch (error) {
       notifyError(error, copy.bindingFailed)
     } finally {
+      selecting.current = false
       setPending(false)
     }
   }

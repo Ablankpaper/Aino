@@ -90,6 +90,8 @@ interface UpstreamTranslations {
     purposes: { chat: string; title: string; compression: string; vision: string; delegation: string; other_auxiliary: string }
   }
   platformModels: {
+    switchBusy: string
+    switchRecovery: string
     builtIn: string
     custom: string
     search: string

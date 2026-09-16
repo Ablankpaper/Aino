@@ -38,6 +38,7 @@ import {
   modelVisibilityKey,
   setModelVisibilityOpen
 } from '@/store/model-visibility'
+import { notifyError } from '@/store/notifications'
 import { $collapsedProviders, toggleCollapsedProvider } from '@/store/provider-collapse'
 import { $defaultReasoningEffort } from '@/store/session'
 import type { LocalModelLoadProgress, ModelOptionProvider, ModelOptionsResponse } from '@/types/hermes'
@@ -93,6 +94,7 @@ export interface ModelMenuController {
 }
 
 interface ModelCatalogMenuProps {
+  disabled?: boolean
   controller: ModelMenuController
   /** Rows appended under the catalog (Refresh Models, Edit Models, …). */
   footer?: ReactNode
@@ -127,6 +129,7 @@ interface ProviderGroup {
  * can never drift apart.
  */
 export function ModelCatalogMenu({
+  disabled = false,
   controller,
   footer,
   gateway,
@@ -141,6 +144,8 @@ export function ModelCatalogMenu({
   const copyPicker = t.modelPicker
   const closeMenu = useContext(ModelMenuCloseContext)
   const [search, setSearch] = useState('')
+  const selecting = useRef(false)
+  const [pending, setPending] = useState(false)
   const collapsedProviders = useStoreCollapsed()
   const defaultEffort = useDefaultEffort()
   // Which models the user curated in Edit Models. Read HERE rather than taken
@@ -290,34 +295,63 @@ export function ModelCatalogMenu({
   )
 
   const selectFamily = async (family: ModelFamily, provider: ModelOptionProvider) => {
-    const caps = provider.capabilities?.[family.id]
-    const preset = controller.presetFor(provider.slug, family.id)
-
-    // Variant-fast models (no speed param) express "fast" as a separate `-fast`
-    // id, so honor the remembered preset by selecting that sibling. Param-fast
-    // is applied through setOptions below instead.
-    const variantFast = !(caps?.fast ?? false) && !!family.fastId
-    const targetId = variantFast && preset.fast === true ? family.fastId! : family.id
-
-    if ((await controller.select(targetId, provider.slug)) === false) {
+    if (disabled || selecting.current) {
       return
     }
 
-    controller.applyPreset(
-      {
-        effort: (caps?.reasoning ?? true) ? (preset.effort ?? defaultEffort) : undefined,
-        fast: (caps?.fast ?? false) ? (preset.fast ?? false) : undefined
-      },
-      { model: family.id, provider: provider.slug }
-    )
+    selecting.current = true
+    setPending(true)
+
+    try {
+      const caps = provider.capabilities?.[family.id]
+      const preset = controller.presetFor(provider.slug, family.id)
+
+      // Variant-fast models (no speed param) express "fast" as a separate `-fast`
+      // id, so honor the remembered preset by selecting that sibling. Param-fast
+      // is applied through setOptions below instead.
+      const variantFast = !(caps?.fast ?? false) && !!family.fastId
+      const targetId = variantFast && preset.fast === true ? family.fastId! : family.id
+
+      if ((await controller.select(targetId, provider.slug)) === false) {
+        return
+      }
+
+      controller.applyPreset(
+        {
+          effort: (caps?.reasoning ?? true) ? (preset.effort ?? defaultEffort) : undefined,
+          fast: (caps?.fast ?? false) ? (preset.fast ?? false) : undefined
+        },
+        { model: family.id, provider: provider.slug }
+      )
+      closeMenu()
+    } catch (error) {
+      notifyError(error, t.desktop.modelSwitchFailed)
+    } finally {
+      selecting.current = false
+      setPending(false)
+    }
   }
 
   const selectMoaPreset = async (preset: string) => {
-    if ((await controller.select(preset, 'moa')) === false) {
+    if (disabled || selecting.current) {
       return
     }
 
-    closeMenu()
+    selecting.current = true
+    setPending(true)
+
+    try {
+      if ((await controller.select(preset, 'moa')) === false) {
+        return
+      }
+
+      closeMenu()
+    } catch (error) {
+      notifyError(error, t.desktop.modelSwitchFailed)
+    } finally {
+      selecting.current = false
+      setPending(false)
+    }
   }
 
   // ── Keyboard selection (cmdk semantics on a Radix menu) ───────────────────
@@ -375,6 +409,10 @@ export function ModelCatalogMenu({
   }
 
   const commitKbRow = () => {
+    if (disabled || selecting.current) {
+      return
+    }
+
     const row = kbIndex >= 0 ? kbRows[kbIndex] : undefined
 
     if (!row) {
@@ -389,9 +427,9 @@ export function ModelCatalogMenu({
 
     if (!rowIsCurrent(row) && row.family.fastId !== current.model) {
       void selectFamily(row.family, row.provider)
+    } else {
+      closeMenu()
     }
-
-    closeMenu()
   }
 
   // Keep the selected row in view while arrowing through the scrollable list.
@@ -534,16 +572,21 @@ export function ModelCatalogMenu({
                     // submenu (reasoning/fast) is reached by HOVER, so you can
                     // tweak those without the click dismissing everything.
                     const activate = () => {
-                      if (!isCurrent) {
-                        void selectFamily(family, group.provider)
+                      if (disabled || selecting.current) {
+                        return
                       }
 
-                      closeMenu()
+                      if (!isCurrent) {
+                        void selectFamily(family, group.provider)
+                      } else {
+                        closeMenu()
+                      }
                     }
 
                     return (
                       <DropdownMenuSub key={`${group.provider.slug}:${family.id}`}>
                         <DropdownMenuSubTrigger
+                          disabled={disabled || pending}
                           hideChevron
                           onClick={activate}
                           onKeyDown={event => {
@@ -632,6 +675,7 @@ export function ModelCatalogMenu({
 
             return (
               <DropdownMenuItem
+                disabled={disabled || pending}
                 key={`moa:${preset}`}
                 onSelect={event => {
                   event.preventDefault()

@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { I18nProvider } from '@/i18n'
 import { $localModelsEnabled } from '@/store/local-models-flag'
 import { $localRuntimeJobs } from '@/store/local-runtime-jobs'
+import { deferred } from '@/test/deferred'
 import { stubMenuDomApis, stubResizeObserver } from '@/test/jsdom'
 import type { LocalRuntimeJob, ModelOptionsResponse } from '@/types/hermes'
 
@@ -84,6 +85,58 @@ beforeEach(() => {
   $localRuntimeJobs.set([])
   // These suites exercise the local-models rows, which ship behind --local.
   $localModelsEnabled.set(true)
+})
+
+it('awaits selection, rejects duplicates, and leaves the dialog open on failure', async () => {
+  const pending = deferred<boolean>()
+  const onSelect = vi.fn(() => pending.promise)
+  const onOpenChange = vi.fn()
+  renderPicker({ onSelect, onOpenChange })
+  const row = await screen.findByRole('option', { name: /Hermes-4.5/ })
+  fireEvent.click(row)
+  fireEvent.click(row)
+  expect(onSelect).toHaveBeenCalledTimes(1)
+  expect(onOpenChange).not.toHaveBeenCalled()
+  await act(async () => pending.resolve(false))
+  expect(onOpenChange).not.toHaveBeenCalled()
+  onSelect.mockResolvedValueOnce(true)
+  fireEvent.click(row)
+  await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+})
+
+it('explains and blocks switches from managed to custom while the owning chat is busy', async () => {
+  const onSelect = vi.fn()
+  renderPicker({ currentProvider: 'aino', currentModel: 'catalog-a', busy: true, onSelect })
+  const row = await screen.findByRole('option', { name: /Hermes-4.5/ })
+  expect(screen.getByRole('status').textContent).toContain('Wait for this chat')
+  expect(row.getAttribute('aria-disabled')).toBe('true')
+  fireEvent.click(row)
+  expect(onSelect).not.toHaveBeenCalled()
+})
+
+it('does not dismiss a different picker owner when an earlier selection completes', async () => {
+  const pending = deferred<boolean>()
+  const onOpenChange = vi.fn()
+  const client = new QueryClient()
+
+  const picker = (sessionId: string) => (
+    <QueryClientProvider client={client}>
+      <ModelPickerDialog
+        currentModel="old"
+        currentProvider="nous"
+        onOpenChange={onOpenChange}
+        onSelect={() => pending.promise}
+        open
+        sessionId={sessionId}
+      />
+    </QueryClientProvider>
+  )
+
+  const view = render(picker('session-a'))
+  fireEvent.click(await screen.findByRole('option', { name: /Hermes-4.5/ }))
+  view.rerender(picker('session-b'))
+  await act(async () => pending.resolve(true))
+  expect(onOpenChange).not.toHaveBeenCalled()
 })
 
 afterEach(() => {

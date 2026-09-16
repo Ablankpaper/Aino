@@ -136,6 +136,8 @@ export const zh: Translations = {
     qrCode: '付款二维码'
   },
   platformModels: {
+    switchBusy: "请等待当前对话完成，再切换到 Aino 模型或从 Aino 模型切换。",
+    switchRecovery: "模型切换尚未完成。可重试授权、选择其他模型或取消选择器，不会重新发送消息。",
     builtIn: "Aino 内置模型",
     custom: "自定义模型",
     search: "搜索模型",

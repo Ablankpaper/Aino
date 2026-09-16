@@ -1,17 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { getLocalModelsStatus } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { PlatformModelList } from './platform-model-list'
-import { SegmentedControl } from './ui/segmented-control'
 import { modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
 import { modelSearchText } from '@/lib/model-search-text'
 import { currentPickerSelection } from '@/lib/model-status-label'
+import { managedModelSwitchBlocked } from '@/lib/model-switch-policy'
 import { foldIncludes, normalize } from '@/lib/text'
 import { useStoreSelector } from '@/lib/use-session-slice'
 import { $localModelsEnabled } from '@/store/local-models-flag'
 import { $localRuntimeJobs, runningModelDownloads, watchLocalRuntimeJobs } from '@/store/local-runtime-jobs'
+import { notifyError } from '@/store/notifications'
 import type { LocalModelLoadProgress, ModelOptionProvider, ModelPricing } from '@/types/hermes'
 
 import type { HermesGateway } from '../hermes'
@@ -19,10 +19,12 @@ import { cn } from '../lib/utils'
 import { startManualOnboarding } from '../store/onboarding'
 
 import { InlineNotice } from './notifications'
+import { PlatformModelList } from './platform-model-list'
 import { Button } from './ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog'
 import { HighlightMatches } from './ui/highlight-matches'
+import { SegmentedControl } from './ui/segmented-control'
 import { Skeleton } from './ui/skeleton'
 
 interface ModelPickerDialogProps {
@@ -32,7 +34,8 @@ interface ModelPickerDialogProps {
   sessionId?: string | null
   currentModel: string
   currentProvider: string
-  onSelect: (selection: { provider: string; model: string }) => void
+  onSelect: (selection: { provider: string; model: string }) => Promise<boolean | void> | boolean | void
+  busy?: boolean
   ownerConnectionId?: string
   profile?: string
   request?: <T>(method: string, params?: Record<string, unknown>) => Promise<T>
@@ -58,6 +61,7 @@ export function ModelPickerDialog({
   profile = 'default',
   request,
   contentClassName,
+  busy = false,
   includePlatform = false
 }: ModelPickerDialogProps) {
   const { t } = useI18n()
@@ -68,7 +72,16 @@ export function ModelPickerDialog({
   // it and do a plain substring filter that preserves array order — matching
   // the `hermes model` CLI picker, which shows the curated list verbatim.
   const [search, setSearch] = useState('')
-  const [source, setSource] = useState<'aino' | 'custom'>(() => currentProvider && currentProvider !== 'aino' ? 'custom' : 'aino')
+  const selecting = useRef(false)
+  const selectionEpoch = useRef(0)
+  const [pending, setPending] = useState(false)
+  useLayoutEffect(() => {
+    selectionEpoch.current += 1
+  }, [open, sessionId, ownerConnectionId, profile])
+
+  const [source, setSource] = useState<'aino' | 'custom'>(() =>
+    currentProvider && currentProvider !== 'aino' ? 'custom' : 'aino'
+  )
 
   const modelOptions = useQuery({
     queryKey: modelOptionsQueryKey(profile, sessionId, ownerConnectionId),
@@ -166,9 +179,33 @@ export function ModelPickerDialog({
       : String(modelOptions.error)
     : null
 
-  const selectModel = (provider: ModelOptionProvider, model: string) => {
-    onSelect({ provider: provider.slug, model })
-    onOpenChange(false)
+  const blocked = managedModelSwitchBlocked(currentProvider, source === 'aino' && includePlatform ? 'aino' : '', busy)
+
+  const selectModel = async (provider: string, model: string): Promise<boolean> => {
+    if (selecting.current || managedModelSwitchBlocked(currentProvider, provider, busy)) {
+      return false
+    }
+
+    selecting.current = true
+    const epoch = selectionEpoch.current
+    setPending(true)
+
+    try {
+      const accepted = (await onSelect({ provider, model })) !== false
+
+      if (accepted && epoch === selectionEpoch.current) {
+        onOpenChange(false)
+      }
+
+      return accepted
+    } catch (error) {
+      notifyError(error, t.desktop.modelSwitchFailed)
+
+      return false
+    } finally {
+      selecting.current = false
+      setPending(false)
+    }
   }
 
   // Open the full onboarding provider selector to add/switch a provider.
@@ -194,30 +231,49 @@ export function ModelPickerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {includePlatform && window.hermesDesktop?.platformModels && <div className="px-4 py-2">
-          <SegmentedControl value={source} onChange={setSource} options={[
-            { id: 'aino', label: t.platformModels.builtIn }, { id: 'custom', label: t.platformModels.custom }
-          ]} /></div>}
-        {includePlatform && source === 'aino' && window.hermesDesktop?.platformModels ? <PlatformModelList
-          selectedId={currentProvider === 'aino' ? currentModel : undefined}
-          onSelect={model => onSelect({ provider: 'aino', model: model.id })}
-          onApplied={() => onOpenChange(false)} /> : <Command className="rounded-none bg-card" shouldFilter={false}>
-          <CommandInput autoFocus onValueChange={setSearch} placeholder={copy.search} value={search} />
-          <CommandList className="max-h-96">
-            {!loading && !error && <CommandEmpty>{copy.noModels}</CommandEmpty>}
-            <ModelResults
-              currentModel={optionsModel || currentModel}
-              currentProvider={optionsProvider || currentProvider}
-              downloads={downloads}
-              error={error}
-              loading={loading}
-              loadingModels={loadingModels}
-              onSelectModel={selectModel}
-              providers={providers}
-              search={search}
+        {includePlatform && window.hermesDesktop?.platformModels && (
+          <div className="px-4 py-2">
+            <SegmentedControl
+              onChange={setSource}
+              options={[
+                { id: 'aino', label: t.platformModels.builtIn },
+                { id: 'custom', label: t.platformModels.custom }
+              ]}
+              value={source}
             />
-          </CommandList>
-        </Command>}
+          </div>
+        )}
+        {blocked && (
+          <p className="px-4 py-2 text-xs text-muted-foreground" role="status">
+            {t.platformModels.switchBusy}
+          </p>
+        )}
+        {includePlatform && source === 'aino' && window.hermesDesktop?.platformModels ? (
+          <PlatformModelList
+            disabled={blocked || pending}
+            onSelect={model => selectModel('aino', model.id)}
+            selectedId={currentProvider === 'aino' ? currentModel : undefined}
+          />
+        ) : (
+          <Command className="rounded-none bg-card" shouldFilter={false}>
+            <CommandInput autoFocus onValueChange={setSearch} placeholder={copy.search} value={search} />
+            <CommandList className="max-h-96">
+              {!loading && !error && <CommandEmpty>{copy.noModels}</CommandEmpty>}
+              <ModelResults
+                currentModel={optionsModel || currentModel}
+                currentProvider={optionsProvider || currentProvider}
+                disabled={blocked || pending}
+                downloads={downloads}
+                error={error}
+                loading={loading}
+                loadingModels={loadingModels}
+                onSelectModel={(provider, model) => void selectModel(provider.slug, model)}
+                providers={providers}
+                search={search}
+              />
+            </CommandList>
+          </Command>
+        )}
 
         <DialogFooter className="flex-row items-center justify-end gap-2 bg-card p-3">
           <Button onClick={addProvider} variant="ghost">
@@ -233,6 +289,7 @@ export function ModelPickerDialog({
 }
 
 function ModelResults({
+  disabled,
   loading,
   error,
   providers,
@@ -243,6 +300,7 @@ function ModelResults({
   onSelectModel,
   search
 }: {
+  disabled: boolean
   loading: boolean
   error: string | null
   providers: ModelOptionProvider[]
@@ -322,7 +380,7 @@ function ModelResults({
             {models.map(model => {
               const isCurrent = model === currentModel && provider.slug === currentProvider
               const price = provider.pricing?.[model]
-              const locked = unavailable.has(model)
+              const locked = disabled || unavailable.has(model)
               // Managed local model loading into memory right now: show the
               // real load percent inline (keyed by exact model id — remote
               // providers never match).

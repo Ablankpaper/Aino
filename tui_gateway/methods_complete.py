@@ -280,11 +280,28 @@ def _session_agent(params: dict):
 @_catch(5033)
 def _(rid, params: dict) -> dict:
     from hermes_cli.inventory import build_model_options_payload
+    info = None
+    if params.get("include_session_info"):
+        from hermes_constants import get_hermes_home
+        session, error = _sess_nowait(params, rid)
+        if error:
+            return error
+        if (session.get("transport") is not current_transport()
+                or Path(session.get("profile_home") or get_hermes_home()).resolve() != get_hermes_home().resolve()):
+            return _err(rid, 4403, "session model read forbidden")
+        # Use the event producer, including its real runtime registry lookup.
+        # Lazy sessions must report bound readiness without starting an agent.
+        snapshot = _session_info(session.get("agent"), session)
+        fields = ("provider", "model", "model_source", "model_id", "model_status", "platform_owner", "running")
+        info = {key: snapshot[key] for key in fields if key in snapshot}
     # A spawned agent owns the live provider/model/base_url; empty attributes must
     # NOT clobber disk config (with_overrides is truthy-only).
-    return _ok(rid, build_model_options_payload(
+    payload = build_model_options_payload(
         _model_picker_context(_session_agent(params)), explicit_only=bool(params.get("explicit_only")),
-        include_unconfigured=bool(params.get("include_unconfigured")), refresh=bool(params.get("refresh"))))
+        include_unconfigured=bool(params.get("include_unconfigured")), refresh=bool(params.get("refresh")))
+    if info is not None:
+        payload["session_info"] = info
+    return _ok(rid, payload)
 
 
 @method("model.save_key")

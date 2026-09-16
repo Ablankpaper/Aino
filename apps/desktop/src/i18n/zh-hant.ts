@@ -122,6 +122,8 @@ export const zhHant = defineLocale({
     qrCode: '付款 QR Code'
   },
   platformModels: {
+    switchBusy: "請等待目前對話完成，再切換至 Aino 模型或從 Aino 模型切換。",
+    switchRecovery: "模型切換尚未完成。可重試授權、選擇其他模型或取消選擇器，不會重新傳送訊息。",
     builtIn: "Aino 內建模型",
     custom: "自訂模型",
     search: "搜尋模型",

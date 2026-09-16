@@ -120,6 +120,8 @@ export const ja = defineLocale({
     qrCode: '支払い QR コード'
   },
   platformModels: {
+    switchBusy: "このチャットの処理が終わるまで、Aino モデルとの切り替えはできません。",
+    switchRecovery: "モデルの切り替えを確認してください。認証を再試行するか、別のモデルを選択するか、選択画面を閉じてください。メッセージは再送信されません。",
     builtIn: "Aino モデル",
     custom: "カスタムモデル",
     search: "モデルを検索",

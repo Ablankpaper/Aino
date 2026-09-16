@@ -1,16 +1,17 @@
 import { useStore } from '@nanostores/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useContext, useState } from 'react'
-import { PlatformModelList } from '@/components/platform-model-list'
-import { SegmentedControl } from '@/components/ui/segmented-control'
 
 import { useSessionView } from '@/app/chat/session-view'
+import { PlatformModelList } from '@/components/platform-model-list'
 import { Codicon } from '@/components/ui/codicon'
 import { DropdownMenuItem, dropdownMenuRow } from '@/components/ui/dropdown-menu'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import type { HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { modelOptionsQueryKey, reconcileSelectionAfterCatalogRefresh, requestModelOptions } from '@/lib/model-options'
 import { currentPickerSelection } from '@/lib/model-status-label'
+import { managedModelSwitchBlocked } from '@/lib/model-switch-policy'
 import { DEFAULT_REASONING_EFFORT } from '@/lib/reasoning-effort'
 import { cn } from '@/lib/utils'
 import { $modelPresets, applyModelPreset, modelPresetKey, setModelPreset } from '@/store/model-presets'
@@ -70,13 +71,19 @@ export function ModelMenuPanel({
   const currentModel = useStore(view.$model)
   const currentProvider = useStore(view.$provider)
   const busy = useStore(view.$busy)
+  const awaiting = useStore(view.$awaitingResponse)
   const closeMenu = useContext(ModelMenuCloseContext)
-  const [source, setSource] = useState<'aino' | 'custom'>(() => currentProvider && currentProvider !== 'aino' ? 'custom' : 'aino')
+
+  const [source, setSource] = useState<'aino' | 'custom'>(() =>
+    currentProvider && currentProvider !== 'aino' ? 'custom' : 'aino'
+  )
+
   const currentReasoningEffort = useStore(view.$reasoningEffort)
   const modelPresets = useStore($modelPresets)
   const defaultEffort = useStore($defaultReasoningEffort) || DEFAULT_REASONING_EFFORT
   const visibleModels = useStore($visibleModels)
   const touchesPrimary = view.kind === 'primary'
+  const blocked = managedModelSwitchBlocked(currentProvider, source === 'aino' ? 'aino' : '', busy || awaiting)
 
   // Subscribe to the SAME query the menu runs (identical key ⇒ React Query
   // dedupes, no second fetch). It must be a live subscription, not a cache
@@ -249,38 +256,57 @@ export function ModelMenuPanel({
 
   return (
     <>
-    {window.hermesDesktop?.platformModels && <div className="p-2">
-      <SegmentedControl value={source} onChange={setSource} options={[
-        { id: 'aino', label: t.platformModels.builtIn }, { id: 'custom', label: t.platformModels.custom }
-      ]} />
-    </div>}
-    {source === 'aino' && window.hermesDesktop?.platformModels ? <PlatformModelList
-      disabled={busy} selectedId={currentProvider === 'aino' ? currentModel : undefined}
-      onSelect={async model => (await onSelectModel({ provider: 'aino', model: model.id, sessionId: activeSessionId })) !== false}
-      onApplied={closeMenu} /> :
-    <ModelCatalogMenu
-      controller={controller}
-      footer={
-        <DropdownMenuItem
-          className={cn(dropdownMenuRow, 'text-(--ui-text-tertiary)')}
-          disabled={refreshing}
-          onSelect={event => {
-            event.preventDefault()
-            void refreshModels()
-          }}
-        >
-          <Codicon className={cn(refreshing && 'animate-spin')} name="sync" size="0.75rem" />
-          {copy.refreshModels}
-        </DropdownMenuItem>
-      }
-      gateway={gateway}
-      includeMoa
-      ownerConnectionId={ownerConnectionId}
-      profile={profile}
-      request={requestGateway}
-      sessionId={activeSessionId}
-    />
-    }
+      {window.hermesDesktop?.platformModels && (
+        <div className="p-2">
+          <SegmentedControl
+            onChange={setSource}
+            options={[
+              { id: 'aino', label: t.platformModels.builtIn },
+              { id: 'custom', label: t.platformModels.custom }
+            ]}
+            value={source}
+          />
+        </div>
+      )}
+      {blocked && (
+        <p className="px-3 py-2 text-xs text-muted-foreground" role="status">
+          {t.platformModels.switchBusy}
+        </p>
+      )}
+      {source === 'aino' && window.hermesDesktop?.platformModels ? (
+        <PlatformModelList
+          disabled={blocked}
+          onApplied={closeMenu}
+          onSelect={async model =>
+            (await onSelectModel({ provider: 'aino', model: model.id, sessionId: activeSessionId })) !== false
+          }
+          selectedId={currentProvider === 'aino' ? currentModel : undefined}
+        />
+      ) : (
+        <ModelCatalogMenu
+          controller={controller}
+          disabled={blocked}
+          footer={
+            <DropdownMenuItem
+              className={cn(dropdownMenuRow, 'text-(--ui-text-tertiary)')}
+              disabled={refreshing}
+              onSelect={event => {
+                event.preventDefault()
+                void refreshModels()
+              }}
+            >
+              <Codicon className={cn(refreshing && 'animate-spin')} name="sync" size="0.75rem" />
+              {copy.refreshModels}
+            </DropdownMenuItem>
+          }
+          gateway={gateway}
+          includeMoa
+          ownerConnectionId={ownerConnectionId}
+          profile={profile}
+          request={requestGateway}
+          sessionId={activeSessionId}
+        />
+      )}
     </>
   )
 }

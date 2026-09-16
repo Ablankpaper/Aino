@@ -10,6 +10,8 @@ import { resolveModelPickerOwner } from '@/lib/model-picker-owner'
 import { useStoreSelector } from '@/lib/use-session-slice'
 import {
   $activeSessionId,
+  $awaitingResponse,
+  $busy,
   $currentModel,
   $currentProvider,
   $gatewayState,
@@ -22,7 +24,7 @@ import { $focusedRuntimeId, $focusedSessionState, $focusedStoredSessionId, $sess
 
 interface ModelPickerOverlayProps {
   gateway?: HermesGateway
-  onSelect: (selection: ModelSelection) => void
+  onSelect: (selection: ModelSelection) => Promise<boolean | void> | void
   ownerConnectionId?: string
   profile: string
   requestGateway: <T = unknown>(method: string, params?: Record<string, unknown>) => Promise<T>
@@ -40,6 +42,8 @@ export function ModelPickerOverlay({
   const selectedStoredSessionId = useStore($selectedStoredSessionId)
   const primaryModel = useStore($currentModel)
   const primaryProvider = useStore($currentProvider)
+  const primaryBusy = useStore($busy)
+  const primaryAwaiting = useStore($awaitingResponse)
   const focusedRuntimeId = useStore($focusedRuntimeId)
   const focusedStoredSessionId = useStore($focusedStoredSessionId)
   const sessionTiles = useStore($sessionTiles)
@@ -51,6 +55,11 @@ export function ModelPickerOverlay({
   // model/provider bails out instead — same fix as the statusbar (#72163).
   const focusedModel = useStoreSelector($focusedSessionState, state => state?.model ?? null)
   const focusedProvider = useStoreSelector($focusedSessionState, state => state?.provider ?? null)
+
+  const focusedBusy = useStoreSelector($focusedSessionState, state =>
+    state ? state.busy || state.awaitingResponse : null
+  )
+
   const gatewayOpen = useStore($gatewayState) === 'open'
   const open = useStore($modelPickerOpen)
 
@@ -87,10 +96,11 @@ export function ModelPickerOverlay({
 
   return (
     <ModelPickerDialog
-      includePlatform
+      busy={focusedRuntimeId ? (focusedBusy ?? false) : primaryBusy || primaryAwaiting}
       currentModel={currentModel}
       currentProvider={currentProvider}
       gw={gateway}
+      includePlatform
       onOpenChange={setModelPickerOpen}
       onSelect={selection => (pickerOwner.route ? selectFocusedModel : onSelect)({ ...selection, sessionId })}
       open={open}
