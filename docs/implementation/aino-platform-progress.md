@@ -4,6 +4,28 @@
 **执行者：** Claude Code（前期）与 Codex（复核及续作）
 **总计划：** [implementation-plan.md](/Users/zizimutou/Protect/Aino/docs/aino-platform/implementation-plan.md)
 
+## 最新接续状态（2026-09-16，优先于下方历史记录）
+
+配对本地代码：Aino `0922f1ce50`，Aino-API `308aa7725`，均在 `codex/aino-platform-identity-models-billing`。未推送、未合并 main、未部署或真实付费测试。
+
+| 范围 | 当前事实 | 剩余工作 |
+| --- | --- | --- |
+| A、B1–B5 | 已有本地实现/分层集成证据保留 | 真实短信/付费模型、多平台验收不冒充通过 |
+| B6 首次发送与恢复 | `52ec689c98` 固定发送时选择，默认模型用非修改式解析，234 项 UI + 2 项 API owner 测试通过 | 独立复核中；全 UI 发现 profile rail 3 项失败，尚未关闭；默认作用域、切换/能力/恢复 UX 和原生联调继续推进 |
+| C1–C3 | 账本查询、回合对账、幂等订单本地实现和复核完成 | 完整跨仓库 Agent → 账本 → 原生充值闭环仍归 D1 |
+| C4 原生订单 | `789d9ddc5a`、`53a3597384`：安全 quote/create/get/list/cancel/openCheckout 和范围校验，复核通过 | 不代表真实渠道支付验收 |
+| C4 充值界面与设备 | `0922f1ce50` 充值/订单恢复/历史，`a52a047f26` 设备管理；已接入我的账户 | 独立复核中；已发现下单明确拒绝后无效意图卡住的恢复问题，待修；BYOK 费用来源小字仍待补齐 |
+| D API 质量 | `f4e52bef9` 修站点两份测试夹具；`308aa7725` 修 Go 契约/日志格式/typed-nil sender；unit 56 包通过、lint 0 issues | 站点 `stripeLazyLoading.spec.ts` 的旧源码文本断言仍失败；不宣称全站测试绿 |
+| D 完整验收 | 新增分层测试和实际渲染验证 | Python 已知夹具问题、跨仓库原生闭环、部署/回退/用户指南与矩阵待收尾 |
+
+本次最新门禁：
+
+- 充值/设备 UI：5 文件、14 项通过；完整 Electron：167 文件通过、2 原有跳过，2,259 项通过、6 原有跳过。
+- 完整 UI：863 文件通过、1 文件失败；7,884 项通过、3 项失败。失败全部在 `profile-rail-fresh-chat-owner.test.tsx`，定向复现相同结果。日志 `/tmp/aino-platform-ui-full-current.log`。没有以跳过处理；旧 summary/terminal/local-models 的失败未在这次复现。
+- `npm run typecheck`、`npm run build`、涉及充值文件 ESLint 和 diff 检查通过。保留 npm 配置、Vite 和全 UI jsdom canvas/window.open 的既有提示，不声称所有输出无噪音。
+- 实际渲染（Playwright，真实组件＋隔离 bridge）：浅色 1280×800、深色 390×844。报价中 CNY/USD 分开；关闭重开仍 1 次 create；到账中不成功，COMPLETED＋账本读取后余额刷新；订单历史恢复、支付关闭提示、消费精确小数通过。稳定页面无横向溢出、框架错误或控制台 error/warn。临时 fixture HMR/格式化问题已修正后重新加载验收。
+- 截图/夹具在 `/tmp/aino-c4-recharge-visual.Ty6LHm/`，非真实账户，不纳入 Git。原生真实平台支付、短信、模型收费、Windows/Linux 安全存储仍未验证。
+
 ## 2026-09-16 Codex 接手续作
 
 用户已暂停 Claude，后续由 Codex 开发；2026-09-16 随后明确允许需要时调用子智能体。独立实现和复核可以并行，但不重复已经完成的任务，不盲目循环失败测试。保留下面的历史交接记录，但其中“交给 Claude”的安排已失效。
