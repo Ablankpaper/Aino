@@ -176,3 +176,61 @@ Result: 9 files passed, 410 tests passed.
 `npm run typecheck` passed all renderer, Electron, and E2E TypeScript projects after the controller completed the wallet module and C2 fixture correction. Scoped ESLint and `git diff --check` passed.
 
 The remaining B6 limitations listed above are unchanged; round one fixes only the two review findings.
+
+## Round-two reload race fix
+
+Code commit: `a539f69e32`
+
+The transient platform-default proof remains non-persisted. A fresh-draft `refreshCurrentModel()` now opens an in-memory validation flight synchronously, clears any old proof, and closes the flight in `finally`. Session creation waits for all active validation flights before snapshotting the composer selection. This gates an immediate reload send until the account/catalog/backend default has been revalidated without persisting authentication or authorization evidence.
+
+The gate is a set rather than a single promise so overlapping profile/default refreshes cannot let create proceed when one validation remains active.
+
+### RED
+
+Added a real-hook reload invariant with scoped model/provider/owner/default provenance restored, transient proof absent, `getGlobalModelInfo()` held pending, and an immediate first send through the composed session/prompt hooks.
+
+```bash
+cd apps/desktop
+npm run test:ui -- src/app/session/hooks/use-session-actions.test.tsx \
+  -t "waits for pending default resolution before a reloaded automatic Aino first send"
+```
+
+Observed: `session.create` was invoked while the authoritative resolver promise was still pending.
+
+### GREEN
+
+The same focused test passed after the in-memory validation gate. It verifies no create occurs while refresh is pending, then verifies the established sequence after resolution:
+
+```text
+session.create(model_source=aino, model_id=catalog-a)
+session.managed_model_ticket
+native bind
+prompt.submit
+```
+
+Related verification:
+
+```bash
+cd apps/desktop
+npm run test:ui -- \
+  src/api/platform-models.test.ts \
+  src/api/platform-session-binding.test.ts \
+  src/lib/platform-session-model.test.ts \
+  src/app/chat/composer/platform-model-selection.test.tsx \
+  src/store/session-request-router.test.ts \
+  src/store/session.test.ts \
+  src/app/session/hooks/use-model-controls.test.tsx \
+  src/app/session/hooks/use-session-actions.test.tsx \
+  src/app/session/hooks/use-prompt-actions/index.test.tsx
+```
+
+Result: 9 files passed, 411 tests passed. Scoped ESLint, Prettier, and `git diff --check` passed.
+
+Full `npm run typecheck` is temporarily blocked by concurrent controller recharge work outside this slice:
+
+```text
+src/app/settings/platform-billing/recharge-view.test.tsx(8,30):
+error TS2307: Cannot find module './recharge-view' or its corresponding type declarations.
+```
+
+The controller-owned recharge files were not staged or modified. The remaining B6 limitations are unchanged.
