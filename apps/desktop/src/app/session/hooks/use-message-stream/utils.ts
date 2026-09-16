@@ -1,8 +1,8 @@
 import { translateNow } from '@/i18n'
 import type { GatewayEventPayload } from '@/lib/chat-messages'
 import { normalizePersonalityValue } from '@/lib/chat-runtime'
-import { isTodoToolName } from '@/lib/todos'
 import { platformModelStatePatch } from '@/lib/platform-session-model'
+import { isTodoToolName } from '@/lib/todos'
 
 import type { ClientSessionState } from '../../../types'
 
@@ -76,6 +76,7 @@ export function applySessionInfoStatePatch(
     (patch.platformModel === undefined || (
       patch.platformModel?.modelId === state.platformModel?.modelId &&
       patch.platformModel?.ownerUserId === state.platformModel?.ownerUserId &&
+      patch.platformModel?.platformOrigin === state.platformModel?.platformOrigin &&
       patch.platformModel?.status === state.platformModel?.status)) &&
     (patch.reasoningEffort === undefined || patch.reasoningEffort === state.reasoningEffort) &&
     (patch.serviceTier === undefined || patch.serviceTier === state.serviceTier) &&

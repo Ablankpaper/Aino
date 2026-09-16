@@ -29,6 +29,7 @@ import { requestFreshSession } from '@/store/profile'
 import { isStoredTranscriptReadOnly } from '@/store/read-only-transcript'
 import {
   $currentModel,
+  $currentPlatformOrigin,
   $currentPlatformOwner,
   $currentProvider,
   $sessions,
@@ -194,7 +195,8 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
         if (provider === 'aino') {
           const modelId = state?.platformModel?.modelId || state?.model || $currentModel.get()
           const ownerUserId = state?.platformModel?.ownerUserId || $currentPlatformOwner.get()
-          const model = verifiedPlatformModel(modelId, ownerUserId)
+          const platformOrigin = state?.platformModel?.platformOrigin || $currentPlatformOrigin.get()
+          const model = verifiedPlatformModel(modelId, ownerUserId, platformOrigin || undefined)
 
           if (!model?.capabilities.vision) {
             if (!options?.fromQueue) {

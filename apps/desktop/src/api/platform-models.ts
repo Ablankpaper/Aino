@@ -63,6 +63,10 @@ export async function bindPlatformModel(
     return bindingFailure(error)
   }
 
+  if (owner.user_id !== account.account.id || !owner.platform_origin) {
+    return { ok: false, error: { code: 'platform_account_changed' } }
+  }
+
   const requestOwner =
     request ??
     (<T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) =>

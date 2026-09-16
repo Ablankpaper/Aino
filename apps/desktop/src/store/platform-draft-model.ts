@@ -74,5 +74,5 @@ export async function savePlatformDraftDefault(
 
   setCurrentProvider(resolved.provider)
   setCurrentModel(resolved.model)
-  setCurrentPlatformOwner(resolved.platform?.ownerUserId || '')
+  setCurrentPlatformOwner(resolved.platform?.ownerUserId || '', resolved.platform?.platformOrigin || '')
 }

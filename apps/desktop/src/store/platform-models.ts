@@ -7,6 +7,8 @@ import { readKey, writeKey } from '@/lib/storage'
 
 import type { PlatformAccountSnapshot, PlatformModel } from '../../shared/platform-contract'
 
+import { createPlatformModelOwner, type PlatformModelOwner, samePlatformAccount } from './platform-model-owner'
+
 export interface PlatformCatalogState {
   phase: 'idle' | 'loading' | 'ready' | 'error' | 'signed_out'
   models: PlatformModel[]
@@ -15,36 +17,50 @@ export interface PlatformCatalogState {
 
 const PLATFORM_DEFAULT_PREFIX = 'aino.desktop.platform-default.'
 
-export function platformDefaultKey(accountId: string, scope?: PlatformDefaultScopeInput, mode = 'production') {
+function currentOrigin(accountId: string, mode: string): string | null {
+  const catalog = platformModelCatalog()
+  const account = catalog.account.get()
+  const owner = catalog.owner.state.get().owner
+
+  return account?.mode === mode && owner?.user_id === accountId ? owner.platform_origin : null
+}
+
+export function platformDefaultKey(accountId: string, scope: PlatformDefaultScopeInput | undefined, mode: string, origin: string) {
   const { key } = platformDefaultScope(scope)
   const accountKey = `${PLATFORM_DEFAULT_PREFIX}${encodeURIComponent(accountId)}`
 
-  // The old preference has no owner coordinate. Retain it only in its
-  // deliberately legacy local/default namespace, never adopt it elsewhere.
-  return mode === 'production' && key === '["legacy-local","default"]'
-    ? accountKey
-    : `${accountKey}.scope.${encodeURIComponent(JSON.stringify([mode, key]))}`
+  return `${accountKey}.scope.${encodeURIComponent(JSON.stringify([mode, origin, key]))}`
 }
 
 export function readPlatformDefault(
   accountId: string,
   scope?: PlatformDefaultScopeInput,
-  mode = 'production'
+  mode = 'production',
+  origin = currentOrigin(accountId, mode)
 ): string | null {
-  return accountId ? readKey(platformDefaultKey(accountId, scope, mode)) : null
+  if (!accountId || !origin) {return null}
+  const value = readKey(platformDefaultKey(accountId, scope, mode, origin))
+
+  if (value !== null) {return value}
+
+  return mode === 'production' && origin === 'https://api.agentera.com.cn' &&
+    platformDefaultScope(scope).key === '["legacy-local","default"]'
+    ? readKey(`${PLATFORM_DEFAULT_PREFIX}${encodeURIComponent(accountId)}`) : null
 }
 
 export function writePlatformDefault(
   accountId: string,
   modelId: string | null,
   scope?: PlatformDefaultScopeInput,
-  mode = 'production'
+  mode = 'production',
+  origin = currentOrigin(accountId, mode)
 ) {
   if (!accountId) {
     return
   }
 
-  writeKey(platformDefaultKey(accountId, scope, mode), modelId)
+  if (!origin) {throw new PlatformSelectionError('platform_account_changed')}
+  writeKey(platformDefaultKey(accountId, scope, mode, origin), modelId)
 }
 
 export class PlatformSelectionError extends Error {
@@ -94,13 +110,11 @@ export function requirePlatformSelection(
 /** Account revision fences both in-flight responses and the visible cache. */
 export function createPlatformModelCatalog(
   account: ReadableAtom<PlatformAccountSnapshot | null>,
-  list: () => Promise<PlatformModel[]>
+  list: () => Promise<PlatformModel[]>,
+  lookupOwner: (revision: number) => Promise<PlatformModelOwner> = async () => { throw new Error('owner_unavailable') }
 ) {
-  const sameAccount = (left: PlatformAccountSnapshot | null, right: PlatformAccountSnapshot | null) =>
-    left?.phase === 'signed_in' &&
-    right?.phase === 'signed_in' &&
-    left.revision === right.revision &&
-    left.account?.id === right.account?.id
+  const sameAccount = samePlatformAccount
+  const owner = createPlatformModelOwner(account, lookupOwner)
 
   const result = atom<{ snapshot: PlatformAccountSnapshot | null; data: PlatformCatalogState }>({
     snapshot: null,
@@ -130,8 +144,8 @@ export function createPlatformModelCatalog(
 
     result.set({ snapshot, data: { ...state.get(), phase: 'loading', error: null } })
 
-    const promise = list()
-      .then(models => {
+    const promise = Promise.all([list(), owner.load()])
+      .then(([models]) => {
         if (sameAccount(account.get(), snapshot)) {
           result.set({ snapshot, data: { phase: 'ready', models, error: null } })
         }
@@ -152,7 +166,7 @@ export function createPlatformModelCatalog(
     return promise
   }
 
-  return { state, account, load }
+  return { state, account, owner, load }
 }
 
 const unavailable = createPlatformModelCatalog(atom<PlatformAccountSnapshot | null>(null), async () => [])
@@ -169,7 +183,7 @@ export function platformModelCatalog() {
     const actions = platformAccountActions(desktop.platformAccount)
     cached = {
       bridge: desktop.platformAccount,
-      catalog: createPlatformModelCatalog(actions.snapshot, () => desktop.platformModels.list())
+      catalog: createPlatformModelCatalog(actions.snapshot, () => desktop.platformModels.list(), revision => desktop.platformModels.owner(revision))
     }
   }
 

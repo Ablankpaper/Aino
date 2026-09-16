@@ -65,6 +65,7 @@ import {
   $currentCwd,
   $currentFastMode,
   $currentModel,
+  $currentPlatformOrigin,
   $currentPlatformOwner,
   $currentProvider,
   $currentReasoningEffort,
@@ -308,6 +309,7 @@ async function desktopSessionCreateParams(
   const selectionSource = getCurrentModelSource()
   const generation = getComposerSelectionGeneration()
   let platformOwner = $currentPlatformOwner.get()
+  let platformOrigin = $currentPlatformOrigin.get()
 
   const selection = {
     effort: $currentReasoningEffort.get().trim(),
@@ -336,6 +338,7 @@ async function desktopSessionCreateParams(
     selection.model = resolved.platform?.modelId || ''
     selection.provider = resolved.platform ? 'aino' : ''
     platformOwner = resolved.platform?.ownerUserId || ''
+    platformOrigin = resolved.platform?.platformOrigin || ''
   }
 
   if (capturedRoute) {
@@ -350,6 +353,25 @@ async function desktopSessionCreateParams(
 
   const catalog = platformModelCatalog()
 
+  if (selection.provider === 'aino') {
+    await catalog.owner.load()
+    const authoritativeOwner = catalog.owner.state.get().owner
+    const account = catalog.account.get()
+
+    if (
+      generation !== getComposerSelectionGeneration() ||
+      !authoritativeOwner ||
+      account?.phase !== 'signed_in' ||
+      account.account?.id !== authoritativeOwner.user_id ||
+      (platformOrigin && platformOrigin !== authoritativeOwner.platform_origin)
+    ) {
+      throw new PlatformSelectionError('platform_account_changed')
+    }
+
+    platformOwner = authoritativeOwner.user_id
+    platformOrigin = authoritativeOwner.platform_origin
+  }
+
   const modelParams = platformCreateOverrides(
     selection.provider,
     selection.model,
@@ -359,7 +381,7 @@ async function desktopSessionCreateParams(
   )
 
   const reasoningEffort =
-    selection.provider !== 'aino' || verifiedPlatformModel(selection.model, platformOwner)?.capabilities.reasoning
+    selection.provider !== 'aino' || verifiedPlatformModel(selection.model, platformOwner, platformOrigin)?.capabilities.reasoning
       ? selection.effort
       : ''
 

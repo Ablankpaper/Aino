@@ -34,22 +34,26 @@ export function platformRecoveryAction(error: unknown): PlatformRecoveryAction |
 interface PlatformCatalogReader {
   account: { get(): ReturnType<typeof platformModelCatalog>['account'] extends { get(): infer T } ? T : never }
   state: { get(): ReturnType<typeof platformModelCatalog>['state'] extends { get(): infer T } ? T : never }
+  owner?: { state: { get(): { owner: { user_id: string; platform_origin: string } | null } } }
 }
 
 /** Catalog metadata is behavioral only after model id and stored owner agree. */
 export function verifiedPlatformModelFrom(
   catalog: PlatformCatalogReader,
   modelId: string,
-  ownerUserId: string
+  ownerUserId: string,
+  platformOrigin?: string
 ): PlatformModel | null {
   const account = catalog.account.get()
   const state = catalog.state.get()
+  const owner = catalog.owner?.state.get().owner
 
   if (
     !modelId ||
     !ownerUserId ||
     account?.phase !== 'signed_in' ||
     account.account?.id !== ownerUserId ||
+    (platformOrigin !== undefined && (!owner || owner.user_id !== ownerUserId || owner.platform_origin !== platformOrigin)) ||
     state.phase !== 'ready'
   ) {
     return null
@@ -58,8 +62,8 @@ export function verifiedPlatformModelFrom(
   return state.models.find(model => model.id === modelId && model.state === 'available') ?? null
 }
 
-export function verifiedPlatformModel(modelId: string, ownerUserId: string): PlatformModel | null {
-  return verifiedPlatformModelFrom(platformModelCatalog(), modelId, ownerUserId)
+export function verifiedPlatformModel(modelId: string, ownerUserId: string, platformOrigin?: string): PlatformModel | null {
+  return verifiedPlatformModelFrom(platformModelCatalog(), modelId, ownerUserId, platformOrigin)
 }
 
 /** Stable managed failures must never offer an unchanged-turn replay. */

@@ -18,6 +18,7 @@ import {
   $awaitingResponse,
   $busy,
   $currentModel,
+  $currentPlatformOrigin,
   $currentPlatformOwner,
   $currentProvider,
   $currentReasoningEffort,
@@ -58,7 +59,8 @@ function captureModelSwitch({ selection, queryClient, profile, connectionId, cac
     provider: primary ? $currentProvider.get() : (previousState?.provider ?? ''),
     platformModel: previousState?.platformModel,
     source: getCurrentModelSource(),
-    owner: $currentPlatformOwner.get()
+    owner: $currentPlatformOwner.get(),
+    origin: $currentPlatformOrigin.get()
   }
 
   const owner = connectionId ? { connectionId, profile } : profile
@@ -148,7 +150,10 @@ function captureModelSwitch({ selection, queryClient, profile, connectionId, cac
     if (canPaintPrimary()) {
       setCurrentModel(model)
       setCurrentProvider(provider)
-      setCurrentPlatformOwner(platformModel?.ownerUserId || (rollback ? previous.owner : ''))
+      setCurrentPlatformOwner(
+        platformModel?.ownerUserId || (rollback ? previous.owner : ''),
+        platformModel?.platformOrigin || (rollback ? previous.origin : '')
+      )
 
       if (rollback) {
         setCurrentModelSource(previous.source)
@@ -207,7 +212,12 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
 
   const targetPlatform: PlatformSessionModel | null =
     selection.provider === 'aino'
-      ? { modelId: selection.model, ownerUserId: account?.account?.id || '', status: 'awaiting_managed_credentials' }
+      ? {
+          modelId: selection.model,
+          ownerUserId: account?.account?.id || '',
+          platformOrigin: platformModelCatalog().owner.state.get().owner?.platform_origin,
+          status: 'awaiting_managed_credentials'
+        }
       : null
 
   const targetSupportsReasoning =
@@ -287,7 +297,8 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
     const platformModel = patch.platformModel
       ? {
           ...patch.platformModel,
-          ownerUserId: patch.platformModel.ownerUserId || targetPlatform?.ownerUserId || previous.owner
+          ownerUserId: patch.platformModel.ownerUserId || targetPlatform?.ownerUserId || previous.owner,
+          platformOrigin: patch.platformModel.platformOrigin || targetPlatform?.platformOrigin || previous.platformModel?.platformOrigin
         }
       : null
 
@@ -322,7 +333,8 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
     }
 
     if (targetPlatform) {
-      await bindSelectedPlatformSession(owner, sessionId!, targetPlatform, request)
+      const authoritativeOwner = await bindSelectedPlatformSession(owner, sessionId!, targetPlatform, request)
+      targetPlatform.platformOrigin = authoritativeOwner.platform_origin
     } else {
       await clearPlatformSession(owner, sessionId!)
     }

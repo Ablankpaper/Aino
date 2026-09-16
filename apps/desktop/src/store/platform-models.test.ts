@@ -13,28 +13,32 @@ import {
   writePlatformDefault
 } from './platform-models'
 
-it('isolates defaults by account, connection, profile and platform environment', () => {
-  writePlatformDefault('user-a', 'catalog-a')
-  expect(readPlatformDefault('user-a')).toBe('catalog-a')
-  expect(readPlatformDefault('user-b')).toBeNull()
-  writePlatformDefault('user-a', null)
-  expect(readPlatformDefault('user-a')).toBeNull()
+it('isolates defaults by account, connection, profile and exact platform origin', () => {
+  const developmentA = 'http://127.0.0.1:7001'
+  const developmentB = 'http://127.0.0.1:7002'
+  writePlatformDefault('user-a', 'catalog-a', undefined, 'development', developmentA)
+  expect(readPlatformDefault('user-a', undefined, 'development', developmentA)).toBe('catalog-a')
+  expect(readPlatformDefault('user-a', undefined, 'development', developmentB)).toBeNull()
+  expect(readPlatformDefault('user-b', undefined, 'development', developmentA)).toBeNull()
+  writePlatformDefault('user-a', null, undefined, 'development', developmentA)
+  expect(readPlatformDefault('user-a', undefined, 'development', developmentA)).toBeNull()
   const work = { connectionId: 'remote-a', profile: 'work' }
-  writePlatformDefault('user-a', 'work-model', work, 'development')
-  expect(readPlatformDefault('user-a', work, 'development')).toBe('work-model')
-  expect(readPlatformDefault('user-a', { ...work, profile: 'other' }, 'development')).toBeNull()
-  expect(readPlatformDefault('user-a', { ...work, connectionId: 'remote-b' }, 'development')).toBeNull()
-  expect(readPlatformDefault('user-b', work, 'development')).toBeNull()
-  expect(readPlatformDefault('user-a', work, 'production')).toBeNull()
+  writePlatformDefault('user-a', 'work-model', work, 'development', developmentA)
+  expect(readPlatformDefault('user-a', work, 'development', developmentA)).toBe('work-model')
+  expect(readPlatformDefault('user-a', work, 'development', developmentB)).toBeNull()
+  expect(readPlatformDefault('user-a', { ...work, profile: 'other' }, 'development', developmentA)).toBeNull()
+  expect(readPlatformDefault('user-a', { ...work, connectionId: 'remote-b' }, 'development', developmentA)).toBeNull()
+  expect(readPlatformDefault('user-b', work, 'development', developmentA)).toBeNull()
+  expect(readPlatformDefault('user-a', work, 'production', 'https://api.agentera.com.cn')).toBeNull()
   localStorage.setItem('aino.desktop.platform-default.user-a', 'legacy-model')
-  expect(readPlatformDefault('user-a')).toBe('legacy-model')
-  expect(readPlatformDefault('user-a', 'work')).toBeNull()
-  expect(readPlatformDefault('user-a', { connectionId: 'remote-b', profile: 'default' })).toBeNull()
+  expect(readPlatformDefault('user-a', undefined, 'production', 'https://api.agentera.com.cn')).toBe('legacy-model')
+  expect(readPlatformDefault('user-a', 'work', 'production', 'https://api.agentera.com.cn')).toBeNull()
+  expect(readPlatformDefault('user-a', { connectionId: 'remote-b', profile: 'default' }, 'production', 'https://api.agentera.com.cn')).toBeNull()
   rescopeConnectionScopedStores({ mode: 'remote', baseUrl: 'https://legacy.example', profile: 'default' })
-  expect(readPlatformDefault('user-a')).toBeNull()
-  writePlatformDefault('user-a', 'legacy-remote-work', 'work')
+  expect(readPlatformDefault('user-a', undefined, 'development', developmentA)).toBeNull()
+  writePlatformDefault('user-a', 'legacy-remote-work', 'work', 'development', developmentA)
   rescopeConnectionScopedStores({ mode: 'remote', baseUrl: 'https://legacy.example', profile: 'work' })
-  expect(readPlatformDefault('user-a', 'work')).toBe('legacy-remote-work')
+  expect(readPlatformDefault('user-a', 'work', 'development', developmentA)).toBe('legacy-remote-work')
   rescopeConnectionScopedStores({ mode: 'local', profile: 'default' })
 })
 

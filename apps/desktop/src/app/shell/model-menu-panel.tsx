@@ -25,6 +25,7 @@ import { notifyError } from '@/store/notifications'
 import { verifiedPlatformModel } from '@/store/platform-model-capability'
 import { $activeGatewayProfile } from '@/store/profile'
 import {
+  $currentPlatformOrigin,
   $currentPlatformOwner,
   $defaultReasoningEffort,
   markComposerSelectionManual,
@@ -80,6 +81,7 @@ export function ModelMenuPanel({
   const currentModel = useStore(view.$model)
   const currentProvider = useStore(view.$provider)
   const currentPlatformOwner = useStore($currentPlatformOwner)
+  const currentPlatformOrigin = useStore($currentPlatformOrigin)
   const busy = useStore(view.$busy)
   const awaiting = useStore(view.$awaitingResponse)
   const closeMenu = useContext(ModelMenuCloseContext)
@@ -107,7 +109,7 @@ export function ModelMenuPanel({
   const blocked = managedModelSwitchBlocked(currentProvider, source === 'aino' ? 'aino' : '', busy || awaiting)
 
   const activePlatformModel =
-    currentProvider === 'aino' ? verifiedPlatformModel(currentModel, currentPlatformOwner) : null
+    currentProvider === 'aino' ? verifiedPlatformModel(currentModel, currentPlatformOwner, currentPlatformOrigin) : null
 
   // Subscribe to the SAME query the menu runs (identical key ⇒ React Query
   // dedupes, no second fetch). It must be a live subscription, not a cache

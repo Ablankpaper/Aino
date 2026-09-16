@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react'
 import { computed } from 'nanostores'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
@@ -10,11 +10,15 @@ import { requestFreshSession } from '@/store/profile'
 import { $sessionStates } from '@/store/session-states'
 
 export function usePlatformHistoryOwner(sessionId?: string | null): string | null {
-  const account = platformModelCatalog().account
+  const catalog = platformModelCatalog()
+  const account = catalog.account
+  const authority = catalog.owner
+  const snapshot = useStore(account)
+  useEffect(() => { void authority.load() }, [authority, snapshot?.revision, snapshot?.mode, snapshot?.account?.id])
 
   const owner = useMemo(
-    () => computed([account, $sessionStates], () => platformHistoryOwner(sessionId)),
-    [account, sessionId]
+    () => computed([account, authority.state, $sessionStates], () => platformHistoryOwner(sessionId)),
+    [account, authority, sessionId]
   )
 
   return useStore(owner)

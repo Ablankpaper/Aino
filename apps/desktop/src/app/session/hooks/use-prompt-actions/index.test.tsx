@@ -4026,6 +4026,7 @@ describe('usePromptActions sleep/wake session recovery', () => {
       platformModel: {
         modelId: 'catalog-a',
         ownerUserId: 'user-a',
+        platformOrigin: 'http://127.0.0.1:1234',
         status: 'ready' as const
       }
     }

@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
-import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 
 import { platformAccountActions } from '@/api/platform'
@@ -21,16 +21,19 @@ afterEach(() => {
   Reflect.deleteProperty(window, 'hermesDesktop')
 })
 
-it('rejects an overlay model change on another account history before staging any config', async () => {
+it('rejects an overlay model change on same-user history from another platform before staging any config', async () => {
   Object.defineProperty(window, 'hermesDesktop', {
     configurable: true,
     value: {
       platformAccount: {
-        status: async () => platformSnapshot('user-b'),
+        status: async () => platformSnapshot('user-a'),
         capabilities: async () => ({}),
         onChanged: () => () => {}
       },
-      platformModels: { list: async () => [] }
+      platformModels: {
+        list: async () => [],
+        owner: async () => ({ user_id: 'user-a', platform_origin: 'http://127.0.0.1:7001' })
+      }
     }
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
@@ -39,7 +42,12 @@ it('rejects an overlay model change on another account history before staging an
     ...createClientSessionState('stored-a'),
     provider: 'aino',
     model: 'catalog-a',
-    platformModel: { ownerUserId: 'user-a', modelId: 'catalog-a', status: 'ready' as const }
+    platformModel: {
+      ownerUserId: 'user-a',
+      platformOrigin: 'http://127.0.0.1:7002',
+      modelId: 'catalog-a',
+      status: 'ready' as const
+    }
   }
 
   $sessionStates.set({ 'runtime-a': history })
@@ -57,6 +65,7 @@ it('rejects an overlay model change on another account history before staging an
 
 it('keeps original account history read-only and requests a new chat without rewriting its ownership', async () => {
   let changed!: (snapshot: PlatformAccountSnapshot) => void
+  let ownerUserId = 'user-b'
   Object.defineProperty(window, 'hermesDesktop', {
     configurable: true,
     value: {
@@ -69,7 +78,10 @@ it('keeps original account history read-only and requests a new chat without rew
           return () => {}
         }
       },
-      platformModels: { list: async () => [] }
+      platformModels: {
+        list: async () => [],
+        owner: async () => ({ user_id: ownerUserId, platform_origin: 'http://127.0.0.1:7001' })
+      }
     }
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
@@ -78,7 +90,12 @@ it('keeps original account history read-only and requests a new chat without rew
     ...createClientSessionState('stored-a'),
     provider: 'aino',
     model: 'catalog-a',
-    platformModel: { ownerUserId: 'user-a', modelId: 'catalog-a', status: 'ready' as const }
+    platformModel: {
+      ownerUserId: 'user-a',
+      platformOrigin: 'http://127.0.0.1:7001',
+      modelId: 'catalog-a',
+      status: 'ready' as const
+    }
   }
 
   $sessionStates.set({ 'runtime-a': history })
@@ -101,7 +118,8 @@ it('keeps original account history read-only and requests a new chat without rew
   fireEvent.click(screen.getByRole('button', { name: /New chat/ }))
   expect($freshSessionRequest.get()).toBe(prior + 1)
   expect($sessionStates.get()['runtime-a']).toBe(history)
+  ownerUserId = 'user-a'
   act(() => changed(platformSnapshot('user-a', 2)))
-  expect((screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(false)
+  await waitFor(() => expect((screen.getByRole('button', { name: 'Send' }) as HTMLButtonElement).disabled).toBe(false))
   expect(screen.queryByRole('status')).toBeNull()
 })

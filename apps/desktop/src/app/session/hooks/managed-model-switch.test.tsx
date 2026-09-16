@@ -91,7 +91,7 @@ beforeEach(async () => {
       },
       platformModels: {
         list: async () => [platformModel(), platformModel('catalog-b')],
-        owner: async () => ({}),
+        owner: async () => ({ user_id: 'user-a', platform_origin: 'http://127.0.0.1:7001' }),
         bind,
         clear
       }
@@ -120,7 +120,7 @@ beforeEach(async () => {
               model_id: params.value,
               model_source: 'aino',
               model_status: 'awaiting_managed_credentials',
-              platform_owner: { user_id: 'user-a' }
+              platform_owner: { user_id: 'user-a', platform_origin: 'http://127.0.0.1:7001' }
             }
           : { provider: 'custom:test', model: params.value.split(' ')[0] }
 
@@ -142,7 +142,7 @@ beforeEach(async () => {
 function setManagedCurrent() {
   setCurrentProvider('aino')
   setCurrentModel('catalog-a')
-  setCurrentPlatformOwner('user-a')
+  setCurrentPlatformOwner('user-a', 'http://127.0.0.1:7001')
   $sessionStates.set({
     'runtime-a': {
       ...$sessionStates.get()['runtime-a'],
@@ -150,7 +150,12 @@ function setManagedCurrent() {
       model: 'catalog-a',
       reasoningEffort: 'low',
       fast: false,
-      platformModel: { modelId: 'catalog-a', ownerUserId: 'user-a', status: 'ready' }
+      platformModel: {
+        modelId: 'catalog-a',
+        ownerUserId: 'user-a',
+        platformOrigin: 'http://127.0.0.1:7001',
+        status: 'ready'
+      }
     }
   })
 }
@@ -502,13 +507,18 @@ it('clears stale live reasoning through config.set from the full picker too', as
 it('keeps authoritative BYOK after native cleanup fails and rejects busy managed switches before painting', async () => {
   setCurrentProvider('aino')
   setCurrentModel('catalog-a')
-  setCurrentPlatformOwner('user-a')
+  setCurrentPlatformOwner('user-a', 'http://127.0.0.1:7001')
   $sessionStates.set({
     'runtime-a': {
       ...$sessionStates.get()['runtime-a'],
       provider: 'aino',
       model: 'catalog-a',
-      platformModel: { modelId: 'catalog-a', ownerUserId: 'user-a', status: 'ready' },
+      platformModel: {
+        modelId: 'catalog-a',
+        ownerUserId: 'user-a',
+        platformOrigin: 'http://127.0.0.1:7001',
+        status: 'ready'
+      },
       busy: true
     }
   })
@@ -612,7 +622,12 @@ it('confirms Aino-to-Aino on a secondary tile and keeps its binding/cache on the
       ...$sessionStates.get()['runtime-a'],
       model: 'catalog-a',
       provider: 'aino',
-      platformModel: { modelId: 'catalog-a', ownerUserId: 'user-a', status: 'ready' }
+      platformModel: {
+        modelId: 'catalog-a',
+        ownerUserId: 'user-a',
+        platformOrigin: 'http://127.0.0.1:7001',
+        status: 'ready'
+      }
     }
   })
   const client = new QueryClient()

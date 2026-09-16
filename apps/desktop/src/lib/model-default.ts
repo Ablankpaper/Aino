@@ -8,7 +8,6 @@ export async function resolveModelDefault(scope: ProfileScope, managedRoute?: Pl
   const catalog = platformModelCatalog()
   const account = catalog.account.get()
   const capturedScope = platformDefaultScope(scope)
-  const preferredId = readPlatformDefault(account?.account?.id || '', capturedScope, account?.mode)
   const [result] = await Promise.all([getGlobalModelInfo(scope), catalog.load()])
   const currentAccount = catalog.account.get()
 
@@ -17,11 +16,22 @@ export async function resolveModelDefault(scope: ProfileScope, managedRoute?: Pl
     account?.revision !== currentAccount?.revision ||
     account?.phase !== currentAccount?.phase ||
     account?.mode !== currentAccount?.mode ||
-    capturedScope.key !== platformDefaultScope(scope).key ||
-    preferredId !== readPlatformDefault(currentAccount?.account?.id || '', capturedScope, currentAccount?.mode)
+    capturedScope.key !== platformDefaultScope(scope).key
   ) {
     throw new PlatformSelectionError('platform_account_changed')
   }
+
+  if (result.model || result.provider) {
+    return { model: result.model || '', provider: result.provider || '', platform: null }
+  }
+
+  const owner = catalog.owner.state.get().owner
+
+  if (!owner || owner.user_id !== currentAccount?.account?.id) {
+    throw new PlatformSelectionError('platform_account_changed')
+  }
+
+  const preferredId = readPlatformDefault(currentAccount.account.id, capturedScope, currentAccount.mode, owner.platform_origin)
 
   const state = catalog.state.get()
   const managedSupported = managedModelRouteCapability(managedRoute ?? capturedScope.route) === 'supported'
@@ -32,16 +42,20 @@ export async function resolveModelDefault(scope: ProfileScope, managedRoute?: Pl
         state.models.find(model => model.is_default && model.state === 'available')
       : undefined
 
-  if (!result.model && !result.provider && account?.phase === 'signed_in' && managedSupported && !platformDefault) {
+  if (account?.phase === 'signed_in' && managedSupported && !platformDefault) {
     throw new PlatformSelectionError('model_unavailable')
   }
 
-  const model = result.model || (result.provider ? '' : platformDefault?.id || '')
-  const provider = result.provider || (model ? 'aino' : '')
+  const model = platformDefault?.id || ''
+  const provider = model ? 'aino' : ''
 
   const platform =
-    !result.model && !result.provider && provider === 'aino' && platformDefault?.id === model
-      ? { modelId: model, ownerUserId: account?.account?.id || '' }
+    provider === 'aino' && platformDefault?.id === model
+      ? {
+          modelId: model,
+          ownerUserId: account?.account?.id || '',
+          platformOrigin: owner.platform_origin
+        }
       : null
 
   return { model, provider, platform }

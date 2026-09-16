@@ -213,7 +213,7 @@ export function useModelControls({
           setCurrentModelSource('default')
 
           if (resolvedPlatformDefault) {
-            setCurrentPlatformOwner(resolvedPlatformDefault.ownerUserId)
+            setCurrentPlatformOwner(resolvedPlatformDefault.ownerUserId, resolvedPlatformDefault.platformOrigin || '')
           } else {
             setCurrentPlatformOwner('')
           }

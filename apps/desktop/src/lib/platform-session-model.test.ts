@@ -12,7 +12,7 @@ it('keeps the catalog identity through draft creation and runtime updates', () =
     provider: 'aino', platform_owner: { user_id: 'user-a', platform_origin: 'http://127.0.0.1:1234' },
     model_status: 'ready' })
   expect(patch).toEqual({ model: 'catalog-a', platformModel: {
-    modelId: 'catalog-a', ownerUserId: 'user-a', status: 'ready'
+    modelId: 'catalog-a', ownerUserId: 'user-a', platformOrigin: 'http://127.0.0.1:1234', status: 'ready'
   } })
   expect(platformModelStatePatch({ model: 'byok-model', provider: 'custom:local' })).toEqual({ platformModel: null })
   expect(platformModelStatePatch({ running: false })).toEqual({})

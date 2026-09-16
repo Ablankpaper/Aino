@@ -13,8 +13,8 @@ import {
   setActiveSessionStoredIdRotation,
   setCurrentFastMode,
   setCurrentModel,
-  setCurrentPlatformOwner,
   setCurrentPersonality,
+  setCurrentPlatformOwner,
   setCurrentProvider,
   setCurrentReasoningEffort,
   setCurrentServiceTier,
@@ -44,7 +44,8 @@ interface SessionStateCacheOptions {
 function syncRuntimeMetadataToView(state: ClientSessionState) {
   setCurrentModel(state.model ?? '')
   setCurrentProvider(state.provider ?? '')
-  if (state.platformModel) setCurrentPlatformOwner(state.platformModel.ownerUserId)
+
+  if (state.platformModel) {setCurrentPlatformOwner(state.platformModel.ownerUserId, state.platformModel.platformOrigin || '')}
   setCurrentReasoningEffort(state.reasoningEffort ?? '')
   setCurrentServiceTier(state.serviceTier ?? '')
   setCurrentFastMode(state.fast ?? false)

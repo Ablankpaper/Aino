@@ -33,6 +33,7 @@ const COMPOSER_MODEL_KEY = 'hermes.desktop.composer.model'
 const COMPOSER_PROVIDER_KEY = 'hermes.desktop.composer.provider'
 const COMPOSER_MODEL_SOURCE_KEY = 'hermes.desktop.composer.model-source'
 const COMPOSER_PLATFORM_OWNER_KEY = 'aino.desktop.composer.platform-owner'
+const COMPOSER_PLATFORM_ORIGIN_KEY = 'aino.desktop.composer.platform-origin'
 const COMPOSER_EFFORT_KEY = 'hermes.desktop.composer.reasoning-effort'
 const COMPOSER_FAST_KEY = 'hermes.desktop.composer.fast'
 
@@ -1090,13 +1091,20 @@ export const $resumeExhaustedSessionId = atom<string | null>(null)
 export const $currentModel = atom(storedComposerString(COMPOSER_MODEL_KEY) ?? '')
 export const $currentProvider = atom(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
 export const $currentPlatformOwner = atom(storedComposerString(COMPOSER_PLATFORM_OWNER_KEY) ?? '')
+export const $currentPlatformOrigin = atom(storedComposerString(COMPOSER_PLATFORM_ORIGIN_KEY) ?? '')
 
-export function setCurrentPlatformOwner(owner: string): void {
+export function setCurrentPlatformOwner(owner: string, origin = ''): void {
   $currentPlatformOwner.set(owner)
+  $currentPlatformOrigin.set(origin)
   const key = composerSelectionKey(COMPOSER_PLATFORM_OWNER_KEY)
+  const originKey = composerSelectionKey(COMPOSER_PLATFORM_ORIGIN_KEY)
 
   if (key) {
     persistString(key, owner || null)
+  }
+
+  if (originKey) {
+    persistString(originKey, origin || null)
   }
 }
 
@@ -1167,6 +1175,7 @@ function rescopeComposerSelection(nextScope: string | null): void {
   $currentModel.set(storedComposerString(COMPOSER_MODEL_KEY) ?? '')
   $currentProvider.set(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
   $currentPlatformOwner.set(storedComposerString(COMPOSER_PLATFORM_OWNER_KEY) ?? '')
+  $currentPlatformOrigin.set(storedComposerString(COMPOSER_PLATFORM_ORIGIN_KEY) ?? '')
   $currentModelSource.set(getCurrentModelSource())
 }
 

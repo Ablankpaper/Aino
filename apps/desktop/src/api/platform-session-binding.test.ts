@@ -27,7 +27,11 @@ it('binds on the owning chat socket before exposing a ready draft and keeps keys
   const created = await createPlatformDraft(request as never, { model_source: 'aino', model_id: 'catalog-a' },
     'user-a', { connectionId: 'local', profile: 'work' })
   expect(order).toEqual(['session.create', 'session.managed_model_ticket', 'bind'])
-  expect(created.info).toMatchObject({ model_id: 'catalog-a', model_status: 'ready', platform_owner: { user_id: 'user-a' } })
+  expect(created.info).toMatchObject({
+    model_id: 'catalog-a',
+    model_status: 'ready',
+    platform_owner: { user_id: 'user-a', platform_origin: 'http://127.0.0.1:1234' }
+  })
   expect(desktop.platformModels.clear).not.toHaveBeenCalled()
   expect(request.mock.calls.find(([method]) => method === 'config.set')).toBeUndefined()
 })

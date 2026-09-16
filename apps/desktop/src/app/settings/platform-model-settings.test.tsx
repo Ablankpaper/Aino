@@ -60,7 +60,10 @@ it('saves the shown scope and updates only its unsent draft, respecting BYOK def
         capabilities: async () => ({}),
         onChanged: () => () => {}
       },
-      platformModels: { list: async () => [platformModel('chosen')] }
+      platformModels: {
+        list: async () => [platformModel('chosen')],
+        owner: async () => ({ user_id: 'user-a', platform_origin: 'http://127.0.0.1:7001' })
+      }
     }
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
@@ -125,7 +128,10 @@ it('does not publish a delayed saved default into a different foreground connect
         capabilities: async () => ({}),
         onChanged: () => () => {}
       },
-      platformModels: { list: async () => [platformModel('chosen')] }
+      platformModels: {
+        list: async () => [platformModel('chosen')],
+        owner: async () => ({ user_id: 'user-a', platform_origin: 'http://127.0.0.1:7001' })
+      }
     }
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()

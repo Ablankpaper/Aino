@@ -5,6 +5,7 @@ import type { PlatformAccountSnapshot, PlatformModel } from '../../shared/platfo
 export interface PlatformSessionModel {
   modelId: string
   ownerUserId: string
+  platformOrigin?: string
   status: 'ready' | 'awaiting_managed_credentials'
 }
 
@@ -27,6 +28,7 @@ export function platformModelStatePatch(
       platformModel: {
         modelId: info.model_id,
         ownerUserId: info.platform_owner?.user_id || '',
+        platformOrigin: info.platform_owner?.platform_origin,
         status: info.model_status === 'ready' ? 'ready' : 'awaiting_managed_credentials'
       }
     }

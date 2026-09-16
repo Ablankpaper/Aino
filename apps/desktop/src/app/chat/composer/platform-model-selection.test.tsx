@@ -47,7 +47,10 @@ it('seeds a fresh unconfigured composer from the account catalog but preserves a
     configurable: true,
     value: {
       platformAccount: { status: async () => snapshot, capabilities: async () => ({}), onChanged: () => () => {} },
-      platformModels: { list: async () => [platformModel()] }
+      platformModels: {
+        list: async () => [platformModel()],
+        owner: async () => ({ user_id: 'user-a', platform_origin: 'http://127.0.0.1:7001' })
+      }
     }
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
@@ -68,7 +71,10 @@ it('applies the automatic default when ready arrives after mount and preserves a
     configurable: true,
     value: {
       platformAccount: { status: async () => snapshot, capabilities: async () => ({}), onChanged: () => () => {} },
-      platformModels: { list: async () => [platformModel()] }
+      platformModels: {
+        list: async () => [platformModel()],
+        owner: async () => ({ user_id: 'user-a', platform_origin: 'http://127.0.0.1:7001' })
+      }
     }
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
@@ -102,6 +108,7 @@ it('applies the automatic default when ready arrives after mount and preserves a
 
 it('reconciles account broadcasts without losing draft content, project or BYOK intent', async () => {
   let changed!: (snapshot: PlatformAccountSnapshot) => void
+  let ownerUserId = 'user-a'
   Object.defineProperty(window, 'hermesDesktop', {
     configurable: true,
     value: {
@@ -114,7 +121,10 @@ it('reconciles account broadcasts without losing draft content, project or BYOK 
           return () => {}
         }
       },
-      platformModels: { list: async () => [platformModel(), platformModel('catalog-b')] }
+      platformModels: {
+        list: async () => [platformModel(), platformModel('catalog-b')],
+        owner: async () => ({ user_id: ownerUserId, platform_origin: 'http://127.0.0.1:7001' })
+      }
     }
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
@@ -122,16 +132,17 @@ it('reconciles account broadcasts without losing draft content, project or BYOK 
   vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
   setCurrentProvider('aino')
   setCurrentModel('catalog-a')
-  setCurrentPlatformOwner('user-a')
+  setCurrentPlatformOwner('user-a', 'http://127.0.0.1:7001')
   markComposerSelectionManual()
   $composerDraft.set('keep my work')
   const attachments = [{ id: 'file', label: 'notes.md', kind: 'file' as const, path: '/project/notes.md' }]
   $composerAttachments.set(attachments)
   $currentCwd.set('/project')
-  writePlatformDefault('user-b', 'catalog-b', undefined, 'development')
+  writePlatformDefault('user-b', 'catalog-b', undefined, 'development', 'http://127.0.0.1:7001')
   renderHook(() => useModelControls({ queryClient: new QueryClient(), requestGateway: vi.fn() }))
   act(() => changed({ ...platformSnapshot(), phase: 'signed_out', account: null, revision: 2 }))
   expect([$currentProvider.get(), $currentModel.get(), $currentPlatformOwner.get()]).toEqual(['', '', ''])
+  ownerUserId = 'user-b'
   act(() => changed(platformSnapshot('user-b', 3)))
   await waitFor(() =>
     expect([$currentProvider.get(), $currentModel.get(), $currentPlatformOwner.get()]).toEqual([
