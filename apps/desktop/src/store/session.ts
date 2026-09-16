@@ -1091,6 +1091,30 @@ export const $currentModel = atom(storedComposerString(COMPOSER_MODEL_KEY) ?? ''
 export const $currentProvider = atom(storedComposerString(COMPOSER_PROVIDER_KEY) ?? '')
 export const $currentPlatformOwner = atom(storedComposerString(COMPOSER_PLATFORM_OWNER_KEY) ?? '')
 export const $currentPlatformDefaultResolution = atom<null | { modelId: string; ownerUserId: string }>(null)
+const currentPlatformDefaultResolutionFlights = new Set<Promise<void>>()
+
+export function beginCurrentPlatformDefaultResolution(): () => void {
+  let resolve!: () => void
+
+  const pending = new Promise<void>(done => {
+    resolve = done
+  })
+
+  currentPlatformDefaultResolutionFlights.add(pending)
+  $currentPlatformDefaultResolution.set(null)
+
+  return () => {
+    if (currentPlatformDefaultResolutionFlights.delete(pending)) {
+      resolve()
+    }
+  }
+}
+
+export async function awaitCurrentPlatformDefaultResolution(): Promise<void> {
+  while (currentPlatformDefaultResolutionFlights.size > 0) {
+    await Promise.all([...currentPlatformDefaultResolutionFlights])
+  }
+}
 
 export function setCurrentPlatformDefaultResolution(selection: null | { modelId: string; ownerUserId: string }): void {
   $currentPlatformDefaultResolution.set(selection)
@@ -1099,8 +1123,12 @@ export function setCurrentPlatformDefaultResolution(selection: null | { modelId:
 export function setCurrentPlatformOwner(owner: string): void {
   $currentPlatformOwner.set(owner)
   const key = composerSelectionKey(COMPOSER_PLATFORM_OWNER_KEY)
-  if (key) persistString(key, owner || null)
+
+  if (key) {
+    persistString(key, owner || null)
+  }
 }
+
 export const $currentReasoningEffort = atom(storedString(COMPOSER_EFFORT_KEY) ?? '')
 export const $currentServiceTier = atom('')
 export const $currentFastMode = atom(storedBoolean(COMPOSER_FAST_KEY, false))

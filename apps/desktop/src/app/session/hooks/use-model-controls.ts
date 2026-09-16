@@ -17,6 +17,7 @@ import {
   $currentPlatformDefaultResolution,
   $currentPlatformOwner,
   $currentProvider,
+  beginCurrentPlatformDefaultResolution,
   getComposerSelectionGeneration,
   getCurrentModelSource,
   markComposerSelectionManual,
@@ -127,11 +128,14 @@ export function useModelControls({
 
       const profileRefreshEpoch = profileRefreshEpochRef.current
       const profile = $activeGatewayProfile.get()
+      let finishPlatformDefaultResolution: null | (() => void) = null
 
       try {
         if ($activeSessionId.get()) {
           return
         }
+
+        finishPlatformDefaultResolution = beginCurrentPlatformDefaultResolution()
 
         // Capture intent before any catalog I/O so a picker click that lands
         // while the platform list is loading wins over this refresh.
@@ -224,6 +228,8 @@ export function useModelControls({
         }
       } catch {
         // The delayed session.info event still updates this once the agent is ready.
+      } finally {
+        finishPlatformDefaultResolution?.()
       }
     },
     [cacheOwnerConnectionId, cacheProfile, queryClient]

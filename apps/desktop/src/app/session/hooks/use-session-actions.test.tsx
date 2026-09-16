@@ -39,6 +39,7 @@ import {
   $currentCwd,
   $currentFastMode,
   $currentModel,
+  $currentPlatformDefaultResolution,
   $currentPlatformOwner,
   $currentProvider,
   $currentReasoningEffort,
@@ -64,6 +65,7 @@ import {
   setCurrentModel,
   setCurrentModelSource,
   setCurrentPlatformDefaultResolution,
+  setCurrentPlatformOwner,
   setCurrentProvider,
   setCurrentReasoningEffort,
   setMessages,
@@ -1013,6 +1015,129 @@ describe('createBackendSessionForSend profile routing', () => {
       1_800_000
     )
     expect(requestGateway.mock.calls.find(([method]) => method === 'config.set')).toBeUndefined()
+  })
+
+  it('waits for pending default resolution before a reloaded automatic Aino first send', async () => {
+    const account = platformSnapshot()
+    const globalModel = deferred<{ model: string; provider: string }>()
+    const order: string[] = []
+
+    const accountBridge: PlatformAccountBridge = {
+      status: async () => account,
+      capabilities: vi.fn(),
+      retry: async () => account,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      onChanged: () => () => undefined
+    }
+
+    const bind = vi.fn(async () => {
+      order.push('bind')
+
+      return {
+        ok: true as const,
+        ready: true as const,
+        model_id: 'catalog-a',
+        billing_source: 'aino' as const,
+        expires_at: 'later'
+      }
+    })
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: {
+          owner: async () => ({ platform_origin: 'http://127.0.0.1:1234', user_id: 'user-a' }),
+          bind,
+          clear: vi.fn(),
+          list: async () => [platformModel()]
+        }
+      }
+    })
+    await platformAccountActions(accountBridge).refresh()
+    await platformModelCatalog().load()
+
+    // Reload shape: visible scoped values survive, but authorization proof is
+    // deliberately transient and must be revalidated by the pending refresh.
+    setCurrentModel('catalog-a')
+    setCurrentProvider('aino')
+    setCurrentPlatformOwner('user-a')
+    setCurrentModelSource('default')
+    $currentPlatformDefaultResolution.set(null)
+    vi.mocked(getGlobalModelInfo).mockReturnValue(globalModel.promise)
+
+    const requestGateway = vi.fn(async (method: string) => {
+      order.push(method)
+
+      if (method === 'session.create') {
+        return {
+          session_id: RUNTIME_SESSION_ID,
+          stored_session_id: null,
+          info: {
+            model_source: 'aino',
+            model_id: 'catalog-a',
+            provider: 'aino',
+            model_status: 'awaiting_managed_credentials'
+          }
+        } as never
+      }
+
+      if (method === 'session.managed_model_ticket') {
+        return { managed_model_binding: 1, session_ticket: 'single-use-ticket' } as never
+      }
+
+      if (method === 'prompt.submit') {
+        return {} as never
+      }
+
+      throw new Error(`unexpected request: ${method}`)
+    })
+
+    const { result: modelControls } = renderHook(() =>
+      useModelControls({
+        queryClient: new QueryClient(),
+        requestGateway
+      })
+    )
+
+    let refresh!: Promise<void>
+
+    act(() => {
+      refresh = modelControls.current.refreshCurrentModel()
+    })
+    await waitFor(() => expect(getGlobalModelInfo).toHaveBeenCalled())
+
+    let submitText: null | ((text: string) => Promise<boolean>) = null
+    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
+    await waitFor(() => expect(submitText).not.toBeNull())
+
+    let submitting!: Promise<boolean>
+
+    await act(async () => {
+      submitting = submitText!('first prompt after reload')
+      await Promise.resolve()
+    })
+    expect(requestGateway.mock.calls.some(([method]) => method === 'session.create')).toBe(false)
+
+    globalModel.resolve({ model: '', provider: '' })
+    await act(async () => {
+      await refresh
+      await expect(submitting).resolves.toBe(true)
+    })
+
+    expect(order).toEqual(['session.create', 'session.managed_model_ticket', 'bind', 'prompt.submit'])
+    expect(requestGateway).toHaveBeenCalledWith(
+      'session.create',
+      expect.objectContaining({ model_source: 'aino', model_id: 'catalog-a' })
+    )
   })
 
   it('omits a live Aino model when a saved BYOK default is submitted before draft refresh', async () => {

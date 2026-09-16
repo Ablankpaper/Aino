@@ -69,6 +69,7 @@ import {
   $newChatWorkspaceTarget,
   $sessions,
   $yoloActive,
+  awaitCurrentPlatformDefaultResolution,
   getCurrentModelSource,
   getSessionOwnerHint,
   type NewChatWorkspaceTarget,
@@ -298,6 +299,12 @@ async function desktopSessionCreateParams(
   cwd: string,
   capturedRoute = resolveNewChatOwnerRoute()
 ): Promise<{ params: Record<string, unknown>; platformOwner: string }> {
+  // A reload restores the visible default selection from scoped storage, but
+  // managed billing authority is deliberately transient. If the fresh-draft
+  // resolver is validating that restored value, wait before taking the send
+  // snapshot so an immediate Enter cannot silently omit the Aino default.
+  await awaitCurrentPlatformDefaultResolution()
+
   // Treat Send as the linearization point for the visible selector state. The
   // profile handshake below can yield long enough for background config/model
   // refreshes to finish; reading atoms afterward would silently create the
