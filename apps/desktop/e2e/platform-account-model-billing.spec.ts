@@ -265,6 +265,7 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     const cancelled = await api.control<NativeState>('state')
     expect(cancelled.model_calls).toBe(3)
     expect(cancelled.stream_cancelled).toBe(0)
+    expect(cancelled.stream_timeouts).toBe(0)
     expect(cancelled.stream_shutdowns).toBe(0)
     expect(decimalUnits(initial.balance) - decimalUnits(cancelled.balance)).toBe(decimalUnits(cancelled.usage_cost))
 

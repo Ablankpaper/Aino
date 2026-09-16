@@ -32,6 +32,7 @@ export interface NativeState {
   stream_cancelled: number
   downstream_disconnects: number
   stream_drained: number
+  stream_timeouts: number
   stream_shutdowns: number
 }
 
