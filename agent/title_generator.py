@@ -438,10 +438,30 @@ def maybe_auto_title(
         return
     apply_instant_title(session_db, session_id, user_message, title_callback)
     from contextvars import copy_context
-    threading.Thread(
+    from agent.auxiliary_billing_scope import billing_scope
+    scope = billing_scope.get()
+    tracker = scope.calls if scope and scope.source == "aino" else None
+    if tracker:
+        tracker.start_background()
+
+    def generate_in_background():
+        try:
+            auto_title_session(session_db, session_id, user_message,
+                               failure_callback=failure_callback, main_runtime=main_runtime,
+                               title_callback=title_callback, runtime_validator=runtime_validator)
+        finally:
+            if tracker:
+                tracker.end_background()
+
+    worker = threading.Thread(
         target=copy_context().run,
-        args=(auto_title_session, session_db, session_id, user_message),
-        kwargs=dict(failure_callback=failure_callback, main_runtime=main_runtime, title_callback=title_callback, runtime_validator=runtime_validator),
+        args=(generate_in_background,),
         daemon=True,
         name="auto-title",
-    ).start()
+    )
+    try:
+        worker.start()
+    except RuntimeError:
+        if tracker:
+            tracker.end_background()
+        raise

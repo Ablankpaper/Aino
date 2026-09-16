@@ -33,6 +33,64 @@ def test_managed_tool_rounds_share_turn_but_not_request_ids(managed_gateway, pro
     completed = [e["params"]["payload"] for e in f.chat.events
                  if e.get("params", {}).get("type") == "message.complete"]
     assert completed[-1]["turn_metrics"]["billing"]["turn_id"] == second["x-aino-turn-id"]
+    billing = completed[0]["turn_metrics"]["billing"]
+    assert {call["call_id"] for call in billing["calls"]} == {h["x-aino-call-id"] for h in headers}
+    assert billing["calls_complete"] is True
+    assert billing["status"] == "pending"  # HTTP completion is not a ledger receipt.
+    from tui_gateway import server
+    with server._session_db(server._sessions[sid]) as db:
+        messages = db.get_messages_as_conversation(server._sessions[sid]["session_key"])
+    persisted = [m["display_metadata"]["turn_metrics"]["billing"] for m in messages
+                 if m.get("display_metadata", {}).get("turn_metrics", {}).get("billing")]
+    assert persisted[0]["calls"] == billing["calls"]
+
+
+def test_late_title_updates_original_reply_not_next_identical_reply(managed_gateway, tmp_path, monkeypatch):
+    import threading
+    import yaml
+    import agent.title_generator as titles
+    from tui_gateway import server
+    f = managed_gateway
+    config = yaml.safe_load((tmp_path / "config.yaml").read_text())
+    config["auxiliary"]["title_generation"]["enabled"] = True
+    (tmp_path / "config.yaml").write_text(yaml.safe_dump(config))
+    release, finished = threading.Event(), threading.Event()
+    original = titles.auto_title_session
+
+    def delayed(*args, **kwargs):
+        try:
+            assert release.wait(timeout=10)
+            original(*args, **kwargs)
+        finally:
+            finished.set()
+
+    monkeypatch.setattr(titles, "auto_title_session", delayed)
+    sid = f.create()["session_id"]
+    f.bind(sid)
+    try:
+        f.submit(sid, "Read the fixture file and explain it")
+        completed = [e["params"]["payload"] for e in f.chat.events
+                     if e.get("params", {}).get("type") == "message.complete"]
+        first = completed[-1]["turn_metrics"]["billing"]
+        assert first["calls_complete"] is False
+        f.submit(sid, "Continue")
+        release.set()
+        assert finished.wait(timeout=10)
+        with f.chat.condition:
+            assert f.chat.condition.wait_for(lambda: any(
+                e.get("params", {}).get("payload", {}).get("reply_billing", {}).get("calls_complete")
+                for e in f.chat.events), timeout=10)
+        with server._session_db(server._sessions[sid]) as db:
+            messages = db.get_messages_as_conversation(server._sessions[sid]["session_key"])
+        bills = [m["display_metadata"]["turn_metrics"]["billing"] for m in messages
+                 if m.get("display_metadata", {}).get("turn_metrics", {}).get("billing")]
+        assert bills[0]["turn_id"] == first["turn_id"]
+        assert bills[0]["calls_complete"] is True
+        assert {call["purpose"] for call in bills[0]["calls"]} == {"chat", "title"}
+        assert {call["purpose"] for call in bills[1]["calls"]} == {"chat"}
+    finally:
+        release.set()
+        finished.wait(timeout=10)
 
 
 def test_background_title_has_the_original_turn_scope(managed_gateway, tmp_path):

@@ -627,7 +627,7 @@ def _absorb_turn_result(
     return status_note
 
 
-def _complete_turn_payload(session: dict, st: _TurnRun, status_note: str | None, cols: int):
+def _complete_turn_payload(session: dict, st: _TurnRun, status_note: str | None, cols: int, sid: str):
     """``(payload, raw, status)`` for message.complete; retains/clears the inflight turn and
     settles the hosted-room terminal receipt."""
     result, agent = st.result, st.agent
@@ -636,7 +636,8 @@ def _complete_turn_payload(session: dict, st: _TurnRun, status_note: str | None,
     if st.metrics_start is not None:
         from tui_gateway.turn_metrics import finish_turn_metrics
         payload["turn_metrics"] = finish_turn_metrics(
-            agent, session, st.metrics_start, payload["usage"], raw, persist=status == "complete")
+            agent, session, st.metrics_start, payload["usage"], raw, persist=status == "complete",
+            on_billing_update=lambda billing: _emit("session.usage", sid, {"reply_billing": billing}))
     if last_reasoning:
         payload["reasoning"] = last_reasoning
     if status_note:
@@ -810,7 +811,7 @@ def _run_prompt_submit(
                 display_metadata)
             status_note = _absorb_turn_result(
                 sid, session, st, text, display_kind, display_metadata)
-            payload, raw, status = _complete_turn_payload(session, st, status_note, cols)
+            payload, raw, status = _complete_turn_payload(session, st, status_note, cols, sid)
             _emit("message.complete", sid, payload)
             goal_followup = _goal_followup_after_turn(sid, session, st.result, status, raw)
             if status == "complete":

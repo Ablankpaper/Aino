@@ -334,14 +334,15 @@ class SessionMessagesMixin:
         return self._execute_write(_do)
 
     def merge_reply_display_metadata(self, session_id: str, content: str, *, after_row_id: int,
-                                     metadata: Dict[str, Any]) -> bool:
+                                     metadata: Dict[str, Any], through_row_id: Optional[int] = None) -> bool:
         """Merge into a freshly persisted reply, never an earlier identical answer."""
         def _do(conn):
             row = conn.execute(
                 "SELECT id, display_metadata FROM messages WHERE session_id = ? "
                 "AND role = 'assistant' AND active = 1 AND id > ? AND content = ? "
+                "AND (? IS NULL OR id <= ?) "
                 "ORDER BY id DESC LIMIT 1",
-                (session_id, after_row_id, self._encode_content(content))).fetchone()
+                (session_id, after_row_id, self._encode_content(content), through_row_id, through_row_id)).fetchone()
             if row is None:
                 return False
             merged = {**(self._decode_display_metadata(row[1]) or {}), **metadata}

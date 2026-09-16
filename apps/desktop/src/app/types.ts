@@ -1,6 +1,8 @@
 import type * as React from 'react'
 
 import type { ChatMessage } from '@/lib/chat-messages'
+import type { PlatformSessionModel } from '@/lib/platform-session-model'
+import type { TurnBilling } from '@/lib/turn-billing'
 import type { SessionMessage, UsageStats } from '@/types/hermes'
 
 export interface ContextSuggestion {
@@ -186,6 +188,7 @@ export interface PersistedDisplayTranscriptProvenance {
 }
 
 export interface ClientSessionState {
+  pendingReplyBilling?: Record<string, TurnBilling>
   storedSessionId: string | null
   /** Locally created empty runtime; cleared at its first send, never inferred from loading history. */
   isUnsentDraft?: boolean
@@ -196,7 +199,7 @@ export interface ClientSessionState {
   cwd: string
   model: string
   provider: string
-  platformModel?: import('@/lib/platform-session-model').PlatformSessionModel | null
+  platformModel?: PlatformSessionModel | null
   reasoningEffort: string
   serviceTier: string
   fast: boolean

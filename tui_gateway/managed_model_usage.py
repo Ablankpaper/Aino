@@ -31,5 +31,6 @@ def current_usage_metadata():
     scope = billing_scope.get()
     if not scope or scope.source != "aino":
         return {}
-    return {"billing": {"source": scope.source, "session_id": scope.session_id,
-                        "turn_id": scope.turn_id, "status": "pending"}}
+    return {"billing": {"source": scope.source, "user_id": scope.user_id,
+                        "session_id": scope.session_id, "turn_id": scope.turn_id,
+                        "status": "pending", **scope.calls.snapshot()}}

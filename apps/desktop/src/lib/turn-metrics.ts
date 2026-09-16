@@ -1,4 +1,7 @@
+import { parseTurnBilling, type TurnBilling, turnBillingEquivalent } from './turn-billing'
+
 export interface TurnMetrics {
+  billing?: TurnBilling
   duration_s?: number
   session_elapsed_s?: number
   total_tokens?: number
@@ -36,6 +39,10 @@ export function parseTurnMetrics(value: unknown): TurnMetrics | undefined {
     if (typeof number === 'number' && Number.isFinite(number) && number >= 0) {metrics[key] = number}
   }
 
+  const billing = parseTurnBilling(raw.billing)
+
+  if (billing) { metrics.billing = billing }
+
   if (!Object.keys(metrics).length) {return undefined}
 
   if (typeof raw.context_estimated === 'boolean') {metrics.context_estimated = raw.context_estimated}
@@ -44,5 +51,6 @@ export function parseTurnMetrics(value: unknown): TurnMetrics | undefined {
 }
 
 export function turnMetricsEquivalent(a?: TurnMetrics, b?: TurnMetrics): boolean {
-  return a === b || (NUMBER_FIELDS.every(key => a?.[key] === b?.[key]) && a?.context_estimated === b?.context_estimated)
+  return a === b || (NUMBER_FIELDS.every(key => a?.[key] === b?.[key]) && a?.context_estimated === b?.context_estimated &&
+    turnBillingEquivalent(a?.billing, b?.billing))
 }

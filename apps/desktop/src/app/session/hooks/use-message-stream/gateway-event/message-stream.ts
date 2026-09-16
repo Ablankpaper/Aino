@@ -18,6 +18,8 @@ import { refreshSupportedSessionControlAfterTurn } from '@/store/session-control
 import { pruneFinishedSessionSubagents } from '@/store/subagents'
 import { clearActiveSessionTodos } from '@/store/todos'
 
+import { flushReplyBilling } from '../reply-billing'
+
 import type { GatewayEventContext } from './types'
 
 function firstBillingLine(text: string): string {
@@ -357,6 +359,7 @@ export function handleMessageStreamEvent(ctx: GatewayEventContext): boolean {
       occurredAt,
       payload?.turn_metrics
     )
+    updateSessionState(sessionId, flushReplyBilling)
 
     // Structured billing wall forwarded by the gateway (out of credits /
     // payment required) — cache it + raise a billing-specific toast.

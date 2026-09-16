@@ -7,6 +7,8 @@ from typing import Callable
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+from agent.usage_correlation import TurnCallTracker
+
 
 @dataclass(frozen=True)
 class BillingScope:
@@ -15,6 +17,7 @@ class BillingScope:
     session_id: str
     turn_id: str
     purpose: str
+    calls: TurnCallTracker = field(default_factory=TurnCallTracker, repr=False, compare=False)
 
 
 billing_scope: ContextVar[BillingScope | None] = ContextVar("billing_scope", default=None)
@@ -64,10 +67,12 @@ class ManagedCredential:
         # Resolve again at dispatch: SDK retries and redirected requests are separate attempts.
         request.headers["Authorization"] = "Bearer " + self()
         request.headers.pop("x-api-key", None)
+        call_id = str(uuid4())
         request.headers.update({"X-Aino-Session-Id": scope.session_id,
                                 "X-Aino-Turn-Id": scope.turn_id,
-                                "X-Aino-Call-Id": str(uuid4()),
+                                "X-Aino-Call-Id": call_id,
                                 "X-Aino-Purpose": scope.purpose})
+        scope.calls.record(call_id, scope.purpose)
 
 
 def configure_managed_http(kwargs: dict, credential, *, async_mode: bool = False):

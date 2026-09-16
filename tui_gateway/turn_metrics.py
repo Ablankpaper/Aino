@@ -50,7 +50,7 @@ def begin_turn_metrics(agent, session, *, now=None, monotonic=None):
     )
 
 
-def finish_turn_metrics(agent, session, start, usage, text, *, persist, monotonic=None):
+def finish_turn_metrics(agent, session, start, usage, text, *, persist, monotonic=None, on_billing_update=None):
     duration = max(0, (time.monotonic() if monotonic is None else monotonic) - start.monotonic)
     metrics = {"duration_s": round(duration, 3)}
     if start.session_elapsed_s is not None:
@@ -75,8 +75,10 @@ def finish_turn_metrics(agent, session, start, usage, text, *, persist, monotoni
             metrics[key] = value
     if "context_percent" in metrics and isinstance(usage.get("context_estimated"), bool):
         metrics["context_estimated"] = usage["context_estimated"]
-    from tui_gateway.managed_model_usage import current_usage_metadata
-    metrics.update(current_usage_metadata())
+    from tui_gateway.managed_usage_display import finish_managed_metrics
+    if managed := finish_managed_metrics(agent, session, start, text, metrics,
+                                          persist=persist, on_update=on_billing_update):
+        return managed
     if persist and text:
         _persist_metrics(agent, session, start, text, metrics)
     return metrics
@@ -116,3 +118,4 @@ def _persist_metrics(agent, session, start, text, metrics):
                     **message, "display_metadata": {**(message.get("display_metadata") or {}), **metadata},
                 }, *history[index + 1:]]
                 break
+    return text

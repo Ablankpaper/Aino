@@ -28,6 +28,7 @@ import {
 import { reportInstallMethodWarning } from '@/store/updates'
 
 import { finalizeInterruptedMessages } from '../../use-prompt-actions/rewind'
+import { receiveReplyBilling } from '../reply-billing'
 import {
   applySessionInfoStatePatch,
   hasSessionInfoStatePatch,
@@ -424,6 +425,10 @@ export function handleSessionInfoEvent(ctx: GatewayEventContext): boolean {
   }
 
   if (event.type === 'session.usage') {
+    if (payload?.reply_billing && sessionId) {
+      updateSessionState(sessionId, state => receiveReplyBilling(state, payload.reply_billing))
+    }
+
     // Live usage tick emitted while a turn is mid-flight (see tui_gateway
     // _start_usage_ticker) so the status-bar context window tracks growth
     // during the turn instead of only jumping at message.complete.
