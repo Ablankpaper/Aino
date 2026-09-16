@@ -1252,6 +1252,77 @@ describe('createBackendSessionForSend profile routing', () => {
     expect(requestGateway.mock.calls.map(([method]) => method)).toEqual(['session.create', 'session.managed_model_ticket'])
   })
 
+  it('rejects a missed different-owner publication before a default-sourced fresh tile creates', async () => {
+    $activeSessionId.set('history-runtime')
+    setCurrentModel('shared-model')
+    setCurrentProvider('aino')
+    setCurrentPlatformOwner('user-a', 'http://127.0.0.1:7001')
+    setCurrentModelSource('default')
+    setAwaitingResponse(false)
+    setBusy(false)
+    $activeGatewayProfile.set('default')
+
+    let snapshot: PlatformAccountSnapshot = platformSnapshot('user-a', 3)
+
+    const bind = vi.fn()
+
+    const requestGateway = vi.fn(async (method: string) => {
+      throw new Error(`must reject before ${method}`)
+    })
+
+    const accountBridge: PlatformAccountBridge = {
+      status: vi.fn(async () => snapshot),
+      capabilities: vi.fn(async () => ({} as never)),
+      retry: async () => snapshot,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      onChanged: () => () => undefined
+    }
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: {
+          owner: async (revision: number) => {
+            if (revision !== snapshot.revision) {
+              throw new Error('stale main revision')
+            }
+
+            return { user_id: snapshot.account!.id, platform_origin: 'http://127.0.0.1:7001' }
+          },
+          bind,
+          clear: vi.fn(),
+          list: async () => [platformModel('shared-model')]
+        }
+      }
+    })
+    vi.mocked(getGlobalModelInfo).mockResolvedValue({ model: '', provider: '' })
+    await platformAccountActions(accountBridge).refresh()
+    await platformModelCatalog().load()
+    recordGatewayReadyCapability(
+      { profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+
+    // Main moved to user B on the same platform, but the renderer missed IPC.
+    snapshot = platformSnapshot('user-b', 4)
+    let handle: HarnessHandle | null = null
+    render(<Harness onReady={value => (handle = value)} requestGateway={requestGateway} />)
+    await waitFor(() => expect(handle).not.toBeNull())
+
+    await expect(handle!.openNewSessionTile('center', { listed: false })).resolves.toBeUndefined()
+    expect(requestGateway).not.toHaveBeenCalled()
+    expect(bind).not.toHaveBeenCalled()
+  })
+
   it('rejects a deferred first send after its captured commercial authority changes', async () => {
     const deferredCreate = await prepareDeferredManagedCreate()
     let submitText: null | ((text: string) => Promise<boolean>) = null

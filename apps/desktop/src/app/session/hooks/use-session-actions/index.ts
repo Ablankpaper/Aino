@@ -373,12 +373,10 @@ async function desktopSessionCreateParams(
       !authoritativeOwner ||
       account?.phase !== 'signed_in' ||
       account.account?.id !== authoritativeOwner.user_id ||
-      (selectionSource === 'manual' &&
-        (!platformOwner ||
-          !platformOrigin ||
-          platformOwner !== authoritativeOwner.user_id ||
-          platformOrigin !== authoritativeOwner.platform_origin)) ||
-      (platformOrigin && platformOrigin !== authoritativeOwner.platform_origin)
+      !platformOwner ||
+      !platformOrigin ||
+      platformOwner !== authoritativeOwner.user_id ||
+      platformOrigin !== authoritativeOwner.platform_origin
     ) {
       throw new PlatformSelectionError('platform_account_changed')
     }
