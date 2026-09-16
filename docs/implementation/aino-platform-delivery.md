@@ -6,8 +6,8 @@
 
 | 仓库 | 分支 | 本次恢复基线 | 最新已核对提交 |
 | --- | --- | --- | --- |
-| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | `7a215f2b1159efab4a10e30eb960944865447783`；其中模型切换及来源修正仍在复核/修复，非最终交付制品 |
-| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `97e4a4812e1d2144641287774997ebd4b0235504`；API 隔离闭环复核通过，未提交原生夹具不计入此 SHA |
+| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | `d0e248b7587c035d6546677ff317ea96941d6b4a`；模型切换/来源修正已复核通过，能力 UX 与原生验收仍待完成，非最终制品 |
+| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `6f73d6a5833266f4eca8df986dbda73e6c2f9aaf`；API 隔离闭环/短信灰度复核通过，未提交原生夹具不计入此 SHA |
 
 当前 A1–A6、B1–B5、C1–C3 与 C4 钱包/充值/订单/设备/费用来源切片已完成本地实现和相应复核；B6 仍在完成模型切换和能力/恢复 UX，D1–D4 最终验收未完成。Codex 继续开发，旧“交给 Claude 从 B4 开始”的交接已失效。两仓库保留此前提交。没有推送、合并 main、部署生产或进行真实短信、付费模型和支付调用。
 
@@ -20,18 +20,22 @@
 | B4/B5 真实 Agent 与辅助来源 | 三协议工具往返、续租/恢复/取消/切换已有隔离测试；B5 131 文件/1,388 项通过 | [B5 记录](aino-platform-b5-review.md)，非线上扣费 |
 | B6 固定发送时模型及原 socket | `52ec689c98`、`fde0064f71`；首发/恢复及 profile rail 修复已通过独立复核 | 默认作用域、切换及原生完整流程仍待完成 |
 | B6 作用域与账户草稿 | `6acd2046ca`：13 文件/454 项通过，独立复核通过 | 精确开发 origin、模型切换/能力和完整原生验证仍待完成 |
-| B6 模型切换事务 | `c83d5c1b71`：已有定向测试，但独立复核发现四项边界缺陷 | 自定义 provider 别名、懒加载会话真值、导航后的预设归属、丢失响应后的 native 清理正在修复，不标完成 |
+| B6 模型切换事务 | `c83d5c1b71` 原实现；`82e0ba3cc5`/`c3daa97bef` 关闭四项问题，独立复核通过 | 实际保留动画 DOM 的菜单重开测试、99 项覆盖和真实 Agent 反向切换通过；完整原生链路单列 |
 | C4 非 Aino 调用来源 | `7a215f2b11`：76 项 Python、39 项 UI、三个 TS 配置及相关 lint 通过，独立复核通过 | 可与 Aino 账本费用并存，不推断外部收费；非完整原生验收 |
 | 原生空昵称修复 | `8b53794e1f`：16 项测试、真实本地 API 客户端复验、独立复核通过 | 只修合法 phone-only 空昵称解析；首轮 Electron 登录失败后的完整原生流程仍待复验 |
 | C2/C3 | 真实隔离 PG/Redis/JWT/用量/账本和签名回调竞态已有分层证据 | [进度记录](aino-platform-progress.md)，仍需 D1 串联实际 Agent 与原生桌面 |
 | C4 恢复修复 | `e9e2f36a5d`、`f497ce9ff6`；最新 3 文件/11 项通过，types/lint 通过，独立复核通过 | `/tmp/aino-c4-history-association-covering.log` |
 | Electron 全量 | 最近一次 167 文件通过、2 原有跳过；2,259 项通过、6 原有跳过 | `/tmp/aino-platform-electron-full-current.log`，后续 renderer 改动后仍需最终门禁 |
+| Electron 最新全量 | `d0e248b758`：167 文件通过/2 原有跳过，2,261 项通过/6 原有跳过，exit 0 | `/tmp/aino-d2-electron-final-d0e248.log`；当前后续能力改动仅 renderer，不把它当成原生完整闭环 |
 | UI 全量 | 最近一次 7,884 通过/3 失败；三项 profile rail 已修复并在 136 项覆盖回归通过 | 尚未在最终 B6 树重跑，不将局部修复视为全量复验 |
 | API unit/lint | `308aa7725`：56 包通过，golangci-lint 0 issues | [质量复核](aino-platform-quality-review.md)；不替代最新 tagged integration |
+| API 最新 unit/lint | `6f73d6a58`：56 包通过、53 包无测试，0 失败、exit 0；本提交仓库 lint 0 issues | `/tmp/aino-d2-api-unit-6f73d6a58.jsonl`、`/tmp/d3-phone-rollout-lint-local.log`；逐测试事件计数包含子测试 |
 | API 默认测试/生成/构建 | `97e4a4812e`：默认测试 50 包通过/59 包无测试；生成与构建 exit 0，无 Ent/Wire 漂移 | `/tmp/aino-d2-api-{default-final,generate,generated-diff,build}.log`，未来灰度代码需新门禁 |
 | API 实际内部闭环/升级 | `97e4a4812e`：32 顶层/38 含子项通过，独立复核通过；后续协议/OIDC 断言覆盖的两场景复验通过 | 实际 PG/Redis/auth/lease/gateway/ledger/callback；尚未与原生 Python Agent 连成一条链，旧二进制回退未验证 |
 | 网站全量 | `19c43905f`：286 文件/2,139 项通过 | `/tmp/aino-d-site-final.log`；旧 Stripe 夹具失败已关闭 |
 | Python 五文件夹具 | `2716c31ea9`：185 通过、3 原有跳过 | [夹具报告](aino-platform-python-fixtures.md)；TTFB 有界诊断已停止，未证明生产缺陷，也未取得整文件通过 |
+| Python 计划范围最新回归 | `82e0ba3cc5`：1,612 文件/18,572 通过/3 失败/209 跳过，另 1 文件进程崩溃，exit 1 | `/tmp/aino-d2-python-final-82e0ba3.log`；TTFB 21 项在 183.67 秒通过；provider 契约、计时断言与导入崩溃正有界处理 |
+| Python 失败定向修正 | `5a7d7084c2`、`d0e248b758`：6 文件/29 项通过，独立复核通过 | `/tmp/aino-d2-final-focused.log`；MCP 崩溃文件单独一次 10 项通过，整套 Bus error 未复现、未根治，不标全绿 |
 | 充值实际渲染 | 明亮 1280×800 / 暗色 390×844，关闭恢复/完成后钱包刷新/历史/禁用状态通过 | 隔离 bridge，非真实支付或完整原生闭环 |
 
 [用户指南](../aino-platform-user-guide.md)及 [API 部署与回退准备](../../../Aino-API/docs/aino-platform-deployment.md)已建立。部署文档是操作单，不是部署回执；尚未核验的短信模板变量、逐用户灰度、真实渠道、多平台安全存储及兼容回退不能填“通过”。
@@ -88,9 +92,9 @@ Ent 下载和缺失 go.sum 已解决，原锁定版本成功生成并提交实�
 
 ## 待完成门禁
 
-1. 完成 B6 模型切换四项复核修正、能力/恢复提示、精确平台 origin 及原生验收；已过复核的默认值作用域、账户草稿和 A/B1–B5 不重做。
+1. 完成 B6 能力/恢复提示、精确平台 origin 及原生验收；已过复核的模型切换、默认值作用域、账户草稿和 A/B1–B5 不重做。
 2. 在最终 D1/D2 复核费用来源与账本显示；C4 非 Aino 调用来源已过独立复核，C1–C4 稳定切片不重复重写。
-3. 运行最终必要门禁。TTFB 两次有界运行分别完成 13/21、20/21 后被人工 75/60 秒整文件时限终止，没有固定卡死点；尝试的测试优化未通过已撤回，不继续循环。最终使用仓库未修改的 300 秒默认门禁，失败仍如实记录。已修站点/Go/Python 夹具保留证据。
+3. 完成最终必要门禁及已暴露失败的定向修正。TTFB 此前两次人工 75/60 秒预算不足，测试优化已撤回；最新未改代码的 300 秒默认门禁内 21 项通过，不再重复诊断。最新 Python 3 项失败和 1 文件崩溃仍如实保留，不能视为全绿。
 4. 完成 D1 的原生 Electron＋真实 API＋Python Agent 隔离闭环；API 内部闭环和旧 schema 升级已经复核通过，兼容旧二进制回退仍待验证。
 5. 整理配对提交、制品、配置、部署与回退说明；新增 SQL 保持 forward-only。
 6. 缺少外部材料或授权的项目列为人工验收项，完成其余本地开发；不盲目重复受阻命令。
