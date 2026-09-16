@@ -426,7 +426,11 @@ export function handleSessionInfoEvent(ctx: GatewayEventContext): boolean {
 
   if (event.type === 'session.usage') {
     if (payload?.reply_billing && sessionId) {
-      updateSessionState(sessionId, state => receiveReplyBilling(state, payload.reply_billing))
+      updateSessionState(sessionId, state => receiveReplyBilling(
+        state,
+        payload.reply_billing,
+        payload.reply_non_aino_model_calls === true
+      ))
     }
 
     // Live usage tick emitted while a turn is mid-flight (see tui_gateway

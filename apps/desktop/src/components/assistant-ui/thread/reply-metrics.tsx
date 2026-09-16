@@ -37,7 +37,7 @@ export function ReplyMetrics({ metrics, durationS }: ReplyMetricsProps) {
       : null
   ].filter((item): item is string => item !== null)
 
-  if (!items.length && !metrics?.billing && !metrics?.billing_source) {
+  if (!items.length && !metrics?.billing && !metrics?.non_aino_model_calls) {
     return null
   }
 
@@ -54,8 +54,8 @@ export function ReplyMetrics({ metrics, durationS }: ReplyMetricsProps) {
 
   const className = 'w-full min-w-0 text-[0.75rem] leading-5 text-muted-foreground tabular-nums'
 
-  const customProviderBilling = metrics?.billing_source === 'custom_provider'
-    ? <div>{copy.customProviderBilling}</div>
+  const nonAinoModelCalls = metrics?.non_aino_model_calls
+    ? <div>{copy.nonAinoModelCalls}</div>
     : null
 
   if (!details.length) {
@@ -63,7 +63,7 @@ export function ReplyMetrics({ metrics, durationS }: ReplyMetricsProps) {
       <div className={className} data-slot="aui_reply-metrics">
         {line}
         {metrics?.billing && <ReplyCost billing={metrics.billing} />}
-        {customProviderBilling}
+        {nonAinoModelCalls}
       </div>
     )
   }
@@ -87,7 +87,7 @@ export function ReplyMetrics({ metrics, durationS }: ReplyMetricsProps) {
         </div>
       </details>
       {metrics?.billing && <ReplyCost billing={metrics.billing} />}
-      {customProviderBilling}
+      {nonAinoModelCalls}
     </div>
   )
 }

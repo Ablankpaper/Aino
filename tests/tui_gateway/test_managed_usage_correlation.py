@@ -65,7 +65,7 @@ def test_custom_reply_persists_its_source_without_relabeling_managed_history(man
     managed, custom = completed[-2:]
     assert managed["turn_metrics"]["billing"]["source"] == "aino"
     assert "billing_source" not in managed["turn_metrics"]
-    assert custom["turn_metrics"]["billing_source"] == "custom_provider"
+    assert custom["turn_metrics"]["non_aino_model_calls"] is True
     assert "billing" not in custom["turn_metrics"]
 
     selection = dict(session_id=sid, key="model", value="fixture-a", model_source="aino")
@@ -80,8 +80,72 @@ def test_custom_reply_persists_its_source_without_relabeling_managed_history(man
                if m.get("display_metadata", {}).get("turn_metrics")]
     assert metrics[-2]["billing"]["source"] == "aino"
     assert "billing_source" not in metrics[-2]
-    assert metrics[-1]["billing_source"] == "custom_provider"
+    assert metrics[-1]["non_aino_model_calls"] is True
     assert "billing" not in metrics[-1]
+
+
+def test_managed_reply_keeps_aino_settlement_and_persists_explicit_external_title_call(
+        managed_gateway, tmp_path, monkeypatch):
+    import threading
+    import yaml
+    import agent.title_generator as titles
+    from tui_gateway import server
+
+    f = managed_gateway
+    config = yaml.safe_load((tmp_path / "config.yaml").read_text())
+    config["auxiliary"]["title_generation"] = {
+        "enabled": True,
+        "provider": "custom:fixture-byok",
+        "model": "fixture-byok-model",
+    }
+    (tmp_path / "config.yaml").write_text(yaml.safe_dump(config))
+    release, finished = threading.Event(), threading.Event()
+    original = titles.auto_title_session
+
+    def delayed(*args, **kwargs):
+        try:
+            assert release.wait(timeout=10)
+            original(*args, **kwargs)
+        finally:
+            finished.set()
+
+    monkeypatch.setattr(titles, "auto_title_session", delayed)
+    sid = f.create()["session_id"]
+    f.bind(sid)
+    try:
+        f.submit(sid, "Explain the fixture with an external title")
+        completed = [event["params"]["payload"] for event in f.chat.events
+                     if event.get("params", {}).get("type") == "message.complete"]
+        initial = completed[-1]["turn_metrics"]
+        assert initial["billing"]["source"] == "aino"
+        assert "non_aino_model_calls" not in initial
+
+        release.set()
+        with f.request_condition:
+            assert f.request_condition.wait_for(
+                lambda: any(auth == "Bearer byok-fixture-key" for _, auth, _ in f.requests), timeout=10)
+        with f.chat.condition:
+            assert f.chat.condition.wait_for(lambda: any(
+                event.get("params", {}).get("payload", {}).get("reply_non_aino_model_calls") is True
+                for event in f.chat.events), timeout=10)
+        late_updates = [
+            event["params"]["payload"] for event in f.chat.events
+            if event.get("params", {}).get("type") == "session.usage"
+            and event.get("params", {}).get("payload", {}).get("reply_non_aino_model_calls") is True
+        ]
+        with server._session_db(server._sessions[sid]) as db:
+            messages = db.get_messages_as_conversation(server._sessions[sid]["session_key"])
+        metrics = next(
+            message["display_metadata"]["turn_metrics"] for message in reversed(messages)
+            if message.get("display_metadata", {}).get("turn_metrics"))
+
+        assert metrics["billing"]["source"] == "aino"
+        assert {call["purpose"] for call in metrics["billing"]["calls"]} == {"chat"}
+        assert metrics["non_aino_model_calls"] is True
+        assert late_updates[-1]["reply_billing"]["turn_id"] == metrics["billing"]["turn_id"]
+    finally:
+        release.set()
+        finished.wait(timeout=10)
 
 
 def test_late_title_updates_original_reply_not_next_identical_reply(managed_gateway, tmp_path, monkeypatch):

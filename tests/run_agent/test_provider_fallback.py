@@ -5,6 +5,7 @@ the new list-based ``fallback_providers`` config format and chain
 advancement through multiple providers.
 """
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -111,6 +112,39 @@ class TestFallbackChainAdvancement:
             assert agent._fallback_index == 1
             assert agent.model == "gpt-4o"
             assert agent._fallback_activated is True
+
+    def test_successful_fallback_call_records_the_actual_non_aino_source(self):
+        from agent.turn_usage import record_response_usage
+        from tui_gateway.managed_model_usage import begin_managed_usage, end_managed_usage
+        from tui_gateway.turn_metrics import begin_turn_metrics, finish_turn_metrics
+
+        agent = _make_agent(fallback_model={
+            "provider": "custom", "model": "fallback-model",
+            "base_url": "https://fallback.example/v1", "api_key": "fallback-key",
+        })
+        token = begin_managed_usage(agent)
+        try:
+            start = begin_turn_metrics(agent, {"history": []}, monotonic=10)
+            with patch(
+                "agent.auxiliary_client.resolve_provider_client",
+                return_value=(_mock_client("https://fallback.example/v1", "fallback-key"), "fallback-model"),
+            ):
+                assert agent._try_activate_fallback(FailoverReason.rate_limit) is True
+            usage = SimpleNamespace(
+                prompt_tokens=10, completion_tokens=3, total_tokens=13,
+                prompt_tokens_details=SimpleNamespace(cached_tokens=0))
+            record_response_usage(
+                agent, SimpleNamespace(usage=usage), messages=[], api_call_count=1,
+                api_duration=1, compression_attempts=0, max_compression_attempts=3)
+            metrics = finish_turn_metrics(
+                agent, {"history": []}, start, {}, "done", persist=False, monotonic=12)
+        finally:
+            end_managed_usage(token)
+            agent.close()
+
+        assert agent.provider == "custom"
+        assert metrics["non_aino_model_calls"] is True
+        assert metrics["total_tokens"] == 13
 
     @patch("time.monotonic", return_value=1000.0)
     def test_records_user_visible_switch_with_reason(self, _clock):

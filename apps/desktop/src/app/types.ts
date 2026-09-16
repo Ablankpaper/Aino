@@ -187,8 +187,13 @@ export interface PersistedDisplayTranscriptProvenance {
   coverage: 'latest-page'
 }
 
+export interface PendingReplyBilling {
+  billing: TurnBilling
+  nonAinoModelCalls?: true
+}
+
 export interface ClientSessionState {
-  pendingReplyBilling?: Record<string, TurnBilling>
+  pendingReplyBilling?: Record<string, PendingReplyBilling>
   storedSessionId: string | null
   /** Locally created empty runtime; cleared at its first send, never inferred from loading history. */
   isUnsentDraft?: boolean

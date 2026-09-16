@@ -54,6 +54,8 @@ def record_aux_usage(
     *provider*/*base_url* reflect the originally-resolved route.
     """
     try:
+        from agent.auxiliary_billing_scope import record_model_call_source
+        record_model_call_source(provider=provider)
         if not task or task in _EXCLUDED_TASKS:
             return
         ctx = _accounting.get()

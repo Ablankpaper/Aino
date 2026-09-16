@@ -114,7 +114,9 @@ describe('useMessageStream status-bar usage scoping', () => {
     expect($currentUsage.get()).toEqual(BASELINE)
   })
 
-  it.each(['before', 'after'])('merges late billing receipts %s completion only into their original turn', order => {
+  it.each(['before', 'after'])(
+    'merges late billing receipts and non-Aino call facts %s completion only into their original turn',
+    order => {
     mountStream()
 
     const billing = {
@@ -134,10 +136,14 @@ describe('useMessageStream status-bar usage scoping', () => {
       payload: { text: 'done', turn_metrics: { billing, duration_s: 3 } } })
 
     const receipt = () => stream.handleEvent({ type: 'session.usage', session_id: SID,
-      payload: { reply_billing: updated } })
+      payload: { reply_billing: updated, reply_non_aino_model_calls: true } })
 
     act(() => { if (order === 'before') { receipt(); complete() } else { complete(); receipt() } })
-    expect(sessionStates.get(SID)?.messages.at(-1)?.turnMetrics).toEqual({ billing: updated, duration_s: 3 })
+    expect(sessionStates.get(SID)?.messages.at(-1)?.turnMetrics).toEqual({
+      billing: updated,
+      duration_s: 3,
+      non_aino_model_calls: true
+    })
     const messages = sessionStates.get(SID)?.messages
     act(() => stream.handleEvent({ type: 'session.usage', session_id: SID, payload: { reply_billing: billing } }))
     expect(sessionStates.get(SID)?.messages).toBe(messages)
@@ -145,5 +151,6 @@ describe('useMessageStream status-bar usage scoping', () => {
       payload: { reply_billing: { ...updated, revision: 3, user_id: '18' } } }))
     expect(sessionStates.get(SID)?.messages).toBe(messages)
     expect($currentUsage.get()).toEqual(BASELINE)
-  })
+    }
+  )
 })

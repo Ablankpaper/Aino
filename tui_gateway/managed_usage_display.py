@@ -29,8 +29,12 @@ def finish_managed_metrics(agent, session, start, text, metrics, *, persist, on_
 
     def update(receipts):
         nonlocal initial, stored_text
-        billing = {**identity, **receipts}
+        receipt_fields = {key: value for key, value in receipts.items()
+                          if key != "non_aino_model_calls"}
+        billing = {**identity, **receipt_fields}
         updated = {**metrics, "billing": billing}
+        if receipts.get("non_aino_model_calls") is True:
+            updated["non_aino_model_calls"] = True
         if initial is None:
             initial = updated
             if persist and text:
@@ -53,7 +57,7 @@ def finish_managed_metrics(agent, session, start, text, metrics, *, persist, on_
                             **display, "turn_metrics": updated}}, *history[index + 1:]]
                         break
             if on_update:
-                on_update(billing)
+                on_update(billing, receipts.get("non_aino_model_calls") is True)
         except Exception:
             # Receipt persistence must not abort an already-authorized HTTP dispatch.
             logger.warning("could not update managed reply receipts", exc_info=True)

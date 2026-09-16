@@ -7,6 +7,7 @@ class TurnCallTracker:
     def __init__(self):
         self._lock = RLock()
         self._calls = []
+        self._non_aino_model_calls = False
         self._background = 0
         self._foreground_done = False
         self._revision = 0
@@ -14,9 +15,12 @@ class TurnCallTracker:
 
     def snapshot(self):
         with self._lock:
-            return {"calls": [dict(call) for call in self._calls],
-                    "calls_complete": self._foreground_done and self._background == 0,
-                    "revision": self._revision}
+            result = {"calls": [dict(call) for call in self._calls],
+                      "calls_complete": self._foreground_done and self._background == 0,
+                      "revision": self._revision}
+            if self._non_aino_model_calls:
+                result["non_aino_model_calls"] = True
+            return result
 
     def _changed(self):
         self._revision += 1
@@ -28,6 +32,13 @@ class TurnCallTracker:
     def record(self, call_id, purpose):
         with self._lock:
             self._calls.append({"call_id": call_id, "purpose": purpose})
+            self._changed()
+
+    def record_non_aino_model_call(self):
+        with self._lock:
+            if self._non_aino_model_calls:
+                return
+            self._non_aino_model_calls = True
             self._changed()
 
     def start_background(self):

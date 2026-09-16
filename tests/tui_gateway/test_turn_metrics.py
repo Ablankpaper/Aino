@@ -81,6 +81,7 @@ def test_missing_usage_never_reuses_previous_reply_or_session_totals(tmp_path):
 
 def test_native_codex_usage_does_not_require_standard_loop_timing():
     from agent.codex_runtime import _record_codex_app_server_usage
+    from tui_gateway.managed_model_usage import begin_managed_usage, end_managed_usage
     from tui_gateway.turn_metrics import begin_turn_metrics, finish_turn_metrics
 
     agent = SimpleNamespace(
@@ -91,13 +92,18 @@ def test_native_codex_usage_does_not_require_standard_loop_timing():
         session_estimated_cost_usd=0, _session_db=None,
     )
     session = {"history": []}
-    start = begin_turn_metrics(agent, session, monotonic=10)
-    _record_codex_app_server_usage(agent, SimpleNamespace(token_usage_last={
-        "inputTokens": 100, "cachedInputTokens": 400, "outputTokens": 50,
-    }))
-    metrics = finish_turn_metrics(agent, session, start, {}, "done", persist=False, monotonic=20)
+    token = begin_managed_usage(agent)
+    try:
+        start = begin_turn_metrics(agent, session, monotonic=10)
+        _record_codex_app_server_usage(agent, SimpleNamespace(token_usage_last={
+            "inputTokens": 100, "cachedInputTokens": 400, "outputTokens": 50,
+        }))
+        metrics = finish_turn_metrics(agent, session, start, {}, "done", persist=False, monotonic=20)
+    finally:
+        end_managed_usage(token)
     assert metrics["total_tokens"] == 550
     assert metrics["cache_hit_pct"] == 80
+    assert metrics["non_aino_model_calls"] is True
     assert "tokens_per_second" not in metrics
 
 
@@ -118,3 +124,40 @@ def test_transformed_reply_keeps_metrics_on_its_original_persisted_row(tmp_path)
         row = db.get_messages_as_conversation("metrics")[-1]
         assert row["content"] == "original answer"
         assert row["display_metadata"]["turn_metrics"] == metrics
+
+
+@pytest.mark.parametrize(("provider", "base_url", "api_key"), [
+    ("openrouter", "https://openrouter.ai/api/v1", "fixture-key"),
+    ("custom", "http://127.0.0.1:12345/v1", "no-key-required"),
+])
+def test_completed_non_aino_call_records_neutral_source_for_canonical_and_local_runtime(
+        provider, base_url, api_key):
+    from agent.turn_usage import record_response_usage
+    from run_agent import AIAgent
+    from tui_gateway.managed_model_usage import begin_managed_usage, end_managed_usage
+    from tui_gateway.turn_metrics import begin_turn_metrics, finish_turn_metrics
+
+    agent = AIAgent(
+        api_key=api_key, base_url=base_url, provider=provider, model="fixture-model",
+        api_mode="chat_completions", quiet_mode=True, skip_context_files=True,
+        skip_memory=True, save_trajectories=False, enabled_toolsets=[])
+    session = {"history": []}
+    token = begin_managed_usage(agent)
+    try:
+        start = begin_turn_metrics(agent, session, monotonic=10)
+        usage = SimpleNamespace(
+            prompt_tokens=10, completion_tokens=3, total_tokens=13,
+            prompt_tokens_details=SimpleNamespace(cached_tokens=0))
+        record_response_usage(
+            agent, SimpleNamespace(usage=usage), messages=[], api_call_count=1,
+            api_duration=1, compression_attempts=0, max_compression_attempts=3)
+        metrics = finish_turn_metrics(
+            agent, session, start, {}, "done", persist=False, monotonic=12)
+    finally:
+        end_managed_usage(token)
+        agent.close()
+
+    assert metrics["non_aino_model_calls"] is True
+    assert metrics["duration_s"] == 2
+    assert metrics["total_tokens"] == 13
+    assert "billing" not in metrics

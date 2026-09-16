@@ -40,27 +40,48 @@ describe('reply metrics hydration', () => {
     expect(malformed.turnMetrics).toBeUndefined()
   })
 
-  it('preserves only an explicit custom-provider billing source through history and equality', () => {
-    const [old, custom, malformed] = toChatMessages([
+  it('preserves explicit non-Aino call facts alongside Aino billing and leaves old history unknown', () => {
+    const [old, external, mixed, malformed] = toChatMessages([
       { role: 'assistant', content: 'Old reply.', display_metadata: { turn_metrics: { duration_s: 2 } } },
       {
         role: 'assistant',
-        content: 'Custom reply.',
-        display_metadata: { turn_metrics: { duration_s: 3, billing_source: 'custom_provider' } }
+        content: 'External reply.',
+        display_metadata: { turn_metrics: { duration_s: 3, non_aino_model_calls: true } }
+      },
+      {
+        role: 'assistant',
+        content: 'Mixed reply.',
+        display_metadata: {
+          turn_metrics: {
+            duration_s: 4,
+            non_aino_model_calls: true,
+            billing: {
+              source: 'aino',
+              user_id: '17',
+              session_id: '6ccf86e3-f42c-4d1b-9fbe-9b7ea58a03ca',
+              turn_id: 'b8664a58-472a-4ba6-b853-94aadee41bb1',
+              status: 'pending',
+              calls: [{ call_id: 'cbec3bce-4de2-4fbe-a6ee-5ab3e7d990cb', purpose: 'chat' }],
+              calls_complete: true,
+              revision: 2
+            }
+          }
+        }
       },
       {
         role: 'assistant',
         content: 'Unknown reply.',
-        display_metadata: { turn_metrics: { duration_s: 4, billing_source: 'current_model' } }
+        display_metadata: { turn_metrics: { duration_s: 5, non_aino_model_calls: 'current_model' } }
       }
     ])
 
     expect(old.turnMetrics).toEqual({ duration_s: 2 })
-    expect(custom.turnMetrics).toEqual({ duration_s: 3, billing_source: 'custom_provider' })
-    expect(malformed.turnMetrics).toEqual({ duration_s: 4 })
-    expect(chatMessagesEquivalent(custom, { ...custom, turnMetrics: { ...custom.turnMetrics } })).toBe(true)
-    expect(chatMessagesEquivalent(custom, {
-      ...custom,
+    expect(external.turnMetrics).toEqual({ duration_s: 3, non_aino_model_calls: true })
+    expect(mixed.turnMetrics).toMatchObject({ duration_s: 4, non_aino_model_calls: true, billing: { source: 'aino' } })
+    expect(malformed.turnMetrics).toEqual({ duration_s: 5 })
+    expect(chatMessagesEquivalent(external, { ...external, turnMetrics: { ...external.turnMetrics } })).toBe(true)
+    expect(chatMessagesEquivalent(external, {
+      ...external,
       turnMetrics: { duration_s: 3 }
     })).toBe(false)
   })

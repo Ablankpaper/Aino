@@ -76,6 +76,8 @@ def record_response_usage(
     # Token/cost accounting below stays gated on real usage, but the request itself
     # must remain observable.
     agent.session_api_calls += 1
+    from agent.auxiliary_billing_scope import record_model_call_source
+    record_model_call_source(credential=getattr(agent, "api_key", None))
     if not (hasattr(response, 'usage') and response.usage):
         if getattr(compressor, "awaiting_real_usage_after_compression", False):
             # No usage -> cannot adjudicate the prior compaction; consume the

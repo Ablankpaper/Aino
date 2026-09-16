@@ -19,7 +19,8 @@ def usage_session_id(session):
 def begin_managed_usage(agent):
     key = getattr(agent, "api_key", None)
     scope = (BillingScope("aino", key.user_id, key.session_id, str(uuid4()), "chat")
-             if isinstance(key, ManagedCredential) else None)
+             if isinstance(key, ManagedCredential) else BillingScope(
+                 "turn", None, str(getattr(agent, "session_id", "") or ""), str(uuid4()), "chat"))
     return billing_scope.set(scope)
 
 
@@ -29,8 +30,13 @@ def end_managed_usage(token):
 
 def current_usage_metadata():
     scope = billing_scope.get()
-    if not scope or scope.source != "aino":
+    if not scope:
         return {}
-    return {"billing": {"source": scope.source, "user_id": scope.user_id,
-                        "session_id": scope.session_id, "turn_id": scope.turn_id,
-                        "status": "pending", **scope.calls.snapshot()}}
+    snapshot = scope.calls.snapshot()
+    outside_aino = snapshot.pop("non_aino_model_calls", False)
+    metadata = {"non_aino_model_calls": True} if outside_aino else {}
+    if scope.source == "aino":
+        metadata["billing"] = {"source": scope.source, "user_id": scope.user_id,
+                               "session_id": scope.session_id, "turn_id": scope.turn_id,
+                               "status": "pending", **snapshot}
+    return metadata

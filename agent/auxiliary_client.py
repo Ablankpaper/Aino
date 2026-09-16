@@ -2431,6 +2431,7 @@ def _relay_auxiliary_metadata(
     attempt_count = int(context.get("attempt_count") or 0)
     context["attempt_count"] = attempt_count + 1
     provider_name = str(provider or context.get("provider") or "auxiliary")
+    context["provider"] = provider_name
     model_name = str(context.get("model") or "unknown")
     return provider_name, model_name, {
         "api_mode": str(api_mode or context.get("api_mode") or "chat_completions"),
@@ -6069,7 +6070,9 @@ def _validate_llm_response(
     if response is None:
         raise RuntimeError(f"Auxiliary {task or 'call'}: LLM returned None response")
     from agent.aux_accounting import record_aux_usage
-    record_aux_usage(response, task, provider=provider, base_url=base_url)
+    context = _RELAY_AUX_CALL_CONTEXT.get()
+    actual_provider = provider or (str(context.get("provider") or "") if context else None)
+    record_aux_usage(response, task, provider=actual_provider, base_url=base_url)
     # Adapter SimpleNamespace responses are fine — they have .choices[0].message.
     try:
         choices = response.choices

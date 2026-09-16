@@ -30,7 +30,6 @@ class TurnMetricsStart:
     session_elapsed_s: float | None
     after_row_id: int
     history_length: int
-    billing_source: str | None
 
 
 def begin_turn_metrics(agent, session, *, now=None, monotonic=None):
@@ -44,20 +43,16 @@ def begin_turn_metrics(agent, session, *, now=None, monotonic=None):
         except Exception:
             logger.debug("reply metrics row boundary unavailable", exc_info=True)
             boundary = -1  # A failed read must not authorize an unbounded write.
-    provider = str(getattr(agent, "provider", "") or "").strip().lower()
     return TurnMetricsStart(
         _counters(agent), time.monotonic() if monotonic is None else monotonic,
         max(0, now - started) if _number(started) and started > 0 else None,
         boundary, len(session.get("history", [])),
-        "custom_provider" if provider == "custom" or provider.startswith("custom:") else None,
     )
 
 
 def finish_turn_metrics(agent, session, start, usage, text, *, persist, monotonic=None, on_billing_update=None):
     duration = max(0, (time.monotonic() if monotonic is None else monotonic) - start.monotonic)
     metrics = {"duration_s": round(duration, 3)}
-    if start.billing_source is not None:
-        metrics["billing_source"] = start.billing_source
     if start.session_elapsed_s is not None:
         metrics["session_elapsed_s"] = round(start.session_elapsed_s + duration, 3)
     delta = {key: value - start.counters[key] for key, value in _counters(agent).items()}
@@ -80,6 +75,9 @@ def finish_turn_metrics(agent, session, start, usage, text, *, persist, monotoni
             metrics[key] = value
     if "context_percent" in metrics and isinstance(usage.get("context_estimated"), bool):
         metrics["context_estimated"] = usage["context_estimated"]
+    from tui_gateway.managed_model_usage import current_usage_metadata
+    if current_usage_metadata().get("non_aino_model_calls") is True:
+        metrics["non_aino_model_calls"] = True
     from tui_gateway.managed_usage_display import finish_managed_metrics
     if managed := finish_managed_metrics(agent, session, start, text, metrics,
                                           persist=persist, on_update=on_billing_update):

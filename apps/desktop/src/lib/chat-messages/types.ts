@@ -50,6 +50,7 @@ export type ChatMessage = {
 
 export type GatewayEventPayload = {
   reply_billing?: unknown
+  reply_non_aino_model_calls?: unknown
   /** Unix seconds supplied by tests/newer gateways; the desktop falls back to
    * its local receipt clock when older gateways omit it. */
   timestamp?: number

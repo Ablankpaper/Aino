@@ -89,6 +89,8 @@ def _record_codex_app_server_usage(agent, turn, messages=None) -> dict[str, Any]
     the main loop's capture, and the mirror is never compacted natively, so without an anchor the rough
     estimate grows monotonically and hermes-mode fires thread compaction on tiny threads (#100381)."""
     agent.session_api_calls += 1
+    from agent.auxiliary_billing_scope import record_model_call_source
+    record_model_call_source(credential=getattr(agent, "api_key", None))
     usage = getattr(turn, "token_usage_last", None)
     compressor = getattr(agent, "context_compressor", None)
 

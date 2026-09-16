@@ -21,6 +21,7 @@ class BillingScope:
 
 
 billing_scope: ContextVar[BillingScope | None] = ContextVar("billing_scope", default=None)
+_CREDENTIAL_UNSET = object()
 _PURPOSES = {"title_generation": "title", "compression": "compression", "vision": "vision",
              "delegation": "delegation", "chat": "chat"}
 
@@ -73,6 +74,27 @@ class ManagedCredential:
                                 "X-Aino-Call-Id": call_id,
                                 "X-Aino-Purpose": scope.purpose})
         scope.calls.record(call_id, scope.purpose)
+
+
+def record_model_call_source(*, credential=_CREDENTIAL_UNSET, provider: str | None = None) -> None:
+    """Record only the safe fact that a successful call ran outside Aino.
+
+    Main calls pass their actual runtime credential; auxiliary calls pass the
+    concrete provider selected at dispatch. Provider names, endpoints, keys,
+    and cost estimates never enter reply metadata.
+    """
+    scope = billing_scope.get()
+    if scope is None:
+        return
+    if credential is not _CREDENTIAL_UNSET:
+        outside_aino = not isinstance(credential, ManagedCredential)
+    else:
+        name = str(provider or "").strip().lower()
+        if not name:
+            return
+        outside_aino = name != "aino"
+    if outside_aino:
+        scope.calls.record_non_aino_model_call()
 
 
 def configure_managed_http(kwargs: dict, credential, *, async_mode: bool = False):

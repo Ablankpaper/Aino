@@ -2,7 +2,7 @@ import { parseTurnBilling, type TurnBilling, turnBillingEquivalent } from './tur
 
 export interface TurnMetrics {
   billing?: TurnBilling
-  billing_source?: 'custom_provider'
+  non_aino_model_calls?: true
   duration_s?: number
   session_elapsed_s?: number
   total_tokens?: number
@@ -44,8 +44,10 @@ export function parseTurnMetrics(value: unknown): TurnMetrics | undefined {
 
   if (billing) {
     metrics.billing = billing
-  } else if (raw.billing_source === 'custom_provider') {
-    metrics.billing_source = raw.billing_source
+  }
+
+  if (raw.non_aino_model_calls === true || raw.billing_source === 'custom_provider') {
+    metrics.non_aino_model_calls = true
   }
 
   if (!Object.keys(metrics).length) {return undefined}
@@ -57,5 +59,5 @@ export function parseTurnMetrics(value: unknown): TurnMetrics | undefined {
 
 export function turnMetricsEquivalent(a?: TurnMetrics, b?: TurnMetrics): boolean {
   return a === b || (NUMBER_FIELDS.every(key => a?.[key] === b?.[key]) && a?.context_estimated === b?.context_estimated &&
-    a?.billing_source === b?.billing_source && turnBillingEquivalent(a?.billing, b?.billing))
+    a?.non_aino_model_calls === b?.non_aino_model_calls && turnBillingEquivalent(a?.billing, b?.billing))
 }

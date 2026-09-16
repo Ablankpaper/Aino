@@ -7,14 +7,16 @@ import { ReplyMetrics } from './reply-metrics'
 
 afterEach(cleanup)
 
-it('shows translated provider billing text only for an explicitly custom reply', () => {
+it('neutrally labels explicit non-Aino calls without claiming a local provider charged', () => {
   const view = render(
     <I18nProvider configClient={null} initialLocale="zh">
-      <ReplyMetrics metrics={{ duration_s: 2, billing_source: 'custom_provider' }} />
+      <ReplyMetrics metrics={{ duration_s: 2, non_aino_model_calls: true }} />
     </I18nProvider>
   )
 
-  expect(screen.getByText('费用由你的自定义服务商收取，不消耗 Aino 余额。')).toBeTruthy()
+  const label = screen.getByText('此回复使用了 Aino 以外的模型调用。')
+  expect(label).toBeTruthy()
+  expect(label.textContent).not.toMatch(/费用|收费|计费/)
 
   view.rerender(
     <I18nProvider configClient={null} initialLocale="zh">
@@ -22,5 +24,29 @@ it('shows translated provider billing text only for an explicitly custom reply',
     </I18nProvider>
   )
 
-  expect(screen.queryByText('费用由你的自定义服务商收取，不消耗 Aino 余额。')).toBeNull()
+  expect(screen.queryByText('此回复使用了 Aino 以外的模型调用。')).toBeNull()
+})
+
+it('keeps the Aino cost surface alongside a mixed-turn non-Aino disclosure', () => {
+  render(
+    <I18nProvider configClient={null} initialLocale="zh">
+      <ReplyMetrics metrics={{
+        duration_s: 2,
+        non_aino_model_calls: true,
+        billing: {
+          source: 'aino',
+          user_id: '17',
+          session_id: '6ccf86e3-f42c-4d1b-9fbe-9b7ea58a03ca',
+          turn_id: 'b8664a58-472a-4ba6-b853-94aadee41bb1',
+          status: 'pending',
+          calls: [{ call_id: 'cbec3bce-4de2-4fbe-a6ee-5ab3e7d990cb', purpose: 'chat' }],
+          calls_complete: true,
+          revision: 2
+        }
+      }} />
+    </I18nProvider>
+  )
+
+  expect(screen.getByText('此回复使用了 Aino 以外的模型调用。')).toBeTruthy()
+  expect(screen.getByText('登录原账户后查看费用')).toBeTruthy()
 })

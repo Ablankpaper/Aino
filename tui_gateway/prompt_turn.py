@@ -637,7 +637,10 @@ def _complete_turn_payload(session: dict, st: _TurnRun, status_note: str | None,
         from tui_gateway.turn_metrics import finish_turn_metrics
         payload["turn_metrics"] = finish_turn_metrics(
             agent, session, st.metrics_start, payload["usage"], raw, persist=status == "complete",
-            on_billing_update=lambda billing: _emit("session.usage", sid, {"reply_billing": billing}))
+            on_billing_update=lambda billing, outside_aino: _emit("session.usage", sid, {
+                "reply_billing": billing,
+                **({"reply_non_aino_model_calls": True} if outside_aino else {}),
+            }))
     if last_reasoning:
         payload["reasoning"] = last_reasoning
     if status_note:
