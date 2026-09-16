@@ -848,6 +848,36 @@ describe('startFreshSessionDraft', () => {
 })
 
 describe('createBackendSessionForSend profile routing', () => {
+  async function prepareManagedCatalog() {
+    const account = platformSnapshot()
+
+    const accountBridge: PlatformAccountBridge = {
+      status: async () => account,
+      capabilities: vi.fn(),
+      retry: async () => account,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      onChanged: () => () => undefined
+    }
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: { list: async () => [platformModel()] }
+      }
+    })
+    await platformAccountActions(accountBridge).refresh()
+    await platformModelCatalog().load()
+  }
+
   afterEach(() => {
     cleanup()
     $newChatProfile.set(null)
@@ -1165,6 +1195,7 @@ describe('createBackendSessionForSend profile routing', () => {
 
   it('rejects a managed first send on its unsupported captured owner before create or prompt submit', async () => {
     vi.mocked(requestGatewayForAgent).mockClear()
+    await prepareManagedCatalog()
 
     const route = {
       connectionId: 'source-a',
@@ -1194,6 +1225,7 @@ describe('createBackendSessionForSend profile routing', () => {
 
   it('rechecks the immutable captured route after readiness and rejects an owner replacement', async () => {
     vi.mocked(requestGatewayForAgent).mockClear()
+    await prepareManagedCatalog()
 
     const route = {
       connectionId: 'source-a',

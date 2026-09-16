@@ -65,3 +65,25 @@ it('fails closed when route capability is unknown', async () => {
   expect(screen.queryByRole('option', { name: /Fixture Model/ })).toBeNull()
   expect(select).not.toHaveBeenCalled()
 })
+
+it('fails closed when a compatibility caller omits route capability', async () => {
+  const snapshot = platformSnapshot()
+  Object.defineProperty(window, 'hermesDesktop', {
+    configurable: true,
+    value: {
+      platformAccount: {
+        status: async () => snapshot,
+        capabilities: async () => ({}),
+        onChanged: () => () => undefined
+      },
+      platformModels: { list: async () => [platformModel()] }
+    }
+  })
+  await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  const select = vi.fn()
+  const compatibilityProps = { managedCapability: undefined as never, onSelect: select }
+  render(<PlatformModelList {...compatibilityProps} />)
+
+  expect((await screen.findByRole('status')).textContent).toContain('does not support Aino models')
+  expect(screen.queryByRole('option', { name: /Fixture Model/ })).toBeNull()
+})
