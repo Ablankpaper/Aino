@@ -6,22 +6,25 @@
 
 ## 最新接续状态（2026-09-16，优先于下方历史记录）
 
-配对本地代码：Aino `0922f1ce50`，Aino-API `308aa7725`，均在 `codex/aino-platform-identity-models-billing`。未推送、未合并 main、未部署或真实付费测试。
+已完成切片的配对本地代码：Aino `f497ce9ff6`，Aino-API `19c43905f`，均在 `codex/aino-platform-identity-models-billing`。B6 作用域/草稿生命周期及 D1 隔离联调继续开发，尚非最终交付 SHA。未推送、未合并 main、未部署或真实付费测试。
 
 | 范围 | 当前事实 | 剩余工作 |
 | --- | --- | --- |
 | A、B1–B5 | 已有本地实现/分层集成证据保留 | 真实短信/付费模型、多平台验收不冒充通过 |
-| B6 首次发送与恢复 | `52ec689c98` 固定发送时选择，默认模型用非修改式解析，234 项 UI + 2 项 API owner 测试通过 | 独立复核中；全 UI 发现 profile rail 3 项失败，尚未关闭；默认作用域、切换/能力/恢复 UX 和原生联调继续推进 |
+| B6 首次发送与恢复 | `52ec689c98` 固定发送时选择，默认模型用非修改式解析；`fde0064f71` 补齐 profile rail 的真实 native API 测试夹具；独立复核通过 | 默认作用域/账户草稿正在实施；模型切换/能力/恢复 UX 和原生联调继续推进 |
 | C1–C3 | 账本查询、回合对账、幂等订单本地实现和复核完成 | 完整跨仓库 Agent → 账本 → 原生充值闭环仍归 D1 |
 | C4 原生订单 | `789d9ddc5a`、`53a3597384`：安全 quote/create/get/list/cancel/openCheckout 和范围校验，复核通过 | 不代表真实渠道支付验收 |
-| C4 充值界面与设备 | `0922f1ce50` 充值/订单恢复/历史，`a52a047f26` 设备管理；已接入我的账户 | 独立复核中；已发现下单明确拒绝后无效意图卡住的恢复问题，待修；BYOK 费用来源小字仍待补齐 |
-| D API 质量 | `f4e52bef9` 修站点两份测试夹具；`308aa7725` 修 Go 契约/日志格式/typed-nil sender；unit 56 包通过、lint 0 issues | 站点 `stripeLazyLoading.spec.ts` 的旧源码文本断言仍失败；不宣称全站测试绿 |
-| D 完整验收 | 新增分层测试和实际渲染验证 | Python 已知夹具问题、跨仓库原生闭环、部署/回退/用户指南与矩阵待收尾 |
+| C4 充值界面与设备 | `0922f1ce50` 充值/订单恢复/历史，`a52a047f26` 设备管理；`e9e2f36a5d`/`f497ce9ff6` 修复拒绝金额及永久丢失响应后的订单恢复，独立复核通过 | BYOK 费用来源小字、完整跨仓库/原生验收仍待完成 |
+| D API/站点质量 | `308aa7725` Go 契约/lint 修复；`19c43905f` Stripe 分块行为测试；unit 56 包通过、lint 0 issues，站点 286 文件/2,139 项通过；独立复核通过 | 最终生成物/构建及真实跨仓库门禁需对应最终树 |
+| D Python 夹具 | `2716c31ea9` 修复五份隔离/时序测试，185 通过、3 原有跳过；独立复核通过 | 另一个 TTFB watchdog 文件超时做有界诊断；非全 Python 通过 |
+| D 完整验收 | 新增分层测试和实际渲染验证；用户/部署文档正在整理 | 跨仓库原生闭环、最终矩阵和多平台/正式服务验证尚未完成 |
 
 本次最新门禁：
 
 - 充值/设备 UI：5 文件、14 项通过；完整 Electron：167 文件通过、2 原有跳过，2,259 项通过、6 原有跳过。
-- 完整 UI：863 文件通过、1 文件失败；7,884 项通过、3 项失败。失败全部在 `profile-rail-fresh-chat-owner.test.tsx`，定向复现相同结果。日志 `/tmp/aino-platform-ui-full-current.log`。没有以跳过处理；旧 summary/terminal/local-models 的失败未在这次复现。
+- 最近一次完整 UI：863 文件通过、1 文件失败；7,884 项通过、3 项失败，日志 `/tmp/aino-platform-ui-full-current.log`。这 3 项已由 `fde0064f71` 补齐测试 API 夹具并在 136 项覆盖回归中通过，独立复核关闭；尚未在后续 B6 修改后的最终树重跑完整 UI。旧 summary/terminal/local-models 的失败未在本次完整运行复现。
+- 充值恢复最新覆盖回归：3 文件/11 项通过，所有 TypeScript 配置及相关 lint 通过；永久丢失响应、无关历史不清除意图、匹配历史恢复原单、终态后显式新建均有行为断言。复核通过；不替代真实付款。
+- 质量收尾报告：[Python 夹具](aino-platform-python-fixtures.md)、[API/站点/Python 独立复核](aino-platform-quality-review.md)。站点全量 2,139 项通过；Python 五文件 185 项通过，不把这两项等同整个系统全绿。
 - `npm run typecheck`、`npm run build`、涉及充值文件 ESLint 和 diff 检查通过。保留 npm 配置、Vite 和全 UI jsdom canvas/window.open 的既有提示，不声称所有输出无噪音。
 - 实际渲染（Playwright，真实组件＋隔离 bridge）：浅色 1280×800、深色 390×844。报价中 CNY/USD 分开；关闭重开仍 1 次 create；到账中不成功，COMPLETED＋账本读取后余额刷新；订单历史恢复、支付关闭提示、消费精确小数通过。稳定页面无横向溢出、框架错误或控制台 error/warn。临时 fixture HMR/格式化问题已修正后重新加载验收。
 - 截图/夹具在 `/tmp/aino-c4-recharge-visual.Ty6LHm/`，非真实账户，不纳入 Git。原生真实平台支付、短信、模型收费、Windows/Linux 安全存储仍未验证。

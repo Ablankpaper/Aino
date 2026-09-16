@@ -54,7 +54,27 @@ never selected after a platform error and is never available in a packaged
 build. Its local records are not imported, promoted to platform users, or
 deleted during migration.
 
-## Validation
+## Wallet, orders and device authorization
+
+My account also hosts the platform wallet, recharge/order history and device
+authorizations. These use the narrow `platformBilling` bridge: main verifies
+the current owner, sanitizes fields and preserves decimal amounts. A payment
+browser action accepts an order ID, not a renderer-supplied URL; main reads the
+current owner's order before opening the validated checkout destination.
+Closing a recharge dialog does not cancel an order. Unknown create outcomes
+retain the same request identity; matching history can recover the original
+order. Success requires both a completed order and an authoritative wallet read.
+
+Device actions are fenced to the expected user and generation. Revoking the
+current device invalidates managed runtime bindings; normal website API keys
+and custom provider configuration are not treated as desktop leases.
+
+See the [user guide](aino-platform-user-guide.md) and
+[current implementation status](implementation/aino-platform-progress.md) for
+capability limits and outstanding end-to-end/platform checks. Fixture receipts
+are not proof of real SMS delivery, paid inference or payment settlement.
+
+## Validation commands
 
 ```sh
 cd apps/desktop

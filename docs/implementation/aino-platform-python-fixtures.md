@@ -1,5 +1,7 @@
 # D Python fixture cleanup report
 
+Delivery evidence for the bounded fixture cleanup; full platform acceptance is tracked separately.
+
 Date: 2026-09-16
 
 ## Scope and commit
@@ -72,4 +74,3 @@ Per file:
 - No out-of-scope `test_codex_ttfb_watchdog.py` rerun.
 - No JavaScript, Go, browser, desktop, packaged-app, or platform-native QA.
 - No external dependency installation, network request, production operation, push, merge, or PR action.
-
