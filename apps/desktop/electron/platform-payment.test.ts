@@ -69,6 +69,7 @@ const order = {
 async function rig() {
   const requests: Array<{ path: string; method: string; body: Record<string, unknown>; authorization: string }> = []
   let current: Record<string, unknown> = structuredClone(order)
+  let limits = { single_min: 0.00000001, single_max: 10.00000001 }
   let failure = ''
   let profileUser = 17
   let heldGet: (() => void) | undefined
@@ -104,6 +105,34 @@ async function rig() {
 
     if (path === '/api/v1/auth/logout') {
       reply({})
+
+      return
+    }
+
+    if (path === '/api/v1/desktop/billing-summary') {
+      reply({
+        currency: 'USD',
+        balance: '1234567890.12345678',
+        frozen_balance: '0.00000001',
+        available_balance: '1234567890.12345677',
+        payment_enabled: true,
+        updated_at: '2026-09-16T00:00:00Z',
+        active_subscriptions: [],
+        api_key: 'must-not-reach-renderer'
+      })
+
+      return
+    }
+
+    if (path === '/api/v1/payment/checkout-info') {
+      reply({
+        balance_disabled: false,
+        help_text: '',
+        methods: {
+          alipay: { payment_type: 'alipay', currency: 'CNY', ...limits }
+        },
+        api_key: 'must-not-reach-renderer'
+      })
 
       return
     }
@@ -214,6 +243,10 @@ async function rig() {
 
   return {
     auth,
+    origin,
+    setLimits: (min: number, max: number) => {
+      limits = { single_min: min, single_max: max }
+    },
     requests,
     launches,
     ipc,
@@ -241,6 +274,56 @@ async function rig() {
     }
   }
 }
+
+it('keeps wallet reads owner-scoped and rejects inverted finite checkout limits without losing decimal precision', async () => {
+  const f = await rig()
+  const owner = { expected_user_id: '17' }
+  expect(await f.invoke('scope', owner)).toEqual({ origin: f.origin, user_id: '17', generation: f.auth.generation() })
+  const summary = await f.invoke('summary', owner)
+  expect(summary.balance).toBe('1234567890.12345678')
+  expect(summary.available_balance).toBe('1234567890.12345677')
+  expect(summary).not.toHaveProperty('api_key')
+  const checkout = await f.invoke('checkout-info', owner)
+  expect(checkout.methods[0]).toMatchObject({ min_amount: '0.00000001', max_amount: '10.00000001', available: true })
+  expect(checkout).not.toHaveProperty('api_key')
+
+  for (const [min, max] of [
+    [100, 10],
+    [0.00000002, 0.00000001]
+  ]) {
+    f.setLimits(min, max)
+    await expect(f.invoke('checkout-info', owner)).rejects.toMatchObject({ code: 'invalid_response' })
+  }
+
+  f.setLimits(100.00000001, 0)
+  expect((await f.invoke('checkout-info', owner)).methods[0]).toMatchObject({
+    min_amount: '100.00000001',
+    max_amount: '0.00000000',
+    available: true
+  })
+  f.setLimits(0.00000001, 0.00000001)
+  expect((await f.invoke('checkout-info', owner)).methods[0]).toMatchObject({
+    min_amount: '0.00000001',
+    max_amount: '0.00000001',
+    available: true
+  })
+  const readsBefore = f.requests.length
+
+  for (const name of ['scope', 'summary', 'checkout-info']) {
+    await expect(f.invoke(name, { expected_user_id: '18' })).rejects.toMatchObject({ code: 'platform_account_changed' })
+    await expect(f.invoke(name, {})).rejects.toMatchObject({ code: 'invalid_platform_input' })
+    await expect(
+      f.invoke(name, owner, { ...f.event, senderFrame: { url: 'https://untrusted.test/' } })
+    ).rejects.toMatchObject({ code: 'unauthorized_platform_ipc' })
+  }
+
+  expect(f.requests).toHaveLength(readsBefore)
+  f.ipc.dispose()
+
+  for (const name of ['scope', 'summary', 'checkout-info']) {
+    expect(f.handlers.has(`aino:platform-billing:${name}`)).toBe(false)
+  }
+})
 
 it('projects authoritative owner orders and exact decimal quotes across registered IPC without exposing credentials', async () => {
   const f = await rig()

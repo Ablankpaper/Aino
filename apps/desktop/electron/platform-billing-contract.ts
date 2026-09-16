@@ -92,12 +92,19 @@ export function parsePlatformCheckoutInfo(value: unknown, paymentEnabled: boolea
       return invalid()
     }
 
+    const minAmount = legacyLimit(method.single_min)
+    const maxAmount = legacyLimit(method.single_max)
+
+    if (Number(maxAmount) !== 0 && Number(maxAmount) < Number(minAmount)) {
+      return invalid()
+    }
+
     result.methods.push({
       id,
       display_name: text(method.display_name ?? ''),
       currency,
-      min_amount: legacyLimit(method.single_min),
-      max_amount: legacyLimit(method.single_max),
+      min_amount: minAmount,
+      max_amount: maxAmount,
       available: paymentEnabled && !disabled
     })
   }
