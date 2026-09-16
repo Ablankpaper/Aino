@@ -62,6 +62,7 @@ import {
   $currentReasoningEffort,
   $messages,
   $messagingSessions,
+  $modelPickerOpen,
   $newChatWorkspaceTarget,
   $resumeFailedSessionId,
   $selectedStoredSessionId,
@@ -893,6 +894,7 @@ describe('createBackendSessionForSend profile routing', () => {
     $currentProvider.set('')
     setCurrentModelSource('')
     $currentReasoningEffort.set('')
+    $modelPickerOpen.set(false)
     $composerAttachments.set([])
     $composerDraft.set('')
     setNewChatWorkspaceTarget(undefined)
@@ -1051,6 +1053,7 @@ describe('createBackendSessionForSend profile routing', () => {
     })
 
     setCurrentCwd('')
+    setCurrentReasoningEffort('high')
     setNewChatWorkspaceTarget(undefined)
 
     let submitText: null | ((text: string) => Promise<boolean>) = null
@@ -1065,6 +1068,9 @@ describe('createBackendSessionForSend profile routing', () => {
       'session.create',
       expect.objectContaining({ model_source: 'aino', model_id: 'catalog-a' })
     )
+    expect(requestGateway.mock.calls.find(([method]) => method === 'session.create')?.[1]).not.toHaveProperty(
+      'reasoning_effort'
+    )
     expect(order).toEqual(['session.create', 'session.managed_model_ticket', 'bind', 'prompt.submit'])
     expect(requestGateway).toHaveBeenCalledWith(
       'prompt.submit',
@@ -1072,6 +1078,81 @@ describe('createBackendSessionForSend profile routing', () => {
       1_800_000
     )
     expect(requestGateway.mock.calls.find(([method]) => method === 'config.set')).toBeUndefined()
+  })
+
+  it('preserves a quota-blocked managed draft and opens the picker without replaying it', async () => {
+    const account = platformSnapshot()
+    const bind = vi.fn(async () => ({ ok: false as const, error: { code: 'quota_exhausted' } }))
+
+    const accountBridge: PlatformAccountBridge = {
+      status: async () => account,
+      capabilities: vi.fn(),
+      retry: async () => account,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      onChanged: () => () => undefined
+    }
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: {
+          owner: async () => ({ platform_origin: 'http://127.0.0.1:1234', user_id: 'user-a' }),
+          bind,
+          clear: vi.fn(),
+          list: async () => [platformModel()]
+        }
+      }
+    })
+    await platformAccountActions(accountBridge).refresh()
+    recordGatewayReadyCapability(
+      { profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+    await platformModelCatalog().load()
+    setCurrentModel('catalog-a')
+    setCurrentProvider('aino')
+    setCurrentPlatformOwner('user-a')
+    setCurrentModelSource('manual')
+    $composerDraft.set('keep the blocked draft')
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.create') {
+        return {
+          session_id: RUNTIME_SESSION_ID,
+          stored_session_id: null,
+          info: { model_source: 'aino', model_id: 'catalog-a', provider: 'aino' }
+        } as never
+      }
+
+      if (method === 'session.managed_model_ticket') {
+        return { managed_model_binding: 1, session_ticket: 'single-use-ticket' } as never
+      }
+
+      return {} as never
+    })
+
+    let submitText: null | ((text: string) => Promise<boolean>) = null
+    render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
+    await waitFor(() => expect(submitText).not.toBeNull())
+
+    await expect(submitText!('keep the blocked draft')).resolves.toBe(false)
+
+    expect(bind).toHaveBeenCalledOnce()
+    expect(requestGateway.mock.calls.some(([method]) => method === 'prompt.submit')).toBe(false)
+    expect($composerDraft.get()).toBe('keep the blocked draft')
+    const recovery = $notifications.get().at(-1)?.action
+    expect(recovery?.label).toBe('Choose model')
+    act(() => recovery?.onClick())
+    expect($modelPickerOpen.get()).toBe(true)
   })
 
   it('waits for pending default resolution before a reloaded automatic Aino first send', async () => {
@@ -1115,7 +1196,9 @@ describe('createBackendSessionForSend profile routing', () => {
           owner: async () => ({ platform_origin: 'http://127.0.0.1:1234', user_id: 'user-a' }),
           bind,
           clear: vi.fn(),
-          list: async () => [platformModel()]
+          list: async () => [
+            { ...platformModel(), capabilities: { ...platformModel().capabilities, reasoning: true } }
+          ]
         }
       }
     })
@@ -1132,6 +1215,7 @@ describe('createBackendSessionForSend profile routing', () => {
     setCurrentProvider('aino')
     setCurrentPlatformOwner('user-a')
     setCurrentModelSource('default')
+    setCurrentReasoningEffort('high')
     vi.mocked(getGlobalModelInfo).mockReturnValue(globalModel.promise)
 
     const requestGateway = vi.fn(async (method: string) => {
@@ -1189,7 +1273,7 @@ describe('createBackendSessionForSend profile routing', () => {
     expect(order).toEqual(['session.create', 'session.managed_model_ticket', 'bind', 'prompt.submit'])
     expect(requestGateway).toHaveBeenCalledWith(
       'session.create',
-      expect.objectContaining({ model_source: 'aino', model_id: 'catalog-a' })
+      expect.objectContaining({ model_source: 'aino', model_id: 'catalog-a', reasoning_effort: 'high' })
     )
   })
 

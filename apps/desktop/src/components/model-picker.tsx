@@ -263,6 +263,7 @@ export function ModelPickerDialog({
           <PlatformModelList
             disabled={blocked || pending}
             managedCapability={managedCapability}
+            onChooseCustom={() => setSource('custom')}
             onSelect={model => selectModel('aino', model.id)}
             selectedId={currentProvider === 'aino' ? currentModel : undefined}
           />

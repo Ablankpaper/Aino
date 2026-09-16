@@ -21,14 +21,20 @@ import {
 import { $hudMode } from '@/store/hud'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
 import { consumePendingCredentialWarning, requestDesktopOnboarding } from '@/store/onboarding'
+import { platformErrorSurface, verifiedPlatformModel } from '@/store/platform-model-capability'
+import { PlatformSelectionError } from '@/store/platform-models'
 import { isStoredTranscriptReadOnly } from '@/store/read-only-transcript'
 import {
+  $currentModel,
+  $currentPlatformOwner,
+  $currentProvider,
   $sessions,
   resolveComposerSessionKey,
   setActiveSessionId,
   setAwaitingResponse,
   setBusy,
   setMessages,
+  setModelPickerOpen,
   touchSessionActivity
 } from '@/store/session'
 import { $sessionStates } from '@/store/session-states'
@@ -176,6 +182,29 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
         (!options?.fromQueue && isTargetSessionBusy($sessionStates.get(), guardSessionId, busyRef.current))
       ) {
         return false
+      }
+
+      if (hasImage) {
+        const state = guardSessionId ? $sessionStates.get()[guardSessionId] : undefined
+        const provider = state?.provider || $currentProvider.get()
+
+        if (provider === 'aino') {
+          const modelId = state?.platformModel?.modelId || state?.model || $currentModel.get()
+          const ownerUserId = state?.platformModel?.ownerUserId || $currentPlatformOwner.get()
+          const model = verifiedPlatformModel(modelId, ownerUserId)
+
+          if (!model?.capabilities.vision) {
+            if (!options?.fromQueue) {
+              notify({
+                kind: 'warning',
+                message: copy.platformVisionUnsupported,
+                action: { label: copy.chooseModel, onClick: () => setModelPickerOpen(true) }
+              })
+            }
+
+            return false
+          }
+        }
       }
 
       // Typing barge-in: a new send silences any in-flight spoken reply.
@@ -665,7 +694,16 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
           releaseBusy()
 
           if (targetIsCurrentView()) {
-            notifyError(err, copy.sessionUnavailable)
+            if (err instanceof PlatformSelectionError) {
+              notify({
+                kind: 'error',
+                title: copy.sessionUnavailable,
+                message: err.message,
+                action: { label: copy.chooseModel, onClick: () => setModelPickerOpen(true) }
+              })
+            } else {
+              notifyError(err, copy.sessionUnavailable)
+            }
           }
 
           return false
@@ -856,6 +894,7 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
 
         const message = inlineErrorMessage(err, copy.promptFailed)
         const occurredAt = Date.now() / 1000
+        const errorSurface = platformErrorSurface(err)
 
         updateSessionState(
           sessionId,
@@ -868,6 +907,7 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
                 role: 'assistant',
                 parts: [],
                 error: message || copy.promptFailed,
+                ...(errorSurface ? { errorSurface } : {}),
                 branchGroupId: state.pendingBranchGroup ?? undefined,
                 completedAt: occurredAt,
                 timestamp: occurredAt
@@ -890,7 +930,16 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
         }
 
         if (targetIsCurrentView()) {
-          notifyError(err, copy.promptFailed)
+          if (err instanceof PlatformSelectionError) {
+            notify({
+              kind: 'error',
+              title: copy.promptFailed,
+              message: err.message,
+              action: { label: copy.chooseModel, onClick: () => setModelPickerOpen(true) }
+            })
+          } else {
+            notifyError(err, copy.promptFailed)
+          }
         }
 
         return false

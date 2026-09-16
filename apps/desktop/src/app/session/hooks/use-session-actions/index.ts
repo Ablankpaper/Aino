@@ -42,6 +42,7 @@ import { managedModelRouteCapability } from '@/store/gateway-managed-capability'
 import { $gatewaySwitching } from '@/store/gateway-switch'
 import { $pinnedSessionIds } from '@/store/layout'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
+import { verifiedPlatformModel } from '@/store/platform-model-capability'
 import { platformModelCatalog, PlatformSelectionError } from '@/store/platform-models'
 import {
   $activeGatewayProfile,
@@ -357,6 +358,11 @@ async function desktopSessionCreateParams(
     catalog.state.get().models
   )
 
+  const reasoningEffort =
+    selection.provider !== 'aino' || verifiedPlatformModel(selection.model, platformOwner)?.capabilities.reasoning
+      ? selection.effort
+      : ''
+
   return {
     platformOwner,
     params: {
@@ -365,7 +371,7 @@ async function desktopSessionCreateParams(
       ...(cwd && { cwd }),
       ...(profile ? { profile: capturedRoute?.targetProfile || profile } : {}),
       ...modelParams,
-      ...(selection.effort ? { reasoning_effort: selection.effort } : {}),
+      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
       fast: selection.fast
     }
   }

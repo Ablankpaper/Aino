@@ -1,6 +1,8 @@
 import { useStore } from '@nanostores/react'
 import { useEffect, useRef, useState } from 'react'
+import { useInRouterContext, useNavigate } from 'react-router'
 
+import { SETTINGS_ROUTE } from '@/app/routes'
 import { useI18n } from '@/i18n'
 import { Check } from '@/lib/icons'
 import { modelSearchText } from '@/lib/model-search-text'
@@ -31,14 +33,26 @@ export function usePlatformModels() {
 export interface PlatformModelListProps {
   selectedId?: string
   disabled?: boolean
+  onChooseCustom?: () => void
   onSelect: (model: PlatformModel) => Promise<boolean> | boolean | void
   onApplied?: () => void
   managedCapability: ManagedModelRouteCapability
 }
 
+function AccountAction({ label }: { label: string }) {
+  const navigate = useNavigate()
+
+  return (
+    <Button data-action="account" onClick={() => navigate(`${SETTINGS_ROUTE}?tab=account`)} size="sm" variant="ghost">
+      {label}
+    </Button>
+  )
+}
+
 export function PlatformModelList({
   selectedId,
   disabled,
+  onChooseCustom,
   onSelect,
   onApplied,
   managedCapability
@@ -50,6 +64,7 @@ export function PlatformModelList({
   const [highlighted, setHighlighted] = useState(selectedId || '')
   const [pending, setPending] = useState(false)
   const selecting = useRef(false)
+  const inRouter = useInRouterContext()
 
   const models = catalog.models.filter(model =>
     foldIncludes(
@@ -60,6 +75,14 @@ export function PlatformModelList({
 
   const detail =
     catalog.models.find(model => model.id === highlighted) ?? catalog.models.find(model => model.id === selectedId)
+
+  const unavailableModels = models.filter(model => model.state !== 'available')
+
+  const chooseCustom = onChooseCustom ? (
+    <Button data-action="custom" onClick={onChooseCustom} size="sm" variant="ghost">
+      {copy.chooseCustom}
+    </Button>
+  ) : null
 
   const select = async (model: PlatformModel) => {
     if (disabled || managedCapability !== 'supported' || selecting.current || model.state !== 'available') {
@@ -102,14 +125,9 @@ export function PlatformModelList({
               {copy.loading}
             </p>
           ) : catalog.phase === 'error' ? (
-            <div className="p-3">
-              <p className="text-xs text-muted-foreground" role="alert">
-                {copy.catalogError}
-              </p>
-              <Button onClick={() => void catalog.refresh()} size="sm" variant="ghost">
-                {copy.retry}
-              </Button>
-            </div>
+            <p className="p-3 text-xs text-muted-foreground" role="alert">
+              {copy.catalogError}
+            </p>
           ) : (
             <>
               <CommandEmpty>{copy.empty}</CommandEmpty>
@@ -141,6 +159,40 @@ export function PlatformModelList({
           )}
         </CommandList>
       </Command>
+      {managedCapability !== 'supported' ? (
+        chooseCustom && <div className="border-t border-(--ui-stroke-tertiary) px-3 py-2">{chooseCustom}</div>
+      ) : catalog.phase === 'signed_out' ? (
+        inRouter && (
+          <div className="border-t border-(--ui-stroke-tertiary) px-3 py-2">
+            <AccountAction label={copy.myAccount} />
+          </div>
+        )
+      ) : catalog.phase === 'error' ? (
+        <div className="border-t border-(--ui-stroke-tertiary) px-3 py-2">
+          <Button onClick={() => void catalog.refresh()} size="sm" variant="ghost">
+            {copy.retry}
+          </Button>
+        </div>
+      ) : catalog.phase === 'ready' && catalog.models.length === 0 ? (
+        chooseCustom && <div className="border-t border-(--ui-stroke-tertiary) px-3 py-2">{chooseCustom}</div>
+      ) : unavailableModels.length > 0 ? (
+        <div className="space-y-1 border-t border-(--ui-stroke-tertiary) px-3 py-2">
+          {unavailableModels.map(model => (
+            <div
+              aria-label={copy.recoveryFor(model.display_name)}
+              className="flex flex-wrap items-center gap-1"
+              key={model.id}
+              role="group"
+            >
+              <span className="mr-auto truncate text-xs text-muted-foreground">{model.display_name}</span>
+              {['insufficient_balance', 'quota_exhausted'].includes(model.state) && inRouter && (
+                <AccountAction label={copy.myAccount} />
+              )}
+              {chooseCustom}
+            </div>
+          ))}
+        </div>
+      ) : null}
       {detail && (
         <details className="border-t border-(--ui-stroke-tertiary) px-3 py-2 text-xs">
           <summary className="cursor-pointer text-muted-foreground">{copy.details}</summary>

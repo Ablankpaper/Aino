@@ -7,6 +7,38 @@ import type {
   PlatformAccountSnapshot
 } from '../../shared/platform-contract'
 
+const SAFE_PLATFORM_BINDING_CODES = new Set([
+  'binding_cancelled',
+  'insufficient_balance',
+  'managed_auth_unavailable',
+  'managed_balance_unavailable',
+  'managed_credential_expired',
+  'managed_credential_revoked',
+  'model_unavailable',
+  'not_authenticated',
+  'platform_account_changed',
+  'quota_exhausted',
+  'stale_account_revision',
+  'unsupported_gateway'
+])
+
+function safeBindingCode(error: unknown): string | null {
+  if (!error || typeof error !== 'object') {
+    return null
+  }
+
+  const record = error as { code?: unknown; data?: unknown }
+  const data = record.data && typeof record.data === 'object' ? (record.data as { code?: unknown; error?: unknown }) : null
+  const nested = data?.error && typeof data.error === 'object' ? (data.error as { code?: unknown }) : null
+  const candidates = [record.code, data?.code, nested?.code]
+
+  return candidates.find((code): code is string => typeof code === 'string' && SAFE_PLATFORM_BINDING_CODES.has(code)) ?? null
+}
+
+function bindingFailure(error: unknown): BindPlatformModelResult {
+  return { ok: false, error: { code: safeBindingCode(error) ?? 'gateway_binding_failed' } }
+}
+
 /** Only the chat's owning socket can delegate a live session to Electron main. */
 export async function bindPlatformModel(
   input: BindPlatformModelInput,
@@ -27,8 +59,8 @@ export async function bindPlatformModel(
 
   try {
     owner = await desktop.platformModels.owner(input.expected_account_revision)
-  } catch {
-    return { ok: false, error: { code: 'gateway_binding_failed' } }
+  } catch (error) {
+    return bindingFailure(error)
   }
 
   const requestOwner =
@@ -49,7 +81,7 @@ export async function bindPlatformModel(
       throw error
     }
 
-    return { ok: false, error: { code: 'gateway_binding_failed' } }
+    return bindingFailure(error)
   }
 
   if (ticket.managed_model_binding !== 1 || !ticket.session_ticket) {
@@ -58,7 +90,7 @@ export async function bindPlatformModel(
 
   try {
     return await desktop.platformModels.bind({ ...input, session_ticket: ticket.session_ticket })
-  } catch {
-    return { ok: false, error: { code: 'gateway_binding_failed' } }
+  } catch (error) {
+    return bindingFailure(error)
   }
 }

@@ -179,3 +179,56 @@ it.each(['owner', 'bind'] as const)('sanitizes a structured missing-session erro
   expect(failed).toEqual({ ok: false, error: { code: 'gateway_binding_failed' } })
   expect(JSON.stringify(failed)).not.toContain('must-not-escape')
 })
+
+it.each([
+  ['ticket', 'insufficient_balance'],
+  ['owner', 'managed_credential_expired'],
+  ['bind', 'quota_exhausted']
+] as const)('preserves the allowlisted %s failure code without exposing remote text', async (stage, code) => {
+  const account: PlatformAccountSnapshot = {
+    revision: 7,
+    phase: 'signed_in',
+    account: { id: '17', display_name: 'Fixture', email: '', phone_masked: '' },
+    mode: 'development',
+    remember_state: 'session_only',
+    error: null
+  }
+
+  const failure = { code, data: { code, message: 'remote secret must not escape' } }
+
+  const bridge: PlatformModelsBridge = {
+    owner: async () => {
+      if (stage === 'owner') {throw failure}
+
+      return { platform_origin: 'http://127.0.0.1:1234', user_id: '17' }
+    },
+    bind: async () => {
+      if (stage === 'bind') {throw failure}
+
+      return { ok: true, ready: true, model_id: 'fixture', billing_source: 'aino', expires_at: 'later' }
+    },
+    clear: async () => {},
+    list: async () => []
+  }
+
+  Object.defineProperty(window, 'hermesDesktop', { configurable: true, value: { platformModels: bridge } })
+  vi.mocked(requestGatewayForAgent).mockImplementation(async () => {
+    if (stage === 'ticket') {throw failure}
+
+    return { managed_model_binding: 1, session_ticket: 'ticket' }
+  })
+
+  const result = await bindPlatformModel(
+    {
+      connection_id: 'local',
+      profile: 'work',
+      session_id: 'runtime-session',
+      model_id: 'fixture',
+      expected_account_revision: 7
+    },
+    account
+  )
+
+  expect(result).toEqual({ ok: false, error: { code } })
+  expect(JSON.stringify(result)).not.toContain('remote secret')
+})

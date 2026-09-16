@@ -8,7 +8,13 @@ import { useModelControls } from '@/app/session/hooks/use-model-controls'
 import { DropdownMenu, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { $collapsedProviders, toggleCollapsedProvider } from '@/store/provider-collapse'
-import { $activeSessionId, $currentModel, $currentProvider } from '@/store/session'
+import {
+  $activeSessionId,
+  $currentModel,
+  $currentPlatformOwner,
+  $currentProvider,
+  $currentReasoningEffort
+} from '@/store/session'
 import { $sessionStates } from '@/store/session-states'
 import { deferred } from '@/test/deferred'
 import { stubResizeObserver } from '@/test/jsdom'
@@ -99,12 +105,50 @@ it('uses exact ready evidence for Aino without disabling the dropdown custom cat
   expect(select).toHaveBeenCalledWith({ model: 'gemini-3.1-pro', provider: 'google', sessionId: 'runtime-1' })
 })
 
+it('clears stale live reasoning after selecting a verified non-reasoning Aino model', async () => {
+  Object.defineProperty(window, 'hermesDesktop', {
+    configurable: true,
+    value: {
+      platformAccount: {
+        status: async () => platformSnapshot(),
+        capabilities: async () => ({}),
+        onChanged: () => () => undefined
+      },
+      platformModels: { list: async () => [platformModel()] }
+    }
+  })
+  await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  recordGatewayReadyCapability(
+    { profile: 'default' },
+    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+  )
+  $currentProvider.set('aino')
+  $currentModel.set('catalog-a')
+  $currentPlatformOwner.set('user-a')
+  $currentReasoningEffort.set('high')
+  const select = vi.fn(async () => true)
+  const { content, requestGateway } = renderPanel(select)
+
+  await act(async () => {
+    fireEvent.click(await content.findByRole('option', { name: /Fixture Model/ }))
+  })
+
+  await vi.waitFor(() => {
+    expect($currentReasoningEffort.get()).toBe('')
+  })
+  expect(requestGateway).toHaveBeenCalledWith('config.set', { key: 'reasoning', session_id: 'runtime-1', value: '' })
+})
+
 function renderPanel(onSelectModel = vi.fn(), onClose = vi.fn()) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
   const requestGateway = vi.fn(async (method: string) => {
     if (method === 'model.options') {
       return getGlobalModelOptions()
+    }
+
+    if (method === 'config.set') {
+      return {}
     }
 
     throw new Error(`unexpected gateway method: ${method}`)
@@ -122,7 +166,7 @@ function renderPanel(onSelectModel = vi.fn(), onClose = vi.fn()) {
     </QueryClientProvider>
   )
 
-  return { onSelectModel, content }
+  return { onSelectModel, content, requestGateway }
 }
 
 it('awaits custom dropdown picks, rejects duplicates and keeps a failed pick open', async () => {

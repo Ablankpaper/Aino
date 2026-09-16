@@ -23,6 +23,7 @@ import {
   $currentCwd,
   $currentUsage,
   $messages,
+  $modelPickerOpen,
   $sessions,
   $terminalBackend,
   $turnStartedAt,
@@ -3680,6 +3681,106 @@ describe('usePromptActions file attachment sync', () => {
       method: 'prompt.submit',
       params: { session_id: RUNTIME_SESSION_ID, text: '@file:data/report.txt\n\nsummarize' }
     })
+  })
+})
+
+describe('platform model attachment capability', () => {
+  const image: ComposerAttachment = {
+    id: 'image:fixture.png',
+    kind: 'image',
+    label: 'fixture.png',
+    path: '/tmp/fixture.png',
+    previewUrl: 'data:image/png;base64,dGh1bWI='
+  }
+
+  async function installPlatformModel(vision: boolean) {
+    const account = platformSnapshot()
+
+    const accountBridge = {
+      status: async () => account,
+      capabilities: vi.fn(),
+      retry: async () => account,
+      requestPhoneCode: vi.fn(),
+      verifyPhoneCode: vi.fn(),
+      loginExisting: vi.fn(),
+      completeSecondFactor: vi.fn(),
+      updateProfile: vi.fn(),
+      requestBindingCode: vi.fn(),
+      submitStepUp: vi.fn(),
+      bindPhone: vi.fn(),
+      logout: vi.fn(),
+      onChanged: () => () => undefined
+    }
+
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: {
+        platformAccount: accountBridge,
+        platformModels: {
+          list: async () => [{ ...platformModel(), capabilities: { ...platformModel().capabilities, vision } }]
+        }
+      }
+    })
+    await platformAccountActions(accountBridge).refresh()
+    await platformModelCatalog().load()
+    publishSessionState(RUNTIME_SESSION_ID, {
+      ...createClientSessionState('stored-platform'),
+      model: 'catalog-a',
+      provider: 'aino',
+      platformModel: { modelId: 'catalog-a', ownerUserId: 'user-a', status: 'ready' }
+    })
+  }
+
+  afterEach(() => {
+    cleanup()
+    dropSessionState(RUNTIME_SESSION_ID)
+    $composerAttachments.set([])
+    $composerDraft.set('')
+    $modelPickerOpen.set(false)
+    clearNotifications()
+    Reflect.deleteProperty(window, 'hermesDesktop')
+  })
+
+  it('preserves an unsupported image draft and offers the picker before any request', async () => {
+    await installPlatformModel(false)
+    $composerDraft.set('keep this draft')
+    $composerAttachments.set([image])
+    const requestGateway = vi.fn(async () => ({} as never))
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <Harness onReady={value => (handle = value)} refreshSessions={async () => undefined} requestGateway={requestGateway} />
+    )
+
+    expect(await handle!.submitText('describe it')).toBe(false)
+    expect(requestGateway).not.toHaveBeenCalled()
+    expect($composerDraft.get()).toBe('keep this draft')
+    expect($composerAttachments.get()).toEqual([image])
+    const recovery = $notifications.get().at(-1)?.action
+    expect(recovery?.label).toBe('Choose model')
+    act(() => recovery?.onClick())
+    expect($modelPickerOpen.get()).toBe(true)
+  })
+
+  it('uses the normal attach and submit path when the verified model supports images', async () => {
+    await installPlatformModel(true)
+    $composerAttachments.set([image])
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'image.attach') {
+        return { attached: true, path: '/tmp/fixture.png' } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <Harness onReady={value => (handle = value)} refreshSessions={async () => undefined} requestGateway={requestGateway} />
+    )
+
+    expect(await handle!.submitText('describe it')).toBe(true)
+    expect(requestGateway.mock.calls.map(([method]) => method)).toEqual(['image.attach', 'prompt.submit'])
+    expect($composerAttachments.get()).toEqual([])
   })
 })
 

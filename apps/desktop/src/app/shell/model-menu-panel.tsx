@@ -22,8 +22,10 @@ import {
 import { $modelPresets, applyModelPreset, modelPresetKey, setModelPreset } from '@/store/model-presets'
 import { $visibleModels } from '@/store/model-visibility'
 import { notifyError } from '@/store/notifications'
+import { verifiedPlatformModel } from '@/store/platform-model-capability'
 import { $activeGatewayProfile } from '@/store/profile'
 import {
+  $currentPlatformOwner,
   $defaultReasoningEffort,
   markComposerSelectionManual,
   setCurrentFastMode,
@@ -76,6 +78,7 @@ export function ModelMenuPanel({
   const currentFastMode = useStore(view.$fast)
   const currentModel = useStore(view.$model)
   const currentProvider = useStore(view.$provider)
+  const currentPlatformOwner = useStore($currentPlatformOwner)
   const busy = useStore(view.$busy)
   const awaiting = useStore(view.$awaitingResponse)
   const closeMenu = useContext(ModelMenuCloseContext)
@@ -298,9 +301,16 @@ export function ModelMenuPanel({
           disabled={blocked}
           managedCapability={managedCapability}
           onApplied={closeMenu}
-          onSelect={async model =>
-            (await onSelectModel({ provider: 'aino', model: model.id, sessionId: activeSessionId })) !== false
-          }
+          onChooseCustom={() => setSource('custom')}
+          onSelect={async model => {
+            const selected = (await onSelectModel({ provider: 'aino', model: model.id, sessionId: activeSessionId })) !== false
+
+            if (selected && currentReasoningEffort && !verifiedPlatformModel(model.id, currentPlatformOwner)?.capabilities.reasoning) {
+              void patchReasoning('', currentReasoningEffort, 'aino', model.id)
+            }
+
+            return selected
+          }}
           selectedId={currentProvider === 'aino' ? currentModel : undefined}
         />
       ) : (

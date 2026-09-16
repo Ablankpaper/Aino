@@ -98,6 +98,9 @@ interface UpstreamTranslations {
     signIn: string
     loading: string
     retry: string
+    myAccount: string
+    chooseCustom: string
+    recoveryFor: (model: string) => string
     unavailable: string
     empty: string
     catalogError: string
@@ -4225,6 +4228,8 @@ interface UpstreamTranslations {
     transcriptSafeLoadLimit: string
     createSessionFailed: string
     promptFailed: string
+    platformVisionUnsupported: string
+    chooseModel: string
     providerCredentialRequired: string
     emptySlashCommand: string
     desktopCommands: string
