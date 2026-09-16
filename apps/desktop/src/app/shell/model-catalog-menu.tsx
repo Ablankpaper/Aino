@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react'
 import { useQuery } from '@tanstack/react-query'
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, type ReactNode, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { Codicon } from '@/components/ui/codicon'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
@@ -21,7 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { HermesGateway } from '@/hermes'
 import { getLocalModelsStatus } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
+import { modelOptionsQueryKey, modelProviderMatches, requestModelOptions } from '@/lib/model-options'
 import { displayModelName, modelDisplayParts } from '@/lib/model-status-label'
 import { DEFAULT_REASONING_EFFORT, reasoningEffortLabel } from '@/lib/reasoning-effort'
 import { foldIncludes, normalize } from '@/lib/text'
@@ -44,14 +44,6 @@ import { $defaultReasoningEffort } from '@/store/session'
 import type { LocalModelLoadProgress, ModelOptionProvider, ModelOptionsResponse } from '@/types/hermes'
 
 import { type FastControl, ModelEditSubmenu, resolveFastControl } from './model-edit-submenu'
-
-/** Whether a catalog row represents the session's current provider. Custom
- *  providers report the canonical `custom:<key>` identity from `model.options`
- *  while the row's slug is the bare config key, so exact slug equality never
- *  matches — check the row's alias set too (#87035). */
-function isCurrentProvider(provider: ModelOptionProvider, currentProvider: string): boolean {
-  return provider.slug === currentProvider || (provider.aliases?.includes(currentProvider) ?? false)
-}
 
 // Lets the host dropdown (model-pill, a kanban field trigger, …) hand the panel
 // a way to dismiss itself so clicking a model row commits + closes, while the
@@ -86,6 +78,8 @@ export interface ModelMenuController {
   presetFor: (provider: string, model: string) => { effort?: string; fast?: boolean }
   /** Commit a model row. Return false to abort (a failed session switch). */
   select: (model: string, provider: string) => Promise<boolean | void> | void
+  /** Live owner check before any post-selection preset or dismissal effects. */
+  selectionIsCurrent?: () => boolean
   /** Edit ONE option on a row. `isActive` says whether it's the current model. */
   setOptions: (
     patch: { effort?: string; fast?: boolean },
@@ -145,7 +139,15 @@ export function ModelCatalogMenu({
   const closeMenu = useContext(ModelMenuCloseContext)
   const [search, setSearch] = useState('')
   const selecting = useRef(false)
+  const selectionEpoch = useRef(0)
   const [pending, setPending] = useState(false)
+  useLayoutEffect(() => {
+    selectionEpoch.current += 1
+
+    return () => {
+      selectionEpoch.current += 1
+    }
+  }, [sessionId, ownerConnectionId, profile])
   const collapsedProviders = useStoreCollapsed()
   const defaultEffort = useDefaultEffort()
   // Which models the user curated in Edit Models. Read HERE rather than taken
@@ -301,6 +303,7 @@ export function ModelCatalogMenu({
 
     selecting.current = true
     setPending(true)
+    const epoch = selectionEpoch.current
 
     try {
       const caps = provider.capabilities?.[family.id]
@@ -312,7 +315,11 @@ export function ModelCatalogMenu({
       const variantFast = !(caps?.fast ?? false) && !!family.fastId
       const targetId = variantFast && preset.fast === true ? family.fastId! : family.id
 
-      if ((await controller.select(targetId, provider.slug)) === false) {
+      if (
+        (await controller.select(targetId, provider.slug)) === false ||
+        epoch !== selectionEpoch.current ||
+        controller.selectionIsCurrent?.() === false
+      ) {
         return
       }
 
@@ -339,9 +346,14 @@ export function ModelCatalogMenu({
 
     selecting.current = true
     setPending(true)
+    const epoch = selectionEpoch.current
 
     try {
-      if ((await controller.select(preset, 'moa')) === false) {
+      if (
+        (await controller.select(preset, 'moa')) === false ||
+        epoch !== selectionEpoch.current ||
+        controller.selectionIsCurrent?.() === false
+      ) {
         return
       }
 
@@ -386,7 +398,7 @@ export function ModelCatalogMenu({
   const rowIsCurrent = (row: KbRow) =>
     row.kind === 'moa'
       ? current.provider === 'moa' && row.preset === current.model
-      : isCurrentProvider(row.provider, current.provider) &&
+      : modelProviderMatches(row.provider, current.provider) &&
         (row.family.id === current.model || row.family.fastId === current.model)
 
   const autoIndex = q
@@ -532,7 +544,7 @@ export function ModelCatalogMenu({
                     // The active id may be the base or its -fast sibling; either
                     // way this one family row represents both.
                     const activeId =
-                      isCurrentProvider(group.provider, current.provider) &&
+                      modelProviderMatches(group.provider, current.provider) &&
                       (current.model === family.id || current.model === family.fastId)
                         ? current.model
                         : null
@@ -796,7 +808,7 @@ function groupModels(
     // stable curated order, so selecting a model can't shuffle the list. While
     // SEARCHING the pin is skipped: a query means "show me matches".
     const activeId =
-      !q && isCurrentProvider(provider, current.provider) && current.model
+      !q && modelProviderMatches(provider, current.provider) && current.model
         ? allFamilies.find(family => family.id === current.model || family.fastId === current.model)?.id
         : undefined
 

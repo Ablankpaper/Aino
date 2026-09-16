@@ -1,16 +1,21 @@
-import { QueryClient } from '@tanstack/react-query'
-import { act, cleanup, renderHook } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { platformAccountActions } from '@/api/platform'
+import { ModelMenuCloseContext, ModelMenuPanel } from '@/app/shell/model-menu-panel'
+import { DropdownMenu, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 import { modelOptionsQueryKey } from '@/lib/model-options'
+import { $modelPresets, modelPresetKey } from '@/store/model-presets'
 import { platformModelCatalog } from '@/store/platform-models'
 import { $activeGatewayProfile } from '@/store/profile'
 import {
   $activeSessionId,
   $busy,
+  $currentFastMode,
   $currentModel,
   $currentProvider,
+  $currentReasoningEffort,
   setCurrentModel,
   setCurrentPlatformOwner,
   setCurrentProvider
@@ -22,12 +27,15 @@ import {
   setSessionTileDelegate
 } from '@/store/session-states'
 import { deferred } from '@/test/deferred'
+import { stubMenuDomApis, stubResizeObserver } from '@/test/jsdom'
 import { platformModel, platformSnapshot } from '@/test/platform-model'
 
 import { useModelControls } from './use-model-controls'
 
 const notices = vi.hoisted(() => ({ notify: vi.fn(), notifyError: vi.fn(), dismissNotification: vi.fn() }))
 vi.mock('@/store/notifications', () => notices)
+stubMenuDomApis()
+stubResizeObserver()
 
 let backend = { model: 'byok-old', provider: 'custom:test' } as Record<string, unknown>
 let bind: ReturnType<typeof vi.fn>
@@ -40,6 +48,9 @@ beforeEach(async () => {
   $activeGatewayProfile.set('default')
   $activeSessionId.set('runtime-a')
   $busy.set(false)
+  $modelPresets.set({})
+  $currentFastMode.set(false)
+  $currentReasoningEffort.set('low')
   setCurrentProvider('custom:test')
   setCurrentModel('byok-old')
   setCurrentPlatformOwner('')
@@ -110,6 +121,196 @@ beforeEach(async () => {
 
     throw new Error(method)
   })
+})
+
+function setManagedCurrent() {
+  setCurrentProvider('aino')
+  setCurrentModel('catalog-a')
+  setCurrentPlatformOwner('user-a')
+  $sessionStates.set({
+    'runtime-a': {
+      ...$sessionStates.get()['runtime-a'],
+      provider: 'aino',
+      model: 'catalog-a',
+      reasoningEffort: 'low',
+      fast: false,
+      platformModel: { modelId: 'catalog-a', ownerUserId: 'user-a', status: 'ready' }
+    }
+  })
+}
+
+function installCustomPickerRequests(slug = 'test') {
+  const providers = [
+    {
+      slug,
+      name: 'Fixture custom',
+      aliases: [slug, 'custom:test'],
+      models: ['byok-new'],
+      capabilities: { 'byok-new': { reasoning: true, fast: true } }
+    }
+  ]
+
+  request.mockImplementation(async (method, params) => {
+    if (method === 'model.options') {
+      return { providers, session_info: backend }
+    }
+
+    if (method === 'config.set') {
+      if (params.key === 'model') {
+        backend = { provider: 'custom:test', model: 'byok-new' }
+      }
+
+      return {}
+    }
+
+    throw new Error(method)
+  })
+}
+
+function PickerHarness({ client, close }: { client: QueryClient; close: () => void }) {
+  const { selectModel } = useModelControls({ queryClient: client, requestGateway: request as never })
+
+  return (
+    <DropdownMenu open>
+      <DropdownMenuContent>
+        <ModelMenuCloseContext.Provider value={close}>
+          <ModelMenuPanel onSelectModel={selectModel} requestGateway={request as never} />
+        </ModelMenuCloseContext.Provider>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+it('accepts a bare custom dropdown slug against canonical backend identity and can retry failed cleanup', async () => {
+  setManagedCurrent()
+  installCustomPickerRequests()
+  const client = new QueryClient()
+  const close = vi.fn()
+
+  const view = render(
+    <QueryClientProvider client={client}>
+      <PickerHarness client={client} close={close} />
+    </QueryClientProvider>
+  )
+
+  fireEvent.click(screen.getByRole('button', { name: 'Custom models' }))
+  fireEvent.click(await screen.findByText(/byok.*new/i))
+  await waitFor(() => expect(close).toHaveBeenCalledOnce())
+  expect([$currentProvider.get(), $currentModel.get()]).toEqual(['custom:test', 'byok-new'])
+  expect(notices.notifyError).not.toHaveBeenCalled()
+
+  view.unmount()
+  setManagedCurrent()
+  clear.mockRejectedValueOnce(new Error('native clear failed'))
+  notices.notify.mockClear()
+  render(
+    <QueryClientProvider client={client}>
+      <PickerHarness client={client} close={close} />
+    </QueryClientProvider>
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Custom models' }))
+  fireEvent.click(await screen.findByText(/byok.*new/i))
+  await waitFor(() => expect(notices.notify).toHaveBeenCalled())
+  const beforeRetry = clear.mock.calls.length
+  await act(() => notices.notify.mock.calls.at(-1)?.[0]?.action.onClick())
+  expect(clear.mock.calls.length).toBe(beforeRetry + 1)
+  expect([$currentProvider.get(), $currentModel.get()]).toEqual(['custom:test', 'byok-new'])
+})
+
+it.each(['navigate', 'reopen'] as const)(
+  'fences dropdown preset and dismissal after %s during a reverse switch',
+  async kind => {
+    setManagedCurrent()
+    installCustomPickerRequests('custom:test')
+    $modelPresets.set({ [modelPresetKey('custom:test', 'byok-new')]: { effort: 'high', fast: true } })
+    const pending = deferred<void>()
+    clear.mockReturnValueOnce(pending.promise)
+    const client = new QueryClient()
+    const close = vi.fn()
+
+    const picker = (key: string) => (
+      <QueryClientProvider client={client}>
+        <PickerHarness client={client} close={close} key={key} />
+      </QueryClientProvider>
+    )
+
+    const view = render(picker('first'))
+    fireEvent.click(screen.getByRole('button', { name: 'Custom models' }))
+    fireEvent.click(await screen.findByText(/byok.*new/i))
+    await waitFor(() => expect(clear).toHaveBeenCalled())
+
+    if (kind === 'navigate') {
+      act(() => {
+        $sessionStates.set({
+          ...$sessionStates.get(),
+          'runtime-b': {
+            ...$sessionStates.get()['runtime-a'],
+            model: 'other-model',
+            provider: 'custom:other',
+            platformModel: null,
+            reasoningEffort: 'medium',
+            fast: false
+          }
+        })
+        $activeSessionId.set('runtime-b')
+        setCurrentProvider('custom:other')
+        setCurrentModel('other-model')
+        $currentReasoningEffort.set('medium')
+        $currentFastMode.set(false)
+      })
+    }
+
+    view.rerender(picker('second'))
+    await act(async () => pending.resolve())
+    expect($sessionStates.get()['runtime-a']).toMatchObject({
+      provider: 'custom:test',
+      model: 'byok-new',
+      reasoningEffort: 'low',
+      fast: false
+    })
+    expect($currentReasoningEffort.get()).toBe(kind === 'navigate' ? 'medium' : 'low')
+    expect($currentFastMode.get()).toBe(false)
+
+    if (kind === 'navigate') {
+      expect([$currentProvider.get(), $currentModel.get()]).toEqual(['custom:other', 'other-model'])
+      expect($sessionStates.get()['runtime-b']).toMatchObject({
+        reasoningEffort: 'medium',
+        fast: false,
+        model: 'other-model'
+      })
+    }
+
+    expect(close).not.toHaveBeenCalled()
+    expect(request.mock.calls.filter(([method, params]) => method === 'config.set' && params.key !== 'model')).toEqual(
+      []
+    )
+  }
+)
+
+it('offers outstanding native cleanup after a lost reverse-switch acknowledgement without resending config', async () => {
+  setManagedCurrent()
+  let nativeBindingRetained = true
+  clear.mockImplementation(async () => {
+    nativeBindingRetained = false
+  })
+  const result = controls()
+  request.mockImplementationOnce(async () => {
+    backend = { provider: 'custom:test', model: 'byok-new' }
+    throw new Error('config acknowledgement lost')
+  })
+  await act(async () =>
+    expect(await result.current.selectModel({ provider: 'custom:test', model: 'byok-new' })).toBe(false)
+  )
+  expect([$currentProvider.get(), $currentModel.get()]).toEqual(['custom:test', 'byok-new'])
+  const retry = notices.notify.mock.calls.at(-1)?.[0]?.action
+  expect(retry).toBeDefined()
+  clear.mockRejectedValueOnce(new Error('native clear offline'))
+  await act(() => retry.onClick())
+  expect(nativeBindingRetained).toBe(true)
+  await act(() => notices.notify.mock.calls.at(-1)?.[0]?.action.onClick())
+  expect(nativeBindingRetained).toBe(false)
+  expect(request.mock.calls.filter(([method]) => method === 'config.set')).toHaveLength(1)
+  expect(request.mock.calls.some(([method]) => method === 'prompt.submit')).toBe(false)
 })
 
 afterEach(() => {

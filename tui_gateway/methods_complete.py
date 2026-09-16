@@ -292,6 +292,13 @@ def _(rid, params: dict) -> dict:
         # Use the event producer, including its real runtime registry lookup.
         # Lazy sessions must report bound readiness without starting an agent.
         snapshot = _session_info(session.get("agent"), session)
+        # Explicit BYOK switching pins a lazy override without building an agent.
+        # Its selected identity outranks the empty pre-build metadata mirror.
+        if (session.get("agent") is None and not snapshot.get("model_source")
+                and not session.get("pending_model_switch")):
+            override = session.get("model_override") or {}
+            snapshot.update({key: override[key] for key in ("provider", "model")
+                             if isinstance(override.get(key), str) and override[key]})
         fields = ("provider", "model", "model_source", "model_id", "model_status", "platform_owner", "running")
         info = {key: snapshot[key] for key in fields if key in snapshot}
     # A spawned agent owns the live provider/model/base_url; empty attributes must

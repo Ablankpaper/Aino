@@ -4,7 +4,7 @@ import { bindSelectedPlatformSession, clearPlatformSession } from '@/api/platfor
 import type { ModelSelection } from '@/app/shell/model-menu-panel'
 import { isBusySessionModelSwitch } from '@/lib/gateway-rpc'
 import { type GuardedModelSwitchResult, surfaceModelSwitchConfirm } from '@/lib/guarded-model-switch'
-import { modelOptionsQueryKey } from '@/lib/model-options'
+import { modelOptionsQueryKey, modelProviderMatches } from '@/lib/model-options'
 import { managedModelSwitchBlocked } from '@/lib/model-switch-policy'
 import { platformDefaultScope } from '@/lib/platform-model-scope'
 import { platformModelStatePatch, type PlatformSessionModel } from '@/lib/platform-session-model'
@@ -27,7 +27,7 @@ import {
   setCurrentProvider
 } from '@/store/session'
 import { $sessionStates, sessionTileDelegate } from '@/store/session-states'
-import type { SessionRuntimeInfo } from '@/types/hermes'
+import type { ModelOptionsResponse, SessionRuntimeInfo } from '@/types/hermes'
 
 interface SwitchAttempt {
   pending: boolean
@@ -206,6 +206,17 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
   const paintTarget = () => paint(selection.model, selection.provider, targetPlatform)
   let accepted = false
   let configRequested = false
+  let nativeCompleted = false
+
+  let selectedProvider = queryClient
+    .getQueryData<ModelOptionsResponse>(modelOptionsQueryKey(profile, sessionId, connectionId))
+    ?.providers?.find(row => modelProviderMatches(row, selection.provider))
+
+  const providerMatchesSelection = (provider?: string) =>
+    provider === selection.provider ||
+    Boolean(provider && selectedProvider && modelProviderMatches(selectedProvider, provider))
+
+  const canFinishSelection = () => current() && (!primary || canPaintPrimary())
 
   const rollback = () => {
     if (!accepted) {
@@ -214,7 +225,9 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
   }
 
   const reconcile = async () => {
-    const { session_info: info } = await request<{ session_info?: SessionRuntimeInfo }>('model.options', {
+    const { session_info: info, providers } = await request<
+      ModelOptionsResponse & { session_info?: SessionRuntimeInfo }
+    >('model.options', {
       session_id: sessionId,
       profile,
       include_session_info: true
@@ -225,6 +238,7 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
     }
 
     const patch = platformModelStatePatch(info)
+    selectedProvider = providers?.find(row => modelProviderMatches(row, selection.provider)) ?? selectedProvider
 
     if (!info?.provider || !(patch.model || info.model)) {
       throw new Error(copy.recovery)
@@ -241,7 +255,7 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
     paint(patch.model || info.model!, info.provider, platformModel)
 
     return (
-      info.provider === selection.provider &&
+      providerMatchesSelection(info.provider) &&
       (patch.model || info.model) === selection.model &&
       (info.provider !== 'aino' || platformModel?.status === 'ready')
     )
@@ -256,7 +270,7 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
     const model = canPaintPrimary() ? $currentModel.get() : state?.model
     const provider = canPaintPrimary() ? $currentProvider.get() : state?.provider
 
-    return model === selection.model && provider === selection.provider
+    return model === selection.model && providerMatchesSelection(provider)
   }
 
   const authorize = async () => {
@@ -273,6 +287,8 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
     } else {
       await clearPlatformSession(owner, sessionId!)
     }
+
+    nativeCompleted = true
 
     if (!current()) {
       throw new PlatformSelectionError('platform_account_changed')
@@ -371,7 +387,7 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
           if (selectionStillCurrent()) {
             accepted = true
 
-            if (!ready) {
+            if (!ready || !nativeCompleted) {
               await recover()
             }
           }
@@ -431,10 +447,10 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
 
     finish(result)
 
-    return current()
+    return canFinishSelection()
   } catch (error) {
     if (!managed && isBusySessionModelSwitch(error)) {
-      return true
+      return canFinishSelection()
     }
 
     rollback()

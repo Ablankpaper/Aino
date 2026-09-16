@@ -1,6 +1,12 @@
 import { getGlobalModelOptions, type HermesGateway, type ModelOptionsResponse } from '@/hermes'
 import type { ModelOptionProvider } from '@/types/hermes'
 
+/** Catalog rows carry the gateway's accepted identities, including canonical
+ * custom keys and legacy names. Do not infer aliases by stripping prefixes. */
+export function modelProviderMatches(row: ModelOptionProvider, provider: string): boolean {
+  return row.slug === provider || (row.aliases?.includes(provider) ?? false)
+}
+
 /**
  * True only when a persisted **manual** composer pick has been removed from the
  * catalog (its provider still ships models, but no longer this one) — so a new

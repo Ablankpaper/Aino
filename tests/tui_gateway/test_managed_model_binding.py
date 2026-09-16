@@ -25,8 +25,8 @@ def rig(tmp_path, monkeypatch):
     def call(peer, method, **params):
         return srv.dispatch({"id": 1, "method": method, "params": params}, peer)
 
-    def create(source="desktop"):
-        sid = result(call(owner, "session.create", source=source, cwd=str(tmp_path)))["session_id"]
+    def create(source="desktop", **extra):
+        sid = result(call(owner, "session.create", source=source, cwd=str(tmp_path), **extra))["session_id"]
         sessions.append(sid)
         return sid
 
@@ -144,8 +144,8 @@ def test_expiry_revokes_active_call_and_close_cleans_binding(rig, monkeypatch):
 def test_model_options_reads_staged_and_bound_truth_without_activating_or_building(rig, monkeypatch):
     from queue import Queue
 
-    call, create, owner, controller, stranger, _ = rig
-    sid = create()
+    call, create, owner, controller, stranger, home = rig
+    sid = create(model_source="aino", model_id="fixture-initial")
     session = srv._sessions[sid]
     history = session["history"]
     monkeypatch.setattr("hermes_cli.inventory.build_model_options_payload", lambda *a, **kw: {"providers": []})
@@ -178,5 +178,25 @@ def test_model_options_reads_staged_and_bound_truth_without_activating_or_buildi
     assert ready["session_info"]["platform_owner"] == params["owner"]
     assert params["api_key"] not in json.dumps(ready)
     assert "session_info" not in result(options(include_session_info=False))
+    assert session["agent"] is None and session["history"] is history
+    assert session["transport"] is owner
+
+    byok_secret = "fixture-byok-secret"
+    (home / "config.yaml").write_text(json.dumps({"custom_providers": [{
+        "name": "fixture-byok", "base_url": "http://127.0.0.1:9/v1", "api_key": byok_secret,
+        "models": ["fixture-byok-model"], "api_mode": "chat_completions",
+    }]}))
+    result(call(owner, "config.set", session_id=sid, key="model",
+                value="fixture-byok-model --provider fixture-byok --session", confirm_expensive_model=True))
+    override = session["model_override"]
+    assert override["provider"] == "custom:fixture-byok"
+    custom = result(options())["session_info"]
+    assert (custom["provider"], custom["model"]) == (override["provider"], override["model"])
+    assert not custom.get("model_source") and not custom.get("platform_owner")
+    assert byok_secret not in json.dumps(custom) and "base_url" not in custom
+    assert "error" in call(controller, "session.clear_managed_model", session_id=sid, binding_revision=0)
+    assert result(options())["session_info"] == custom
+    result(call(controller, "session.clear_managed_model", session_id=sid, binding_revision=params["binding_revision"]))
+    assert result(options())["session_info"] == custom
     assert session["agent"] is None and session["history"] is history
     assert session["transport"] is owner

@@ -12,11 +12,13 @@ import { useI18n } from '@/i18n'
 import { modelOptionsQueryKey, reconcileSelectionAfterCatalogRefresh, requestModelOptions } from '@/lib/model-options'
 import { currentPickerSelection } from '@/lib/model-status-label'
 import { managedModelSwitchBlocked } from '@/lib/model-switch-policy'
+import { platformDefaultScope } from '@/lib/platform-model-scope'
 import { DEFAULT_REASONING_EFFORT } from '@/lib/reasoning-effort'
 import { cn } from '@/lib/utils'
 import { $modelPresets, applyModelPreset, modelPresetKey, setModelPreset } from '@/store/model-presets'
 import { $visibleModels } from '@/store/model-visibility'
 import { notifyError } from '@/store/notifications'
+import { $activeGatewayProfile } from '@/store/profile'
 import {
   $defaultReasoningEffort,
   markComposerSelectionManual,
@@ -83,6 +85,11 @@ export function ModelMenuPanel({
   const defaultEffort = useStore($defaultReasoningEffort) || DEFAULT_REASONING_EFFORT
   const visibleModels = useStore($visibleModels)
   const touchesPrimary = view.kind === 'primary'
+
+  const completionScope = platformDefaultScope(
+    ownerConnectionId ? { connectionId: ownerConnectionId, profile } : profile
+  ).key
+
   const blocked = managedModelSwitchBlocked(currentProvider, source === 'aino' ? 'aino' : '', busy || awaiting)
 
   // Subscribe to the SAME query the menu runs (identical key ⇒ React Query
@@ -230,6 +237,9 @@ export function ModelMenuPanel({
     // next session.create. Always stamp sessionId from this surface so a tile
     // switch never hits the primary (busy) session by accident.
     select: (model, provider) => onSelectModel({ model, provider, sessionId: activeSessionId || null }),
+    selectionIsCurrent: () =>
+      view.$runtimeId.get() === activeSessionId &&
+      (!touchesPrimary || platformDefaultScope($activeGatewayProfile.get()).key === completionScope),
 
     setOptions: (patch, row) => {
       // Editing always records the model's global preset (keyed by
