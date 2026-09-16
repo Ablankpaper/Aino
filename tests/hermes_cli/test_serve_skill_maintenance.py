@@ -32,7 +32,10 @@ async def test_removed_sessions_keep_profile_idle_watermark(tmp_path, monkeypatc
                 gateway._sessions["watermark"] = {
                     "last_active": recent, "running": False, "profile_home": str(tmp_path)}
             assert gateway._close_session_by_id("watermark", end_reason=reason)
-            assert _skill_maintenance_idle_for(recent - 3600) < 2
+            before = time.time()
+            idle_for = _skill_maintenance_idle_for(recent - 3600)
+            after = time.time()
+            assert before - recent <= idle_for <= after - recent
         # An active sibling profile must not hold this profile's idle clock.
         with gateway._sessions_lock:
             gateway._sessions["other-profile"] = {
