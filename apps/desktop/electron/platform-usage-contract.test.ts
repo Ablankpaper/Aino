@@ -29,7 +29,7 @@ it('requires authoritative decimal receipts and rejects contradictory not-charge
     api_key: { key: 'not-for-renderer' }
   }
 
-  const page = (item = row) => ({ items: [item], total: 1, page: 1, page_size: 50 })
+  const page = (item: unknown = row) => ({ items: [item], total: 1, page: 1, page_size: 50 })
   expect(parsePlatformUsagePage(page()).items[0]).not.toHaveProperty('api_key')
   expect(parsePlatformUsagePage(page({ ...row, settlement_status: 'unknown' })).items[0].actual_cost_decimal).toBeNull()
   expect(() => parsePlatformUsagePage(page({ ...row, settlement_status: 'not_charged' }))).toThrow()
