@@ -5,6 +5,7 @@ import { I18nProvider } from '@/i18n'
 
 import type { PlatformBillingBridge, PlatformOrder } from '../../../../shared/platform-contract'
 
+import { createRechargeIntents } from './recharge-intent'
 import { RechargeView } from './recharge-view'
 
 afterEach(() => {
@@ -20,6 +21,7 @@ it('expires checkout during a stalled poll and never lets that poll undo cancell
   vi.stubGlobal('navigator', { ...navigator, locks: { request: async (_: string, task: () => unknown) => task() } })
   const scope = { origin: 'https://fixture.example.test', user_id: '17', generation: 1 }
   const deadline = new Date(Date.now() + 10000).toISOString()
+
   const order: PlatformOrder = {
     order_id: '431',
     client_order_id: null,
@@ -39,16 +41,21 @@ it('expires checkout during a stalled poll and never lets that poll undo cancell
     payment_unknown: false,
     checkout: { pay_url: 'https://pay.example.test/fixture', qr_code: null, expires_at: deadline }
   }
+
   let release!: (value: PlatformOrder) => void
+
   const pending = new Promise<PlatformOrder>(resolve => {
     release = resolve
   })
+
   const getOrder = vi.fn().mockResolvedValueOnce(order).mockReturnValue(pending)
+
   const bridge = {
     scope: async () => scope,
     getOrder,
     cancelOrder: async () => ({ ...order, status: 'CANCELLED', can_cancel: false, checkout: null })
   } as unknown as PlatformBillingBridge
+
   render(
     <I18nProvider configClient={null} initialLocale="zh">
       <RechargeView bridge={bridge} onOpenChange={() => {}} open orderId="431" scope={scope} />
@@ -69,19 +76,31 @@ it('expires checkout during a stalled poll and never lets that poll undo cancell
   expect(screen.queryByRole('button', { name: '取消订单' })).toBeNull()
 })
 
-it('opens a server order even when local recovery storage is unavailable', async () => {
+it.each(['read', 'associate'])('opens a server order even when local recovery cannot %s', async failureStage => {
+  const scope = { origin: 'https://fixture.example.test', user_id: '17', generation: 1 }
+
+  const intent = await createRechargeIntents(scope, {
+    storage: localStorage,
+    lock: async (_, task) => task()
+  }).begin({ amount: '20', payment_type: 'alipay', order_type: 'balance' })
+
+  let locks = 0
   vi.stubGlobal('navigator', {
     ...navigator,
     locks: {
-      request: async () => {
-        throw new Error('storage unavailable')
+      request: async (_: string, task: () => Promise<unknown>) => {
+        if (failureStage === 'read' || ++locks > 1) {
+          throw Object.assign(new Error('storage unavailable'), { code: 'payment_recovery_unavailable' })
+        }
+
+        return task()
       }
     }
   })
-  const scope = { origin: 'https://fixture.example.test', user_id: '17', generation: 1 }
+
   const order: PlatformOrder = {
     order_id: '431',
-    client_order_id: null,
+    client_order_id: intent.client_order_id,
     out_trade_no: 'server-order-recovery',
     status: 'CANCELLED',
     payment_type: 'alipay',
@@ -98,11 +117,13 @@ it('opens a server order even when local recovery storage is unavailable', async
     payment_unknown: false,
     checkout: null
   }
+
   const bridge = {
     scope: async () => scope,
     getOrder: async () => order,
     createOrder: vi.fn()
   } as unknown as PlatformBillingBridge
+
   render(
     <I18nProvider configClient={null} initialLocale="zh">
       <RechargeView bridge={bridge} onOpenChange={() => {}} open orderId="431" scope={scope} />
@@ -110,11 +131,16 @@ it('opens a server order even when local recovery storage is unavailable', async
   )
   expect(await screen.findByText('server-order-recovery')).toBeTruthy()
   expect(bridge.createOrder).not.toHaveBeenCalled()
+
+  if (failureStage === 'associate') {
+    expect((await screen.findByRole('alert')).textContent).toContain('订单')
+  }
 })
 
 it('keeps an out-of-range amount editable and shows the corrective error without creating an order', async () => {
   vi.stubGlobal('navigator', { ...navigator, locks: { request: async (_: string, task: () => unknown) => task() } })
   const scope = { origin: 'https://fixture.example.test', user_id: '17', generation: 1 }
+
   const bridge = {
     scope: async () => scope,
     checkoutInfo: async () => ({
@@ -130,6 +156,7 @@ it('keeps an out-of-range amount editable and shows the corrective error without
     },
     createOrder: vi.fn()
   } as unknown as PlatformBillingBridge
+
   render(
     <I18nProvider configClient={null} initialLocale="zh">
       <RechargeView bridge={bridge} onOpenChange={() => {}} open scope={scope} />
@@ -147,6 +174,7 @@ it('pauses order polling when hidden and hides checkout once the payment expires
   vi.stubGlobal('navigator', { ...navigator, locks: { request: async (_: string, task: () => unknown) => task() } })
   const scope = { origin: 'https://fixture.example.test', user_id: '17', generation: 1 }
   const deadline = new Date(Date.now() + 10000).toISOString()
+
   const order: PlatformOrder = {
     order_id: '431',
     client_order_id: null,
@@ -166,6 +194,7 @@ it('pauses order polling when hidden and hides checkout once the payment expires
     payment_unknown: false,
     checkout: { pay_url: 'https://pay.example.test/fixture', qr_code: null, expires_at: deadline }
   }
+
   const getOrder = vi.fn().mockResolvedValue(order)
   const bridge = { scope: async () => scope, getOrder } as unknown as PlatformBillingBridge
   render(
@@ -192,22 +221,27 @@ it('pauses order polling when hidden and hides checkout once the payment expires
 it('never paints a late old-account order into a new account recharge view', async () => {
   vi.stubGlobal('navigator', { ...navigator, locks: { request: async (_: string, task: () => unknown) => task() } })
   let release!: (value: unknown) => void
+
   const pending = new Promise(resolve => {
     release = resolve
   })
+
   const first = { origin: 'https://fixture.example.test', user_id: '17', generation: 1 }
   let current = first
   const getOrder = vi.fn(() => pending)
+
   const bridge = {
     scope: async () => current,
     getOrder,
     checkoutInfo: async () => ({ payment_enabled: false, balance_disabled: false, help_text: '', methods: [] })
   } as unknown as PlatformBillingBridge
+
   const view = (scope: typeof first, orderId?: string) => (
     <I18nProvider configClient={null} initialLocale="zh">
       <RechargeView bridge={bridge} onOpenChange={() => {}} open orderId={orderId} scope={scope} />
     </I18nProvider>
   )
+
   const rendered = render(view(first, '431'))
   await waitFor(() => expect(getOrder).toHaveBeenCalled())
   current = { ...first, user_id: '18', generation: 2 }

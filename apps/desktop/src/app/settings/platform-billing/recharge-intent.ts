@@ -154,8 +154,13 @@ export function createRechargeIntents(scope: PlatformBillingScope, environment?:
         const current = read()
 
         if (current?.client_order_id === clientOrderId) {
-          write({ ...current, order_id: orderId })
+          const remembered = { ...current, order_id: orderId }
+          write(remembered)
+
+          return remembered
         }
+
+        return current
       }),
     finish: (clientOrderId: string) =>
       lock(async () => {

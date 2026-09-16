@@ -94,9 +94,21 @@ export function useRecharge(
         const order = id ? await bridge.getOrder({ expected_user_id: owner, order_id: id }) : null
         const info = order ? null : await bridge.checkoutInfo({ expected_user_id: owner })
         await verify()
+        let error: string | null = null
+
+        if (!stopped && initialOrderId && intent && order?.client_order_id === intent.client_order_id) {
+          try {
+            intent = await intents.rememberOrder(intent.client_order_id, order.order_id)
+          } catch (failure) {
+            // Storage failure must not hide the authoritative history order.
+            error = paymentErrorCode(failure)
+          }
+
+          await verify()
+        }
 
         if (!stopped) {
-          setState({ ...blank, key, info, intent, order })
+          setState({ ...blank, key, info, intent, order, error })
         }
       } catch (error) {
         if (!stopped) {

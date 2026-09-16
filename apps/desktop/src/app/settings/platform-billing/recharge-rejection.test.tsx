@@ -61,6 +61,7 @@ function fixture() {
   }))
 
   const createOrder = vi.fn<PlatformBillingBridge['createOrder']>()
+  const getOrder = vi.fn(async () => order)
 
   const bridge = {
     scope: async () => scope,
@@ -74,13 +75,13 @@ function fixture() {
     }),
     quote,
     createOrder,
-    getOrder: async () => order
+    getOrder
   } as unknown as PlatformBillingBridge
 
-  const mount = () =>
+  const mount = (orderId?: string) =>
     render(
       <I18nProvider configClient={null} initialLocale="en">
-        <RechargeView bridge={bridge} onOpenChange={() => {}} open scope={scope} />
+        <RechargeView bridge={bridge} onOpenChange={() => {}} open orderId={orderId} scope={scope} />
       </I18nProvider>
     )
 
@@ -90,7 +91,7 @@ function fixture() {
     fireEvent.click(await screen.findByRole('button', { name: 'Confirm order' }))
   }
 
-  return { mount, submit, createOrder, quote, order }
+  return { mount, submit, createOrder, getOrder, quote, order }
 }
 
 const failure = (code: string) => Object.assign(new Error(code), { code })
@@ -123,15 +124,15 @@ it('corrects a rejected create after restart and retains the corrected request t
   expect(f.quote).toHaveBeenCalledTimes(2)
 })
 
-it('keeps a competing unknown create recoverable when a correction conflicts with its existing order', async () => {
+it('reconciles a permanently lost create through matching history without clearing an unrelated intent', async () => {
   const f = fixture()
-  let release!: (order: PlatformOrder) => void
+  let loseOriginal!: (error: Error) => void
   let rejectStale!: (error: Error) => void
   f.createOrder
     .mockImplementationOnce(
       () =>
-        new Promise(resolve => {
-          release = resolve
+        new Promise((_, reject) => {
+          loseOriginal = reject
         })
     )
     .mockImplementationOnce(
@@ -145,6 +146,8 @@ it('keeps a competing unknown create recoverable when a correction conflicts wit
   const firstWindow = f.mount()
   await f.submit('20')
   await waitFor(() => expect(f.createOrder).toHaveBeenCalledTimes(1))
+  const originalId = f.createOrder.mock.calls[0][0].client_order_id
+  Object.assign(f.order, { client_order_id: originalId, requested_amount: '20', status: 'CANCELLED' })
   firstWindow.unmount()
   const staleWindow = f.mount()
   fireEvent.click(await screen.findByRole('button', { name: 'Recover original order' }))
@@ -161,11 +164,33 @@ it('keeps a competing unknown create recoverable when a correction conflicts wit
   const restored = f.mount()
   await screen.findByRole('button', { name: 'Recover original order' })
   expect(screen.queryByRole('textbox')).toBeNull()
-  await act(async () => release(f.order))
+  await act(async () => loseOriginal(failure('network_error')))
   restored.unmount()
-  f.mount()
+
+  // Viewing another terminal order must not retire the conflicted original intent.
+  f.getOrder.mockResolvedValueOnce({ ...f.order, order_id: '432', client_order_id: crypto.randomUUID() })
+  const unrelated = f.mount('432')
+  fireEvent.click(await screen.findByRole('button', { name: 'New recharge' }))
+  await f.submit('30')
+  await screen.findByRole('button', { name: 'Recover original order' })
+  expect(f.createOrder).toHaveBeenCalledTimes(4)
+  unrelated.unmount()
+
+  const history = f.mount(f.order.order_id)
   await screen.findByText(f.order.out_trade_no)
+  history.unmount()
+  f.mount()
+  fireEvent.click(await screen.findByRole('button', { name: 'New recharge' }))
+  f.createOrder.mockImplementationOnce(async input => ({
+    ...f.order,
+    order_id: '433',
+    client_order_id: input.client_order_id,
+    out_trade_no: 'next-merchant-order'
+  }))
+  await f.submit('30')
+  await screen.findByText('next-merchant-order')
   const requests = f.createOrder.mock.calls.map(([input]) => input)
-  expect(requests.map(input => input.amount)).toEqual(['20', '20', '20', '10'])
-  expect(new Set(requests.map(input => input.client_order_id)).size).toBe(1)
+  expect(requests.map(input => input.amount)).toEqual(['20', '20', '20', '10', '30'])
+  expect(new Set(requests.slice(0, 4).map(input => input.client_order_id)).size).toBe(1)
+  expect(requests[4].client_order_id).not.toBe(originalId)
 })
