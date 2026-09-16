@@ -115,6 +115,7 @@ async function signInForThisSession(page: Page, api: Awaited<ReturnType<typeof s
 
   if (remaining > 0) { await page.waitForTimeout(Math.min(remaining, 60_000)) }
   await page.getByRole('button', { name: 'Send code', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Verification code', exact: true })).toBeVisible()
   const requestedAt = Date.now()
   const code = await api.control<{ code: string }>('code')
   expect(/^\d{6}$/.test(code.code)).toBe(true)
