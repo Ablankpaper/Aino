@@ -279,3 +279,45 @@ Result: 4 files passed, 230 tests passed. Scoped ESLint, Prettier, and `git diff
 After the controller completed the concurrent billing-history module, `npm run typecheck` passed all renderer, Electron, and E2E TypeScript projects. Billing, shared-contract, Electron, package, and i18n files were not staged or modified by this fix.
 
 The remaining B6 limitations are unchanged.
+
+## Captured-send boundary correction
+
+Code commit: `52ec689c98` (`fix(desktop): capture first-send model intent before async resolution`).
+
+This supersedes the round-two flight gate and round-three UI-refresh injection. Manual sends now capture model, provider, platform owner, effort, fast mode and owner route before any awaited work. A later manual pick remains available for the next create. Manual sends never call or await default/catalog resolution.
+
+The shared `resolveModelDefault()` resolves backend and Aino fallback defaults without mutating composer state. Both model-control refresh and session creation use this resolver. Creation initiates resolution itself for default/empty provenance, including reload before passive effects and a saved default while a live footer still paints the previous model. Ordinary backend defaults remain omitted from create overrides; a resolved Aino fallback carries its managed identity.
+
+Captured-default validation fails before create/submit if the existing composer intent generation changes. Manual picks, saved-default changes and owner rescoping advance this generation. The resolver also fences account/revision and saved Aino-default changes and rejects an unavailable signed-in fallback. Draft text and attachments remain recoverable with an error notification. No authorization proof is persisted; the now-unused transient proof atom and global flight set were removed entirely.
+
+`getGlobalModelInfo()` now accepts the existing `ProfileScope` and uses `capabilityScoped()` so a captured local/remote owner wins over the ambient API connection. Existing bare-profile callers remain supported. Primary and split creates use the same captured-selection function.
+
+### RED and GREEN
+
+Before production edits:
+
+```bash
+cd apps/desktop
+npm run test:ui -- src/app/session/hooks/use-session-actions.test.tsx \
+  -t 'captures manual A|keeps the draft recoverable'
+```
+
+All four regression rows failed: the manual create used B/low/fast=true instead of the submitted A/high/fast=false; changes during default validation still emitted create and attempted file attachment.
+
+After the correction, the manual test additionally verifies the subsequent create uses B. The three captured-default rows verify no create/submit, unchanged draft and attachments, and an error notification. The real reload create -> ticket -> bind -> one prompt and saved-live-default cases remain covered. The latter fixture now returns the actually saved BYOK default from the authoritative backend read.
+
+Verification:
+
+```bash
+npm run test:ui -- src/app/session/hooks/use-session-actions.test.tsx \
+  src/app/session/hooks/use-model-controls.test.tsx src/store/session.test.ts \
+  src/app/contrib/surfaces.test.tsx src/api/models.test.ts
+```
+
+Four renderer suites passed (234 tests); the newly added API fixture initially lacked a desktop bridge. After supplying its native API stub, `npm run test:ui -- src/api/models.test.ts` passed 2/2, covering captured local and remote owners against a different ambient connection. Earlier focused session/model/store validation passed 233/233.
+
+Scoped ESLint passed after formatting fixes, Prettier check passed, and `git diff --check` passed. Full typecheck is intentionally delegated to the controller's combined C4/B6 gate to avoid racing or duplicating concurrent C4 verification.
+
+Owned files: `src/api/models.ts`, `src/api/models.test.ts`, `src/lib/model-default.ts`, `src/app/contrib/wiring.tsx`, `src/app/session/hooks/use-model-controls.ts`, its test, `src/app/session/hooks/use-session-actions/index.ts`, its test, and `src/store/session.ts` (all under `apps/desktop/`). No billing, Electron, shared contract, locale, package or API-repository changes were staged. No production, paid requests, push or merge operations were performed.
+
+This completes only the captured-send correction. The previously listed remaining B6 slices, especially account-scoped draft/history policy, switch rollback/busy policy, capability gating and native acceptance, are still outstanding.
