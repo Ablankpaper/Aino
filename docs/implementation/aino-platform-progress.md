@@ -25,6 +25,7 @@
 - 会话创建、拆分会话和恢复提交沿现有 owner socket 完成平台绑定；平台模型不写入 BYOK 全局配置，账户切换会使旧目录结果失效。
 - 修复目录请求在同一账户刷新快照后被误丢弃而长期 loading 的竞态；平台选择状态和 wire model ID 分离，避免 session.info 覆盖目录选择。
 - 定向 UI 回归：11 个测试文件、193 项通过；类型检查和生产构建通过。完整 UI/Electron 门禁、真实模型 HTTP/扣费仍由后续 B6/D 验收完成。
+- 追加门禁核对：Electron 平台测试 164 文件/2,247 项通过；完整 UI 运行到既有 `summary-layout.test.ts` 30 秒超时和 `local-models-settings.test.tsx` quickstart 断言失败（另有 terminal-layout 2 项跳过），未将其误报为 B6 回归。
 
 ## 2026-09-15 续作核验
 
