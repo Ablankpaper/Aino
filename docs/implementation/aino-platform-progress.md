@@ -4,7 +4,17 @@
 **执行者：** Claude Code（前期）与 Codex（复核及续作）
 **总计划：** [implementation-plan.md](/Users/zizimutou/Protect/Aino/docs/aino-platform/implementation-plan.md)
 
-## 最新接续状态（2026-09-17，优先于下方历史记录）
+## 本轮第 1、2 项完成记录（2026-09-17，优先于历史章节）
+
+第 1 项已完成本地诊断与修复：`9cb574c2dd` 修复首次建库与零库隔离的竞态。实际 SQLite VFS 捕获了活库被换 inode、同一 SHM 的 32 KiB 活跃映射被缩到 3 字节；修复后定向观测为 0 次错误隔离、0 次 SHM 缩短。未自然复现历史 SIGBUS，无法追溯原 fault inode。新较广 Python 回归为 18,593 通过、1 失败、209 跳过，无 SIGBUS；唯一 LSP 测试清理失败由测试 guard 修复 `0eca169be6` 后以 41 项定向验证关闭，原整套结果仍记录 exit 1。见[SQLite 修复报告](aino-platform-sqlite-recovery-20260917.md)。
+
+第 2 项两条隔离原生切片已分别通过：[并发刷新／退出](aino-platform-account-concurrency-20260917.json) 27.0 秒，验证双窗口刷新与退出单飞、退出响应前清除原会话授权、晚到刷新被拒绝、旧租约 401 且无额外消费；[断网／撤销恢复](aino-platform-account-recovery-20260917.json) 76.278 秒（外层命令），验证同一身份保留、账户 Retry 与钱包显式 Refresh 恢复、真实会话撤销拒绝原推理且无消费、重新登录不自动重放，下一次主动发送才新增两条用量。外部供应商均为 loopback 替身，真实业务运行在 Electron、Python Agent、API、隔离 PostgreSQL/Redis；双窗口提示、秘密与网络审计均通过。
+
+本轮还修复了实际验收发现的两个界面问题：`28f5f37f48` 让菜单订阅真实连接身份，`d0d6ebe038` 防止离线及恢复加载期间引导遮挡账户操作。后者 13 项定向测试、类型/lint 与独立复核通过。完整 UI 在前者上为 7,982 通过、1 失败；测试专用 `246cffe9b2` 修正同毫秒消息排序假设后，115 项定向验证通过。没有将两套广泛运行改写为全绿。准确源码、失败及后续关闭证据见[本轮验证回执](aino-platform-account-edges-validation-20260917.json)。
+
+配对来源：并发场景业务构建 `246cffe9b2`，恢复场景业务构建 `d0d6ebe038`／E2E `62d3507b24`，API 夹具 `6ce52d674`（生产 API 仍为 `acc7fc760`）。两个构建各 395 个 dist 文件，步骤均 exit 0，哈希分别保存；本轮未产生安装包，未推送、部署或调用真实收费服务。正常签名发行、多平台／远程、其余长时矩阵和真实供应商仍是后续独立门禁。
+
+## 前次接续状态（历史，原证据归属保留）
 
 本次接续已完成两条独立隔离验收：工作区工具/默认工作区返回/双窗口/隐藏恢复于 `8e8699e4b1` 构建通过（1 项、22.5 秒），[回执](aino-platform-workspace-acceptance-20260917.json)记录同账户、独立后台、两条用量及余额 `10.00000000 → 9.99980000`，扣费 `0.0002 USD` 与账本一致，网络和落盘审计通过。另一次桌面充值后网站独立登录通过（1 项、1.3 分钟），[回执](aino-platform-cross-client-recharge-20260917.json)记录一笔订单、一次支付调用、重复签名回调只入账一次、余额 `10.00 → 12.80 USD`，两端账户与余额一致，模型调用和用量均为零。供应商仍为本地替身，没有真实短信、模型消费或支付。
 
@@ -12,7 +22,7 @@
 
 两条原生切片的源码分开记录：工作区实际构建为 `8e8699e4b1`，跨端充值实际业务构建为 `0eace11bfc`，其回执中的 `3300447627` 是运行时 checkout HEAD；两者均使用 API 测试夹具 `a5f720aa8`（API 业务 `acc7fc760`）。跨端充值不作为后续 renderer 修复的运行证据。完整 UI 与清理修复结果汇总见[接续验证回执](aino-platform-continuation-validation-20260917.json)。
 
-最终开发构建对应业务 `3517ccfd3b` / API `a5f720aa8`，E2E 夹具已提交为 `855edc2e1d`。renderer Vite（外层 11.142 秒）、显式 Electron tsc、main/preload `--dev` 打包、native deps staging 和 dist 完整性检查均 exit 0；395 个 dist 文件的清单与日志哈希见接续验证回执。这是开发构建，没有生成新安装包或重跑原生验收。
+前次开发构建对应业务 `3517ccfd3b` / API `a5f720aa8`，E2E 夹具已提交为 `855edc2e1d`。renderer Vite（外层 11.142 秒）、显式 Electron tsc、main/preload `--dev` 打包、native deps staging 和 dist 完整性检查均 exit 0；395 个 dist 文件的清单与日志哈希见接续验证回执。这是开发构建，没有生成新安装包或重跑原生验收。
 
 ### 接续前检查点（历史）
 
@@ -23,21 +33,21 @@
 | 范围 | 当前事实 | 剩余工作 |
 | --- | --- | --- |
 | A、B1–B5 | 已有本地实现/分层集成证据保留 | 真实短信/付费模型、多平台验收不冒充通过 |
-| B6 首次发送、作用域与账户草稿 | `8e8699e4b1` 完整 UI 7,979 项通过；原生首发、历史/BYOK，以及新工作区工具、回默认、双窗口账户/钱包一致与隐藏恢复均有对应成功切片 | 清理修复 `3517ccfd3b` 已定向通过并获独立批准；异常、并发刷新/退出、远程等矩阵条件未全部覆盖 |
+| B6 首次发送、作用域与账户草稿 | 历史首发、工具、工作区、双窗口和隐藏恢复保留；本轮 E28 并发刷新／退出与 E29 断网／撤销恢复原生通过；菜单及离线引导缺陷修复 | 远程、其他模型错误分支及正式能力矩阵仍未全部覆盖 |
 | C1–C3 | 账本查询、回合对账、幂等订单本地实现/复核完成；Agent → API 账本 → 原生充值与充值后网站独立登录核对均通过 | 真实供应商扣费、正式逐模型账单与真实支付仍待验收 |
 | C4 原生订单 | `789d9ddc5a`、`53a3597384`：安全 quote/create/get/list/cancel/openCheckout 和范围校验，复核通过 | 不代表真实渠道支付验收 |
 | C4 充值界面与设备 | `0922f1ce50` 充值/订单恢复/历史，`a52a047f26` 设备管理；恢复/费用来源修复已复核；隔离原生充值与双端到账一致通过 | 其余原生异常、真实设备与真实渠道验证待完成 |
 | D API/站点质量 | `308aa7725` Go 契约/lint 修复；`19c43905f` Stripe 分块行为测试；unit 56 包通过、lint 0 issues，站点 286 文件/2,139 项通过；独立复核通过 | 最终生成物/构建及真实跨仓库门禁需对应最终树 |
-| D Python 夹具 | 四目录回归 18,572 通过；三项断言失败已修复并通过 29 项定向回归与独立复核；TTFB 在原有时限通过 | 1 文件整套运行时 Bus error 未复现、未根治，不把整套标全绿 |
-| D1 API 真实内部闭环与升级 | 内部闭环、pre-239 升级、兼容回退/保留回调/隔离备份恢复保留；核心原生、工作区扩展及充值后网站核对三条切片通过 | 生产备份截止点及矩阵其余异常/远程/并发条件未验收 |
-| D 完整验收与部署准备 | 操作单、矩阵、分层证据及最终开发构建 `3517ccfd3b`/395 文件清单已整理；完整 UI 7,979 项、cleanup 124 项和独立复核均有精确来源 | 正常签名发行制品/启动、Python SIGBUS、其余原生场景、多平台与真实服务未完成 |
+| D Python 夹具 | E26 因果修复后较广 18,593 通过／1 失败／209 跳过，无 SIGBUS；测试 guard 修复后另 41 项通过 | 保留原 exit 1 与后续定向证据，不宣称整套单命令全绿 |
+| D1 API 真实内部闭环与升级 | 历史内部闭环、升级、兼容回退与备份恢复保留；核心、工作区、跨端充值和本轮两条账户原生切片通过 | 生产备份截止点、其余异常／远程与长时场景未验收 |
+| D 完整验收与部署准备 | E26–E30 本轮源码、失败／修复、两条成功原生切片和两个 395 文件开发构建已记录；旧证据保持归属 | 正常签名发行、其余原生／多平台／远程与真实服务未完成 |
 
 历史修复与本轮诊断证据（原运行结果保留，当前状态以上方为准）：
 
 - 网站独立真实手机号登录/余额 UI 在 `/private/tmp/aino-website-refreshed-TwPE3S/` 通过：1 项、37.6 秒、exit 0，实际 Vue 页面余额 10.00 与隔离账本一致，浏览器上下文 HTTP/WS 外连拒绝计数均 0。API 测试夹具补齐真实鉴权 `auth/me`，提交 `a5f720aa8`；不是修改生产余额。见[网站独立回执](aino-platform-website-acceptance-20260917.json)。
 - 工作区引导错误已提交 `0eace11bfc`：以 `$activeGatewayRoute` 和实际 gateway connection 查询能力，不再使用界面 `local` 别名误查 profile-only socket；未知能力仍拒绝、手动引导保留、不写伪 BYOK 设置。RED 1 失败/2 通过，修复后 8 项聚焦测试、类型/lint 与独立复核通过。新构建 `/private/tmp/aino-native-onboarding-fixed-9OPrtN/` 已确认切入新工作区后聊天首页可用、同账户同余额；随后 ENOENT 停在测试自己的 guard 标记路径检查（启动时写 root HOME，不是 CLI 后来切到的 profile HOME），未发出该工作区模型请求。该次扩展原生整体 exit 1，后半段不记通过。
 - 历史完整 UI 超时：`/private/tmp/aino-workspace-onboarding-fixed-iMxxR2/ui.log` 一次 300 秒超时、exit 143 / `ETIMEDOUT`，没有完整最终计数。四个超时/失败文件仅定向单 worker 复查一次，20 项通过、14.06 秒；三个 TS 配置、renderer 构建（12.86 秒）和开发 main 打包通过。没有证据将失败归因于引导修复或仅环境因素，不把局部绿灯写成全量通过，不重复空跑。
-- **D2 定向诊断：** 已将 Python fault 定位到 SQLite WAL 调用栈内的文件映射 page-in past EOF；单次带时序实验没有复现 SIGBUS，并排除了逐 fixture 删除临时目录的解释。实际映射文件与导致越过 EOF 的操作/actor 仍未知，不预设发生了 truncate，不修改 WAL/生产启动或跳过测试来冒充根治。打包 A/B 仅证明外层 `sandbox-exec` 下的交互差异，没有证明普通安装的源码缺陷；正常默认沙箱、最新签名/公证包仍待验证。详见[本地发行门禁记录](aino-platform-local-release-gates.md)。
+- **D2 首轮定向诊断（历史）：** 已将 Python fault 定位到 SQLite WAL 调用栈内的文件映射 page-in past EOF；单次带时序实验没有复现 SIGBUS，并排除了逐 fixture 删除临时目录的解释。该阶段实际映射文件与操作/actor 未知；后续真实 VFS 已确认错误换库及活跃 SHM 缩短，见 E26。首轮不预设发生了 truncate，不修改 WAL/生产启动或跳过测试来冒充根治。打包 A/B 仅证明外层 `sandbox-exec` 下的交互差异，没有证明普通安装的源码缺陷；正常默认沙箱、最新签名/公证包仍待验证。详见[本地发行门禁记录](aino-platform-local-release-gates.md)。
 - **历史核心原生完整用例通过：** `/private/tmp/aino-native-final-verified-Os7n6L/`；API 证据 `aino-native-api-9efh0G`；run ID `9a5ab036-5dcb-47fb-a470-f27965c7e3e9`。测试时 HEAD 为 `3e62f7803d`＋已记录 test-only diff，该精确代码随后提交为 `32c0ca8eae`。367 个 dist 文件逐一匹配 `aae34d629b` 的固定构建，未重构生产代码；tsc/lint exit 0，原生 1/1、2.4 分钟、exit 0，API exit 0，测试容器清理完成。两次工具往返共四次调用，加停止回合一次调用，共 5 usage/3 turn；一笔充值仅加款一次；第三次启动 BYOK 成功回复且平台余额/用量不增加。重启使用新随机短信重新认证，不冒充记住登录自动恢复。
 - **夹具审计修正：** 保留 `onBeforeRequest` 早期拒绝，启动前被动观测字体请求，按主进程核对候选/无鉴权头无请求体 GET 样式表；host-only marker，不保存字体 URL query。类型/lint 及 3/3 guard/小数合同通过；独立窄审阅发现的过晚拦截/监听器覆盖已修正，随后补齐可缺省 type 和观察器失效处理，由 root 复核。前次原生在 BYOK 选择器超时，截图确认可见名为 `Mock Model` 而非内部 ID `mock-model`，仅修测试定位后复验成功。历史失败保留于 `/private/tmp/aino-native-final-20260917/`。详见[审计说明](native-font-denial-report.md)。
 

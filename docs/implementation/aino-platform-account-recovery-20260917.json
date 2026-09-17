@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "scope": "Isolated native offline and revoked authorization recovery. Account Retry and wallet explicit Refresh are separate visible user actions; suppliers are loopback substitutes.",
+  "business_build_source": "d0d6ebe0383046f8c6f5e06f4371f1f09e1f62ab",
+  "scenario_result": {
+    "passed": true,
+    "reported_duration": "1.3m",
+    "duration_seconds": 76.278,
+    "duration_source": "outer_command"
+  },
+  "command_result": {
+    "command": "../../node_modules/.bin/playwright",
+    "args": [
+      "test",
+      "e2e/platform-account-model-billing.spec.ts",
+      "-g",
+      "native account edges: offline and revoked authorization recovery",
+      "--workers=1",
+      "--retries=0",
+      "--max-failures=1",
+      "--reporter=list",
+      "--output=/private/tmp/aino-native-edges-xNeBQs/playwright"
+    ],
+    "exit": 0,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 76278
+  },
+  "original_receipt": {
+    "path": "/private/tmp/aino-native-edges-xNeBQs/playwright/platform-account-model-bil-995bf-oked-authorization-recovery/native-account-edge-receipt.json",
+    "sha256": "348e87f7a6c2aa263ba7db1e3b344b79a63cb61017284327a30a93292fe24a9d"
+  },
+  "receipt": {
+    "scenario": "offline and revoked authorization recovery",
+    "run_id": "506ebc9c-c968-472e-8b1a-608bed2a7c95",
+    "source": {
+      "aino": "62d3507b24f7c7eb9ad32d78aeff8fa58cd0608a",
+      "api": "6ce52d67489b71139997caf91f2036bd30fe2b4b"
+    },
+    "proof": {
+      "offline_identity_preserved": true,
+      "explicit_retry_recovers": true,
+      "explicit_wallet_refresh_recovers": true,
+      "original_inference_revoked": true,
+      "no_automatic_paid_replay": true,
+      "retired": {
+        "error_code": "DESKTOP_CREDENTIAL_REVOKED",
+        "http_status": 401,
+        "revoked": true
+      },
+      "before": {
+        "model_calls": 2,
+        "usage_calls": 2,
+        "tool_results": 1,
+        "balance": "9.99980000"
+      },
+      "denied": {
+        "model_calls": 2,
+        "usage_calls": 2,
+        "tool_results": 1,
+        "balance": "9.99980000"
+      },
+      "recovered": {
+        "model_calls": 4,
+        "usage_calls": 4,
+        "tool_results": 2,
+        "balance": "9.99960000"
+      },
+      "faults": {
+        "profile_401_for_current_access": false,
+        "offline": false,
+        "hold_refresh_response": false,
+        "hold_logout_response": false,
+        "hold_inference_before_auth": false,
+        "profile_calls": 5,
+        "profile_401s": 0,
+        "network_drops": 3,
+        "refresh_started": 0,
+        "refresh_completed": 0,
+        "refresh_waiting": 0,
+        "refresh_responses": 0,
+        "logout_started": 1,
+        "logout_completed": 1,
+        "logout_waiting": 0,
+        "logout_responses": 1,
+        "credential_requests": 5,
+        "credential_successes": 5,
+        "inference_requests": 5,
+        "inference_waiting": 0,
+        "inference_responses": 5,
+        "gate_timeouts": 0,
+        "gate_cancellations": 0,
+        "gate_shutdowns": 0,
+        "session_revocations": 1,
+        "retired_lease_available": true,
+        "retired_lease_http_status": 0,
+        "retired_lease_error_code": ""
+      }
+    },
+    "rendererAudits": [
+      {
+        "checked_credentials": 10,
+        "leaked": false
+      },
+      {
+        "checked_credentials": 10,
+        "leaked": false
+      }
+    ],
+    "persistedAudit": {
+      "leaked": false,
+      "checked_credentials": 10,
+      "batches": 4,
+      "audited_bytes": 28057467
+    },
+    "transport": {
+      "blocked_before_transport": true,
+      "denied_public_font_hosts": [
+        "fonts.googleapis.com",
+        "fonts.googleapis.com"
+      ]
+    }
+  }
+}

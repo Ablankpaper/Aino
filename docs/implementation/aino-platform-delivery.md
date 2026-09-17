@@ -1,6 +1,16 @@
 # Aino 平台接入交付报告
 
-## 本次接续（优先于后文历史检查点）
+## 本轮第 1、2 项完成记录（2026-09-17，优先于历史章节）
+
+第 1 项已完成本地诊断与修复：`9cb574c2dd` 修复首次建库与零库隔离的竞态。实际 SQLite VFS 捕获了活库被换 inode、同一 SHM 的 32 KiB 活跃映射被缩到 3 字节；修复后定向观测为 0 次错误隔离、0 次 SHM 缩短。未自然复现历史 SIGBUS，无法追溯原 fault inode。新较广 Python 回归为 18,593 通过、1 失败、209 跳过，无 SIGBUS；唯一 LSP 测试清理失败由测试 guard 修复 `0eca169be6` 后以 41 项定向验证关闭，原整套结果仍记录 exit 1。见[SQLite 修复报告](aino-platform-sqlite-recovery-20260917.md)。
+
+第 2 项两条隔离原生切片已分别通过：[并发刷新／退出](aino-platform-account-concurrency-20260917.json) 27.0 秒，验证双窗口刷新与退出单飞、退出响应前清除原会话授权、晚到刷新被拒绝、旧租约 401 且无额外消费；[断网／撤销恢复](aino-platform-account-recovery-20260917.json) 76.278 秒（外层命令），验证同一身份保留、账户 Retry 与钱包显式 Refresh 恢复、真实会话撤销拒绝原推理且无消费、重新登录不自动重放，下一次主动发送才新增两条用量。外部供应商均为 loopback 替身，真实业务运行在 Electron、Python Agent、API、隔离 PostgreSQL/Redis；双窗口提示、秘密与网络审计均通过。
+
+本轮还修复了实际验收发现的两个界面问题：`28f5f37f48` 让菜单订阅真实连接身份，`d0d6ebe038` 防止离线及恢复加载期间引导遮挡账户操作。后者 13 项定向测试、类型/lint 与独立复核通过。完整 UI 在前者上为 7,982 通过、1 失败；测试专用 `246cffe9b2` 修正同毫秒消息排序假设后，115 项定向验证通过。没有将两套广泛运行改写为全绿。准确源码、失败及后续关闭证据见[本轮验证回执](aino-platform-account-edges-validation-20260917.json)。
+
+配对来源：并发场景业务构建 `246cffe9b2`，恢复场景业务构建 `d0d6ebe038`／E2E `62d3507b24`，API 夹具 `6ce52d674`（生产 API 仍为 `acc7fc760`）。两个构建各 395 个 dist 文件，步骤均 exit 0，哈希分别保存；本轮未产生安装包，未推送、部署或调用真实收费服务。正常签名发行、多平台／远程、其余长时矩阵和真实供应商仍是后续独立门禁。
+
+## 前次接续状态（历史，原证据归属保留）
 
 本次接续已完成两条独立隔离验收：工作区工具/默认工作区返回/双窗口/隐藏恢复于 `8e8699e4b1` 构建通过（1 项、22.5 秒），[回执](aino-platform-workspace-acceptance-20260917.json)记录同账户、独立后台、两条用量及余额 `10.00000000 → 9.99980000`，扣费 `0.0002 USD` 与账本一致，网络和落盘审计通过。另一次桌面充值后网站独立登录通过（1 项、1.3 分钟），[回执](aino-platform-cross-client-recharge-20260917.json)记录一笔订单、一次支付调用、重复签名回调只入账一次、余额 `10.00 → 12.80 USD`，两端账户与余额一致，模型调用和用量均为零。供应商仍为本地替身，没有真实短信、模型消费或支付。
 
@@ -8,7 +18,7 @@
 
 两条原生切片的源码分开记录：工作区实际构建为 `8e8699e4b1`，跨端充值实际业务构建为 `0eace11bfc`，其回执中的 `3300447627` 是运行时 checkout HEAD；两者均使用 API 测试夹具 `a5f720aa8`（API 业务 `acc7fc760`）。跨端充值不作为后续 renderer 修复的运行证据。完整 UI 与清理修复结果汇总见[接续验证回执](aino-platform-continuation-validation-20260917.json)。
 
-最终开发构建对应业务 `3517ccfd3b` / API `a5f720aa8`，E2E 夹具已提交为 `855edc2e1d`。renderer Vite（外层 11.142 秒）、显式 Electron tsc、main/preload `--dev` 打包、native deps staging 和 dist 完整性检查均 exit 0；395 个 dist 文件的清单与日志哈希见接续验证回执。这是开发构建，没有生成新安装包或重跑原生验收。
+前次开发构建对应业务 `3517ccfd3b` / API `a5f720aa8`，E2E 夹具已提交为 `855edc2e1d`。renderer Vite（外层 11.142 秒）、显式 Electron tsc、main/preload `--dev` 打包、native deps staging 和 dist 完整性检查均 exit 0；395 个 dist 文件的清单与日志哈希见接续验证回执。这是开发构建，没有生成新安装包或重跑原生验收。
 
 状态：本地已验证切片已汇总，尚未达到正式发行或上线条件。最新核对日期 2026-09-17。[逐项验收矩阵](aino-platform-acceptance-matrix.md)记录各自源码、结果与未覆盖条件；清理修复 `3517ccfd3b` 的定向测试和复核已完成，最终开发构建和配对来源已记录，正式签名发行制品尚未验收。
 
@@ -20,7 +30,7 @@
 
 ## 实际安装包边界
 
-最新只读核验与 Python 单次定向诊断见[本地发行门禁记录](aino-platform-local-release-gates.md)。原生 SQLite fault 边界已定位，实际映射文件与导致越过 EOF 的操作/actor 未确认；不能将该诊断写为修复成功。默认打包启动的现有失败只发生在 D2 外层 `sandbox-exec` 包装下，没有足够证据修改 macOS 生产 sandbox 策略。
+最新只读核验与 Python 单次定向诊断见[本地发行门禁记录](aino-platform-local-release-gates.md)。SQLite 后续已确认并修复活库换代／SHM 缩短竞态，回归与历史 fault inode 的证据边界见 E26；该结论不改变下述安装包限制。默认打包启动的现有失败只发生在 D2 外层 `sandbox-exec` 包装下，没有足够证据修改 macOS 生产 sandbox 策略。
 
 产物：`/private/tmp/aino-d2-packaged-2KZLA5/artifact/mac-arm64/Aino.app`；源代码 `6e442f68a7`。生产构建和 builder 均 exit 0。初次默认启动在测试外层 sandbox-exec 下发生 Electron Helper 沙箱初始化崩溃；有界诊断后的受限烟测显式使用 `--no-sandbox`，外层 OS 非本地网络、个人凭据读取和 security 执行禁止仍有真实探测证明。
 
@@ -30,8 +40,8 @@
 
 | 仓库 | 分支 | 本次恢复基线 | 最新已核对提交 |
 | --- | --- | --- | --- |
-| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | 最终业务/开发构建 `3517ccfd3b`，E2E 夹具 `855edc2e1d`；完整 UI/工作区原生 `8e8699e4b1`；跨端充值业务 `0eace11bfc`（checkout `3300447627`），各项证据分开记录 |
-| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `a5f720aa8`（补齐测试夹具真实 `auth/me` 路由）；业务仍为 `acc7fc760`，生产 API 未变 |
+| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | 当前业务构建 `d0d6ebe038`，E2E `62d3507b24`；并发原生 `246cffe9b2`。UI/Python/原生每条结果均保留独立源码 |
+| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `6ce52d674`（测试夹具）；生产 API 仍为 `acc7fc760`，无新迁移 |
 
 当前 A1–A6、B1–B5、C1–C4 本地实现与已有复核保留；B6 主流程和 D1 现有原生用例已获得复验。D1–D4 完整矩阵仍有未验收条件，不能用单条成功路径全选通过。两仓库没有推送、合并 main、部署生产或进行真实短信、付费模型和支付调用。
 
@@ -43,13 +53,13 @@
 
 | 范围 | 实际结果 | 证据/限制 |
 | --- | --- | --- |
-| 当前完整 UI 已验证切片 | `8e8699e4b1`：874 文件/7,979 项通过、exit 0；Vitest 354.69 秒，外层命令 355.49 秒 | `/private/tmp/aino-ui-final-continuation-hMD5xI/{ui.log,ui-exit.json}`；后续清理修复的独立定向证据见 E24 |
+| 前次完整 UI 全绿切片（历史） | `8e8699e4b1`：874 文件/7,979 项通过、exit 0；Vitest 354.69 秒，外层命令 355.49 秒 | `/private/tmp/aino-ui-final-continuation-hMD5xI/{ui.log,ui-exit.json}`；后续清理修复的独立定向证据见 E24 |
 | 前次完整 UI（历史检查点） | `aae34d629b`：874 文件/7,973 项通过，107.91 秒、exit 0 | `/tmp/aino-ui-final-aae34d629b.{log,exit.json}`；更新的完整 UI 结果见上一行 |
 | 工作区引导修复 | `0eace11bfc`：真实 store/component RED→GREEN，8 项聚焦测试、类型/lint 和独立复核通过 | `/private/tmp/aino-native-onboarding-fixed-9OPrtN/` 新构建切换后聊天首页可用；扩展原生 exit 1 于 guard 路径检查，不是完整工作区验收 |
 | 网站独立登录/余额 | Aino E2E helper / API `a5f720aa8`：1 项、37.6 秒、exit 0 | [受控回执](aino-platform-website-acceptance-20260917.json)；真实 Vue / JWT / 隔离账本，非充值后双端串联 |
 | 历史核心原生全流程 | `32c0ca8eae` / `ff00058c3` 对应被测夹具：1/1、2.4 分钟、exit 0，含重启历史/BYOK/最终秘密审计 | `/private/tmp/aino-native-final-verified-Os7n6L/`；平台 5 usage/0.0005 USD，BYOK 不增加平台消费；供应商是本地替身 |
 | 工作区原生独立切片 | 业务 `8e8699e4b1` / API `a5f720aa8`：1 项、22.5 秒、exit 0 | [回执](aino-platform-workspace-acceptance-20260917.json)；独立后台工具、返回默认、双窗口账户/钱包一致、隐藏恢复与秘密/网络审计 |
-| 最终开发构建 | 业务 `3517ccfd3b` / API `a5f720aa8`；renderer Vite 外层 11.142 秒，Electron tsc、main/preload `--dev`、stage-native-deps、assert-dist-built 均 exit 0 | [接续验证回执](aino-platform-continuation-validation-20260917.json)含日志哈希与 395 文件 dist 清单；E2E 夹具 `855edc2e1d`，非新安装包/新原生验收 |
+| 前次开发构建（历史） | 业务 `3517ccfd3b` / API `a5f720aa8`；renderer Vite 外层 11.142 秒，Electron tsc、main/preload `--dev`、stage-native-deps、assert-dist-built 均 exit 0 | [接续验证回执](aino-platform-continuation-validation-20260917.json)含日志哈希与 395 文件 dist 清单；E2E 夹具 `855edc2e1d`，非新安装包/新原生验收 |
 | 导航失败清理修复 | `3517ccfd3b`：2 项行为 RED → 3 文件/124 项通过，4.58 秒；三个 TS 配置/scoped lint 均通过 | 独立 `delivery_audit` APPROVED、唯一 P2 关闭；含真实 profile-rail 集成，见[接续验证回执](aino-platform-continuation-validation-20260917.json)；不将旧全量/原生结果改记到本提交 |
 | 充值后跨端独立切片 | 业务 `0eace11bfc` / API `a5f720aa8`：1 项、1.3 分钟、exit 0；checkout `3300447627` 单独记录 | [回执](aino-platform-cross-client-recharge-20260917.json)；一笔订单/一次支付，重复签名回调仅入账一次；桌面与独立网站均 12.80 USD，模型/usage 均 0 |
 | 前次原生停止、账本与充值 | `dc3f0812d1` / `ff00058c3`：三条 settled usage 合计 0.0003 USD；停止后真实断连与有限 drain；一次充值 2.8 USD、重复签名回调只履约一次，桌面余额与 API 均为 12.79970000 USD | `/private/tmp/aino-native-money-fixed-HiLLwQ/`；完整用例在随后字体拒绝审计失败，重启/BYOK 未执行，非真实付款 |
@@ -134,14 +144,14 @@ Ent 下载和缺失 go.sum 已解决，原锁定版本成功生成并提交实�
 | --- | --- | --- | --- |
 | 账户安全存储 | macOS，独立测试 userData，本地模拟平台 | 实际 OS 加密、私有文件权限、重启恢复、退出清除 | Windows/Linux、拒绝/锁定 Keychain、正式安装包 |
 | 手机登录 | 隔离 API/DB/Redis | 真实内部身份、认证、绑定、TOTP 与验证码消费链路 | 阿里云真实受理、送达、三网覆盖和正式人机验证 |
-| 平台模型 | 实际 Electron/Python/API＋隔离 PG/Redis | 工具、Stop、重启历史重绑定、BYOK 费用隔离、工作区工具/返回默认、双窗口账户钱包一致及隐藏恢复通过 | 原生异常/远程/并发刷新退出等剩余矩阵、正式模型扣费与能力覆盖 |
+| 平台模型 | 实际 Electron/Python/API＋隔离 PG/Redis | 工具、Stop、重启历史重绑定、BYOK 费用隔离、工作区工具/返回默认、双窗口账户钱包一致及隐藏恢复通过 | 其他原生异常、远程、正式模型扣费与能力覆盖；本轮并发／断网／撤销恢复见 E28/E29 |
 | 钱包充值 | 实际 Electron/API＋本地支付替身，以及独立 Vue 网站登录 | 原生报价/订单/签名回调一次入账、充值后桌面/API/网站账户与余额一致 | 真实支付宝/微信小额支付、真实退款与生产在途付款 |
 
 ## 待完成门禁
 
-1. 核心原生、工作区工具/回默认/双窗口账户钱包一致/隐藏恢复、充值后网站独立核对均已有成功切片；剩余异常、远程、多窗口并发刷新/退出等矩阵条件继续开放，不重跑无变更的成功用例。
+1. 核心原生、工作区工具/回默认/双窗口账户钱包一致/隐藏恢复、充值后网站独立核对均已有成功切片；本轮并发刷新／退出、断网与撤销恢复已补齐；其余异常、远程等矩阵条件继续开放，不重跑无变更的成功用例。
 2. 原生 BYOK 与平台费用隔离、平台账本显示已通过；混合辅助来源仍以已有分层测试为界，不外推真实供应商扣费。C1–C4 稳定切片不重复重写。
-3. `8e8699e4b1` 完整 UI 874 文件/7,979 项通过；清理修复 `3517ccfd3b` 另有 124 项定向测试、类型/lint 和独立批准，最终开发构建各步骤也已 exit 0。TTFB 原有 300 秒预算内 21 项通过，三项 Python 断言失败已修复并通过定向回归和复核；整套运行时 1 文件 SIGBUS 的实际映射文件及故障机制仍未确定，不标 Python 整套全绿。
+3. 本轮 SQLite 竞态修复、测试 guard 与同毫秒排序测试修正均已定向关闭并复核。完整 Python 18,593/1/209、UI 7,982/1 的实际失败回执仍保留，后续 41／115 项分别证明关闭对应失败；不宣称最终树单命令全绿。详见本轮验证回执。
 4. 正常发行包启动仍未验收：当前仅 `--no-sandbox` 配合外层 OS 限制的受限烟测通过；该 A/B 只证明外层测试隔离交互，不能断言普通安装的生产 sandbox 已有源码缺陷。最新签名/公证包须在默认 Chromium sandbox 下正常启动；生产备份截止点、真实渠道与生产回退未验证。
 5. 本地配对业务/夹具提交、开发构建清单、配置和部署回退说明已记录；正式发行制品与线上配置仍须按操作单核对，新增 SQL 保持 forward-only。
 6. 缺少外部材料或授权的项目列为人工验收项，完成其余本地开发；不盲目重复受阻命令。

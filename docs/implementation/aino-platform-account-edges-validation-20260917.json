@@ -1,0 +1,528 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "scope": "User-authorized local SQLite diagnosis/fix and native account edge acceptance; not formal release or real-supplier acceptance.",
+  "paired_api_source": "6ce52d67489b71139997caf91f2036bd30fe2b4b",
+  "sqlite": {
+    "fix": "9cb574c2dd2cac4ce461189cb0264da908e38bb3",
+    "report": "aino-platform-sqlite-recovery-20260917.md",
+    "broad_command": {
+      "source": "9610d77eed742336683edcfd63cdf1bbd264be44",
+      "command": "scripts/run_tests.sh",
+      "args": [
+        "tests/tui_gateway/",
+        "tests/agent/",
+        "tests/plugins/",
+        "tests/hermes_cli/",
+        "tests/run_agent/test_provider_fallback.py",
+        "tests/gateway/test_hosted_rooms_state_db_lifecycle.py",
+        "tests/gateway/test_delivery_ledger_fd_leak.py",
+        "tests/tools/test_async_delegation_fd_leak.py",
+        "-j",
+        "30",
+        "--file-timeout",
+        "300",
+        "--file-retries",
+        "0"
+      ],
+      "exit": 1,
+      "signal": null,
+      "timedOut": false,
+      "duration_ms": 335636,
+      "home": "/private/tmp/aino-python-current-EaGFFe/home"
+    },
+    "source_capture": {
+      "source": "9610d77eed742336683edcfd63cdf1bbd264be44",
+      "files": {
+        "gateway/delivery_ledger.py": "26bc8e23efaae837fb8780335e7e2ecb953c8881e5bbfac6850652869b27abb0",
+        "gateway/hosted_room_policy_checkpoint.py": "6b7939c8b385111cd65a9bc7bdd07ca70b1a1469fdcf163e5782e57aa3780342",
+        "gateway/hosted_rooms.py": "0fc330e582a60cf69447f6d359866665b898f2a10c33092ec208fb98ea7c123b",
+        "gateway/hosted_rooms_common.py": "f53bf79c7297408eecefe7feae6bb63d479bea860740e0be4b6c96acf1bb9ef9",
+        "gateway/lifecycle_ledger.py": "9b9cee26b31a6f8fd4f4d1f230603a2c1f45f8f943dd3f71bb4469a5413725cc",
+        "hermes_state_dbfile.py": "f723f51d9fba0159ddec14fb6a86b916cce70ed15e10c1eb81478fcf75168f5f",
+        "tests/gateway/test_delivery_ledger_fd_leak.py": "cbdecfe5765e1cb49707552f72b32286e0e298858f63c0a80aefa1cedb0822c0",
+        "tests/tools/test_async_delegation_fd_leak.py": "ef4342d3ba46034c810d7d1e47e90d59854b3c78e8ddc27d0bb3361fb038341d",
+        "tools/async_delegation.py": "dde6bb1d3013c2925afb99d06550e816589e9a8941d86f118291045b5c0859a3",
+        "tests/gateway/test_hosted_rooms_state_db_lifecycle.py": "96b3d03ee578d96f317bd39880a4ba56594ec309ec9ad5da88a32028ef462413"
+      }
+    },
+    "files": 1615,
+    "passed": 18593,
+    "failed": 1,
+    "skipped": 209,
+    "sigbus_observed": false,
+    "boundary": "Dangerous inode/SHM mechanism directly observed and fixed; historical fault inode cannot be reconstructed. Broad result remains exit 1; separate test-only guard closure is not a rewritten broad pass.",
+    "guard_fix": "0eca169be63e5304c1b4f74d87682019a612dcc7",
+    "guard_targeted": {
+      "files": 4,
+      "passed": 41,
+      "exit": 0,
+      "logs": [
+        {
+          "path": "/tmp/aino-lsp-guard-20260917/red.log",
+          "sha256": "d8af94adcbba9563a95b2b6b11a65fa906bc758af5ee69c643f4615db603f5db"
+        },
+        {
+          "path": "/tmp/aino-lsp-guard-20260917/green.log",
+          "sha256": "67f98fb55e77ff53f5c207d96aaf3da06bb6fc7e82ccbb0b8ce2c07c12baf181"
+        }
+      ]
+    }
+  },
+  "menu_reactivity": {
+    "fix": "28f5f37f482bfaa33225c76258064ba726cd9675",
+    "focused_files": 6,
+    "focused_passed": 33,
+    "renderer_types": "passed",
+    "scoped_eslint": "passed",
+    "independent_review": "no unresolved findings",
+    "boundary": "Focused/types/lint results were tool receipts, without saved raw log files. Both native scenarios selected a platform model on the repaired renderer; first failed attempt is retained separately.",
+    "original_native_failure": {
+      "command": {
+        "command": "../../node_modules/.bin/playwright",
+        "args": [
+          "test",
+          "e2e/platform-account-model-billing.spec.ts",
+          "-g",
+          "native account edges:",
+          "--workers=1",
+          "--retries=0",
+          "--max-failures=1",
+          "--reporter=list",
+          "--output=/private/tmp/aino-native-edges-sPuTEb/playwright"
+        ],
+        "exit": 1,
+        "signal": null,
+        "timedOut": false,
+        "duration_ms": 48241
+      },
+      "log": {
+        "path": "/private/tmp/aino-native-edges-sPuTEb/acceptance.log",
+        "sha256": "44a91ada82539701527fa35fa4cd72d35d38581aa65ac797ab6d499f6792dc18"
+      },
+      "boundary": "Old business build3517ccfd3b; model selection failed before the first tool request. Both edge scenarios remained unaccepted at that point."
+    }
+  },
+  "full_ui": {
+    "command": "npm",
+    "args": [
+      "run",
+      "test:ui",
+      "--",
+      "--maxWorkers=4"
+    ],
+    "source": "28f5f37f482bfaa33225c76258064ba726cd9675",
+    "exit": 1,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 269864,
+    "files_passed": 874,
+    "files_failed": 1,
+    "tests_passed": 7982,
+    "tests_failed": 1,
+    "vitest_duration_seconds": 269.12,
+    "logs": [
+      {
+        "path": "/private/tmp/aino-ui-final-continuation-99Y5sb/ui.log",
+        "sha256": "5d127eb909e10e3ac7008b073b649fdddfea8b4efd143396fa0c1aa14ed5502d"
+      },
+      {
+        "path": "/private/tmp/aino-ui-final-continuation-99Y5sb/ui-exit.json",
+        "sha256": "99fde83413ea32f6f1aa80702d251a3b2c89417df490e8366178f2e857f61495"
+      }
+    ],
+    "test_only_fix": "246cffe9b2819c9239060de2899ee5f9ede1932e",
+    "targeted_closure": {
+      "files": 3,
+      "passed": 115,
+      "duration_seconds": 1.24,
+      "logs": [
+        {
+          "path": "/private/tmp/aino-group-rounds-red.log",
+          "sha256": "c57876b3bfb81e93df334509fa3e8a6ea4c89623f929dfd306126477054ecf82"
+        },
+        {
+          "path": "/private/tmp/aino-group-rounds-green.log",
+          "sha256": "dc76d16a73dffd3f5947daa9c9f2fe7ca8cadc4b5468f9cb9087fbed2be638f6"
+        },
+        {
+          "path": "/private/tmp/aino-group-rounds-lint.log",
+          "sha256": "af7a52fb133875004a68763a8d476acd7ae5944e131474dd0fb1e56c1027ee23"
+        }
+      ]
+    },
+    "boundary": "Broad command stays failed. Equal-time merge ordering was deterministically reproduced; test now checks each message/reply belongs to its thread. No repeated full UI after test-only closure or later narrow onboarding fix."
+  },
+  "api_fault_fixture": {
+    "source": "6ce52d67489b71139997caf91f2036bd30fe2b4b",
+    "production_source": "acc7fc760",
+    "integration_contracts_passed": 2,
+    "duration_seconds": 3.375,
+    "pinned_lint_issues": 0,
+    "logs": [
+      {
+        "path": "/private/tmp/aino-native-fault-check.f8aSuz/red.log",
+        "sha256": "5d04052ae3107f0b0c892ebcb3ff1f1d893b25a74883aa1d499c34a49d11166a"
+      },
+      {
+        "path": "/private/tmp/aino-native-fault-check.f8aSuz/green.log",
+        "sha256": "cd679033769ae459172a3955a92a0a1288b4cdfa8fbefa9beddbf81bc8a275cb"
+      },
+      {
+        "path": "/private/tmp/aino-native-fault-check.f8aSuz/lint.log",
+        "sha256": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47"
+      }
+    ],
+    "boundary": "Nonce-protected test-only fault gates. Profile 401 and socket loss are injected; token rotation, logout, family revocation and API-key middleware are real. Disposable PostgreSQL/Redis and loopback suppliers only."
+  },
+  "native_concurrency": {
+    "receipt": "aino-platform-account-concurrency-20260917.json",
+    "scenario_passed": true,
+    "duration_seconds": 27.0,
+    "command": {
+      "command": "../../node_modules/.bin/playwright",
+      "args": [
+        "test",
+        "e2e/platform-account-model-billing.spec.ts",
+        "-g",
+        "native account edges:",
+        "--workers=1",
+        "--retries=0",
+        "--max-failures=1",
+        "--reporter=list",
+        "--output=/private/tmp/aino-native-edges-sVstr0/playwright"
+      ],
+      "exit": 1,
+      "signal": null,
+      "timedOut": false,
+      "duration_ms": 76880
+    },
+    "logs": [
+      {
+        "path": "/private/tmp/aino-native-edges-sVstr0/acceptance.log",
+        "sha256": "f7e9f91a528035df79976d5f075686e4f11f00e61f4317375bb972f60bb66d26"
+      },
+      {
+        "path": "/private/tmp/aino-native-edges-sVstr0/source.json",
+        "sha256": "ed6d6bcaf50a33d1af350ab460d956dc5ed39ea00723fe30b8c74c9fe19696ab"
+      },
+      {
+        "path": "/private/tmp/aino-native-edges-sVstr0/exit.json",
+        "sha256": "29545d59102421c921284104418fa63ed8acdf837d7b87f235ff97d41fca7be6"
+      }
+    ],
+    "boundary": "First scenario passed; second scenario in the same command failed when automatic BYOK onboarding covered account Retry."
+  },
+  "offline_onboarding": {
+    "fix": "d0d6ebe0383046f8c6f5e06f4371f1f09e1f62ab",
+    "focused_files": 4,
+    "focused_passed": 13,
+    "duration_seconds": 2.39,
+    "renderer_types": "passed",
+    "scoped_eslint": "passed",
+    "independent_review": "no unresolved findings",
+    "logs": [
+      {
+        "path": "/private/tmp/aino-offline-onboarding-red.log",
+        "sha256": "dc4aea836ea1be2c0f1455087d1f27062ff476d38d3951f2a79959c8e1f826e5"
+      },
+      {
+        "path": "/private/tmp/aino-offline-onboarding-reload-red.log",
+        "sha256": "945fdc629011207c5fa0e16eea959f126e79f1543c5d9e14fb9c05a9e5aa2d8f"
+      },
+      {
+        "path": "/private/tmp/aino-offline-onboarding-green.log",
+        "sha256": "45eab57087cabd5a049f67db092ec0ba064ef1d5eea6ef85a009ecb334ecf9f7"
+      },
+      {
+        "path": "/private/tmp/aino-offline-onboarding-types.log",
+        "sha256": "af7a52fb133875004a68763a8d476acd7ae5944e131474dd0fb1e56c1027ee23"
+      },
+      {
+        "path": "/private/tmp/aino-offline-onboarding-lint.log",
+        "sha256": "af7a52fb133875004a68763a8d476acd7ae5944e131474dd0fb1e56c1027ee23"
+      }
+    ],
+    "boundary": "Presentation-only retention for the previously verified same catalog/user/mode/connection/profile during offline/account retry/catalog loading. Unknown or changed owner, sign-out, reauth, unavailable/error catalog do not inherit it. Actual model selection still requires current signed-in authorization; nothing persisted."
+  },
+  "native_recovery": {
+    "receipt": "aino-platform-account-recovery-20260917.json",
+    "command": {
+      "command": "../../node_modules/.bin/playwright",
+      "args": [
+        "test",
+        "e2e/platform-account-model-billing.spec.ts",
+        "-g",
+        "native account edges: offline and revoked authorization recovery",
+        "--workers=1",
+        "--retries=0",
+        "--max-failures=1",
+        "--reporter=list",
+        "--output=/private/tmp/aino-native-edges-xNeBQs/playwright"
+      ],
+      "exit": 0,
+      "signal": null,
+      "timedOut": false,
+      "duration_ms": 76278
+    },
+    "logs": [
+      {
+        "path": "/private/tmp/aino-native-edges-xNeBQs/acceptance.log",
+        "sha256": "4f8ec3678e2b9331f91951edff6e48c3a679446c08ce07864084adf5041d1acf"
+      },
+      {
+        "path": "/private/tmp/aino-native-edges-xNeBQs/source.json",
+        "sha256": "a0f5b89cbb0f9209bdacd301efdc31b1d59e1119cca89412dc05fec2efb79018"
+      },
+      {
+        "path": "/private/tmp/aino-native-edges-xNeBQs/exit.json",
+        "sha256": "86860c1cc7b41553e612a860405ef405e8d3167dba5b12d26428abc6d1c8de91"
+      }
+    ],
+    "source": {
+      "business": "d0d6ebe0383046f8c6f5e06f4371f1f09e1f62ab",
+      "aino": "62d3507b24f7c7eb9ad32d78aeff8fa58cd0608a",
+      "api": "6ce52d67489b71139997caf91f2036bd30fe2b4b",
+      "files": {
+        "Aino/apps/desktop/e2e/platform-account-edge-proof.ts": "aed0bdfdb895eb3294f5e2ced49d61a54d5554dcb2de21a3867540aea584c532",
+        "Aino/apps/desktop/e2e/platform-account-model-billing.spec.ts": "a79c0a62722e56bad2fcca97cec4a7c8cc4be436162c570eacfa2c5479f4fed8",
+        "Aino/apps/desktop/e2e/platform-real-api.ts": "f37aaf1e3d66ac5c3d8123addfae581f8ca422ac203f5113f6bcbf10d6011761",
+        "Aino-API/backend/internal/repository/aino_native_consumer_integration_test.go": "a8bed390c4b56f0220779fe5acf663053c578aa6339ea6c068b75b7fc84a64cd",
+        "Aino-API/backend/internal/repository/aino_native_faults_contract_integration_test.go": "92e268bc38d8bc2b3132724323eb992b187308f927ac31e345fc1b79108302a9",
+        "Aino-API/backend/internal/repository/aino_native_faults_http_integration_test.go": "3e3d867c5b77359c8317ce73c29242fb8526a31302a5e380a6c5c7d8cc466c82",
+        "Aino-API/backend/internal/repository/aino_native_faults_integration_test.go": "701cd83986cf5ebf5124435df6bf3dd99503cd694c2813ef0ace3efb9cfe9831",
+        "Aino-API/backend/internal/repository/aino_native_protocol_integration_test.go": "c6f798355a581406a3014602228a5eea9a8dfa16878d19e30fa0ad33ff9b46da"
+      }
+    }
+  },
+  "recovery_fixture_correction": {
+    "fix": "62d3507b24",
+    "failed_command": {
+      "command": "../../node_modules/.bin/playwright",
+      "args": [
+        "test",
+        "e2e/platform-account-model-billing.spec.ts",
+        "-g",
+        "native account edges: offline and revoked authorization recovery",
+        "--workers=1",
+        "--retries=0",
+        "--max-failures=1",
+        "--reporter=list",
+        "--output=/private/tmp/aino-native-edges-2ilK67/playwright"
+      ],
+      "exit": 1,
+      "signal": null,
+      "timedOut": false,
+      "duration_ms": 29710
+    },
+    "log": {
+      "path": "/private/tmp/aino-native-edges-2ilK67/acceptance.log",
+      "sha256": "00d4cb5ca0a7d366e36f5886b4473ddd65aea39b6ee63e38ca807905e0ed4d0d"
+    },
+    "boundary": "Account Retry succeeded. Independent wallet retained its own failed read and existing Refresh action; test now explicitly refreshes wallet and verifies balance and error clearance. Production wallet retry policy unchanged."
+  },
+  "builds": [
+    {
+      "source": "246cffe9b2819c9239060de2899ee5f9ede1932e",
+      "steps": [
+        {
+          "command": "node",
+          "args": [
+            "scripts/assert-root-install.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 25
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/write-build-stamp.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 81
+        },
+        {
+          "command": "../../node_modules/.bin/vite",
+          "args": [
+            "build"
+          ],
+          "exit": 0,
+          "duration_ms": 11042
+        },
+        {
+          "command": "../../node_modules/.bin/tsc",
+          "args": [
+            "-p",
+            "tsconfig.electron.json"
+          ],
+          "exit": 0,
+          "duration_ms": 642
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/bundle-electron-main.mjs",
+            "--dev"
+          ],
+          "exit": 0,
+          "duration_ms": 92
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/stage-native-deps.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 35
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/assert-dist-built.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 95
+        }
+      ],
+      "dist_file_count": 395,
+      "dist_manifest": {
+        "path": "/private/tmp/aino-build-edges-5Wuwzt/dist-manifest.json",
+        "sha256": "cc755ccb94094e16743c20590afc217fdd2070d842c6c42f8629b64a0aee50ed"
+      },
+      "logs": [
+        {
+          "path": "/private/tmp/aino-build-edges-5Wuwzt/1.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-5Wuwzt/2.log",
+          "sha256": "2e6b05ff097847bad1985a6bf1a40520e72518bb737d14389c40567608e43d7a"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-5Wuwzt/3.log",
+          "sha256": "cfbe382a4b64f171ed847023a111fedd6a5f44bc08fc82c4bb12c2d37b35b5dc"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-5Wuwzt/4.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-5Wuwzt/5.log",
+          "sha256": "08e7f2f9ec3278983e6fd7e368484a43560866f43860bc17907d8b9815cb0283"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-5Wuwzt/6.log",
+          "sha256": "b657c8937ce4558140ab92c18e121fbf6fa6b40ea2cef38b1e655a1a12ddc0ce"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-5Wuwzt/7.log",
+          "sha256": "ba1527ec3cd13ca51f7aa050da6d7eb7369941894a8f2a0b508ca747c435a11d"
+        }
+      ]
+    },
+    {
+      "source": "d0d6ebe0383046f8c6f5e06f4371f1f09e1f62ab",
+      "steps": [
+        {
+          "command": "node",
+          "args": [
+            "scripts/assert-root-install.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 26
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/write-build-stamp.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 82
+        },
+        {
+          "command": "../../node_modules/.bin/vite",
+          "args": [
+            "build"
+          ],
+          "exit": 0,
+          "duration_ms": 10855
+        },
+        {
+          "command": "../../node_modules/.bin/tsc",
+          "args": [
+            "-p",
+            "tsconfig.electron.json"
+          ],
+          "exit": 0,
+          "duration_ms": 636
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/bundle-electron-main.mjs",
+            "--dev"
+          ],
+          "exit": 0,
+          "duration_ms": 96
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/stage-native-deps.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 36
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/assert-dist-built.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 93
+        }
+      ],
+      "dist_file_count": 395,
+      "dist_manifest": {
+        "path": "/private/tmp/aino-build-edges-37Fyx7/dist-manifest.json",
+        "sha256": "bc55a336aa29711d46ef7d2644265d3eb684805b29a538334cd668bb1103d2e8"
+      },
+      "logs": [
+        {
+          "path": "/private/tmp/aino-build-edges-37Fyx7/1.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-37Fyx7/2.log",
+          "sha256": "49932546549441568e823e5c58671dc2b9876f47f63e0362d78974195d8e7224"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-37Fyx7/3.log",
+          "sha256": "4047b66fc50b6a58ed3e6dc1ca887823e2e3c88c663f756f2f2b00b06837692b"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-37Fyx7/4.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-37Fyx7/5.log",
+          "sha256": "4fedb88db097748656fca12d75ce2db472dfe9d130bdcb87737bd98a87aaa275"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-37Fyx7/6.log",
+          "sha256": "b657c8937ce4558140ab92c18e121fbf6fa6b40ea2cef38b1e655a1a12ddc0ce"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-37Fyx7/7.log",
+          "sha256": "ba1527ec3cd13ca51f7aa050da6d7eb7369941894a8f2a0b508ca747c435a11d"
+        }
+      ]
+    }
+  ],
+  "remaining": [
+    "Normal signed/notarized release startup",
+    "Other OS and remote TLS/SSH acceptance",
+    "Remaining full matrix and long-running task scenarios",
+    "Authorized real SMS/model/payment suppliers and deployment"
+  ]
+}
