@@ -422,7 +422,12 @@ def _read_connection(db_path: DbPath) -> sqlite3.Connection:
     if not path.is_file():
         _connect(path).close()
     conn = open_sqlite(path)
-    if not _schema_is_current(conn):
+    try:
+        schema_current = _schema_is_current(conn)
+    except Exception:
+        conn.close()
+        raise
+    if not schema_current:
         conn.close()
         _connect(path).close()
         conn = open_sqlite(path)
@@ -956,7 +961,7 @@ def _probe(path: Path, table: str, query: str, params: tuple[Any, ...], unavaila
     if not path.is_file():
         return False
     try:
-        with closing(sqlite3.connect(path, timeout=0.05)) as conn:
+        with closing(open_sqlite(path, timeout=0.05)) as conn:
             table_row = conn.execute(
                 f"SELECT 1 FROM sqlite_master WHERE type='table' AND name='{table}' LIMIT 1").fetchone()
             return table_row is not None and conn.execute(query, params).fetchone() is not None

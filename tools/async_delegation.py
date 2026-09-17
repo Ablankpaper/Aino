@@ -17,7 +17,7 @@ import threading
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from hermes_constants import get_hermes_home
@@ -83,15 +83,28 @@ def _db_path():
 
 
 def _connect() -> sqlite3.Connection:
+    from hermes_cli.sqlite_safe_read import connect_tracked
+    from hermes_state_dbfile import quarantine_cross_process_lock
+
     path = _db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=10)
     try:
-        _initialize_schema(conn)
-    except Exception:
-        conn.close()  # don't leak the connection on PRAGMA/DDL failure
-        raise
-    return conn
+        initializing = path.stat().st_size == 0
+    except FileNotFoundError:
+        initializing = True
+    # SessionDB must not quarantine the empty file before our schema is committed.
+    startup = quarantine_cross_process_lock(path) if initializing else nullcontext(True)
+    with startup as acquired:
+        if not acquired:
+            raise sqlite3.OperationalError("state.db startup quarantine lock timed out")
+        conn = connect_tracked(path, connect_fn=sqlite3.connect, timeout=10)
+        try:
+            _initialize_schema(conn)
+            conn.commit()
+        except Exception:
+            conn.close()  # a PRAGMA/DDL failure must also release the tracked connection
+            raise
+        return conn
 
 
 def _initialize_schema(conn: sqlite3.Connection) -> None:

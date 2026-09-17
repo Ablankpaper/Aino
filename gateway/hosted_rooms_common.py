@@ -12,9 +12,11 @@ import json
 import re
 import sqlite3
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping
+
+from hermes_cli.sqlite_safe_read import connect_tracked
 
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
 DbPath = Path | str
@@ -96,10 +98,14 @@ def clock(now: float | None) -> float:
 
 def open_sqlite(path: DbPath, *, timeout: float = 10) -> sqlite3.Connection:
     """Row-factory connection with foreign keys on; no journal or schema work."""
-    conn = sqlite3.connect(path, timeout=timeout)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys=ON")
-    return conn
+    conn = connect_tracked(path, timeout=timeout)
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys=ON")
+        return conn
+    except Exception:
+        conn.close()
+        raise
 
 
 def connect(
@@ -116,27 +122,39 @@ def connect(
     from hermes_state_wal import apply_wal_with_fallback
     path = Path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=10)
-    conn.row_factory = sqlite3.Row
+    from hermes_state_dbfile import quarantine_cross_process_lock
+
     try:
-        for attempt in range(lock_retries):
-            try:
-                apply_wal_with_fallback(conn, db_label=db_label)
-                break
-            except sqlite3.OperationalError as exc:
-                if str(exc).lower() != "database is locked" or attempt + 1 == lock_retries:
-                    raise
-                time.sleep(0.01 * (2**attempt))
-        conn.execute("PRAGMA foreign_keys=ON")
-        if not ready(conn):
-            conn.execute("BEGIN IMMEDIATE")
-            initialize(conn)
-            conn.commit()
-    except Exception:
-        conn.rollback()
-        conn.close()
-        raise
-    return conn
+        first_open = path.stat().st_size == 0
+    except FileNotFoundError:
+        first_open = True
+    # Only first creation joins SessionDB's quarantine lock. Steady-state
+    # operations retain SQLite's own concurrency and write-transaction fences.
+    guard = quarantine_cross_process_lock(path) if first_open else nullcontext(True)
+    with guard as acquired:
+        if not acquired:
+            raise sqlite3.OperationalError("timed out waiting for initial state.db creation")
+        conn = connect_tracked(path, timeout=10)
+        conn.row_factory = sqlite3.Row
+        try:
+            for attempt in range(lock_retries):
+                try:
+                    apply_wal_with_fallback(conn, db_label=db_label)
+                    break
+                except sqlite3.OperationalError as exc:
+                    if str(exc).lower() != "database is locked" or attempt + 1 == lock_retries:
+                        raise
+                    time.sleep(0.01 * (2**attempt))
+            conn.execute("PRAGMA foreign_keys=ON")
+            if not ready(conn):
+                conn.execute("BEGIN IMMEDIATE")
+                initialize(conn)
+                conn.commit()
+        except Exception:
+            conn.rollback()
+            conn.close()
+            raise
+        return conn
 
 
 def fenced_update(conn: sqlite3.Connection, sql: str, params: tuple, error: Exception) -> None:

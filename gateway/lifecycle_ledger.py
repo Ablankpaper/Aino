@@ -170,13 +170,18 @@ def check_state_db_integrity(home: Optional[Path] = None) -> str:
     Only after an unclean death — SIGKILL mid-WAL-checkpoint can leave half-written
     b-tree pages.  ``quick_check(1)`` stops at the first problem (~2s on a healthy
     500MB store): cheap once per unclean boot, too costly every boot.  Opened
-    normally: a WAL store needs its -shm sidecar for read-only, and the PRAGMA writes nothing.
+    read/write for WAL sidecars, without creating a database if the path disappears.
     """
     path = _home_path(home, "state.db")
     if not path.exists():
         return "absent"
     try:
-        with closing(sqlite3.connect(str(path))) as conn:
+        from hermes_cli.sqlite_safe_read import connect_tracked
+
+        with closing(connect_tracked(
+            path.resolve().as_uri() + "?mode=rw", tracking_path=path,
+            connect_fn=sqlite3.connect, uri=True,
+        )) as conn:
             row = conn.execute("PRAGMA quick_check(1)").fetchone()
     except Exception as exc:
         return f"check-failed: {exc}"

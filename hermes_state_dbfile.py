@@ -239,35 +239,44 @@ def quarantine_zeroed_state_db(path: Path, *, already_locked: bool = False) -> O
     """Move a zeroed state.db aside (preserve bytes) and return quarantine path.  A cross-process
     lock stops two concurrent startups racing: the second re-checks under the lock and finds the
     file gone (or fresh) instead of clobbering the quarantine."""
+    from hermes_cli.sqlite_safe_read import LiveConnectionError, offline_file_access
+
     def _do_quarantine():
-        if not path.exists():
-            logger.info("quarantine_zeroed_state_db: %s already moved by another process", path)
-            return None
-        if not is_zeroed_state_db(path):
-            logger.info("quarantine_zeroed_state_db: %s is no longer zeroed (another "
-                        "process quarantined it and a fresh DB was created)", path)
-            return None
         try:
-            ts = time.strftime("%Y%m%d-%H%M%S")
-        except Exception:
-            ts = "unknown"
-        stem = f"{path.name}.zeroed-{ts}-{os.getpid()}"
-        dest = path.with_name(f"{stem}.bak")
-        n = 0
-        while dest.exists():
-            n += 1
-            dest = path.with_name(f"{stem}-{n}.bak")
-        try:
-            path.rename(dest)
-        except OSError as exc:
-            logger.error("Failed to quarantine zeroed %s: %s", path, exc)
+            # Keep the final probe and every rename atomic with tracked opens.
+            # A zero-byte file may be a sibling's not-yet-initialized database.
+            with offline_file_access(path, what="quarantine"):
+                if not path.exists():
+                    logger.info("quarantine_zeroed_state_db: %s already moved by another process", path)
+                    return None
+                if not is_zeroed_state_db(path):
+                    logger.info("quarantine_zeroed_state_db: %s is no longer zeroed (another "
+                                "process quarantined it and a fresh DB was created)", path)
+                    return None
+                try:
+                    ts = time.strftime("%Y%m%d-%H%M%S")
+                except Exception:
+                    ts = "unknown"
+                stem = f"{path.name}.zeroed-{ts}-{os.getpid()}"
+                dest = path.with_name(f"{stem}.bak")
+                n = 0
+                while dest.exists():
+                    n += 1
+                    dest = path.with_name(f"{stem}-{n}.bak")
+                try:
+                    path.rename(dest)
+                except OSError as exc:
+                    logger.error("Failed to quarantine zeroed %s: %s", path, exc)
+                    return None
+                for suffix in ("-wal", "-shm"):
+                    side = Path(str(path) + suffix)
+                    if side.exists():
+                        with contextlib.suppress(OSError):
+                            side.rename(Path(str(dest) + suffix))
+                return dest
+        except LiveConnectionError:
+            logger.debug("Not quarantining %s: a live connection owns the file", path)
             return None
-        for suffix in ("-wal", "-shm"):
-            side = Path(str(path) + suffix)
-            if side.exists():
-                with contextlib.suppress(OSError):
-                    side.rename(Path(str(dest) + suffix))
-        return dest
 
     if already_locked:
         return _do_quarantine()
