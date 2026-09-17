@@ -13,8 +13,7 @@ import { Navigate, Route, Routes, useParams } from 'react-router'
 
 import { ContribBoundary, ContribRender } from '@/contrib/react/boundary'
 import { useContributions } from '@/contrib/react/use-contributions'
-import { $activeConnectionId } from '@/store/connections'
-import { $gateway } from '@/store/gateway'
+import { $gateway, activeGatewayConnectionId } from '@/store/gateway'
 import { $activeGatewayProfile } from '@/store/profile'
 import { $gatewayState } from '@/store/session'
 
@@ -72,10 +71,10 @@ export const ChatRoutesSurface = memo(function ChatRoutesSurface({
   actions: WiringActions
   maxVoiceRecordingSeconds?: number
 }) {
-  const activeConnectionId = useStore($activeConnectionId)
   const activeGatewayProfile = useStore($activeGatewayProfile)
   const gateway = useStore($gateway)
   const gatewayState = useStore($gatewayState)
+  const activeModelConnectionId = activeGatewayConnectionId()
   useContributions(ROUTES_AREA)
   const routeContributions = contributedRoutes()
 
@@ -85,12 +84,12 @@ export const ChatRoutesSurface = memo(function ChatRoutesSurface({
         <ModelMenuPanel
           gateway={gateway || undefined}
           onSelectModel={actions.selectModel}
-          ownerConnectionId={activeConnectionId || undefined}
+          ownerConnectionId={activeModelConnectionId || undefined}
           profile={activeGatewayProfile}
           requestGateway={actions.requestGateway}
         />
       ) : null,
-    [actions, activeConnectionId, activeGatewayProfile, gateway, gatewayState]
+    [actions, activeGatewayProfile, activeModelConnectionId, gateway, gatewayState]
   )
 
   const chatActions = useMemo(() => latestChatActions(actions), [actions])
@@ -100,7 +99,7 @@ export const ChatRoutesSurface = memo(function ChatRoutesSurface({
       gateway={gateway}
       maxVoiceRecordingSeconds={maxVoiceRecordingSeconds}
       modelMenuContent={modelMenuContent}
-      modelOptionsOwnerConnectionId={activeConnectionId || undefined}
+      modelOptionsOwnerConnectionId={activeModelConnectionId || undefined}
       modelOptionsProfile={activeGatewayProfile}
       requestModelOptionsForOwner={actions.requestGateway}
       {...chatActions}

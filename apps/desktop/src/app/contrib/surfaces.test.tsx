@@ -1,5 +1,6 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
 import { atom } from 'nanostores'
+import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,16 +11,35 @@ import { $activeGatewayProfile } from '@/store/profile'
 import { ChatRoutesSurface } from './surfaces'
 import type { WiringActions } from './types'
 
+const gatewayRoute = vi.hoisted(() => ({ connectionId: null as null | string }))
+
 vi.mock('@/contrib/react/use-contributions', () => ({ useContributions: vi.fn() }))
 vi.mock('@/store/connections', () => ({ $activeConnectionId: atom('local') }))
-vi.mock('@/store/gateway', () => ({ $gateway: atom<unknown>(null) }))
+vi.mock('@/store/gateway', () => ({
+  $gateway: atom<unknown>(null),
+  activeGatewayConnectionId: () => gatewayRoute.connectionId
+}))
 vi.mock('@/store/profile', () => ({ $activeGatewayProfile: atom('default') }))
 vi.mock('@/store/session', () => ({
   $freshDraftReady: atom(false),
   $gatewayState: atom('open')
 }))
 vi.mock('../chat', () => ({
-  ChatView: ({ gateway }: { gateway: { id?: string } | null }) => <div data-testid="gateway">{gateway?.id}</div>
+  ChatView: ({
+    gateway,
+    modelMenuContent,
+    modelOptionsOwnerConnectionId
+  }: {
+    gateway: { id?: string } | null
+    modelMenuContent?: ReactNode
+    modelOptionsOwnerConnectionId?: string
+  }) => (
+    <>
+      <div data-testid="gateway">{gateway?.id}</div>
+      <div data-testid="catalog-owner">{modelOptionsOwnerConnectionId}</div>
+      {modelMenuContent}
+    </>
+  )
 }))
 vi.mock('../chat/sidebar', () => ({ ChatSidebar: () => null }))
 vi.mock('../right-sidebar/terminal/chrome', () => ({ TerminalPaneChrome: () => null }))
@@ -36,10 +56,15 @@ vi.mock('../routes', () => ({
 }))
 vi.mock('./latest-actions', () => ({ latestChatActions: () => ({}), latestSidebarActions: () => ({}) }))
 vi.mock('./panes', () => ({ setStatusbarItemGroup: vi.fn(), useStatusbarContributions: () => [] }))
-vi.mock('../shell/model-menu-panel', () => ({ ModelMenuPanel: () => null }))
+vi.mock('../shell/model-menu-panel', () => ({
+  ModelMenuPanel: ({ ownerConnectionId }: { ownerConnectionId?: string }) => (
+    <div data-testid="model-menu-owner">{ownerConnectionId}</div>
+  )
+}))
 
 afterEach(() => {
   cleanup()
+  gatewayRoute.connectionId = null
   $gateway.set(null)
   $activeGatewayProfile.set('default')
 })
@@ -66,5 +91,20 @@ describe('ChatRoutesSurface', () => {
     })
 
     expect(screen.getByTestId('gateway').textContent).toBe('b')
+  })
+
+  it('routes the primary model menu through the active profile socket instead of its local descriptor alias', () => {
+    gatewayRoute.connectionId = null
+    $gateway.set({ id: 'profile-only' } as unknown as HermesGateway)
+    const actions = { getGateway: () => $gateway.get() } as unknown as WiringActions
+
+    render(
+      <MemoryRouter>
+        <ChatRoutesSurface actions={actions} />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByTestId('model-menu-owner').textContent).toBe('')
+    expect(screen.getByTestId('catalog-owner').textContent).toBe('')
   })
 })

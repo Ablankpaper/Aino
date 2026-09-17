@@ -47,6 +47,7 @@ import { $desktopBoot } from '@/store/boot'
 import { requestVoiceConversationStart } from '@/store/composer'
 import { $activeConnectionId } from '@/store/connections'
 import { $cronReviewRequest, setCronFocusJobId } from '@/store/cron'
+import { activeGatewayConnectionId } from '@/store/gateway'
 import { $pinnedSessionIds, pinSession, restoreWorktree, unpinSession } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
 import { $previewTarget } from '@/store/preview'
@@ -301,6 +302,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   })
 
   const { connectionRef, gateway, gatewayRef, requestGateway: ambientRequestGateway } = useGatewayRequest()
+  const activeModelConnectionId = activeGatewayConnectionId()
 
   // When chrome stays on the launch backend (Bot Mode / all-profiles
   // navigation), session-owned RPCs still have to hit the session's backend.
@@ -347,7 +349,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   const { refreshHermesConfig, sttEnabled, voiceMaxRecordingSeconds } = useHermesConfig({ activeSessionIdRef })
 
   const { applySavedMainModel, refreshCurrentModel, selectModel } = useModelControls({
-    cacheOwnerConnectionId: activeConnectionId || undefined,
+    cacheOwnerConnectionId: activeModelConnectionId || undefined,
     cacheProfile: activeGatewayProfile,
     queryClient,
     requestGateway
@@ -1224,13 +1226,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
             requestGateway={requestGateway}
           />
         )}
-        <ModelPickerOverlay
-          gateway={gateway || undefined}
-          onSelect={selectModel}
-          ownerConnectionId={activeConnectionId || undefined}
-          profile={activeGatewayProfile}
-          requestGateway={requestGateway}
-        />
+        <ModelPickerOverlay gateway={gateway || undefined} onSelect={selectModel} requestGateway={requestGateway} />
         <SessionPickerOverlay onResume={sessionId => openSession(sessionId, navigate)} />
         <ModelVisibilityOverlay
           gateway={gateway || undefined}

@@ -8,6 +8,7 @@ import { ModelPickerDialog } from '@/components/model-picker'
 import type { HermesGateway } from '@/hermes'
 import { resolveModelPickerOwner } from '@/lib/model-picker-owner'
 import { useStoreSelector } from '@/lib/use-session-slice'
+import { $activeGatewayRoute, activeGatewayConnectionId } from '@/store/gateway'
 import {
   $activeSessionId,
   $awaitingResponse,
@@ -25,18 +26,10 @@ import { $focusedRuntimeId, $focusedSessionState, $focusedStoredSessionId, $sess
 interface ModelPickerOverlayProps {
   gateway?: HermesGateway
   onSelect: (selection: ModelSelection) => Promise<boolean | void> | void
-  ownerConnectionId?: string
-  profile: string
   requestGateway: <T = unknown>(method: string, params?: Record<string, unknown>) => Promise<T>
 }
 
-export function ModelPickerOverlay({
-  gateway,
-  onSelect,
-  ownerConnectionId,
-  profile,
-  requestGateway
-}: ModelPickerOverlayProps) {
+export function ModelPickerOverlay({ gateway, onSelect, requestGateway }: ModelPickerOverlayProps) {
   const queryClient = useQueryClient()
   const primarySessionId = useStore($activeSessionId)
   const selectedStoredSessionId = useStore($selectedStoredSessionId)
@@ -47,6 +40,7 @@ export function ModelPickerOverlay({
   const focusedRuntimeId = useStore($focusedRuntimeId)
   const focusedStoredSessionId = useStore($focusedStoredSessionId)
   const sessionTiles = useStore($sessionTiles)
+  const activeGatewayProfile = useStore($activeGatewayRoute)
   // `$focusedSessionState` is a projection of `$sessionStates`, republished on
   // EVERY message delta — and this overlay is mounted app-wide. Only two
   // fields are read off it, so subscribing to the whole object re-rendered
@@ -64,8 +58,8 @@ export function ModelPickerOverlay({
   const open = useStore($modelPickerOpen)
 
   const pickerOwner = resolveModelPickerOwner({
-    ambientConnectionId: ownerConnectionId,
-    ambientProfile: profile,
+    ambientConnectionId: activeGatewayConnectionId() || undefined,
+    ambientProfile: activeGatewayProfile,
     focusedStoredSessionId,
     selectedStoredSessionId,
     sessionTiles
