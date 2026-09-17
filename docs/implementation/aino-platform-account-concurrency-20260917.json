@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "scope": "Isolated native concurrent refresh/logout scenario only; the following offline scenario in this command failed before recovery.",
+  "business_build_source": "246cffe9b2819c9239060de2899ee5f9ede1932e",
+  "scenario_result": {
+    "passed": true,
+    "duration_seconds": 27.0
+  },
+  "command_result": {
+    "command": "../../node_modules/.bin/playwright",
+    "args": [
+      "test",
+      "e2e/platform-account-model-billing.spec.ts",
+      "-g",
+      "native account edges:",
+      "--workers=1",
+      "--retries=0",
+      "--max-failures=1",
+      "--reporter=list",
+      "--output=/private/tmp/aino-native-edges-sVstr0/playwright"
+    ],
+    "exit": 1,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 76880
+  },
+  "original_receipt": {
+    "path": "/private/tmp/aino-native-edges-sVstr0/playwright/platform-account-model-bil-8eda2-ncurrent-refresh-and-logout/native-account-edge-receipt.json",
+    "sha256": "2d3505faa10d5dd42bc18c0e0717fbdfb8467cd9daa193aedd1fe79aefa1fd56"
+  },
+  "receipt": {
+    "scenario": "concurrent refresh and logout",
+    "run_id": "9f802184-8bd4-446d-97e1-0426190bcf6c",
+    "source": {
+      "aino": "246cffe9b2819c9239060de2899ee5f9ede1932e",
+      "api": "6ce52d67489b71139997caf91f2036bd30fe2b4b"
+    },
+    "proof": {
+      "single_flight_refresh": true,
+      "single_flight_logout": true,
+      "late_refresh_rejected": true,
+      "runtime_cleared_before_logout_response": true,
+      "retired": {
+        "error_code": "DESKTOP_CREDENTIAL_REVOKED",
+        "http_status": 401,
+        "revoked": true
+      },
+      "initial": {
+        "model_calls": 2,
+        "usage_calls": 2,
+        "tool_results": 1,
+        "balance": "9.99980000"
+      },
+      "final": {
+        "model_calls": 2,
+        "usage_calls": 2,
+        "tool_results": 1,
+        "balance": "9.99980000"
+      },
+      "faults": {
+        "profile_401_for_current_access": false,
+        "offline": false,
+        "hold_refresh_response": false,
+        "hold_logout_response": false,
+        "hold_inference_before_auth": false,
+        "profile_calls": 8,
+        "profile_401s": 4,
+        "network_drops": 0,
+        "refresh_started": 2,
+        "refresh_completed": 2,
+        "refresh_waiting": 0,
+        "refresh_responses": 2,
+        "logout_started": 1,
+        "logout_completed": 1,
+        "logout_waiting": 0,
+        "logout_responses": 1,
+        "credential_requests": 2,
+        "credential_successes": 2,
+        "inference_requests": 2,
+        "inference_waiting": 0,
+        "inference_responses": 2,
+        "gate_timeouts": 0,
+        "gate_cancellations": 0,
+        "gate_shutdowns": 0,
+        "session_revocations": 0,
+        "retired_lease_available": true,
+        "retired_lease_http_status": 401,
+        "retired_lease_error_code": "DESKTOP_CREDENTIAL_REVOKED"
+      }
+    },
+    "rendererAudits": [
+      {
+        "checked_credentials": 9,
+        "leaked": false
+      },
+      {
+        "checked_credentials": 9,
+        "leaked": false
+      }
+    ],
+    "persistedAudit": {
+      "leaked": false,
+      "checked_credentials": 9,
+      "batches": 4,
+      "audited_bytes": 25009237
+    },
+    "transport": {
+      "blocked_before_transport": true,
+      "denied_public_font_hosts": [
+        "fonts.googleapis.com",
+        "fonts.googleapis.com"
+      ]
+    }
+  }
+}
