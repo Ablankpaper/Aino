@@ -33,7 +33,7 @@ import {
   stashSessionDraft,
   takeSessionDraft
 } from '@/store/composer'
-import { requestGatewayForAgent, requestGatewayForProfile } from '@/store/gateway'
+import { requestGatewayForAgent, requestGatewayForProfile, retainGatewayForAgent } from '@/store/gateway'
 import {
   clearGatewayManagedCapabilities,
   recordGatewayReadyCapability,
@@ -181,6 +181,7 @@ function storedSession(overrides: Partial<SessionInfo> = {}): SessionInfo {
 }
 
 function Harness({
+  getRouteToken = () => 'token',
   activeSessionId = null,
   activeSessionIdRef: activeSessionIdRefOverride,
   navigate = vi.fn(),
@@ -189,6 +190,7 @@ function Harness({
   selectedStoredSessionId = null,
   selectedStoredSessionIdRef: selectedStoredSessionIdRefOverride
 }: {
+  getRouteToken?: () => string
   activeSessionId?: null | string
   activeSessionIdRef?: MutableRefObject<null | string>
   navigate?: ReturnType<typeof vi.fn>
@@ -205,7 +207,7 @@ function Harness({
     busyRef: ref(false),
     creatingSessionRef: ref(false),
     ensureSessionState: () => ({}) as ClientSessionState,
-    getRouteToken: () => 'token',
+    getRouteToken,
     getRoutedStoredSessionId: () => null,
     navigate: navigate as never,
     requestGateway,
@@ -1332,6 +1334,79 @@ describe('createBackendSessionForSend profile routing', () => {
     expect(requestGateway).not.toHaveBeenCalled()
     expect(bind).not.toHaveBeenCalled()
   })
+
+  it.each(['navigation', 'missing-stored-id'])(
+    'closes an abandoned managed profile draft before releasing its socket (%s)',
+    async reason => {
+      const fixture = await prepareDeferredManagedCreate()
+      const close = deferred<object>()
+      const events: string[] = []
+      const release = vi.fn(() => { events.push('release') })
+      vi.mocked(retainGatewayForAgent).mockResolvedValueOnce(release)
+      $activeGatewayProfile.set('work')
+      $newChatProfile.set('work')
+      recordGatewayReadyCapability({ profile: 'work' }, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+      fixture.bind.mockResolvedValue({ ok: true, ready: true, model_id: 'catalog-a', billing_source: 'aino', expires_at: 'later' })
+      vi.mocked(requestGatewayForAgent).mockImplementation(async (connectionId, profile, method, params) => {
+        expect({ connectionId, profile }).toEqual({ connectionId: null, profile: 'work' })
+
+        if (method === 'session.create') {
+          return fixture.create.promise as never
+        }
+
+        if (method === 'session.managed_model_ticket') {
+          return { managed_model_binding: 1, session_ticket: 'ticket' } as never
+        }
+
+        if (method === 'session.close') {
+          expect(params).toEqual({ session_id: 'abandoned-runtime' })
+          events.push('close')
+
+          return close.promise as never
+        }
+
+        throw new Error(`unexpected ${method}`)
+      })
+      const generic = vi.fn(async () => { throw new Error('Unpublished runtime has no generic owner') })
+      let routeToken = 'draft'
+      const selectedRef = { current: null as string | null }
+      let handle: HarnessHandle | null = null
+      render(
+        <Harness
+          getRouteToken={() => routeToken}
+          onReady={value => (handle = value)}
+          requestGateway={generic}
+          selectedStoredSessionIdRef={selectedRef}
+        />
+      )
+      await waitFor(() => expect(handle).not.toBeNull())
+
+      const pending = reason === 'navigation'
+        ? handle!.createBackendSessionForSend()
+        : handle!.openNewSessionTile('center', { listed: false })
+
+      await waitFor(() => expect(requestGatewayForAgent).toHaveBeenCalledWith(null, 'work', 'session.create', expect.anything()))
+
+      if (reason === 'navigation') {
+        routeToken = 'other'
+        selectedRef.current = 'other-session'
+      }
+
+      fixture.create.resolve({
+        session_id: 'abandoned-runtime',
+        stored_session_id: reason === 'navigation' ? 'abandoned-stored' : undefined,
+        info: { model_source: 'aino', model_id: 'catalog-a', provider: 'aino' }
+      })
+      await waitFor(() => expect(events).toEqual(['close']))
+      expect(release).not.toHaveBeenCalled()
+      close.resolve({})
+      await pending
+      expect(fixture.bind).toHaveBeenCalledOnce()
+      expect(events).toEqual(['close', 'release'])
+      expect(generic).not.toHaveBeenCalled()
+      expect(release).toHaveBeenCalledOnce()
+    }
+  )
 
   it('rejects a deferred first send after its captured commercial authority changes', async () => {
     const deferredCreate = await prepareDeferredManagedCreate()

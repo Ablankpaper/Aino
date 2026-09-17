@@ -694,86 +694,86 @@ export function useSessionActions({
             // in that gap cannot close the runtime before the first prompt.
             holdSessionOwnerUntilForeground(stored, capturedRoute)
           }
+
+          // Only a genuine move to a DIFFERENT chat mid-create should orphan the
+          // session we just minted. The active runtime ref is deliberately not a
+          // prong: background gateway events retarget it while other sessions
+          // stream (#47709 class), and the seconds-long session.create round-trip
+          // (server-side agent + MCP init) makes that churn near-certain — every
+          // genuine user switch retargets selection AND route synchronously
+          // anyway. submitTargetStoredId is the just-created stored session, so
+          // our own upcoming re-home onto it never reads as drift.
+          const drift = sessionContextDrift({
+            startRouteToken: startingRouteToken,
+            nowRouteToken: getRouteToken(),
+            startSelectedStoredId: startingStoredSessionId,
+            nowSelectedStoredId: selectedStoredSessionIdRef.current,
+            submitTargetStoredId: stored
+          })
+
+          if (drift) {
+            console.warn('[submit-drift-abort]', drift, { phase: 'mid-create' })
+
+            // Close on the backend that minted the session: the ambient socket
+            // is a different machine/profile for a routed create and would
+            // 4001 while the orphan lives on (and later ws-orphan-reaps) there.
+            const closeCreated = capturedRoute || managedProfileOnly
+              ? requestGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile, 'session.close', {
+                  session_id: created.session_id
+                })
+              : requestGateway('session.close', { session_id: created.session_id })
+
+            await closeCreated.catch(() => undefined)
+
+            if (stored) {
+              releaseSessionOwnerHold(stored)
+            }
+
+            return null
+          }
+
+          resetViewSync()
+          activeSessionIdRef.current = created.session_id
+          selectedStoredSessionIdRef.current = stored
+          ensureSessionState(created.session_id, stored)
+
+          if (stored) {
+            createdThisRun.add(stored)
+            // Seed the sidebar preview with the user's first message so the row
+            // reads meaningfully while the turn is in flight, instead of flashing
+            // "Untitled session" until the turn persists and auto-title runs. The
+            // server later returns its own preview/title and supersedes this.
+            // The row carries the create route's exact owner (backend profile +
+            // connection), never the ambient profile — see upsertOptimisticSession.
+            upsertOptimisticSession(created, stored, null, preview?.trim() || null, null, undefined, capturedRoute)
+            navigate(sessionRoute(stored), { replace: true })
+            // Other windows (e.g. the main window when this is the pop-out) can't
+            // see this session until they re-pull the shared list.
+            broadcastSessionsChanged()
+          }
+
+          setFreshDraftReady(false)
+          setNewChatWorkspaceTarget(undefined)
+          setActiveSessionId(created.session_id)
+          setSelectedStoredSessionId(stored)
+          setSessionStartedAt(Date.now())
+          const yoloArmed = $yoloActive.get()
+          const runtimeInfo = applyRuntimeInfo(created.info)
+
+          if (runtimeInfo) {
+            updateSessionState(created.session_id, state => ({ ...state, ...runtimeInfo }), stored)
+          }
+
+          // User may have armed YOLO on the new-chat draft before the runtime
+          // session existed — apply it to the freshly created session.
+          if (yoloArmed) {
+            await setSessionYolo(requestGateway, created.session_id, true).catch(() => undefined)
+          }
+
+          return created.session_id
         } finally {
           releaseCreateLease()
         }
-
-        // Only a genuine move to a DIFFERENT chat mid-create should orphan the
-        // session we just minted. The active runtime ref is deliberately not a
-        // prong: background gateway events retarget it while other sessions
-        // stream (#47709 class), and the seconds-long session.create round-trip
-        // (server-side agent + MCP init) makes that churn near-certain — every
-        // genuine user switch retargets selection AND route synchronously
-        // anyway. submitTargetStoredId is the just-created stored session, so
-        // our own upcoming re-home onto it never reads as drift.
-        const drift = sessionContextDrift({
-          startRouteToken: startingRouteToken,
-          nowRouteToken: getRouteToken(),
-          startSelectedStoredId: startingStoredSessionId,
-          nowSelectedStoredId: selectedStoredSessionIdRef.current,
-          submitTargetStoredId: stored
-        })
-
-        if (drift) {
-          console.warn('[submit-drift-abort]', drift, { phase: 'mid-create' })
-
-          // Close on the backend that minted the session: the ambient socket
-          // is a different machine/profile for a routed create and would
-          // 4001 while the orphan lives on (and later ws-orphan-reaps) there.
-          const closeCreated = capturedRoute
-            ? requestGatewayForAgent(capturedRoute.connectionId, capturedRoute.profile, 'session.close', {
-                session_id: created.session_id
-              })
-            : requestGateway('session.close', { session_id: created.session_id })
-
-          await closeCreated.catch(() => undefined)
-
-          if (stored) {
-            releaseSessionOwnerHold(stored)
-          }
-
-          return null
-        }
-
-        resetViewSync()
-        activeSessionIdRef.current = created.session_id
-        selectedStoredSessionIdRef.current = stored
-        ensureSessionState(created.session_id, stored)
-
-        if (stored) {
-          createdThisRun.add(stored)
-          // Seed the sidebar preview with the user's first message so the row
-          // reads meaningfully while the turn is in flight, instead of flashing
-          // "Untitled session" until the turn persists and auto-title runs. The
-          // server later returns its own preview/title and supersedes this.
-          // The row carries the create route's exact owner (backend profile +
-          // connection), never the ambient profile — see upsertOptimisticSession.
-          upsertOptimisticSession(created, stored, null, preview?.trim() || null, null, undefined, capturedRoute)
-          navigate(sessionRoute(stored), { replace: true })
-          // Other windows (e.g. the main window when this is the pop-out) can't
-          // see this session until they re-pull the shared list.
-          broadcastSessionsChanged()
-        }
-
-        setFreshDraftReady(false)
-        setNewChatWorkspaceTarget(undefined)
-        setActiveSessionId(created.session_id)
-        setSelectedStoredSessionId(stored)
-        setSessionStartedAt(Date.now())
-        const yoloArmed = $yoloActive.get()
-        const runtimeInfo = applyRuntimeInfo(created.info)
-
-        if (runtimeInfo) {
-          updateSessionState(created.session_id, state => ({ ...state, ...runtimeInfo }), stored)
-        }
-
-        // User may have armed YOLO on the new-chat draft before the runtime
-        // session existed — apply it to the freshly created session.
-        if (yoloArmed) {
-          await setSessionYolo(requestGateway, created.session_id, true).catch(() => undefined)
-        }
-
-        return created.session_id
       } finally {
         window.setTimeout(() => {
           creatingSessionRef.current = false
@@ -889,54 +889,54 @@ export function useSessionActions({
             setSessionOwnerHint(stored, capturedRoute)
             holdSessionOwnerUntilForeground(stored, capturedRoute)
           }
+
+          if (!stored) {
+            const closeCreated = capturedRoute || managedProfileOnly
+              ? requestGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile, 'session.close', {
+                  session_id: created.session_id
+                })
+              : requestGateway('session.close', { session_id: created.session_id })
+
+            await closeCreated.catch(() => undefined)
+            notify({ kind: 'error', title: copy.sessionUnavailable, message: copy.createSessionFailed })
+
+            return
+          }
+
+          createdThisRun.add(stored)
+
+          // Seed the per-runtime cache so the tile renders immediately without a
+          // redundant resume. Only add the row to the SIDEBAR when `listed` — an
+          // unlisted (draft) tab stays out of the session list until its first
+          // turn persists and a refresh surfaces it.
+          if (listed) {
+            upsertOptimisticSession(created, stored, null, null, null, undefined, capturedRoute)
+          }
+
+          // A tile lives in its OWN worktree, so it must not run the full
+          // foreground composer publish. A CENTER tile is the focused surface,
+          // though, and the Files pane still keys off the global `$currentCwd` —
+          // so the right rail kept showing the previous session's tree when a
+          // Project "+" created a session while the main chat was occupied
+          // (#76696). Split/side tiles deliberately stay isolated.
+          const runtimeInfo = applyRuntimeInfo(created.info, { foreground: false })
+          updateSessionState(created.session_id, state => ({ ...state, ...runtimeInfo, isUnsentDraft: true }), stored)
+
+          openSessionTile(stored, dir, options?.anchor, options?.before, workspaceScope)
+          patchSessionTile(stored, { runtimeId: created.session_id })
+
+          if (dir === 'center' && runtimeInfo?.cwd) {
+            setCurrentCwdTransient(runtimeInfo.cwd)
+            setWorkspaceCwdOwner(stored)
+          }
+
+          revealTreePane(`session-tile:${stored}`)
+
+          if (listed) {
+            broadcastSessionsChanged()
+          }
         } finally {
           releaseCreateLease()
-        }
-
-        if (!stored) {
-          const closeCreated = capturedRoute
-            ? requestGatewayForAgent(capturedRoute.connectionId, capturedRoute.profile, 'session.close', {
-                session_id: created.session_id
-              })
-            : requestGateway('session.close', { session_id: created.session_id })
-
-          await closeCreated.catch(() => undefined)
-          notify({ kind: 'error', title: copy.sessionUnavailable, message: copy.createSessionFailed })
-
-          return
-        }
-
-        createdThisRun.add(stored)
-
-        // Seed the per-runtime cache so the tile renders immediately without a
-        // redundant resume. Only add the row to the SIDEBAR when `listed` — an
-        // unlisted (draft) tab stays out of the session list until its first
-        // turn persists and a refresh surfaces it.
-        if (listed) {
-          upsertOptimisticSession(created, stored, null, null, null, undefined, capturedRoute)
-        }
-
-        // A tile lives in its OWN worktree, so it must not run the full
-        // foreground composer publish. A CENTER tile is the focused surface,
-        // though, and the Files pane still keys off the global `$currentCwd` —
-        // so the right rail kept showing the previous session's tree when a
-        // Project "+" created a session while the main chat was occupied
-        // (#76696). Split/side tiles deliberately stay isolated.
-        const runtimeInfo = applyRuntimeInfo(created.info, { foreground: false })
-        updateSessionState(created.session_id, state => ({ ...state, ...runtimeInfo, isUnsentDraft: true }), stored)
-
-        openSessionTile(stored, dir, options?.anchor, options?.before, workspaceScope)
-        patchSessionTile(stored, { runtimeId: created.session_id })
-
-        if (dir === 'center' && runtimeInfo?.cwd) {
-          setCurrentCwdTransient(runtimeInfo.cwd)
-          setWorkspaceCwdOwner(stored)
-        }
-
-        revealTreePane(`session-tile:${stored}`)
-
-        if (listed) {
-          broadcastSessionsChanged()
         }
       } catch (error) {
         notifyError(error, copy.createSessionFailed)
