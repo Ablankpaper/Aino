@@ -147,6 +147,7 @@ it('converges only after every call settles and the final call manifest arrives,
       <ReplyCost billing={incomplete} />
     </I18nProvider>
   )
+
   await act(async () => { await vi.advanceTimersByTimeAsync(0) })
 
   expect(screen.getByText('Partially settled 0.0001 USD')).toBeTruthy()
