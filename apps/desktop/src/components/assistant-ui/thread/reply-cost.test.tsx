@@ -135,6 +135,43 @@ it('recovers offline reads without asking for a new login and offers retry after
   expect(screen.getByRole('button', { name: '重新核对' })).toBeTruthy()
 })
 
+it('converges only after every call settles and the final call manifest arrives, then stops polling', async () => {
+  vi.useFakeTimers()
+  const { billing, listUsage, page } = fixture()
+  const incomplete = { ...billing, calls_complete: false }
+  const row = { ...page.items[0], actual_cost_decimal: '0.00010000' }
+  listUsage.mockResolvedValue({ ...page, items: [row] })
+
+  const view = render(
+    <I18nProvider configClient={null} initialLocale="en">
+      <ReplyCost billing={incomplete} />
+    </I18nProvider>
+  )
+  await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+
+  expect(screen.getByText('Partially settled 0.0001 USD')).toBeTruthy()
+
+  listUsage.mockResolvedValue({ ...page, total: 2, items: [
+    row,
+    { ...row, id: '2', desktop_call_id: billing.calls[1].call_id, desktop_purpose: billing.calls[1].purpose }
+  ] })
+  await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
+  expect(screen.getByText('Partially settled 0.0002 USD')).toBeTruthy()
+  expect(screen.queryByText('Charged 0.0002 USD')).toBeNull()
+
+  view.rerender(
+    <I18nProvider configClient={null} initialLocale="en">
+      <ReplyCost billing={{ ...billing, revision: billing.revision + 1 }} />
+    </I18nProvider>
+  )
+  await act(async () => { await vi.advanceTimersByTimeAsync(0) })
+  expect(screen.getByText('Charged 0.0002 USD')).toBeTruthy()
+  expect(screen.queryByText(/Partially settled/)).toBeNull()
+  const settledReads = listUsage.mock.calls.length
+  await act(async () => { await vi.advanceTimersByTimeAsync(120000) })
+  expect(listUsage).toHaveBeenCalledTimes(settledReads)
+})
+
 it('pauses hidden-window polling and discards ledger data that arrives after an account switch', async () => {
   vi.useFakeTimers()
   const visibility = vi.spyOn(window.document, 'visibilityState', 'get').mockReturnValue('hidden')
