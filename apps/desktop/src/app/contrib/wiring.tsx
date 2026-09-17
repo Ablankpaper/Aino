@@ -47,7 +47,7 @@ import { $desktopBoot } from '@/store/boot'
 import { requestVoiceConversationStart } from '@/store/composer'
 import { $activeConnectionId } from '@/store/connections'
 import { $cronReviewRequest, setCronFocusJobId } from '@/store/cron'
-import { activeGatewayConnectionId } from '@/store/gateway'
+import { $activeGatewayConnectionId } from '@/store/gateway'
 import { $pinnedSessionIds, pinSession, restoreWorktree, unpinSession } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
 import { $previewTarget } from '@/store/preview'
@@ -302,7 +302,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   })
 
   const { connectionRef, gateway, gatewayRef, requestGateway: ambientRequestGateway } = useGatewayRequest()
-  const activeModelConnectionId = activeGatewayConnectionId()
+  const activeModelConnectionId = useStore($activeGatewayConnectionId)
 
   // When chrome stays on the launch backend (Bot Mode / all-profiles
   // navigation), session-owned RPCs still have to hit the session's backend.

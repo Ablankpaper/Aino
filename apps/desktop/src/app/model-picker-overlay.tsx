@@ -8,7 +8,7 @@ import { ModelPickerDialog } from '@/components/model-picker'
 import type { HermesGateway } from '@/hermes'
 import { resolveModelPickerOwner } from '@/lib/model-picker-owner'
 import { useStoreSelector } from '@/lib/use-session-slice'
-import { $activeGatewayRoute, activeGatewayConnectionId } from '@/store/gateway'
+import { $activeGatewayConnectionId, $activeGatewayRoute } from '@/store/gateway'
 import {
   $activeSessionId,
   $awaitingResponse,
@@ -41,6 +41,7 @@ export function ModelPickerOverlay({ gateway, onSelect, requestGateway }: ModelP
   const focusedStoredSessionId = useStore($focusedStoredSessionId)
   const sessionTiles = useStore($sessionTiles)
   const activeGatewayProfile = useStore($activeGatewayRoute)
+  const activeConnectionId = useStore($activeGatewayConnectionId)
   // `$focusedSessionState` is a projection of `$sessionStates`, republished on
   // EVERY message delta — and this overlay is mounted app-wide. Only two
   // fields are read off it, so subscribing to the whole object re-rendered
@@ -58,7 +59,7 @@ export function ModelPickerOverlay({ gateway, onSelect, requestGateway }: ModelP
   const open = useStore($modelPickerOpen)
 
   const pickerOwner = resolveModelPickerOwner({
-    ambientConnectionId: activeGatewayConnectionId() || undefined,
+    ambientConnectionId: activeConnectionId || undefined,
     ambientProfile: activeGatewayProfile,
     focusedStoredSessionId,
     selectedStoredSessionId,

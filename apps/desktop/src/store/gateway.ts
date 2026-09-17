@@ -176,6 +176,7 @@ interface GatewayRegistryState {
   /** Debounced releases so an immediate chained turn can reuse its lease. */
   turnLeaseReleaseTimers: Map<string, ReturnType<typeof setTimeout>>
   $gateway: ReturnType<typeof atom<HermesGateway | null>>
+  $activeConnectionId: ReturnType<typeof atom<null | string>>
   $activeProfile: ReturnType<typeof atom<string>>
 }
 
@@ -197,6 +198,7 @@ function createRegistryState(): GatewayRegistryState {
     // components (inline ClarifyTool, model overlays) that call gateway
     // methods without the instance threaded down through props.
     $gateway: atom<HermesGateway | null>(null),
+    $activeConnectionId: atom<null | string>(null),
     // The PROFILE the active gateway is routed to (bare profile name, never a
     // composite registry scope). Owned exclusively by applyActive() so the
     // published profile can never diverge from the socket actually selected —
@@ -222,6 +224,7 @@ function gatewayState(): GatewayRegistryState {
     // Existing dev-HMR containers predate whole-turn leases.
     store[STATE_KEY].turnLeases ??= new Map()
     store[STATE_KEY].turnLeaseReleaseTimers ??= new Map()
+    store[STATE_KEY].$activeConnectionId ??= atom<null | string>(null)
 
     return store[STATE_KEY]
   }
@@ -248,6 +251,9 @@ export const $gateway = g.$gateway
 // instead of writing their own copy.
 export const $activeGatewayRoute = g.$activeProfile
 
+/** Render-time source identity; imperative callers use activeGatewayConnectionId(). */
+export const $activeGatewayConnectionId = g.$activeConnectionId
+
 /** Bare profile name the active gateway serves (never a composite scope). */
 export function activeGatewayProfileKey(): string {
   return g.$activeProfile.get()
@@ -255,6 +261,7 @@ export function activeGatewayProfileKey(): string {
 
 export function configureGatewayRegistry(cfg: RegistryConfig): void {
   g.config = cfg
+  g.$activeConnectionId.set(activeGatewayConnectionId())
 }
 
 /**
@@ -291,6 +298,7 @@ export function setPrimaryGateway(gateway: HermesGateway | null, profile = 'defa
 
   g.primaryGateway = gateway
   g.primaryProfile = next
+  g.$activeConnectionId.set(activeGatewayConnectionId())
 
   if (g.activeKey === g.primaryProfile) {
     setApiRequestConnection(g.primaryConnectionId)
@@ -317,6 +325,7 @@ export function setPrimaryGatewayConnectionId(connectionId: null | string | unde
   }
 
   g.primaryConnectionId = next
+  g.$activeConnectionId.set(activeGatewayConnectionId())
 
   if (g.activeKey === g.primaryProfile) {
     setApiRequestConnection(g.primaryConnectionId)
@@ -513,6 +522,7 @@ function applyActive(profile: string, activationEpoch: number): boolean {
   }
 
   g.activeKey = normKey(profile)
+  g.$activeConnectionId.set(activeGatewayConnectionId())
   const gateway = activeGateway()
   g.$gateway.set(gateway)
   setGatewayState(gateway?.connectionState ?? 'closed')
@@ -1117,6 +1127,10 @@ function drainPendingConnectionRedial(entry: Secondary): boolean {
   const wasActive = g.activeKey === entry.scope
   disposeSecondary(entry)
   g.secondaries.delete(entry.scope)
+
+  if (wasActive) {
+    g.$activeConnectionId.set(activeGatewayConnectionId())
+  }
 
   const reopen = wasActive
     ? ensureGatewayForAgent(entry.connectionId, entry.profile)
@@ -1938,6 +1952,10 @@ export function disposeSecondariesForConnection(connectionId: string, opts: { re
 
     disposeSecondary(entry)
     g.secondaries.delete(key)
+
+    if (wasActive) {
+      g.$activeConnectionId.set(activeGatewayConnectionId())
+    }
 
     if (opts.redial) {
       const reopen = wasActive

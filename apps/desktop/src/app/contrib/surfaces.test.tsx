@@ -5,19 +5,17 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { HermesGateway } from '@/hermes'
-import { $gateway } from '@/store/gateway'
+import { $activeGatewayConnectionId, $gateway } from '@/store/gateway'
 import { $activeGatewayProfile } from '@/store/profile'
 
 import { ChatRoutesSurface } from './surfaces'
 import type { WiringActions } from './types'
 
-const gatewayRoute = vi.hoisted(() => ({ connectionId: null as null | string }))
-
 vi.mock('@/contrib/react/use-contributions', () => ({ useContributions: vi.fn() }))
 vi.mock('@/store/connections', () => ({ $activeConnectionId: atom('local') }))
 vi.mock('@/store/gateway', () => ({
   $gateway: atom<unknown>(null),
-  activeGatewayConnectionId: () => gatewayRoute.connectionId
+  $activeGatewayConnectionId: atom<null | string>(null)
 }))
 vi.mock('@/store/profile', () => ({ $activeGatewayProfile: atom('default') }))
 vi.mock('@/store/session', () => ({
@@ -64,7 +62,7 @@ vi.mock('../shell/model-menu-panel', () => ({
 
 afterEach(() => {
   cleanup()
-  gatewayRoute.connectionId = null
+  $activeGatewayConnectionId.set(null)
   $gateway.set(null)
   $activeGatewayProfile.set('default')
 })
@@ -94,7 +92,7 @@ describe('ChatRoutesSurface', () => {
   })
 
   it('routes the primary model menu through the active profile socket instead of its local descriptor alias', () => {
-    gatewayRoute.connectionId = null
+    $activeGatewayConnectionId.set(null)
     $gateway.set({ id: 'profile-only' } as unknown as HermesGateway)
     const actions = { getGateway: () => $gateway.get() } as unknown as WiringActions
 

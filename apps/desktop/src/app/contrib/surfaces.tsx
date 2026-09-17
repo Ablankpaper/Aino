@@ -13,7 +13,7 @@ import { Navigate, Route, Routes, useParams } from 'react-router'
 
 import { ContribBoundary, ContribRender } from '@/contrib/react/boundary'
 import { useContributions } from '@/contrib/react/use-contributions'
-import { $gateway, activeGatewayConnectionId } from '@/store/gateway'
+import { $activeGatewayConnectionId, $gateway } from '@/store/gateway'
 import { $activeGatewayProfile } from '@/store/profile'
 import { $gatewayState } from '@/store/session'
 
@@ -74,7 +74,7 @@ export const ChatRoutesSurface = memo(function ChatRoutesSurface({
   const activeGatewayProfile = useStore($activeGatewayProfile)
   const gateway = useStore($gateway)
   const gatewayState = useStore($gatewayState)
-  const activeModelConnectionId = activeGatewayConnectionId()
+  const activeModelConnectionId = useStore($activeGatewayConnectionId)
   useContributions(ROUTES_AREA)
   const routeContributions = contributedRoutes()
 
