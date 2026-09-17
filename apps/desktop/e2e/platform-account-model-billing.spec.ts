@@ -4,9 +4,11 @@ import * as path from 'node:path'
 
 import { buildAppEnv, createSandbox, waitForAppReady, writeEnvFile, writeMockProviderConfig } from './fixtures'
 import { startMockServer } from './mock-server'
-import { assertEdgeAlerts, observeEdgeAlerts, observeNativeRuntime, verifyConcurrentAccountLifecycle, verifyOfflineAndAuthorizationRecovery } from './platform-account-edge-proof'
+import { assertEdgeAlerts, observeEdgeAlerts, observeNativeRuntime, sendPrompt, sendToolTurn, verifyConcurrentAccountLifecycle, verifyOfflineAndAuthorizationRecovery } from './platform-account-edge-proof'
 import { observeInferenceAlerts, verifyInferenceFailures } from './platform-inference-failure-proof'
 import { assertIsolationAlerts, type IsolationParticipant, observeIsolationAlerts, verifyConcurrentIsolation, verifyRetainedHistoryIsolation } from './platform-isolation-proof'
+import { assertLateLeaseAlerts, observeLateLeaseAlerts, verifyLateLeaseAcrossAccountSwitch } from './platform-late-lease-proof'
+import { installPackagedPythonTransport, launchGuardedPackagedDesktop, PACKAGED_PLATFORM_ORIGIN } from './platform-packaged-api'
 import { auditFixtureText, fixtureEnvironment, installLoopbackNodeGuard, installLoopbackPythonGuard, isExpectedBlockedThemeFontRequest, KNOWN_BLOCKED_THEME_FONT_URL, launchGuardedDesktop, type NativeState, type NativeTransportAudit, persistedFixtureText, startRealPlatformAPI } from './platform-real-api'
 import { verifyWebsiteWallet } from './platform-website-wallet'
 import { seedPlatformWorkspace, verifyPlatformWorkspace } from './platform-workspace-proof'
@@ -587,6 +589,228 @@ for (const scenario of [
     if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Native edge cleanup failed') }
   })
 }
+
+async function verifyVisibleCharge(page: Page, api: Awaited<ReturnType<typeof startRealPlatformAPI>>, accountId?: string) {
+  const route = accountId ? `state?user_id=${encodeURIComponent(accountId)}` : 'state'
+  const before = await api.control<NativeState>(route)
+  const started = Date.now()
+  await page.bringToFront()
+  const metrics = page.locator('[data-slot="aui_reply-metrics"]').last()
+  await expect(metrics.getByText('Charged 0.0002 USD', { exact: true })).toBeVisible({ timeout: 90_000 })
+  await expect(metrics.getByText(/Partially settled|Checking charges|Charges not confirmed/)).toHaveCount(0)
+  const after = await api.control<NativeState>(route)
+  expect(after).toEqual(before)
+
+  return { elapsed_ms: Date.now() - started, label: await metrics.innerText(), state_unchanged: true }
+}
+
+test('packaged default sandbox supports platform login tools and history restart', async ({ browserName: _browserName }, testInfo) => {
+  test.setTimeout(300_000)
+  const packagePath = process.env.AINO_NATIVE_PACKAGED_APP
+  test.skip(!packagePath, 'Requires an explicitly built local candidate package')
+  const repoRoot = path.resolve(import.meta.dirname, '../../..')
+  const sandbox = createSandbox('platform-packaged')
+  let api: Awaited<ReturnType<typeof startRealPlatformAPI>> | null = null
+  let launched: Awaited<ReturnType<typeof launchGuardedPackagedDesktop>> | null = null
+  const consoleLines: string[] = []
+  const launches = []
+  const launchAudits: NativeTransportAudit[] = []
+  let primaryError: unknown
+  const cleanupErrors: unknown[] = []
+  let stage = 'fixture'
+
+  try {
+    api = await startRealPlatformAPI(path.resolve(repoRoot, '../Aino-API'))
+    const prepared = prepareNativePlatformEnvironment(sandbox, api)
+    installPackagedPythonTransport(prepared.env.PYTHONPATH, api.info.origin)
+    let previousCodeAt = 0
+    let historyURL = ''
+    const initial = await api.control<NativeState>('state').catch(() => null)
+    const turns = []
+
+    for (const index of [0, 1]) {
+      stage = `launch-${index}`
+      const previousPids = pythonGuardPids(sandbox)
+      launched = await launchGuardedPackagedDesktop(prepared.env, prepared.nodeGuard, packagePath!, api.info.origin)
+      launchAudits.push(observeNativeLaunch(launched, consoleLines))
+      const proof = launched.packageProof
+      expect(proof.beforeEntry).toMatchObject({ packaged: true, ready: false })
+      expect(proof.stop.reason).toBe('Break on start')
+      expect(proof.stop.entry).toBe(path.join(packagePath!, 'Contents/Resources/app.asar/dist/electron-main.mjs'))
+      expect(proof.stop.frames.length).toBeGreaterThan(0)
+      expect(proof.state.packaged).toBe(true)
+      expect(proof.state.appPath).toBe(path.join(packagePath!, 'Contents/Resources/app.asar'))
+      expect(proof.state.executable).toBe(path.join(packagePath!, 'Contents/MacOS/Aino'))
+      expect(proof.state.noSandbox).toBe(false)
+      expect(proof.state.disableSandbox).toBe(false)
+      expect(proof.state.windows.length).toBeGreaterThan(0)
+
+      for (const window of proof.state.windows) {
+        expect(window.preferences).toMatchObject({ sandbox: true, contextIsolation: true, nodeIntegration: false })
+        const metric = proof.state.metrics.find(candidate => candidate.pid === window.pid)
+        expect(metric, `OS sandbox evidence for renderer ${window.pid}`).toMatchObject({ type: 'Tab', sandboxed: true })
+      }
+
+      expect(proof.children.every(child => !child.command.includes('--no-sandbox') && !child.command.includes('--disable-sandbox'))).toBe(true)
+
+      for (const marker of ['node-network-guard-active', 'chromium-network-guard-active']) {
+        expect(fs.readFileSync(path.join(sandbox.hermesHome, marker), 'utf8').split('\n')).toContain(String(launched.transportAudit.mainPid))
+      }
+
+      const mode = await launched.page.evaluate(async () => {
+        const bridge = (window as unknown as { hermesDesktop: { accountAdapter: string; platformAccount: { status(): Promise<{ mode: string }> } } }).hermesDesktop
+
+        return { adapter: bridge.accountAdapter, mode: (await bridge.platformAccount.status()).mode }
+      })
+
+      expect(mode).toEqual({ adapter: 'platform', mode: 'production' })
+      stage = `login-${index}`
+      previousCodeAt = await signInForThisSession(launched.page, api, previousCodeAt)
+      await waitForAppReady(launched as never, 120_000)
+      assertNewGuardedBackend(sandbox, previousPids)
+      stage = `tool-turn-${index}`
+      let after: NativeState
+
+      if (index === 0) {
+        after = await sendToolTurn(launched.page, api)
+        historyURL = launched.page.url()
+      } else {
+        await launched.page.goto(historyURL)
+        await expect(launched.page.getByText(`Verified ${api.info.fixture_content}`, { exact: false }).first()).toBeVisible({ timeout: 60_000 })
+        const before = await api.control<NativeState>('state')
+        await sendPrompt(launched.page, `Read ${api.info.fixture_path} again after restarting the packaged app.`)
+        await expect.poll(async () => (await api!.control<NativeState>('state')).usage_calls).toBe(before.usage_calls + 2)
+        await expect(launched.page.locator('[contenteditable="true"]').first().locator('xpath=ancestor::form').getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
+        after = await api.control<NativeState>('state')
+        expect(after.model_calls).toBe(before.model_calls + 2)
+        expect(after.tool_results).toBe(before.tool_results + 1)
+        expect(decimalUnits(before.balance) - decimalUnits(after.balance)).toBe(decimalUnits(after.usage_cost) - decimalUnits(before.usage_cost))
+      }
+
+      const charge = await verifyVisibleCharge(launched.page, api)
+      turns.push(after)
+
+      const owner = await launched.page.evaluate(async () => {
+        const bridge = (window as unknown as { hermesDesktop: { platformAccount: { status(): Promise<{ revision: number }> }; platformModels: { owner(revision: number): Promise<{ platform_origin: string; user_id: string }> } } }).hermesDesktop
+
+        return bridge.platformModels.owner((await bridge.platformAccount.status()).revision)
+      })
+
+      expect(owner).toEqual({ platform_origin: PACKAGED_PLATFORM_ORIGIN, user_id: String(after.user_id) })
+      const rendererAudit = await auditRenderer(launched.page, api)
+      await launched.page.screenshot({ path: testInfo.outputPath(`packaged-platform-${index}.png`) })
+      const exit = await launched.close()
+      expect(exit.all_exited).toBe(true)
+      expect(exit.forced).toBe(false)
+      expect(exit.processes.some(identity => identity.role.startsWith('backend:'))).toBe(true)
+      launches.push({ ...proof, owner, rendererAudit, charge, exit })
+      launched = null
+    }
+
+    stage = 'audits'
+
+    const transport = await assertNoBlockedTransport(sandbox, launchAudits)
+
+    const requests = { main: fs.readFileSync(path.join(sandbox.hermesHome, 'packaged-main-mapped-requests'), 'utf8').trim().split('\n'),
+      python: fs.readFileSync(path.join(sandbox.hermesHome, 'packaged-python-mapped-requests'), 'utf8').trim().split('\n') }
+
+    expect(requests.python).toHaveLength(4)
+
+    const persistedAudit = await auditFixtureText(api, [...persistedFixtureText(sandbox.hermesHome),
+      ...persistedFixtureText(sandbox.userDataDir), fs.readFileSync(api.logPath, 'utf8'), ...consoleLines, JSON.stringify(launches)])
+
+    await testInfo.attach('packaged-platform-receipt', { body: JSON.stringify({ source: {
+      aino: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), api: api.apiSha },
+    package_path: packagePath, run_id: api.info.run_id, initial, turns, launches, requests, persistedAudit, transport,
+    boundary: 'Unmodified packaged production app, default Chromium sandbox, inspector-installed transport maps exact production origin to loopback fixture; session-only login; configured checkout Python runtime; no real service/TLS/Keychain/notarization claim.' }, null, 2), contentType: 'application/json' })
+  } catch (error) {
+    primaryError = error
+    console.log(`Packaged native failed at ${stage}`)
+
+    if (launched) { await launched.page.screenshot({ path: testInfo.outputPath('packaged-platform-error.png') }).catch(() => undefined) }
+  } finally {
+    try { await launched?.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { await api?.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { sandbox.cleanup() } catch (error) { cleanupErrors.push(error) }
+  }
+
+  if (primaryError !== undefined && cleanupErrors.length > 0) { throw new AggregateError([primaryError, ...cleanupErrors], 'Packaged fixture and cleanup failed') }
+
+  if (primaryError !== undefined) { throw primaryError }
+
+  if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Packaged fixture cleanup failed') }
+})
+
+test('native late lease cannot revive the signed-out account after replacement login', async ({ browserName: _browserName }, testInfo) => {
+  test.setTimeout(180_000)
+  allowErrorBanners()
+  const repoRoot = path.resolve(import.meta.dirname, '../../..')
+  const sandbox = createSandbox('platform-late-lease')
+  let api: Awaited<ReturnType<typeof startRealPlatformAPI>> | null = null
+  let launched: NativeLaunch | null = null
+  const consoleLines: string[] = []
+  const launchAudits: NativeTransportAudit[] = []
+  let primaryError: unknown
+  const cleanupErrors: unknown[] = []
+
+  try {
+    api = await startRealPlatformAPI(path.resolve(repoRoot, '../Aino-API'))
+    const prepared = prepareNativePlatformEnvironment(sandbox, api)
+    launched = await launchGuardedDesktop(prepared.env, prepared.nodeGuard)
+    launchAudits.push(observeNativeLaunch(launched, consoleLines))
+    assertNativeGuardsReady(sandbox, launched.app)
+    await observeLateLeaseAlerts(launched)
+    await observeNativeRuntime(launched.page)
+    await signInForThisSession(launched.page, api)
+    await waitForAppReady(launched as never, 120_000)
+    assertNewGuardedBackend(sandbox, prepared.pythonGuardPids)
+    const account = await launched.page.evaluate(() => (window as unknown as NativeWindow).hermesDesktop.platformAccount.status())
+    const active = launched
+    const fixture = api
+
+    const proof = await verifyLateLeaseAcrossAccountSwitch({ launched, api, accountId: account.account!.id,
+      signInOther: async () => { await signInForThisSession(active.page, fixture, 0, fixture.info.secondary_phone) } })
+
+    await assertLateLeaseAlerts(launched)
+    const charge = await verifyVisibleCharge(launched.page, api, proof.current_owner.user_id)
+    const rendererAudit = await auditRenderer(launched.page, api)
+    const transport = await assertNoBlockedTransport(sandbox, launchAudits)
+    await assertLateLeaseAlerts(launched)
+    await launched.page.screenshot({ path: testInfo.outputPath('native-late-lease.png') })
+    await launched.app.close()
+    launched = null
+
+    const persistedAudit = await auditFixtureText(api, [...persistedFixtureText(sandbox.hermesHome),
+      ...persistedFixtureText(sandbox.userDataDir), fs.readFileSync(api.logPath, 'utf8'), ...consoleLines])
+
+    await testInfo.attach('native-late-lease-receipt', {
+      body: JSON.stringify({ source: { aino: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), api: api.apiSha },
+        run_id: api.info.run_id, proof, charge, rendererAudit, persistedAudit, transport }, null, 2), contentType: 'application/json'
+    })
+  } catch (error) {
+    primaryError = error
+
+    if (launched) { await launched.page.screenshot({ path: testInfo.outputPath('native-late-lease-error.png') }).catch(() => undefined) }
+  } finally {
+    if (api) {
+      try { await api.control('faults', JSON.stringify({ hold_credential_response: false })) } catch (error) { cleanupErrors.push(error) }
+    }
+
+    try { await launched?.app.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { await api?.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { sandbox.cleanup() } catch (error) { cleanupErrors.push(error) }
+  }
+
+  if (primaryError !== undefined && cleanupErrors.length > 0) { throw new AggregateError([primaryError, ...cleanupErrors], 'Late lease and cleanup failed') }
+
+  if (primaryError !== undefined) { throw primaryError }
+
+  if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Late lease cleanup failed') }
+})
 
 test('native inference failures: balance, rate limit and service recovery', async ({ browserName: _browserName }, testInfo) => {
   test.setTimeout(240_000)
