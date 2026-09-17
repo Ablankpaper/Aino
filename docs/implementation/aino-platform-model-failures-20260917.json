@@ -1,0 +1,385 @@
+{
+  "source": {
+    "aino": "51ef28264a85dce76ff530cff67e7aa223ccf657",
+    "api": "4dcbb1b34a255a149073352422d46c2ed2f60243"
+  },
+  "run_id": "65d41d29-246e-44f6-be0b-b891b3c8715a",
+  "proof": {
+    "initial": {
+      "model_calls": 2,
+      "usage_calls": 2,
+      "tool_results": 1,
+      "balance": "9.99980000"
+    },
+    "transient": [
+      {
+        "upstream_status": 429,
+        "client_status": 429,
+        "rejected_attempts": 3,
+        "provider_attempts": 3,
+        "platform_ingress_intervals_ms": [
+          2076,
+          2068
+        ],
+        "before": {
+          "model_calls": 2,
+          "usage_calls": 2,
+          "tool_results": 1,
+          "balance": "9.99980000"
+        },
+        "recovered": {
+          "model_calls": 4,
+          "usage_calls": 4,
+          "tool_results": 2,
+          "balance": "9.99960000"
+        },
+        "user_clicked_retry": true
+      },
+      {
+        "upstream_status": 503,
+        "client_status": 502,
+        "rejected_attempts": 3,
+        "provider_attempts": 3,
+        "platform_ingress_intervals_ms": [
+          2278,
+          5115
+        ],
+        "before": {
+          "model_calls": 4,
+          "usage_calls": 4,
+          "tool_results": 2,
+          "balance": "9.99960000"
+        },
+        "recovered": {
+          "model_calls": 6,
+          "usage_calls": 6,
+          "tool_results": 3,
+          "balance": "9.99940000"
+        },
+        "user_clicked_retry": true
+      }
+    ],
+    "balance": {
+      "client_http_status": 403,
+      "no_automatic_replay": true,
+      "denied_faults": {
+        "profile_401_for_current_access": false,
+        "offline": false,
+        "hold_refresh_response": false,
+        "hold_logout_response": false,
+        "hold_inference_before_auth": false,
+        "hold_credential_response": false,
+        "hold_credential_user_id": 0,
+        "profile_calls": 1,
+        "profile_401s": 0,
+        "network_drops": 0,
+        "refresh_started": 0,
+        "refresh_completed": 0,
+        "refresh_waiting": 0,
+        "refresh_responses": 0,
+        "logout_started": 0,
+        "logout_completed": 0,
+        "logout_waiting": 0,
+        "logout_responses": 0,
+        "credential_requests": 7,
+        "credential_successes": 7,
+        "credential_waiting": 0,
+        "inference_requests": 13,
+        "inference_waiting": 0,
+        "inference_responses": 13,
+        "authenticated_inference_attempts": 12,
+        "inference_attempt_unix_millis": [
+          1789635390463,
+          1789635390561,
+          1789635391661,
+          1789635393737,
+          1789635395805,
+          1789635396114,
+          1789635396141,
+          1789635396449,
+          1789635398727,
+          1789635403842,
+          1789635404438,
+          1789635404480
+        ],
+        "provider_attempts": 12,
+        "provider_attempt_unix_millis": [
+          1789635390475,
+          1789635390567,
+          1789635391667,
+          1789635393743,
+          1789635395811,
+          1789635396119,
+          1789635396149,
+          1789635396458,
+          1789635398736,
+          1789635403847,
+          1789635404445,
+          1789635404485
+        ],
+        "inference_http_status": 0,
+        "inference_http_failures_remaining": 0,
+        "inference_retry_after_seconds": 0,
+        "inference_http_fault_responses": 6,
+        "inference_429s": 3,
+        "inference_503s": 3,
+        "gate_timeouts": 0,
+        "gate_cancellations": 0,
+        "gate_shutdowns": 0,
+        "session_revocations": 0,
+        "retired_lease_available": false,
+        "retired_lease_http_status": 0,
+        "retired_lease_error_code": ""
+      },
+      "before_explicit_send_faults": {
+        "profile_401_for_current_access": false,
+        "offline": false,
+        "hold_refresh_response": false,
+        "hold_logout_response": false,
+        "hold_inference_before_auth": false,
+        "hold_credential_response": false,
+        "hold_credential_user_id": 0,
+        "profile_calls": 1,
+        "profile_401s": 0,
+        "network_drops": 0,
+        "refresh_started": 0,
+        "refresh_completed": 0,
+        "refresh_waiting": 0,
+        "refresh_responses": 0,
+        "logout_started": 0,
+        "logout_completed": 0,
+        "logout_waiting": 0,
+        "logout_responses": 0,
+        "credential_requests": 7,
+        "credential_successes": 7,
+        "credential_waiting": 0,
+        "inference_requests": 13,
+        "inference_waiting": 0,
+        "inference_responses": 13,
+        "authenticated_inference_attempts": 12,
+        "inference_attempt_unix_millis": [
+          1789635390463,
+          1789635390561,
+          1789635391661,
+          1789635393737,
+          1789635395805,
+          1789635396114,
+          1789635396141,
+          1789635396449,
+          1789635398727,
+          1789635403842,
+          1789635404438,
+          1789635404480
+        ],
+        "provider_attempts": 12,
+        "provider_attempt_unix_millis": [
+          1789635390475,
+          1789635390567,
+          1789635391667,
+          1789635393743,
+          1789635395811,
+          1789635396119,
+          1789635396149,
+          1789635396458,
+          1789635398736,
+          1789635403847,
+          1789635404445,
+          1789635404485
+        ],
+        "inference_http_status": 0,
+        "inference_http_failures_remaining": 0,
+        "inference_retry_after_seconds": 0,
+        "inference_http_fault_responses": 6,
+        "inference_429s": 3,
+        "inference_503s": 3,
+        "gate_timeouts": 0,
+        "gate_cancellations": 0,
+        "gate_shutdowns": 0,
+        "session_revocations": 0,
+        "retired_lease_available": false,
+        "retired_lease_http_status": 0,
+        "retired_lease_error_code": ""
+      },
+      "exhausted": {
+        "model_calls": 6,
+        "usage_calls": 6,
+        "tool_results": 3,
+        "balance": "0.00000000"
+      },
+      "denied": {
+        "model_calls": 6,
+        "usage_calls": 6,
+        "tool_results": 3,
+        "balance": "0.00000000"
+      },
+      "restored": {
+        "model_calls": 6,
+        "usage_calls": 6,
+        "tool_results": 3,
+        "balance": "10.00000000"
+      },
+      "recovered": {
+        "model_calls": 8,
+        "usage_calls": 8,
+        "tool_results": 4,
+        "balance": "9.99980000"
+      }
+    },
+    "final_faults": {
+      "profile_401_for_current_access": false,
+      "offline": false,
+      "hold_refresh_response": false,
+      "hold_logout_response": false,
+      "hold_inference_before_auth": false,
+      "hold_credential_response": false,
+      "hold_credential_user_id": 0,
+      "profile_calls": 1,
+      "profile_401s": 0,
+      "network_drops": 0,
+      "refresh_started": 0,
+      "refresh_completed": 0,
+      "refresh_waiting": 0,
+      "refresh_responses": 0,
+      "logout_started": 0,
+      "logout_completed": 0,
+      "logout_waiting": 0,
+      "logout_responses": 0,
+      "credential_requests": 8,
+      "credential_successes": 8,
+      "credential_waiting": 0,
+      "inference_requests": 15,
+      "inference_waiting": 0,
+      "inference_responses": 15,
+      "authenticated_inference_attempts": 14,
+      "inference_attempt_unix_millis": [
+        1789635390463,
+        1789635390561,
+        1789635391661,
+        1789635393737,
+        1789635395805,
+        1789635396114,
+        1789635396141,
+        1789635396449,
+        1789635398727,
+        1789635403842,
+        1789635404438,
+        1789635404480,
+        1789635406078,
+        1789635406105
+      ],
+      "provider_attempts": 14,
+      "provider_attempt_unix_millis": [
+        1789635390475,
+        1789635390567,
+        1789635391667,
+        1789635393743,
+        1789635395811,
+        1789635396119,
+        1789635396149,
+        1789635396458,
+        1789635398736,
+        1789635403847,
+        1789635404445,
+        1789635404485,
+        1789635406085,
+        1789635406110
+      ],
+      "inference_http_status": 0,
+      "inference_http_failures_remaining": 0,
+      "inference_retry_after_seconds": 0,
+      "inference_http_fault_responses": 6,
+      "inference_429s": 3,
+      "inference_503s": 3,
+      "gate_timeouts": 0,
+      "gate_cancellations": 0,
+      "gate_shutdowns": 0,
+      "session_revocations": 0,
+      "retired_lease_available": false,
+      "retired_lease_http_status": 0,
+      "retired_lease_error_code": ""
+    },
+    "audit": {
+      "unexpected_alerts": 0
+    }
+  },
+  "rendererAudit": {
+    "checked_credentials": 11,
+    "leaked": false
+  },
+  "persistedAudit": {
+    "leaked": false,
+    "checked_credentials": 11,
+    "batches": 5,
+    "audited_bytes": 29707133
+  },
+  "transport": {
+    "expectedFontHosts": [
+      "fonts.googleapis.com"
+    ]
+  },
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "boundary": "Isolated native Electron/main/preload/Python/real API auth+gateway+ledger with loopback upstream. Failed requests are before content/tools; explicit Retry does not prove post-content replay safety. Real balance denial403, upstream503 becomes client502. Balance restore is test funding, not payment. Source/build51ef28264a, before later history hit-target fix420836fafd.",
+  "command": {
+    "command": "../../node_modules/.bin/playwright",
+    "args": [
+      "test",
+      "e2e/platform-account-model-billing.spec.ts",
+      "-g",
+      "native inference failures:",
+      "--workers=1",
+      "--retries=0",
+      "--max-failures=1",
+      "--reporter=list",
+      "--output=/private/tmp/aino-native-edges-jsETVx/playwright"
+    ],
+    "exit": 0,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 36949
+  },
+  "tested_source": {
+    "business": "51ef28264a85dce76ff530cff67e7aa223ccf657",
+    "aino": "51ef28264a85dce76ff530cff67e7aa223ccf657",
+    "api": "4dcbb1b34a255a149073352422d46c2ed2f60243",
+    "files": {
+      "Aino/apps/desktop/e2e/platform-account-edge-proof.ts": "b0d29d07d0cfe0cf706f725c0d40931beb8b4db1058c053705e45e97d2a68bdf",
+      "Aino/apps/desktop/e2e/platform-account-model-billing.spec.ts": "f43e66f35f938b912c324af4f85453ecdb0f1f2e71c6e2701ece4f35432a7a19",
+      "Aino/apps/desktop/e2e/platform-real-api.ts": "abaa20cab932c60cbc4c5c9841fd198bfdba7aef5c421c7d02129d3bc31c2c9a",
+      "Aino/apps/desktop/e2e/platform-inference-failure-proof.ts": "88ece795aadd73a8470fd5f9e3d7fddfb323cb7c1c1d553a1d7e3658f72e2316",
+      "Aino/apps/desktop/e2e/platform-isolation-proof.ts": "deca3689d004840ab782da3774c114c365fa76c265e016bfbe9f2a452e9a57e1",
+      "Aino-API/backend/internal/repository/aino_native_consumer_integration_test.go": "06d9f97a750bc251017d36755298b885d47309869c2aa0da1b6101dc88f51580",
+      "Aino-API/backend/internal/repository/aino_native_faults_contract_integration_test.go": "76b9b6c19feee896986e47e9711a4c63be2ab90fa98ce1235863d70dc9b67267",
+      "Aino-API/backend/internal/repository/aino_native_faults_http_integration_test.go": "ba6626c246d56dfd3ab1da7ef4c629816a589d33c582ef4b1d6434611f3f6e06",
+      "Aino-API/backend/internal/repository/aino_native_faults_integration_test.go": "004b30f5b0b532edad3815756ec7721ae7b7091494d607ff9b19d10195809e6f",
+      "Aino-API/backend/internal/repository/aino_native_protocol_integration_test.go": "4fe517b4182ece7c29c378557ce9bd61e1fac92480de615c462043c29a9bb376",
+      "Aino-API/backend/internal/repository/aino_platform_fixture_integration_test.go": "6e09cc7cfaa85a8a5626ad21dff2cfcd105761d6ae343f9c88a7b3a7b5e0bdfa"
+    }
+  },
+  "evidence": [
+    {
+      "path": "/private/tmp/aino-native-edges-jsETVx/acceptance.log",
+      "sha256": "efa5b0ce83b6eed40ee8837a712b6ffa9f15b83fa257d9c0304a4ddcf0c5ccab"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-jsETVx/exit.json",
+      "sha256": "926c42bcca0d657cee993c901b676bedb5c7a1374017ed1a6dd9532e71ce3497"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-jsETVx/source.json",
+      "sha256": "b90a0f85408f76191f53ec01841488012de28ff0f99e3f1b161d578074c1f5f4"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-jsETVx/business-build-manifest.json",
+      "sha256": "b4e80f6e7dc1390f5cc65f1d8f5baa785d4503a867668387cf7bc34ba1d5de44"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-jsETVx/playwright/platform-account-model-bil-d2224--limit-and-service-recovery/test-finished-1.png",
+      "sha256": "795886ba27472bddbed98b32ca67d7cdaba3939e5cfd59a8e53dda353a51f830"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-jsETVx/playwright/platform-account-model-bil-d2224--limit-and-service-recovery/native-inference-failures.png",
+      "sha256": "795886ba27472bddbed98b32ca67d7cdaba3939e5cfd59a8e53dda353a51f830"
+    }
+  ]
+}

@@ -1,0 +1,676 @@
+{
+  "source": {
+    "aino": "420836fafd58b7c7d3bbeccf23a436c6fdbbf653",
+    "api": "4dcbb1b34a255a149073352422d46c2ed2f60243"
+  },
+  "run_ids": [
+    "95523088-6bb0-4862-b28d-caba5f838baf",
+    "ed22fe87-bcb4-4081-b278-9b94b93d2ec8"
+  ],
+  "same_site": false,
+  "concurrent": {
+    "same_site": false,
+    "overlap_observed": true,
+    "selective_release": true,
+    "before": [
+      {
+        "balance": "10.00000000",
+        "credential_requests": 0,
+        "credential_successes": 0,
+        "downstream_disconnects": 0,
+        "inference_requests": 0,
+        "inference_responses": 0,
+        "model_calls": 0,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "95523088-6bb0-4862-b28d-caba5f838baf",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 0,
+        "usage_calls": 0,
+        "usage_cost": "0",
+        "usage_ledger": [],
+        "usage_turns": 0,
+        "user_id": 1
+      },
+      {
+        "balance": "10.00000000",
+        "credential_requests": 0,
+        "credential_successes": 0,
+        "downstream_disconnects": 0,
+        "inference_requests": 0,
+        "inference_responses": 0,
+        "model_calls": 0,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 0,
+        "usage_calls": 0,
+        "usage_cost": "0",
+        "usage_ledger": [],
+        "usage_turns": 0,
+        "user_id": 1
+      }
+    ],
+    "after": [
+      {
+        "balance": "9.99980000",
+        "credential_requests": 2,
+        "credential_successes": 2,
+        "downstream_disconnects": 0,
+        "inference_requests": 2,
+        "inference_responses": 2,
+        "model_calls": 2,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "95523088-6bb0-4862-b28d-caba5f838baf",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 2,
+        "usage_cost": "0.0002000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "a9aaf55c-5da6-5444-b6ee-09b44334b6b5",
+            "desktop_turn_id": "d16067f5-14ac-43e0-b4c7-878a0148c8b7",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "a9aaf55c-5da6-5444-b6ee-09b44334b6b5",
+            "desktop_turn_id": "d16067f5-14ac-43e0-b4c7-878a0148c8b7",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 1,
+        "user_id": 1
+      },
+      {
+        "balance": "9.99980000",
+        "credential_requests": 2,
+        "credential_successes": 2,
+        "downstream_disconnects": 0,
+        "inference_requests": 2,
+        "inference_responses": 2,
+        "model_calls": 2,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 2,
+        "usage_cost": "0.0002000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+            "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+            "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 1,
+        "user_id": 1
+      }
+    ],
+    "right_while_left_settled": {
+      "balance": "10.00000000",
+      "credential_requests": 2,
+      "credential_successes": 2,
+      "downstream_disconnects": 0,
+      "inference_requests": 1,
+      "inference_responses": 0,
+      "model_calls": 0,
+      "orders": 0,
+      "payment_calls": 0,
+      "run_id": "ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+      "stream_cancelled": 0,
+      "stream_drained": 0,
+      "stream_shutdowns": 0,
+      "stream_started": 0,
+      "stream_timeouts": 0,
+      "tool_results": 0,
+      "usage_calls": 0,
+      "usage_cost": "0",
+      "usage_ledger": [],
+      "usage_turns": 0,
+      "user_id": 1
+    },
+    "histories": [
+      {
+        "url": "file:///Users/zizimutou/Protect/Aino/apps/desktop/dist/index.html#/20260917_091957_1fae39",
+        "owner": {
+          "platform_origin": "http://127.0.0.1:50683",
+          "user_id": "1"
+        },
+        "revision": 4,
+        "runtimeId": "2a5c7ed1",
+        "fixtureContent": "fixture-file-content-95523088-6bb0-4862-b28d-caba5f838baf",
+        "state": {
+          "balance": "9.99980000",
+          "credential_requests": 2,
+          "credential_successes": 2,
+          "downstream_disconnects": 0,
+          "inference_requests": 2,
+          "inference_responses": 2,
+          "model_calls": 2,
+          "orders": 0,
+          "payment_calls": 0,
+          "run_id": "95523088-6bb0-4862-b28d-caba5f838baf",
+          "stream_cancelled": 0,
+          "stream_drained": 0,
+          "stream_shutdowns": 0,
+          "stream_started": 0,
+          "stream_timeouts": 0,
+          "tool_results": 1,
+          "usage_calls": 2,
+          "usage_cost": "0.0002000000",
+          "usage_ledger": [
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "a9aaf55c-5da6-5444-b6ee-09b44334b6b5",
+              "desktop_turn_id": "d16067f5-14ac-43e0-b4c7-878a0148c8b7",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "a9aaf55c-5da6-5444-b6ee-09b44334b6b5",
+              "desktop_turn_id": "d16067f5-14ac-43e0-b4c7-878a0148c8b7",
+              "user_id": 1
+            }
+          ],
+          "usage_turns": 1,
+          "user_id": 1
+        }
+      },
+      {
+        "url": "file:///Users/zizimutou/Protect/Aino/apps/desktop/dist/index.html#/20260917_091957_612336",
+        "owner": {
+          "platform_origin": "http://127.0.0.1:50697",
+          "user_id": "1"
+        },
+        "revision": 4,
+        "runtimeId": "508f28aa",
+        "fixtureContent": "fixture-file-content-ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+        "state": {
+          "balance": "9.99980000",
+          "credential_requests": 2,
+          "credential_successes": 2,
+          "downstream_disconnects": 0,
+          "inference_requests": 2,
+          "inference_responses": 2,
+          "model_calls": 2,
+          "orders": 0,
+          "payment_calls": 0,
+          "run_id": "ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+          "stream_cancelled": 0,
+          "stream_drained": 0,
+          "stream_shutdowns": 0,
+          "stream_started": 0,
+          "stream_timeouts": 0,
+          "tool_results": 1,
+          "usage_calls": 2,
+          "usage_cost": "0.0002000000",
+          "usage_ledger": [
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+              "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+              "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+              "user_id": 1
+            }
+          ],
+          "usage_turns": 1,
+          "user_id": 1
+        }
+      }
+    ]
+  },
+  "retained": {
+    "old_owner": {
+      "platform_origin": "http://127.0.0.1:50683",
+      "user_id": "1"
+    },
+    "current_owner": {
+      "platform_origin": "http://127.0.0.1:50697",
+      "user_id": "1"
+    },
+    "history_visible": true,
+    "rejected_before_credentials_and_inference": true,
+    "explicit_new_chat_recovers": true,
+    "before": [
+      {
+        "balance": "9.99980000",
+        "credential_requests": 2,
+        "credential_successes": 2,
+        "downstream_disconnects": 0,
+        "inference_requests": 2,
+        "inference_responses": 2,
+        "model_calls": 2,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "95523088-6bb0-4862-b28d-caba5f838baf",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 2,
+        "usage_cost": "0.0002000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "a9aaf55c-5da6-5444-b6ee-09b44334b6b5",
+            "desktop_turn_id": "d16067f5-14ac-43e0-b4c7-878a0148c8b7",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "a9aaf55c-5da6-5444-b6ee-09b44334b6b5",
+            "desktop_turn_id": "d16067f5-14ac-43e0-b4c7-878a0148c8b7",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 1,
+        "user_id": 1
+      },
+      {
+        "balance": "9.99980000",
+        "credential_requests": 2,
+        "credential_successes": 2,
+        "downstream_disconnects": 0,
+        "inference_requests": 2,
+        "inference_responses": 2,
+        "model_calls": 2,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 2,
+        "usage_cost": "0.0002000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+            "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+            "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 1,
+        "user_id": 1
+      }
+    ],
+    "denied": [
+      {
+        "balance": "9.99980000",
+        "credential_requests": 2,
+        "credential_successes": 2,
+        "downstream_disconnects": 0,
+        "inference_requests": 2,
+        "inference_responses": 2,
+        "model_calls": 2,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "95523088-6bb0-4862-b28d-caba5f838baf",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 2,
+        "usage_cost": "0.0002000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "a9aaf55c-5da6-5444-b6ee-09b44334b6b5",
+            "desktop_turn_id": "d16067f5-14ac-43e0-b4c7-878a0148c8b7",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "a9aaf55c-5da6-5444-b6ee-09b44334b6b5",
+            "desktop_turn_id": "d16067f5-14ac-43e0-b4c7-878a0148c8b7",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 1,
+        "user_id": 1
+      },
+      {
+        "balance": "9.99980000",
+        "credential_requests": 2,
+        "credential_successes": 2,
+        "downstream_disconnects": 0,
+        "inference_requests": 2,
+        "inference_responses": 2,
+        "model_calls": 2,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 2,
+        "usage_cost": "0.0002000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+            "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+            "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 1,
+        "user_id": 1
+      }
+    ],
+    "recovered": {
+      "balance": "9.99960000",
+      "credential_requests": 4,
+      "credential_successes": 4,
+      "downstream_disconnects": 0,
+      "inference_requests": 4,
+      "inference_responses": 4,
+      "model_calls": 4,
+      "orders": 0,
+      "payment_calls": 0,
+      "run_id": "ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+      "stream_cancelled": 0,
+      "stream_drained": 0,
+      "stream_shutdowns": 0,
+      "stream_started": 0,
+      "stream_timeouts": 0,
+      "tool_results": 2,
+      "usage_calls": 4,
+      "usage_cost": "0.0004000000",
+      "usage_ledger": [
+        {
+          "actual_cost": "0.0001000000",
+          "api_key_id": 1,
+          "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+          "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+          "user_id": 1
+        },
+        {
+          "actual_cost": "0.0001000000",
+          "api_key_id": 1,
+          "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+          "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+          "user_id": 1
+        },
+        {
+          "actual_cost": "0.0001000000",
+          "api_key_id": 2,
+          "desktop_session_id": "67f4491e-1b10-5a14-b1a3-1fff68f752e7",
+          "desktop_turn_id": "93501a38-92d6-47cb-93e6-fa5b8d6923e3",
+          "user_id": 1
+        },
+        {
+          "actual_cost": "0.0001000000",
+          "api_key_id": 2,
+          "desktop_session_id": "67f4491e-1b10-5a14-b1a3-1fff68f752e7",
+          "desktop_turn_id": "93501a38-92d6-47cb-93e6-fa5b8d6923e3",
+          "user_id": 1
+        }
+      ],
+      "usage_turns": 2,
+      "user_id": 1
+    },
+    "history": {
+      "url": "file:///Users/zizimutou/Protect/Aino/apps/desktop/dist/index.html#/20260917_092057_76c98f",
+      "owner": {
+        "platform_origin": "http://127.0.0.1:50697",
+        "user_id": "1"
+      },
+      "revision": 4,
+      "runtimeId": "8922530c",
+      "fixtureContent": "fixture-file-content-ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+      "state": {
+        "balance": "9.99960000",
+        "credential_requests": 4,
+        "credential_successes": 4,
+        "downstream_disconnects": 0,
+        "inference_requests": 4,
+        "inference_responses": 4,
+        "model_calls": 4,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "ed22fe87-bcb4-4081-b278-9b94b93d2ec8",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 2,
+        "usage_calls": 4,
+        "usage_cost": "0.0004000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+            "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "92eaf968-2070-55bf-8ef2-abebaea59c99",
+            "desktop_turn_id": "2b6c182f-bc08-4321-99c5-106f74b32585",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 2,
+            "desktop_session_id": "67f4491e-1b10-5a14-b1a3-1fff68f752e7",
+            "desktop_turn_id": "93501a38-92d6-47cb-93e6-fa5b8d6923e3",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 2,
+            "desktop_session_id": "67f4491e-1b10-5a14-b1a3-1fff68f752e7",
+            "desktop_turn_id": "93501a38-92d6-47cb-93e6-fa5b8d6923e3",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 2,
+        "user_id": 1
+      }
+    }
+  },
+  "rendererAudits": [
+    {
+      "checked_credentials": 5,
+      "leaked": false
+    },
+    {
+      "checked_credentials": 5,
+      "leaked": false
+    },
+    {
+      "checked_credentials": 9,
+      "leaked": false
+    },
+    {
+      "checked_credentials": 5,
+      "leaked": false
+    },
+    {
+      "checked_credentials": 9,
+      "leaked": false
+    }
+  ],
+  "persistedAudits": [
+    {
+      "leaked": false,
+      "checked_credentials": 5,
+      "batches": 7,
+      "audited_bytes": 49849983
+    },
+    {
+      "leaked": false,
+      "checked_credentials": 9,
+      "batches": 7,
+      "audited_bytes": 49849983
+    }
+  ],
+  "transports": [
+    {
+      "expectedFontHosts": [
+        "fonts.googleapis.com",
+        "fonts.googleapis.com"
+      ]
+    },
+    {
+      "expectedFontHosts": [
+        "fonts.googleapis.com"
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "boundary": "Two independent API/PG/Redis sites with the same actual numeric user ID; exact origins participate in ownership. Selective release proves peer remains held/uncharged; same sandbox is closed and restarted at other startup-fixed origin retaining foreign history. No dynamic origin switching, shared DB tenant, shared Python process, or late credential-response proof claimed.",
+  "command": {
+    "command": "../../node_modules/.bin/playwright",
+    "args": [
+      "test",
+      "e2e/platform-account-model-billing.spec.ts",
+      "-g",
+      "native concurrent isolation: same numeric account on two sites",
+      "--workers=1",
+      "--retries=0",
+      "--max-failures=1",
+      "--reporter=list",
+      "--output=/private/tmp/aino-native-edges-G5iMaU/playwright"
+    ],
+    "exit": 0,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 88198
+  },
+  "tested_source": {
+    "business": "420836fafd58b7c7d3bbeccf23a436c6fdbbf653",
+    "aino": "420836fafd58b7c7d3bbeccf23a436c6fdbbf653",
+    "api": "4dcbb1b34a255a149073352422d46c2ed2f60243",
+    "files": {
+      "Aino/apps/desktop/e2e/platform-account-edge-proof.ts": "b0d29d07d0cfe0cf706f725c0d40931beb8b4db1058c053705e45e97d2a68bdf",
+      "Aino/apps/desktop/e2e/platform-account-model-billing.spec.ts": "6abec56d614088f53a89c6797cb1d4319d43790c8a9c858afd76b22c41e29dac",
+      "Aino/apps/desktop/e2e/platform-real-api.ts": "abaa20cab932c60cbc4c5c9841fd198bfdba7aef5c421c7d02129d3bc31c2c9a",
+      "Aino/apps/desktop/e2e/platform-inference-failure-proof.ts": "88ece795aadd73a8470fd5f9e3d7fddfb323cb7c1c1d553a1d7e3658f72e2316",
+      "Aino/apps/desktop/e2e/platform-isolation-proof.ts": "bc2c081a14dbdb072232e1a359b307004d63fab0dafb7a3a44600113bba73abd",
+      "Aino-API/backend/internal/repository/aino_native_consumer_integration_test.go": "06d9f97a750bc251017d36755298b885d47309869c2aa0da1b6101dc88f51580",
+      "Aino-API/backend/internal/repository/aino_native_faults_contract_integration_test.go": "76b9b6c19feee896986e47e9711a4c63be2ab90fa98ce1235863d70dc9b67267",
+      "Aino-API/backend/internal/repository/aino_native_faults_http_integration_test.go": "ba6626c246d56dfd3ab1da7ef4c629816a589d33c582ef4b1d6434611f3f6e06",
+      "Aino-API/backend/internal/repository/aino_native_faults_integration_test.go": "004b30f5b0b532edad3815756ec7721ae7b7091494d607ff9b19d10195809e6f",
+      "Aino-API/backend/internal/repository/aino_native_protocol_integration_test.go": "4fe517b4182ece7c29c378557ce9bd61e1fac92480de615c462043c29a9bb376",
+      "Aino-API/backend/internal/repository/aino_platform_fixture_integration_test.go": "6e09cc7cfaa85a8a5626ad21dff2cfcd105761d6ae343f9c88a7b3a7b5e0bdfa"
+    }
+  },
+  "evidence": [
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/acceptance.log",
+      "sha256": "3fb02cd237de6a9317e5e91eac4490311c754a54809c1052e942f1a56535e84d"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/exit.json",
+      "sha256": "a095b6038ad8e58c649a4044e07e4877e066f2648bee1ff399450fdefd0795c8"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/source.json",
+      "sha256": "b4d2aed00d294292c4fce44eb51f29ad8f2fe94bbd91dd2dbae612f915c20e50"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/business-build-manifest.json",
+      "sha256": "6733b1969b799f3583f1c823c2401266c94f27e2133dea0e41a2817df9fa8d81"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/playwright/platform-account-model-bil-5676e-umeric-account-on-two-sites/test-finished-3.png",
+      "sha256": "d176dbe4ef92366c1638d122cf5f81ac1b868d7303d0a236d32a5f55f8ee49d5"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/playwright/platform-account-model-bil-5676e-umeric-account-on-two-sites/test-finished-2.png",
+      "sha256": "888b8ed6f16b7d17a693a66843b9e489d87b41c7408fdd9e9fc92d270289909c"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/playwright/platform-account-model-bil-5676e-umeric-account-on-two-sites/native-isolation-final-1.png",
+      "sha256": "d176dbe4ef92366c1638d122cf5f81ac1b868d7303d0a236d32a5f55f8ee49d5"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/playwright/platform-account-model-bil-5676e-umeric-account-on-two-sites/native-isolation-final-0.png",
+      "sha256": "5e220cb88aac98cfd6efde9bd62fc692b4405d5478b714e334c1932fc419e893"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/playwright/platform-account-model-bil-5676e-umeric-account-on-two-sites/test-finished-1.png",
+      "sha256": "d2bce215b81b7d175fd0ca5166978ccab8494f53309516903552a2060069fb38"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-G5iMaU/playwright/platform-account-model-bil-5676e-umeric-account-on-two-sites/native-isolation-before-switch.png",
+      "sha256": "c3f147804701b2dfe240e9bbd6ed2c15feba58387d464dba3db7828d99389aad"
+    }
+  ]
+}

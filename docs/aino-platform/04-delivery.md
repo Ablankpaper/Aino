@@ -1,5 +1,13 @@
 # D：验收、上线与交付 Implementation Plan
 
+## 本轮执行回写（2026-09-17）
+
+用户本轮授权的第 1、2 项已完成。三条新增原生验收分别通过：[余额不足／429／服务异常恢复](../implementation/aino-platform-model-failures-20260917.json) 36.949 秒、[同站点双账户隔离](../implementation/aino-platform-account-isolation-20260917.json) 84.067 秒、[跨站点同数字 ID 隔离](../implementation/aino-platform-origin-isolation-20260917.json) 88.198 秒（均为完整外层命令）。429 实测三次请求，间隔 2076／2068 ms；上游 503 真实转换为客户端 502。失败请求无结算，账户恢复不自动重放；主动 Retry／发送才发生工具回合。并发账本按用户、Key、会话与回合核对；跨站点仅释放一边时另一边仍等待且未扣费，旧归属历史只读，新会话恢复只向当前归属计费。
+
+修复了原生发现的恢复按钮被输入框拖拽层遮挡：`420836fafd` 调整提示层级，普通点击在两条隔离验收中成功。最终冻结源码 Aino `420836fafd`／API 夹具 `4dcbb1b34`；Python 计划范围 1,624 文件／18,708 通过／0 失败／217 跳过，未观察到 SIGBUS；完整 UI 875 文件／7,985 项通过；Electron 2,262 通过／6 跳过；三个 TS 配置、官方 lint 及 E2E lint 均 exit 0（官方 lint 0 错误、187 条当前警告）。[最终回归回执](../implementation/aino-platform-final-regression-20260917.json)保存命令、计数、哈希、失败原因与独立复核。错误恢复原生使用先前同轮构建 `51ef28264a`，两条隔离使用 `420836fafd`；两个 395 文件开发构建均保存独立清单，不混记源码。
+
+这些结果覆盖已授权的本地范围；供应商为 loopback 替身。晚到租约绑定响应、共享后台多主体、远程／其他 OS、长时任务、正常签名发行和真实供应商仍分别待验收。没有推送、部署或新安装包；历史 Python 18,593／1／209 与 UI 7,982／1 仍保留原失败记录。账本终态已验证，最终截图的费用标签刷新收敛不属于本轮断言。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 用真实执行证据证明账户、模型、充值与原有功能都正确，交给用户可部署的配对版本，再供 Codex 查漏补缺。
@@ -122,7 +130,7 @@ pnpm --dir frontend run build
 
 `make test` 包含默认Go测试和golangci-lint，不能代替unit/integration tags。生成后`git diff`若出现非任务生成漂移，定位原因，不能直接一起提交。
 
-- [ ] **Step 2：Aino质量门禁。** 在Aino根目录使用：
+- [ ] **Step 2：Aino质量门禁。** 本轮已完成下列计划范围Python、完整UI／Electron／types／lint及开发构建，原生按三条新切片执行，回执E31–E34；未将选择性原生运行标成整份spec重跑或正式包验收。在Aino根目录使用：
 
 ```sh
 scripts/run_tests.sh tests/tui_gateway/ tests/agent/ tests/plugins/ tests/hermes_cli/

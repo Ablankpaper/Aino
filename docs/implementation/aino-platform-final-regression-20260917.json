@@ -1,0 +1,555 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "scope": "User-authorized remaining native error/account/origin slices and final planned local regression. No deployment, push, real suppliers, or formal package approval.",
+  "frozen_source": {
+    "aino": "420836fafd58b7c7d3bbeccf23a436c6fdbbf653",
+    "api": "4dcbb1b34a255a149073352422d46c2ed2f60243"
+  },
+  "python": {
+    "source": {
+      "source": "420836fafd58b7c7d3bbeccf23a436c6fdbbf653",
+      "files": {
+        "tests/gateway/test_hosted_rooms_state_db_lifecycle.py": "96b3d03ee578d96f317bd39880a4ba56594ec309ec9ad5da88a32028ef462413"
+      }
+    },
+    "command": "scripts/run_tests.sh",
+    "args": [
+      "tests/tui_gateway/",
+      "tests/agent/",
+      "tests/plugins/",
+      "tests/hermes_cli/",
+      "tests/run_agent/test_provider_fallback.py",
+      "tests/gateway/test_hosted_rooms_state_db_lifecycle.py",
+      "tests/gateway/test_delivery_ledger_fd_leak.py",
+      "tests/tools/test_async_delegation_fd_leak.py",
+      "tests/test_live_system_guard_exit_race.py",
+      "tests/test_live_system_guard.py",
+      "tests/test_live_system_guard_self_test.py",
+      "tests/gateway/test_hosted_rooms_read_path.py",
+      "tests/gateway/test_hosted_rooms.py",
+      "tests/test_sqlite_lock_safe_inspection.py",
+      "tests/test_state_db_repair_live_writer_guard.py",
+      "tests/hermes_state/test_live_db_isolation_guard.py",
+      "tests/hermes_state/test_live_db_guard_ancestry.py",
+      "-j",
+      "30",
+      "--file-timeout",
+      "300",
+      "--file-retries",
+      "0"
+    ],
+    "exit": 0,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 345102,
+    "home": "/private/tmp/aino-python-current-h5ddwc/home",
+    "files": 1624,
+    "passed": 18708,
+    "failed": 0,
+    "skipped": 217,
+    "sigbus_observed": false,
+    "retries": 0,
+    "evidence": [
+      {
+        "path": "/private/tmp/aino-python-current-h5ddwc/tests.log",
+        "sha256": "13f00fc8ed9376fc4622f149fe6623b4008aa431a12e2b4f92424f08b4606771"
+      },
+      {
+        "path": "/private/tmp/aino-python-current-h5ddwc/exit.json",
+        "sha256": "9520064a0e6cc9a9e725a4a66ba063fa891081b7b3b892ef69980b5722032a85"
+      },
+      {
+        "path": "/private/tmp/aino-python-current-h5ddwc/source.json",
+        "sha256": "8ca045ed5a1d6274d92b95a3cdbf40d40d3b82c364d6c97431b777184683d53d"
+      }
+    ],
+    "boundary": "All four plan roots plus provider fallback, SQLite and live process guard regression files; not entire repository Python suite. Native macOS, no synthetic OS identity."
+  },
+  "full_ui": {
+    "command": "npm",
+    "args": [
+      "run",
+      "test:ui",
+      "--",
+      "--maxWorkers=4"
+    ],
+    "source": "420836fafd58b7c7d3bbeccf23a436c6fdbbf653",
+    "exit": 0,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 249833,
+    "files_passed": 875,
+    "tests_passed": 7985,
+    "evidence": [
+      {
+        "path": "/private/tmp/aino-ui-final-continuation-jNFj6s/ui.log",
+        "sha256": "0c910f6117a25a6b61dd5090b0fd0cacfdf7dc86b9c717ad54f2f86130052ea6"
+      },
+      {
+        "path": "/private/tmp/aino-ui-final-continuation-jNFj6s/ui-exit.json",
+        "sha256": "3b572ff2c256bde608e80fc7f93d7084697340366abefff85f3c1157f56a03b5"
+      }
+    ]
+  },
+  "desktop_checks": {
+    "source": "420836fafd58b7c7d3bbeccf23a436c6fdbbf653",
+    "results": [
+      {
+        "name": "electron",
+        "command": "npm",
+        "args": [
+          "run",
+          "test:desktop:platforms",
+          "--",
+          "--maxWorkers=4"
+        ],
+        "exit": 0,
+        "signal": null,
+        "timedOut": false,
+        "duration_ms": 7964
+      },
+      {
+        "name": "typecheck",
+        "command": "npm",
+        "args": [
+          "run",
+          "typecheck"
+        ],
+        "exit": 0,
+        "signal": null,
+        "timedOut": false,
+        "duration_ms": 14082
+      },
+      {
+        "name": "lint",
+        "command": "npm",
+        "args": [
+          "run",
+          "lint"
+        ],
+        "exit": 0,
+        "signal": null,
+        "timedOut": false,
+        "duration_ms": 17031
+      },
+      {
+        "name": "e2e-lint",
+        "command": "../../node_modules/.bin/eslint",
+        "args": [
+          "e2e/platform-account-edge-proof.ts",
+          "e2e/platform-account-model-billing.spec.ts",
+          "e2e/platform-real-api.ts",
+          "e2e/platform-inference-failure-proof.ts",
+          "e2e/platform-isolation-proof.ts"
+        ],
+        "exit": 0,
+        "signal": null,
+        "timedOut": false,
+        "duration_ms": 845
+      }
+    ],
+    "electron_files_passed": 167,
+    "electron_files_skipped": 2,
+    "electron_tests_passed": 2262,
+    "electron_tests_skipped": 6,
+    "lint_errors": 0,
+    "lint_warnings": 187,
+    "evidence": [
+      {
+        "path": "/private/tmp/aino-final-desktop-checks-YMkJu5/results.json",
+        "sha256": "48ccb1e4091ecd2cbee658a959fa4df729e7c6062e37e9c22bbb30eab2c170e3"
+      },
+      {
+        "path": "/private/tmp/aino-final-desktop-checks-YMkJu5/electron.log",
+        "sha256": "9e3a770a836578fae3a9bdb6c6a9f8e77a650fd0a2ad6bd63b0cc7be9ec6916b"
+      },
+      {
+        "path": "/private/tmp/aino-final-desktop-checks-YMkJu5/typecheck.log",
+        "sha256": "c718d9ea017914cc46a0982526d399e30b4af74870a79663c99e48b182e6c5c8"
+      },
+      {
+        "path": "/private/tmp/aino-final-desktop-checks-YMkJu5/lint.log",
+        "sha256": "94d812ab59646fdc507073b6cb342345bc2876e7311ff5d950ac1c7955675aeb"
+      },
+      {
+        "path": "/private/tmp/aino-final-desktop-checks-YMkJu5/e2e-lint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "api_fixture": {
+    "source": "4dcbb1b34a255a149073352422d46c2ed2f60243",
+    "production_unchanged_from": "acc7fc760",
+    "contracts_passed": 4,
+    "duration_seconds": 5.373,
+    "pinned_lint_issues": 0,
+    "evidence": [
+      {
+        "path": "/private/tmp/aino-remaining-api-check/final-focused.log",
+        "sha256": "c9fe42bdd086acd8f515434bf24c5436e21693e6784892b32a9bf922fd9ef1af"
+      },
+      {
+        "path": "/private/tmp/aino-remaining-api-check/final-lint.log",
+        "sha256": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47"
+      },
+      {
+        "path": "/private/tmp/aino-remaining-api-check/final.diff",
+        "sha256": "94f55d8162edffab203bce070075517c405cc03c36a20ceda5e3e90dfdb0abe1"
+      }
+    ],
+    "report": {
+      "path": "/private/tmp/aino-remaining-api-report.md",
+      "sha256": "b5d8ff9dc1973d541bd1aa3615dd591afa6d8ec413a52fd3aee0cb32430876c2"
+    },
+    "boundary": "Tagged integration/nativeconsumer fixture edits only. Four real isolated PG/Redis HTTP contracts; not a repeat of all API/website quality gates."
+  },
+  "native_receipts": [
+    "aino-platform-model-failures-20260917.json",
+    "aino-platform-account-isolation-20260917.json",
+    "aino-platform-origin-isolation-20260917.json"
+  ],
+  "history_recovery_fix": {
+    "source": "420836fafd58b7c7d3bbeccf23a436c6fdbbf653",
+    "description": "Lift read-only account-history recovery notice above composer drag ring; ordinary native click validated on both isolation slices.",
+    "focused_passed": 10,
+    "focused_files": 3,
+    "report": {
+      "path": "/private/tmp/aino-platform-history-hit-target-fix.md",
+      "sha256": "9ad33770ce18c4339fc97620878e06f6b9d2f287215d05d96537350c3742583d"
+    },
+    "boundary": "Focused existing behavioral tests cover ownership/callback/drag predicates; browser layout RED/GREEN is actual native click, not jsdom."
+  },
+  "builds": [
+    {
+      "source": "51ef28264a85dce76ff530cff67e7aa223ccf657",
+      "steps": [
+        {
+          "command": "node",
+          "args": [
+            "scripts/assert-root-install.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 29
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/write-build-stamp.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 83
+        },
+        {
+          "command": "../../node_modules/.bin/vite",
+          "args": [
+            "build"
+          ],
+          "exit": 0,
+          "duration_ms": 12531
+        },
+        {
+          "command": "../../node_modules/.bin/tsc",
+          "args": [
+            "-p",
+            "tsconfig.electron.json"
+          ],
+          "exit": 0,
+          "duration_ms": 638
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/bundle-electron-main.mjs",
+            "--dev"
+          ],
+          "exit": 0,
+          "duration_ms": 95
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/stage-native-deps.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 35
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/assert-dist-built.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 93
+        }
+      ],
+      "file_count": 395,
+      "manifest": {
+        "path": "/private/tmp/aino-build-edges-RCWLiu/dist-manifest.json",
+        "sha256": "b4e80f6e7dc1390f5cc65f1d8f5baa785d4503a867668387cf7bc34ba1d5de44"
+      },
+      "logs": [
+        {
+          "path": "/private/tmp/aino-build-edges-RCWLiu/1.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-RCWLiu/2.log",
+          "sha256": "0840b3dac5d4ea8ead3e75bef1d8d13454635d3a1c59906c9d4621b5fa7bee59"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-RCWLiu/3.log",
+          "sha256": "028029c170ac5e8758633c33e53f337acc052bc10a6f3c5101a4cbf5cb871e2e"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-RCWLiu/4.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-RCWLiu/5.log",
+          "sha256": "2888d16b7ae8f618f7284476d1ef3000bc60e6e51f28a6aecdfb047a477de0d7"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-RCWLiu/6.log",
+          "sha256": "b657c8937ce4558140ab92c18e121fbf6fa6b40ea2cef38b1e655a1a12ddc0ce"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-RCWLiu/7.log",
+          "sha256": "ba1527ec3cd13ca51f7aa050da6d7eb7369941894a8f2a0b508ca747c435a11d"
+        }
+      ]
+    },
+    {
+      "source": "420836fafd58b7c7d3bbeccf23a436c6fdbbf653",
+      "steps": [
+        {
+          "command": "node",
+          "args": [
+            "scripts/assert-root-install.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 29
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/write-build-stamp.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 74
+        },
+        {
+          "command": "../../node_modules/.bin/vite",
+          "args": [
+            "build"
+          ],
+          "exit": 0,
+          "duration_ms": 10317
+        },
+        {
+          "command": "../../node_modules/.bin/tsc",
+          "args": [
+            "-p",
+            "tsconfig.electron.json"
+          ],
+          "exit": 0,
+          "duration_ms": 601
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/bundle-electron-main.mjs",
+            "--dev"
+          ],
+          "exit": 0,
+          "duration_ms": 91
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/stage-native-deps.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 33
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/assert-dist-built.mjs"
+          ],
+          "exit": 0,
+          "duration_ms": 89
+        }
+      ],
+      "file_count": 395,
+      "manifest": {
+        "path": "/private/tmp/aino-build-edges-lqO6Om/dist-manifest.json",
+        "sha256": "6733b1969b799f3583f1c823c2401266c94f27e2133dea0e41a2817df9fa8d81"
+      },
+      "logs": [
+        {
+          "path": "/private/tmp/aino-build-edges-lqO6Om/1.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-lqO6Om/2.log",
+          "sha256": "b5e14ab46e6bc3328a28aa2f2b7d2e428aac26b6d6bb3a60e77b551f1b039cca"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-lqO6Om/3.log",
+          "sha256": "fafddf166529e65cc7cf88ef30373441b3ecb5e954f8680df6850f1b2940d962"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-lqO6Om/4.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-lqO6Om/5.log",
+          "sha256": "08e7f2f9ec3278983e6fd7e368484a43560866f43860bc17907d8b9815cb0283"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-lqO6Om/6.log",
+          "sha256": "b657c8937ce4558140ab92c18e121fbf6fa6b40ea2cef38b1e655a1a12ddc0ce"
+        },
+        {
+          "path": "/private/tmp/aino-build-edges-lqO6Om/7.log",
+          "sha256": "ba1527ec3cd13ca51f7aa050da6d7eb7369941894a8f2a0b508ca747c435a11d"
+        }
+      ]
+    }
+  ],
+  "failed_native_attempts": [
+    {
+      "cause": "Incorrect fixture expected one credential request; actual fresh session creation and first-send preflight each bind. Exact two requests/successes corrected in fd42c7a41b; source trace independently reviewed.",
+      "command": {
+        "command": "../../node_modules/.bin/playwright",
+        "args": [
+          "test",
+          "e2e/platform-account-model-billing.spec.ts",
+          "-g",
+          "native concurrent isolation: two accounts on one site",
+          "--workers=1",
+          "--retries=0",
+          "--max-failures=1",
+          "--reporter=list",
+          "--output=/private/tmp/aino-native-edges-0ZeaHc/playwright"
+        ],
+        "exit": 1,
+        "signal": null,
+        "timedOut": false,
+        "duration_ms": 22419
+      },
+      "source": {
+        "business": "51ef28264a85dce76ff530cff67e7aa223ccf657",
+        "aino": "51ef28264a85dce76ff530cff67e7aa223ccf657",
+        "api": "4dcbb1b34a255a149073352422d46c2ed2f60243",
+        "files": {
+          "Aino/apps/desktop/e2e/platform-account-edge-proof.ts": "b0d29d07d0cfe0cf706f725c0d40931beb8b4db1058c053705e45e97d2a68bdf",
+          "Aino/apps/desktop/e2e/platform-account-model-billing.spec.ts": "f43e66f35f938b912c324af4f85453ecdb0f1f2e71c6e2701ece4f35432a7a19",
+          "Aino/apps/desktop/e2e/platform-real-api.ts": "abaa20cab932c60cbc4c5c9841fd198bfdba7aef5c421c7d02129d3bc31c2c9a",
+          "Aino/apps/desktop/e2e/platform-inference-failure-proof.ts": "88ece795aadd73a8470fd5f9e3d7fddfb323cb7c1c1d553a1d7e3658f72e2316",
+          "Aino/apps/desktop/e2e/platform-isolation-proof.ts": "deca3689d004840ab782da3774c114c365fa76c265e016bfbe9f2a452e9a57e1",
+          "Aino-API/backend/internal/repository/aino_native_consumer_integration_test.go": "06d9f97a750bc251017d36755298b885d47309869c2aa0da1b6101dc88f51580",
+          "Aino-API/backend/internal/repository/aino_native_faults_contract_integration_test.go": "76b9b6c19feee896986e47e9711a4c63be2ab90fa98ce1235863d70dc9b67267",
+          "Aino-API/backend/internal/repository/aino_native_faults_http_integration_test.go": "ba6626c246d56dfd3ab1da7ef4c629816a589d33c582ef4b1d6434611f3f6e06",
+          "Aino-API/backend/internal/repository/aino_native_faults_integration_test.go": "004b30f5b0b532edad3815756ec7721ae7b7091494d607ff9b19d10195809e6f",
+          "Aino-API/backend/internal/repository/aino_native_protocol_integration_test.go": "4fe517b4182ece7c29c378557ce9bd61e1fac92480de615c462043c29a9bb376",
+          "Aino-API/backend/internal/repository/aino_platform_fixture_integration_test.go": "6e09cc7cfaa85a8a5626ad21dff2cfcd105761d6ae343f9c88a7b3a7b5e0bdfa"
+        }
+      },
+      "log": {
+        "path": "/private/tmp/aino-native-edges-0ZeaHc/acceptance.log",
+        "sha256": "cf733991b171a42abf3ed3056e8c7fdf77638af89476a5405155d31324b8cfc3"
+      }
+    },
+    {
+      "cause": "Actual New chat recovery button intercepted by absolute composer drag layer. Same-site ledger/overlap/read-only proof passed before click. Fixed stacking in420836fafd and both completed native isolation slices passed.",
+      "command": {
+        "command": "../../node_modules/.bin/playwright",
+        "args": [
+          "test",
+          "e2e/platform-account-model-billing.spec.ts",
+          "-g",
+          "native concurrent isolation: two accounts on one site",
+          "--workers=1",
+          "--retries=0",
+          "--max-failures=1",
+          "--reporter=list",
+          "--output=/private/tmp/aino-native-edges-ga7XbG/playwright"
+        ],
+        "exit": 1,
+        "signal": null,
+        "timedOut": false,
+        "duration_ms": 112119
+      },
+      "source": {
+        "business": "51ef28264a85dce76ff530cff67e7aa223ccf657",
+        "aino": "fd42c7a41ba1308faf70f83e8a7ea1705f30aafa",
+        "api": "4dcbb1b34a255a149073352422d46c2ed2f60243",
+        "files": {
+          "Aino/apps/desktop/e2e/platform-account-edge-proof.ts": "b0d29d07d0cfe0cf706f725c0d40931beb8b4db1058c053705e45e97d2a68bdf",
+          "Aino/apps/desktop/e2e/platform-account-model-billing.spec.ts": "6abec56d614088f53a89c6797cb1d4319d43790c8a9c858afd76b22c41e29dac",
+          "Aino/apps/desktop/e2e/platform-real-api.ts": "abaa20cab932c60cbc4c5c9841fd198bfdba7aef5c421c7d02129d3bc31c2c9a",
+          "Aino/apps/desktop/e2e/platform-inference-failure-proof.ts": "88ece795aadd73a8470fd5f9e3d7fddfb323cb7c1c1d553a1d7e3658f72e2316",
+          "Aino/apps/desktop/e2e/platform-isolation-proof.ts": "bc2c081a14dbdb072232e1a359b307004d63fab0dafb7a3a44600113bba73abd",
+          "Aino-API/backend/internal/repository/aino_native_consumer_integration_test.go": "06d9f97a750bc251017d36755298b885d47309869c2aa0da1b6101dc88f51580",
+          "Aino-API/backend/internal/repository/aino_native_faults_contract_integration_test.go": "76b9b6c19feee896986e47e9711a4c63be2ab90fa98ce1235863d70dc9b67267",
+          "Aino-API/backend/internal/repository/aino_native_faults_http_integration_test.go": "ba6626c246d56dfd3ab1da7ef4c629816a589d33c582ef4b1d6434611f3f6e06",
+          "Aino-API/backend/internal/repository/aino_native_faults_integration_test.go": "004b30f5b0b532edad3815756ec7721ae7b7091494d607ff9b19d10195809e6f",
+          "Aino-API/backend/internal/repository/aino_native_protocol_integration_test.go": "4fe517b4182ece7c29c378557ce9bd61e1fac92480de615c462043c29a9bb376",
+          "Aino-API/backend/internal/repository/aino_platform_fixture_integration_test.go": "6e09cc7cfaa85a8a5626ad21dff2cfcd105761d6ae343f9c88a7b3a7b5e0bdfa"
+        }
+      },
+      "log": {
+        "path": "/private/tmp/aino-native-edges-ga7XbG/acceptance.log",
+        "sha256": "9c8d95ffb0c1b8315a8584d365dcc6ba080e74d038b918a0731065df209f4d40"
+      }
+    }
+  ],
+  "reviews": [
+    {
+      "path": "/private/tmp/aino-remaining-e2e-rereview.md",
+      "sha256": "d627895b0ecc953efc7baa0533b34a284138576d4fcb4363ff4533c66d243e9d"
+    },
+    {
+      "path": "/private/tmp/aino-remaining-api-rereview.md",
+      "sha256": "54d21b8808c4320bfc776f7f8aec0500eb8bc4bab89570f5c46de677ed3dcd4d"
+    },
+    {
+      "path": "/private/tmp/aino-isolation-lease-rereview.md",
+      "sha256": "00460715e26a7eb8d4d603d20acefda64c7263d1a501d46dad636ffe42729d29"
+    },
+    {
+      "path": "/private/tmp/aino-history-overlay-review.md",
+      "sha256": "b14a4fbd345957ef30af4b7d308cdda289f992bfde7f9c5e74937244e45cae36"
+    },
+    {
+      "path": "/private/tmp/aino-inference-native-evidence-review.md",
+      "sha256": "b067321ad8fb97d256537ce083253b28ca1120960eae296198b69916d47fa317"
+    },
+    {
+      "path": "/private/tmp/aino-isolation-native-evidence-review.md",
+      "sha256": "cbff768b168bd536c6626b04b067fe74f2dcb7d53cd1c7fff9797bb49d9981d8"
+    },
+    {
+      "path": "/private/tmp/aino-final-regression-evidence-review.md",
+      "sha256": "5a73312347e88fcea64d7a74b2887866c23fb6761c580395e04d25888fba7bbc"
+    },
+    {
+      "path": "/private/tmp/aino-remaining-final-delivery-review.md",
+      "sha256": "2002cc206c56619ec2c1c21c949cf4980adf64785f11ac8ccfb2444153f0c3ae"
+    }
+  ],
+  "remaining": [
+    "Normal signed/notarized package and default-sandbox launch",
+    "Other OS credential storage and remote TLS/SSH/native topology",
+    "Late credential-response binding race, shared-backend concurrent owners and long-running scenarios",
+    "Authorized real SMS/model/payment suppliers and production deployment"
+  ],
+  "historical_results": "Prior Python18593passed/1failed/209skipped and UI7982passed/1failed remain original failed records. These fresh full scoped runs close the requested final local regression without rewriting history.",
+  "delivery_audit": {
+    "verdict": "APPROVED",
+    "evidence_hashes_verified": 65,
+    "qualification": "Official lint has187 current warnings; no claim that a clean baseline warning comparison was performed."
+  }
+}
