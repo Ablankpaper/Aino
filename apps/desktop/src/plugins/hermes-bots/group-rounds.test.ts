@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 
 import type * as groupActivity from './group-activity'
 import type * as groupChat from './group-chat'
@@ -306,8 +306,25 @@ describe('per-member delta', () => {
 
 describe('threads', () => {
   it('mints a new thread per composer send and lands replies in it', async () => {
-    const room = await loadRoom()
+    const room = await loadRoom({ turn: ({ n }) => n === 1 ? 'first reply' : n === 2 ? 'second reply' : '(pass)' })
     const member: GroupMember[] = [{ name: 'research', title: '' }]
+    // Sync orders equal-time messages by their stable IDs, independently of
+    // send order. Pin that case instead of depending on millisecond timing.
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
+
+    const ids = vi.spyOn(globalThis.crypto, 'randomUUID')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000004')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000003')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000002')
+      .mockReturnValueOnce('00000000-0000-4000-8000-000000000001')
+
+    let randomValue = 0
+    const random = vi.spyOn(Math, 'random').mockImplementation(() => ++randomValue / 100)
+    onTestFinished(() => {
+      clock.mockRestore()
+      ids.mockRestore()
+      random.mockRestore()
+    })
 
     const first = room.rounds.sendToGroupChat('Rooms', member, 'first topic')
     await settle(room, 'Rooms')
@@ -317,8 +334,17 @@ describe('threads', () => {
     expect(first).toBeTruthy()
     expect(second).toBeTruthy()
     expect(first).not.toBe(second)
-    expect(log(room, 'Rooms')[0].thread).toBe(first)
-    expect(log(room, 'Rooms')[1].thread).toBe(second)
+    const entries = log(room, 'Rooms')
+    expect(entries).toHaveLength(4)
+
+    for (const [text, kind, thread] of [
+      ['first topic', 'user', first],
+      ['first reply', 'member', first],
+      ['second topic', 'user', second],
+      ['second reply', 'member', second]
+    ]) {
+      expect(entries.find(entry => entry.text === text)).toMatchObject({ from: { kind }, thread })
+    }
   })
 
   it('continues an explicit thread and scopes the member delta to it', async () => {
