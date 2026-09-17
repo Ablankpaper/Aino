@@ -1,6 +1,20 @@
 # 本地发行门禁：定向诊断记录
 
-## 本轮剩余模型边界与最终本地回归（2026-09-17，优先于历史记录）
+## 本轮共享后台、迟到租约与 macOS 候选包（2026-09-17，最新）
+
+本轮授权的第 1、2 项已完成本地验收。共享 Python 后台发现并修复了三条归属缺口：跨主体读取用量、被拒绝的发送提前接管 transport，以及会话激活／恢复绕过发送检查。`0a5b610ddf` 共用托管会话归属判断，保留同主体重连与新授权；同站点不同用户、不同站点同数字 ID 的两条合同均通过，真实 gateway 一次性票据、Agent/SDK、工具、并发请求和一方清除／断连后的另一方继续均已执行。见 [E35 共享后台与回归回执](aino-platform-shared-backend-20260917.json)。这不是通用多租户历史 ACL 审计，失去凭据的旧历史仍按原设计可读。
+
+[E36 迟到租约原生回执](aino-platform-late-lease-20260917.json)在 28.511 秒通过：退出 A 并登录 B 后才释放 A 的真实凭据 HTTP 响应，原 bind 明确返回 `auth_attempt_superseded`，无推理／扣费；显式新建 B 会话后才恢复。费用收敛合同 3 文件／16 项通过，原生最终显示 `Charged 0.0002 USD`，等待显示期间账本／调用计数不变。未复现费用组件生产缺陷。
+
+[E37 macOS 候选包回执](aino-platform-packaged-sandbox-20260917.json)在 81.558 秒通过：生产模式 `.app`、默认 Chromium sandbox、登录→工具聊天→费用→正常关闭→fresh SMS 登录→历史续聊。两次 renderer 的实际 `sandboxed=true`，没有 `--no-sandbox` 或外层 `sandbox-exec`；已观测的应用／renderer／backend 均正常退出，无强杀。构建 Aino `a2ff532db2`／API 夹具 `93082b333`，开发与生产 dist 各 395 文件，候选包 656 文件在原生运行前后哈希不变。后续 `b0cd4e82e9` 仅修正测试空行，未重记构建来源。
+
+候选包位于 `/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app`，归档 `Aino-0.21.1-mac-arm64-local-candidate.zip`，SHA-256 `2f32e2f9067743e67cb2c4b25ce78c2803b42a0dc1c5c52818d434dafc52293a`。它尚不具备正式分发条件：当前是 Electron linker ad-hoc 签名，`codesign --verify --deep --strict` 与 Gatekeeper 均 exit 1；本机未找到 Developer ID Application 身份，未发现环境中的公证配置，未读取 Keychain 公证档案。只做了准备检查，没有执行正式签名、公证提交、安装或部署。
+
+本轮后台较广回归为 126 文件／1,128 通过／1 失败（70.9 秒）。唯一失败是旧断言把随机 UUID 中的 `1234` 当作验证码泄漏；`4a1ab840cc` 改查挑战已移除及完整验证码值后，该文件 10 项通过。保留原失败回执，不合并声称整套全绿。三套 TypeScript 与最终 scoped lint 通过；API 夹具 4 项真实 PG/Redis 合同及 pinned lint 通过。此前全量 Python 18,708、UI 7,985 等结果继续只对应原检查点。
+
+原生流量在传输边界映射至隔离真实 API／PostgreSQL／Redis，供应商为 loopback 替身；生产 origin 与授权／业务逻辑保留。结果不代表生产 TLS、真实短信／收费模型／支付、Keychain 记住登录、首次下载运行时或正式签名发行通过。远程／其他 OS、长时任务、完整矩阵和真实供应商仍是后续范围。没有推送、合并或上线。
+
+## 前轮剩余模型边界与最终本地回归（历史）
 
 用户本轮授权的第 1、2 项已完成。三条新增原生验收分别通过：[余额不足／429／服务异常恢复](aino-platform-model-failures-20260917.json) 36.949 秒、[同站点双账户隔离](aino-platform-account-isolation-20260917.json) 84.067 秒、[跨站点同数字 ID 隔离](aino-platform-origin-isolation-20260917.json) 88.198 秒（均为完整外层命令）。429 实测三次请求，间隔 2076／2068 ms；上游 503 真实转换为客户端 502。失败请求无结算，账户恢复不自动重放；主动 Retry／发送才发生工具回合。并发账本按用户、Key、会话与回合核对；跨站点仅释放一边时另一边仍等待且未扣费，旧归属历史只读，新会话恢复只向当前归属计费。
 
@@ -77,7 +91,7 @@ HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh tests/hermes_cli/test__diag_pyth
 
 下一份有判别力的证据应先识别自然故障时的实际 mapped vnode，再追踪其 resize/truncate/unlink 等 OS 级活动与原生线程栈；只有跟踪结果证实后，才将它归因为 SHM 或特定文件操作。没有该证据时保持门禁开放，不继续无变化地循环整套测试。
 
-## macOS 打包启动
+## 前轮 macOS 打包启动（历史，新候选包见顶部 E37）
 
 已有产物：`/private/tmp/aino-d2-packaged-2KZLA5/artifact/mac-arm64/Aino.app`，源码检查点 `6e442f68a7`，arm64 Electron 40.10.2。它早于最新业务检查点，不能当成最新发行制品。
 

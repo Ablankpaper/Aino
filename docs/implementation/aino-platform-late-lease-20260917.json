@@ -1,0 +1,505 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "scope": "Real credential HTTP response written after logout and replacement login; stale native bind rejected, no automatic inference/debit; explicit new-account recovery and visible final charge.",
+  "source": {
+    "aino_build": "a2ff532db29182e0d2289e3a29e4935d98c49c87",
+    "api": "93082b333005b8cd35eb9087b23365b5d53fdcb5",
+    "later_changes": "b0cd4e82e9 changes only whitespace in a test; no production, E2E, or bundle change."
+  },
+  "execution": {
+    "command": "../../node_modules/.bin/playwright",
+    "args": [
+      "test",
+      "e2e/platform-account-model-billing.spec.ts",
+      "-g",
+      "native late lease",
+      "--workers=1",
+      "--retries=0",
+      "--max-failures=1",
+      "--reporter=list",
+      "--output=/private/tmp/aino-native-edges-BnT8Yr/playwright"
+    ],
+    "exit": 0,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 28511
+  },
+  "receipt": {
+    "source": {
+      "aino": "a2ff532db29182e0d2289e3a29e4935d98c49c87",
+      "api": "93082b333005b8cd35eb9087b23365b5d53fdcb5"
+    },
+    "run_id": "8756b4b3-88d7-4913-b795-6b4467d15b5e",
+    "proof": {
+      "old_owner": {
+        "platform_origin": "http://127.0.0.1:57324",
+        "user_id": "1"
+      },
+      "current_owner": {
+        "platform_origin": "http://127.0.0.1:57324",
+        "user_id": "2"
+      },
+      "old_runtime_id": "9957735f",
+      "current_runtime_id": "fcbcd962",
+      "signed_out_revision": 6,
+      "switched_revision": 8,
+      "late_response_delivered_after_switch": true,
+      "binding_result": {
+        "completed": true,
+        "ok": false,
+        "code": "auth_attempt_superseded"
+      },
+      "stale_binding_rejected_without_inference": true,
+      "explicit_new_chat_recovers": true,
+      "before": {
+        "balance": "9.99980000",
+        "usage_cost": "0.0002000000",
+        "usage_calls": 2,
+        "usage_turns": 1,
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "43d21d70-1dbe-574c-a05f-af07e1be2a12",
+            "desktop_turn_id": "c05239b8-95f0-47b5-b889-0fb5ddeba91c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "43d21d70-1dbe-574c-a05f-af07e1be2a12",
+            "desktop_turn_id": "c05239b8-95f0-47b5-b889-0fb5ddeba91c",
+            "user_id": 1
+          }
+        ],
+        "orders": 0
+      },
+      "next_before": {
+        "balance": "10.00000000",
+        "usage_cost": "0",
+        "usage_calls": 0,
+        "usage_turns": 0,
+        "usage_ledger": [],
+        "orders": 0
+      },
+      "recovered": {
+        "balance": "9.99980000",
+        "usage_cost": "0.0002000000",
+        "usage_calls": 2,
+        "usage_turns": 1,
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 3,
+            "desktop_session_id": "301a3d29-d25c-554e-b6a4-4f942f4da999",
+            "desktop_turn_id": "966e7e9a-eda1-4873-96ed-9cc812fc0bab",
+            "user_id": 2
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 3,
+            "desktop_session_id": "301a3d29-d25c-554e-b6a4-4f942f4da999",
+            "desktop_turn_id": "966e7e9a-eda1-4873-96ed-9cc812fc0bab",
+            "user_id": 2
+          }
+        ],
+        "orders": 0
+      },
+      "faults": {
+        "before": {
+          "profile_401_for_current_access": false,
+          "offline": false,
+          "hold_refresh_response": false,
+          "hold_logout_response": false,
+          "hold_inference_before_auth": false,
+          "hold_credential_response": false,
+          "hold_credential_user_id": 0,
+          "profile_calls": 1,
+          "profile_401s": 0,
+          "network_drops": 0,
+          "refresh_started": 0,
+          "refresh_completed": 0,
+          "refresh_waiting": 0,
+          "refresh_responses": 0,
+          "logout_started": 0,
+          "logout_completed": 0,
+          "logout_waiting": 0,
+          "logout_responses": 0,
+          "credential_requests": 2,
+          "credential_successes": 2,
+          "credential_waiting": 0,
+          "credential_responses": 2,
+          "inference_requests": 2,
+          "inference_waiting": 0,
+          "inference_responses": 2,
+          "authenticated_inference_attempts": 2,
+          "inference_attempt_unix_millis": [
+            1789643996994,
+            1789643997090
+          ],
+          "provider_attempts": 2,
+          "provider_attempt_unix_millis": [
+            1789643997002,
+            1789643997097
+          ],
+          "inference_http_status": 0,
+          "inference_http_failures_remaining": 0,
+          "inference_retry_after_seconds": 0,
+          "inference_http_fault_responses": 0,
+          "inference_429s": 0,
+          "inference_503s": 0,
+          "gate_timeouts": 0,
+          "gate_cancellations": 0,
+          "gate_shutdowns": 0,
+          "session_revocations": 0,
+          "retired_lease_available": false,
+          "retired_lease_http_status": 0,
+          "retired_lease_error_code": ""
+        },
+        "held": {
+          "profile_401_for_current_access": false,
+          "offline": false,
+          "hold_refresh_response": false,
+          "hold_logout_response": false,
+          "hold_inference_before_auth": false,
+          "hold_credential_response": true,
+          "hold_credential_user_id": 1,
+          "profile_calls": 1,
+          "profile_401s": 0,
+          "network_drops": 0,
+          "refresh_started": 0,
+          "refresh_completed": 0,
+          "refresh_waiting": 0,
+          "refresh_responses": 0,
+          "logout_started": 0,
+          "logout_completed": 0,
+          "logout_waiting": 0,
+          "logout_responses": 0,
+          "credential_requests": 3,
+          "credential_successes": 3,
+          "credential_waiting": 1,
+          "credential_responses": 2,
+          "inference_requests": 2,
+          "inference_waiting": 0,
+          "inference_responses": 2,
+          "authenticated_inference_attempts": 2,
+          "inference_attempt_unix_millis": [
+            1789643996994,
+            1789643997090
+          ],
+          "provider_attempts": 2,
+          "provider_attempt_unix_millis": [
+            1789643997002,
+            1789643997097
+          ],
+          "inference_http_status": 0,
+          "inference_http_failures_remaining": 0,
+          "inference_retry_after_seconds": 0,
+          "inference_http_fault_responses": 0,
+          "inference_429s": 0,
+          "inference_503s": 0,
+          "gate_timeouts": 0,
+          "gate_cancellations": 0,
+          "gate_shutdowns": 0,
+          "session_revocations": 0,
+          "retired_lease_available": false,
+          "retired_lease_http_status": 0,
+          "retired_lease_error_code": ""
+        },
+        "before_release": {
+          "profile_401_for_current_access": false,
+          "offline": false,
+          "hold_refresh_response": false,
+          "hold_logout_response": false,
+          "hold_inference_before_auth": false,
+          "hold_credential_response": true,
+          "hold_credential_user_id": 1,
+          "profile_calls": 2,
+          "profile_401s": 0,
+          "network_drops": 0,
+          "refresh_started": 0,
+          "refresh_completed": 0,
+          "refresh_waiting": 0,
+          "refresh_responses": 0,
+          "logout_started": 1,
+          "logout_completed": 1,
+          "logout_waiting": 0,
+          "logout_responses": 1,
+          "credential_requests": 3,
+          "credential_successes": 3,
+          "credential_waiting": 1,
+          "credential_responses": 2,
+          "inference_requests": 2,
+          "inference_waiting": 0,
+          "inference_responses": 2,
+          "authenticated_inference_attempts": 2,
+          "inference_attempt_unix_millis": [
+            1789643996994,
+            1789643997090
+          ],
+          "provider_attempts": 2,
+          "provider_attempt_unix_millis": [
+            1789643997002,
+            1789643997097
+          ],
+          "inference_http_status": 0,
+          "inference_http_failures_remaining": 0,
+          "inference_retry_after_seconds": 0,
+          "inference_http_fault_responses": 0,
+          "inference_429s": 0,
+          "inference_503s": 0,
+          "gate_timeouts": 0,
+          "gate_cancellations": 0,
+          "gate_shutdowns": 0,
+          "session_revocations": 0,
+          "retired_lease_available": true,
+          "retired_lease_http_status": 0,
+          "retired_lease_error_code": ""
+        },
+        "rejected": {
+          "profile_401_for_current_access": false,
+          "offline": false,
+          "hold_refresh_response": false,
+          "hold_logout_response": false,
+          "hold_inference_before_auth": false,
+          "hold_credential_response": false,
+          "hold_credential_user_id": 0,
+          "profile_calls": 2,
+          "profile_401s": 0,
+          "network_drops": 0,
+          "refresh_started": 0,
+          "refresh_completed": 0,
+          "refresh_waiting": 0,
+          "refresh_responses": 0,
+          "logout_started": 1,
+          "logout_completed": 1,
+          "logout_waiting": 0,
+          "logout_responses": 1,
+          "credential_requests": 3,
+          "credential_successes": 3,
+          "credential_waiting": 0,
+          "credential_responses": 3,
+          "inference_requests": 2,
+          "inference_waiting": 0,
+          "inference_responses": 2,
+          "authenticated_inference_attempts": 2,
+          "inference_attempt_unix_millis": [
+            1789643996994,
+            1789643997090
+          ],
+          "provider_attempts": 2,
+          "provider_attempt_unix_millis": [
+            1789643997002,
+            1789643997097
+          ],
+          "inference_http_status": 0,
+          "inference_http_failures_remaining": 0,
+          "inference_retry_after_seconds": 0,
+          "inference_http_fault_responses": 0,
+          "inference_429s": 0,
+          "inference_503s": 0,
+          "gate_timeouts": 0,
+          "gate_cancellations": 0,
+          "gate_shutdowns": 0,
+          "session_revocations": 0,
+          "retired_lease_available": true,
+          "retired_lease_http_status": 0,
+          "retired_lease_error_code": ""
+        },
+        "final": {
+          "profile_401_for_current_access": false,
+          "offline": false,
+          "hold_refresh_response": false,
+          "hold_logout_response": false,
+          "hold_inference_before_auth": false,
+          "hold_credential_response": false,
+          "hold_credential_user_id": 0,
+          "profile_calls": 2,
+          "profile_401s": 0,
+          "network_drops": 0,
+          "refresh_started": 0,
+          "refresh_completed": 0,
+          "refresh_waiting": 0,
+          "refresh_responses": 0,
+          "logout_started": 1,
+          "logout_completed": 1,
+          "logout_waiting": 0,
+          "logout_responses": 1,
+          "credential_requests": 5,
+          "credential_successes": 5,
+          "credential_waiting": 0,
+          "credential_responses": 5,
+          "inference_requests": 4,
+          "inference_waiting": 0,
+          "inference_responses": 4,
+          "authenticated_inference_attempts": 4,
+          "inference_attempt_unix_millis": [
+            1789643996994,
+            1789643997090,
+            1789644000216,
+            1789644000283
+          ],
+          "provider_attempts": 4,
+          "provider_attempt_unix_millis": [
+            1789643997002,
+            1789643997097,
+            1789644000221,
+            1789644000290
+          ],
+          "inference_http_status": 0,
+          "inference_http_failures_remaining": 0,
+          "inference_retry_after_seconds": 0,
+          "inference_http_fault_responses": 0,
+          "inference_429s": 0,
+          "inference_503s": 0,
+          "gate_timeouts": 0,
+          "gate_cancellations": 0,
+          "gate_shutdowns": 0,
+          "session_revocations": 0,
+          "retired_lease_available": true,
+          "retired_lease_http_status": 0,
+          "retired_lease_error_code": ""
+        }
+      },
+      "audit": {
+        "expected_stale_alerts": 0,
+        "unexpected_alerts": 0
+      }
+    },
+    "charge": {
+      "elapsed_ms": 28,
+      "label": "Duration 0s\n· Used 30 token\n· Context 0%\n· 242 token/s\nCharged 0.0002 USD\nView details",
+      "state_unchanged": true
+    },
+    "rendererAudit": {
+      "checked_credentials": 10,
+      "leaked": false
+    },
+    "persistedAudit": {
+      "leaked": false,
+      "checked_credentials": 10,
+      "batches": 4,
+      "audited_bytes": 27242324
+    },
+    "transport": {
+      "expectedFontHosts": [
+        "fonts.googleapis.com"
+      ]
+    }
+  },
+  "evidence": [
+    {
+      "path": "/private/tmp/aino-native-edges-BnT8Yr/source.json",
+      "bytes": 1999,
+      "sha256": "9541e74f7e74419edbcc7e879f562a1f494fe6ef6f5df999b6ae139c60236ddc"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-BnT8Yr/exit.json",
+      "bytes": 392,
+      "sha256": "a25da49d69084751af0ca5a21e15f72332679abb7b187da8ec995629a4ace251"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-BnT8Yr/acceptance.log",
+      "bytes": 365,
+      "sha256": "f303a82fca75b806b13b532d10e07f98b86ae977f3204acc71820235581500c7"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-BnT8Yr/receipt.json",
+      "bytes": 11184,
+      "sha256": "a57fb07b661ee607989f40644af1f5a094c9b21415a0f80fcd0e905ea8c1c80c"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-BnT8Yr/playwright/platform-account-model-bil-040f4-unt-after-replacement-login/trace.zip",
+      "bytes": 256293,
+      "sha256": "8fac116e869c609378d60ab3c2fdcdfc3b5cbd1e6ae717f2e41d960cd130684d"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-BnT8Yr/playwright/platform-account-model-bil-040f4-unt-after-replacement-login/native-late-lease.png",
+      "bytes": 236823,
+      "sha256": "b9f7e6d362fd70089597600c8ea5bed43c49032c0974920a970f198bade60c89"
+    },
+    {
+      "path": "/private/tmp/aino-next-dev-lpFblQ/dist-manifest.json",
+      "bytes": 42288,
+      "sha256": "a3ce2a78e17a38e4e96ef513e3701626f3cfd6d33822f69d21ee2e4485a91175"
+    }
+  ],
+  "limits": [
+    "No production TLS or real supplier acceptance.",
+    "No push, deployment, formal signing, notarization submission, or installation to Applications."
+  ],
+  "build": {
+    "source": "a2ff532db29182e0d2289e3a29e4935d98c49c87",
+    "production": false,
+    "steps": [
+      {
+        "command": "node",
+        "args": [
+          "scripts/assert-root-install.mjs"
+        ],
+        "exit": 0,
+        "duration_ms": 27
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/write-build-stamp.mjs"
+        ],
+        "exit": 0,
+        "duration_ms": 78
+      },
+      {
+        "command": "../../node_modules/.bin/vite",
+        "args": [
+          "build"
+        ],
+        "exit": 0,
+        "duration_ms": 11001
+      },
+      {
+        "command": "../../node_modules/.bin/tsc",
+        "args": [
+          "-p",
+          "tsconfig.electron.json"
+        ],
+        "exit": 0,
+        "duration_ms": 626
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/bundle-electron-main.mjs",
+          "--dev"
+        ],
+        "exit": 0,
+        "duration_ms": 102
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/stage-native-deps.mjs"
+        ],
+        "exit": 0,
+        "duration_ms": 35
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/assert-dist-built.mjs"
+        ],
+        "exit": 0,
+        "duration_ms": 93
+      }
+    ]
+  },
+  "review": {
+    "report": {
+      "path": "/private/tmp/aino-late-lease-review.md",
+      "bytes": 5138,
+      "sha256": "fa6a978846b029ffb7f483179747f800a145a1d0e1eb9c9ea248270ec6fdc9b5"
+    },
+    "finding": "One P2: missing alert assertion after final charge wait. Added final assertion before success screenshot/close; native run includes it and passes.",
+    "closed_by": "Controller source inspection plus actual native execution, not a claim that the original review report was unconditionally approved."
+  }
+}

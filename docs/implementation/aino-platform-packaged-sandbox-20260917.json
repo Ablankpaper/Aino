@@ -1,0 +1,813 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "scope": "Unmodified unsigned production-mode macOS arm64 candidate; default Chromium renderer sandbox, login/tool/charge/normal shutdown/fresh login/history continuation. Exact production origin mapped at transport boundary to real isolated API/PG/Redis and loopback suppliers.",
+  "source": {
+    "aino_build": "a2ff532db29182e0d2289e3a29e4935d98c49c87",
+    "api": "93082b333005b8cd35eb9087b23365b5d53fdcb5",
+    "later_changes": "b0cd4e82e9 changes only whitespace in a test; no production, E2E, or bundle change."
+  },
+  "execution": {
+    "command": "../../node_modules/.bin/playwright",
+    "args": [
+      "test",
+      "e2e/platform-account-model-billing.spec.ts",
+      "-g",
+      "packaged default sandbox",
+      "--workers=1",
+      "--retries=0",
+      "--max-failures=1",
+      "--reporter=list",
+      "--output=/private/tmp/aino-native-edges-8ajkK4/playwright"
+    ],
+    "exit": 0,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 81558
+  },
+  "receipt": {
+    "source": {
+      "aino": "a2ff532db29182e0d2289e3a29e4935d98c49c87",
+      "api": "93082b333005b8cd35eb9087b23365b5d53fdcb5"
+    },
+    "package_path": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app",
+    "run_id": "da0973e7-47ac-4992-a226-4f601bd1070b",
+    "initial": null,
+    "turns": [
+      {
+        "balance": "9.99980000",
+        "credential_requests": 2,
+        "credential_successes": 2,
+        "downstream_disconnects": 0,
+        "inference_requests": 2,
+        "inference_responses": 2,
+        "model_calls": 2,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "da0973e7-47ac-4992-a226-4f601bd1070b",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 2,
+        "usage_cost": "0.0002000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "593edcec-da2e-5e8b-8593-ce15aa67d8c6",
+            "desktop_turn_id": "99668803-df78-423b-924f-02b611ab111d",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "593edcec-da2e-5e8b-8593-ce15aa67d8c6",
+            "desktop_turn_id": "99668803-df78-423b-924f-02b611ab111d",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 1,
+        "user_id": 1
+      },
+      {
+        "balance": "9.99960000",
+        "credential_requests": 3,
+        "credential_successes": 3,
+        "downstream_disconnects": 0,
+        "inference_requests": 4,
+        "inference_responses": 4,
+        "model_calls": 4,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "da0973e7-47ac-4992-a226-4f601bd1070b",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 2,
+        "usage_calls": 4,
+        "usage_cost": "0.0004000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "593edcec-da2e-5e8b-8593-ce15aa67d8c6",
+            "desktop_turn_id": "99668803-df78-423b-924f-02b611ab111d",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "593edcec-da2e-5e8b-8593-ce15aa67d8c6",
+            "desktop_turn_id": "99668803-df78-423b-924f-02b611ab111d",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 2,
+            "desktop_session_id": "593edcec-da2e-5e8b-8593-ce15aa67d8c6",
+            "desktop_turn_id": "6f6979b3-fa81-4006-8a63-135812628b68",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 2,
+            "desktop_session_id": "593edcec-da2e-5e8b-8593-ce15aa67d8c6",
+            "desktop_turn_id": "6f6979b3-fa81-4006-8a63-135812628b68",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 2,
+        "user_id": 1
+      }
+    ],
+    "launches": [
+      {
+        "beforeEntry": {
+          "pid": 7936,
+          "packaged": true,
+          "ready": false,
+          "appPath": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar",
+          "executable": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/MacOS/Aino",
+          "argv": [
+            "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/MacOS/Aino",
+            "--inspect-brk=0",
+            "--remote-debugging-port=0",
+            "--aino-legacy-account-development",
+            "--disable-background-networking",
+            "--disable-component-update",
+            "--no-first-run",
+            "--use-mock-keychain"
+          ]
+        },
+        "stop": {
+          "reason": "Break on start",
+          "entry": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar/dist/electron-main.mjs",
+          "frames": [
+            {
+              "url": "file:///private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar/dist/electron-main.mjs",
+              "functionName": "",
+              "location": {
+                "lineNumber": 0,
+                "columnNumber": 0
+              }
+            },
+            {
+              "url": "node:internal/modules/esm/module_job",
+              "functionName": "#asyncInstantiate",
+              "location": {
+                "lineNumber": 323,
+                "columnNumber": 8
+              }
+            },
+            {
+              "url": "node:internal/process/task_queues",
+              "functionName": "processTicksAndRejections",
+              "location": {
+                "lineNumber": 103,
+                "columnNumber": 4
+              }
+            }
+          ]
+        },
+        "state": {
+          "packaged": true,
+          "appPath": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar",
+          "executable": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/MacOS/Aino",
+          "noSandbox": false,
+          "disableSandbox": false,
+          "metrics": [
+            {
+              "pid": 7936,
+              "type": "Browser",
+              "sandboxed": false
+            },
+            {
+              "pid": 7940,
+              "type": "GPU",
+              "sandboxed": true
+            },
+            {
+              "pid": 7941,
+              "type": "Utility",
+              "name": "Network Service",
+              "sandboxed": true
+            },
+            {
+              "pid": 7945,
+              "type": "Tab",
+              "sandboxed": true
+            },
+            {
+              "pid": 7959,
+              "type": "Utility",
+              "name": "Audio Service",
+              "sandboxed": true
+            }
+          ],
+          "windows": [
+            {
+              "pid": 7945,
+              "preferences": {
+                "allowRunningInsecureContent": false,
+                "contextIsolation": true,
+                "disableDialogs": false,
+                "disablePopups": false,
+                "enableBlinkFeatures": "",
+                "experimentalFeatures": false,
+                "javascript": true,
+                "nodeIntegration": false,
+                "nodeIntegrationInSubFrames": false,
+                "safeDialogs": false,
+                "safeDialogsMessage": "",
+                "sandbox": true,
+                "webSecurity": true,
+                "webviewTag": true
+              }
+            }
+          ]
+        },
+        "children": [
+          {
+            "pid": 7945,
+            "command": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper (Renderer).app/Contents/MacOS/Aino Helper (Renderer) --type=renderer --user-data-dir=/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/hermes-e2e-platform-packaged-0.2703959300758798wqyvm5/electron-user-data --standard-schemes=hermes-media --secure-schemes=hermes-media --fetch-schemes=hermes-media --streaming-schemes=hermes-media --app-path=/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar --enable-sandbox --remote-debugging-port=0 --lang=en-US --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1789401333241604 --launch-time-ticks=242778276239 --shared-files --field-trial-handle=1718379636,r,17272060952237289723,13355759677648485954,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=69"
+          }
+        ],
+        "earlyLogs": {
+          "stdout": "/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/hermes-e2e-platform-packaged-0.2703959300758798wqyvm5/hermes-home/packaged-8aa8ef6d-1449-4a35-8f81-d531809f3949.stdout.log",
+          "stderr": "/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/hermes-e2e-platform-packaged-0.2703959300758798wqyvm5/hermes-home/packaged-8aa8ef6d-1449-4a35-8f81-d531809f3949.stderr.log"
+        },
+        "owner": {
+          "platform_origin": "https://api.agentera.com.cn",
+          "user_id": "1"
+        },
+        "rendererAudit": {
+          "checked_credentials": 5,
+          "leaked": false
+        },
+        "charge": {
+          "elapsed_ms": 15,
+          "label": "Duration 0s\n· Used 30 token\n· Context 0%\n· 60 token/s\nCharged 0.0002 USD\nView details",
+          "state_unchanged": true
+        },
+        "exit": {
+          "processes": [
+            {
+              "pid": 7935,
+              "role": "wrapper",
+              "startMarker": "ps:Thu Sep 17 11:21:49 2026"
+            },
+            {
+              "pid": 7936,
+              "role": "main",
+              "startMarker": "ps:Thu Sep 17 11:21:49 2026"
+            },
+            {
+              "pid": 7950,
+              "startMarker": "ps:Thu Sep 17 11:21:51 2026",
+              "role": "backend:default"
+            },
+            {
+              "pid": 7940,
+              "role": "GPU",
+              "startMarker": "ps:Thu Sep 17 11:21:51 2026"
+            },
+            {
+              "pid": 7941,
+              "role": "Utility",
+              "startMarker": "ps:Thu Sep 17 11:21:51 2026"
+            },
+            {
+              "pid": 7945,
+              "role": "Tab",
+              "startMarker": "ps:Thu Sep 17 11:21:51 2026"
+            },
+            {
+              "pid": 7959,
+              "role": "Utility",
+              "startMarker": "ps:Thu Sep 17 11:21:52 2026"
+            }
+          ],
+          "all_exited": true,
+          "forced": false
+        }
+      },
+      {
+        "beforeEntry": {
+          "pid": 8191,
+          "packaged": true,
+          "ready": false,
+          "appPath": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar",
+          "executable": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/MacOS/Aino",
+          "argv": [
+            "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/MacOS/Aino",
+            "--inspect-brk=0",
+            "--remote-debugging-port=0",
+            "--aino-legacy-account-development",
+            "--disable-background-networking",
+            "--disable-component-update",
+            "--no-first-run",
+            "--use-mock-keychain"
+          ]
+        },
+        "stop": {
+          "reason": "Break on start",
+          "entry": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar/dist/electron-main.mjs",
+          "frames": [
+            {
+              "url": "file:///private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar/dist/electron-main.mjs",
+              "functionName": "",
+              "location": {
+                "lineNumber": 0,
+                "columnNumber": 0
+              }
+            },
+            {
+              "url": "node:internal/modules/esm/module_job",
+              "functionName": "#asyncInstantiate",
+              "location": {
+                "lineNumber": 323,
+                "columnNumber": 8
+              }
+            },
+            {
+              "url": "node:internal/process/task_queues",
+              "functionName": "processTicksAndRejections",
+              "location": {
+                "lineNumber": 103,
+                "columnNumber": 4
+              }
+            }
+          ]
+        },
+        "state": {
+          "packaged": true,
+          "appPath": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar",
+          "executable": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/MacOS/Aino",
+          "noSandbox": false,
+          "disableSandbox": false,
+          "metrics": [
+            {
+              "pid": 8191,
+              "type": "Browser",
+              "sandboxed": false
+            },
+            {
+              "pid": 8208,
+              "type": "GPU",
+              "sandboxed": true
+            },
+            {
+              "pid": 8209,
+              "type": "Utility",
+              "name": "Network Service",
+              "sandboxed": true
+            },
+            {
+              "pid": 8213,
+              "type": "Tab",
+              "sandboxed": true
+            },
+            {
+              "pid": 8228,
+              "type": "Utility",
+              "name": "Audio Service",
+              "sandboxed": true
+            }
+          ],
+          "windows": [
+            {
+              "pid": 8213,
+              "preferences": {
+                "allowRunningInsecureContent": false,
+                "contextIsolation": true,
+                "disableDialogs": false,
+                "disablePopups": false,
+                "enableBlinkFeatures": "",
+                "experimentalFeatures": false,
+                "javascript": true,
+                "nodeIntegration": false,
+                "nodeIntegrationInSubFrames": false,
+                "safeDialogs": false,
+                "safeDialogsMessage": "",
+                "sandbox": true,
+                "webSecurity": true,
+                "webviewTag": true
+              }
+            }
+          ]
+        },
+        "children": [
+          {
+            "pid": 8213,
+            "command": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper (Renderer).app/Contents/MacOS/Aino Helper (Renderer) --type=renderer --user-data-dir=/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/hermes-e2e-platform-packaged-0.2703959300758798wqyvm5/electron-user-data --standard-schemes=hermes-media --secure-schemes=hermes-media --fetch-schemes=hermes-media --streaming-schemes=hermes-media --app-path=/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Resources/app.asar --enable-sandbox --remote-debugging-port=0 --lang=en-US --num-raster-threads=4 --enable-zero-copy --enable-gpu-memory-buffer-compositor-resources --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1789401333241523 --launch-time-ticks=242788596696 --shared-files --field-trial-handle=1718379636,r,13074400531238077499,16303146684648963944,262144 --enable-features=PdfUseShowSaveFilePicker,ScreenCaptureKitPickerScreen,ScreenCaptureKitStreamPickerSonoma --disable-features=LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TimeoutHangingVideoCaptureStarts,TraceSiteInstanceGetProcessCreation --variations-seed-version --trace-process-track-uuid=3190708990060038890 --seatbelt-client=67"
+          }
+        ],
+        "earlyLogs": {
+          "stdout": "/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/hermes-e2e-platform-packaged-0.2703959300758798wqyvm5/hermes-home/packaged-6f6b3be9-2112-421f-bc91-0eec5532d3b3.stdout.log",
+          "stderr": "/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/hermes-e2e-platform-packaged-0.2703959300758798wqyvm5/hermes-home/packaged-6f6b3be9-2112-421f-bc91-0eec5532d3b3.stderr.log"
+        },
+        "owner": {
+          "platform_origin": "https://api.agentera.com.cn",
+          "user_id": "1"
+        },
+        "rendererAudit": {
+          "checked_credentials": 8,
+          "leaked": false
+        },
+        "charge": {
+          "elapsed_ms": 17,
+          "label": "Duration 0s\n· Used 30 token\n· Context 0%\n· 62 token/s\nCharged 0.0002 USD\nView details",
+          "state_unchanged": true
+        },
+        "exit": {
+          "processes": [
+            {
+              "pid": 8181,
+              "role": "wrapper",
+              "startMarker": "ps:Thu Sep 17 11:22:00 2026"
+            },
+            {
+              "pid": 8191,
+              "role": "main",
+              "startMarker": "ps:Thu Sep 17 11:22:01 2026"
+            },
+            {
+              "pid": 8218,
+              "startMarker": "ps:Thu Sep 17 11:22:01 2026",
+              "role": "backend:default"
+            },
+            {
+              "pid": 8208,
+              "role": "GPU",
+              "startMarker": "ps:Thu Sep 17 11:22:01 2026"
+            },
+            {
+              "pid": 8209,
+              "role": "Utility",
+              "startMarker": "ps:Thu Sep 17 11:22:01 2026"
+            },
+            {
+              "pid": 8213,
+              "role": "Tab",
+              "startMarker": "ps:Thu Sep 17 11:22:01 2026"
+            },
+            {
+              "pid": 8228,
+              "role": "Utility",
+              "startMarker": "ps:Thu Sep 17 11:22:02 2026"
+            }
+          ],
+          "all_exited": true,
+          "forced": false
+        }
+      }
+    ],
+    "requests": {
+      "main": [
+        "GET /api/v1/settings/public",
+        "GET /api/v1/settings/public",
+        "POST /api/v1/auth/phone/send-code",
+        "POST /api/v1/auth/phone/verify",
+        "GET /api/v1/user/profile",
+        "GET /api/v1/desktop/models",
+        "GET /api/v1/settings/public",
+        "GET /api/v1/desktop/models",
+        "POST /api/v1/desktop/credentials",
+        "POST /api/v1/desktop/credentials",
+        "GET /api/v1/usage",
+        "GET /api/v1/usage",
+        "GET /api/v1/desktop/models",
+        "GET /api/v1/settings/public",
+        "GET /api/v1/settings/public",
+        "POST /api/v1/auth/phone/send-code",
+        "POST /api/v1/auth/phone/verify",
+        "GET /api/v1/user/profile",
+        "GET /api/v1/desktop/models",
+        "GET /api/v1/usage",
+        "POST /api/v1/desktop/credentials",
+        "GET /api/v1/usage",
+        "GET /api/v1/usage",
+        "GET /api/v1/desktop/models"
+      ],
+      "python": [
+        "POST /v1/chat/completions",
+        "POST /v1/chat/completions",
+        "POST /v1/chat/completions",
+        "POST /v1/chat/completions"
+      ]
+    },
+    "persistedAudit": {
+      "leaked": false,
+      "checked_credentials": 8,
+      "batches": 4,
+      "audited_bytes": 24744473
+    },
+    "transport": {
+      "expectedFontHosts": [
+        "fonts.googleapis.com",
+        "fonts.googleapis.com"
+      ]
+    },
+    "boundary": "Unmodified packaged production app, default Chromium sandbox, inspector-installed transport maps exact production origin to loopback fixture; session-only login; configured checkout Python runtime; no real service/TLS/Keychain/notarization claim."
+  },
+  "evidence": [
+    {
+      "path": "/private/tmp/aino-native-edges-8ajkK4/source.json",
+      "bytes": 1999,
+      "sha256": "9541e74f7e74419edbcc7e879f562a1f494fe6ef6f5df999b6ae139c60236ddc"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-8ajkK4/exit.json",
+      "bytes": 399,
+      "sha256": "8a72ca92e0f83c86498991e950819a38b33b4e3552c199449f631d129f2a474b"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-8ajkK4/acceptance.log",
+      "bytes": 359,
+      "sha256": "bb510d1246719b28ab32f9e6ec1e0b392d377983c3eb94b60e7e32c399138b94"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-8ajkK4/receipt.json",
+      "bytes": 18030,
+      "sha256": "2978fc4aae6974a04909f0e5e9bcf95f68a8c8d072375fe3ea39cca998a30828"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-8ajkK4/playwright/platform-account-model-bil-2d6d3-n-tools-and-history-restart/trace.zip",
+      "bytes": 469989,
+      "sha256": "4f7b5da76826064969c3ba3d1601807ebf188819ce506a1581ca8e7b710f5c7d"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-8ajkK4/playwright/platform-account-model-bil-2d6d3-n-tools-and-history-restart/packaged-platform-0.png",
+      "bytes": 203314,
+      "sha256": "fa391198d911d248779fc3ef03e6fcf7149af77ad109e7ed7ff9e3a3f40ca689"
+    },
+    {
+      "path": "/private/tmp/aino-native-edges-8ajkK4/playwright/platform-account-model-bil-2d6d3-n-tools-and-history-restart/packaged-platform-1.png",
+      "bytes": 267345,
+      "sha256": "875cdcc6f922e0145894ea20003009f7de34e5e3de6c991672730d3a8b33f945"
+    },
+    {
+      "path": "/private/tmp/aino-next-package-MQJqsm/dist-manifest.json",
+      "bytes": 42287,
+      "sha256": "7f1e57dde3594068d858e4f8f6ca38a27aff804ce710a575b9bafbc7722730c6"
+    },
+    {
+      "path": "/private/tmp/aino-next-package-MQJqsm/bundle-manifest.json",
+      "bytes": 126602,
+      "sha256": "4e2403f41ecc7904093e4a234054678081a3ac461e9857004191c077e2f4691e"
+    },
+    {
+      "path": "/private/tmp/aino-next-package-MQJqsm/inspection.json",
+      "bytes": 7602,
+      "sha256": "8bc0870ffd9b3095acdfdbb0b2d8adad23c41be1d0f5b7434528a656a24ea513"
+    },
+    {
+      "path": "/private/tmp/aino-package-harness-review.md",
+      "bytes": 7074,
+      "sha256": "bc2f310a12b2b480fc6c30e43f64cb0b635e86895968045c30b844b898bef93b"
+    },
+    {
+      "path": "/private/tmp/aino-package-harness-fixes.md",
+      "bytes": 4612,
+      "sha256": "b5847f823d47246a7207063d16ec939ae990e32d2f32d749c609bf7542599426"
+    }
+  ],
+  "limits": [
+    "No production TLS or real supplier acceptance.",
+    "No push, deployment, formal signing, notarization submission, or installation to Applications."
+  ],
+  "build": {
+    "source": "a2ff532db29182e0d2289e3a29e4935d98c49c87",
+    "production": true,
+    "steps": [
+      {
+        "command": "node",
+        "args": [
+          "scripts/assert-root-install.mjs"
+        ],
+        "exit": 0,
+        "duration_ms": 26
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/write-build-stamp.mjs"
+        ],
+        "exit": 0,
+        "duration_ms": 83
+      },
+      {
+        "command": "../../node_modules/.bin/vite",
+        "args": [
+          "build"
+        ],
+        "exit": 0,
+        "duration_ms": 10768
+      },
+      {
+        "command": "../../node_modules/.bin/tsc",
+        "args": [
+          "-p",
+          "tsconfig.electron.json"
+        ],
+        "exit": 0,
+        "duration_ms": 668
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/bundle-electron-main.mjs"
+        ],
+        "exit": 0,
+        "duration_ms": 108
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/stage-native-deps.mjs"
+        ],
+        "exit": 0,
+        "duration_ms": 38
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/assert-dist-built.mjs"
+        ],
+        "exit": 0,
+        "duration_ms": 92
+      },
+      {
+        "command": "npm",
+        "args": [
+          "run",
+          "builder",
+          "--",
+          "--dir",
+          "--mac",
+          "--arm64",
+          "--publish",
+          "never",
+          "-c",
+          "/private/tmp/aino-next-package-MQJqsm/builder.config.cjs"
+        ],
+        "exit": 0,
+        "duration_ms": 1559
+      }
+    ]
+  },
+  "inspection": {
+    "signature": {
+      "command": [
+        "/usr/bin/codesign",
+        "-dvvv",
+        "--entitlements",
+        ":-",
+        "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Executable=/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/MacOS/Aino\nIdentifier=Electron\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20400 size=392 flags=0x20002(adhoc,linker-signed) hashes=9+0 location=embedded\nHash type=sha256 size=32\nCandidateCDHash sha256=2e8fbaade7de12b32c80708466ff71ac0ca2ace4\nCandidateCDHashFull sha256=2e8fbaade7de12b32c80708466ff71ac0ca2ace46de5d431f4e8cabd3b1d9628\nHash choices=sha256\nCMSDigest=2e8fbaade7de12b32c80708466ff71ac0ca2ace46de5d431f4e8cabd3b1d9628\nCMSDigestType=2\nCDHash=2e8fbaade7de12b32c80708466ff71ac0ca2ace4\nSignature=adhoc\nInfo.plist=not bound\nTeamIdentifier=not set\nSealed Resources=none\nInternal requirements=none\nwarning: Specifying ':' in the path is deprecated and will not work in a future release\n"
+    },
+    "strict_verify": {
+      "command": [
+        "/usr/bin/codesign",
+        "--verify",
+        "--deep",
+        "--strict",
+        "--verbose=2",
+        "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app: code has no resources but signature indicates they must be present\n"
+    },
+    "gatekeeper": {
+      "command": [
+        "/usr/sbin/spctl",
+        "--assess",
+        "--type",
+        "execute",
+        "--verbose=4",
+        "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app: code has no resources but signature indicates they must be present\n"
+    },
+    "architecture": {
+      "command": [
+        "/usr/bin/lipo",
+        "-archs",
+        "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/MacOS/Aino"
+      ],
+      "exit": 0,
+      "stdout": "arm64\n",
+      "stderr": ""
+    },
+    "helper_0": {
+      "command": [
+        "/usr/bin/codesign",
+        "-dvvv",
+        "--entitlements",
+        ":-",
+        "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper (GPU).app"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Executable=/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper (GPU).app/Contents/MacOS/Aino Helper (GPU)\nIdentifier=Electron Helper (GPU)\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20400 size=1720 flags=0x20002(adhoc,linker-signed) hashes=50+0 location=embedded\nHash type=sha256 size=32\nCandidateCDHash sha256=40b461e56773460cd556bf14f0c529f526581ffb\nCandidateCDHashFull sha256=40b461e56773460cd556bf14f0c529f526581ffb99ea87bff797eaf116ab8ff7\nHash choices=sha256\nCMSDigest=40b461e56773460cd556bf14f0c529f526581ffb99ea87bff797eaf116ab8ff7\nCMSDigestType=2\nCDHash=40b461e56773460cd556bf14f0c529f526581ffb\nSignature=adhoc\nInfo.plist=not bound\nTeamIdentifier=not set\nSealed Resources=none\nInternal requirements=none\nwarning: Specifying ':' in the path is deprecated and will not work in a future release\n"
+    },
+    "helper_1": {
+      "command": [
+        "/usr/bin/codesign",
+        "-dvvv",
+        "--entitlements",
+        ":-",
+        "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper (Plugin).app"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Executable=/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper (Plugin).app/Contents/MacOS/Aino Helper (Plugin)\nIdentifier=Electron Helper (Plugin)\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20400 size=1720 flags=0x20002(adhoc,linker-signed) hashes=50+0 location=embedded\nHash type=sha256 size=32\nCandidateCDHash sha256=e4e2ad87fe0f038904461f00e13cbd1caa7ef399\nCandidateCDHashFull sha256=e4e2ad87fe0f038904461f00e13cbd1caa7ef3990cd0a7d8466ce2f0c25601f5\nHash choices=sha256\nCMSDigest=e4e2ad87fe0f038904461f00e13cbd1caa7ef3990cd0a7d8466ce2f0c25601f5\nCMSDigestType=2\nCDHash=e4e2ad87fe0f038904461f00e13cbd1caa7ef399\nSignature=adhoc\nInfo.plist=not bound\nTeamIdentifier=not set\nSealed Resources=none\nInternal requirements=none\nwarning: Specifying ':' in the path is deprecated and will not work in a future release\n"
+    },
+    "helper_2": {
+      "command": [
+        "/usr/bin/codesign",
+        "-dvvv",
+        "--entitlements",
+        ":-",
+        "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper (Renderer).app"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Executable=/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper (Renderer).app/Contents/MacOS/Aino Helper (Renderer)\nIdentifier=Electron Helper (Renderer)\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20400 size=1720 flags=0x20002(adhoc,linker-signed) hashes=50+0 location=embedded\nHash type=sha256 size=32\nCandidateCDHash sha256=bfc5cb3574ee0ae27e08cad32ad1fab157433aff\nCandidateCDHashFull sha256=bfc5cb3574ee0ae27e08cad32ad1fab157433affd532abbb127d6ed5462836ad\nHash choices=sha256\nCMSDigest=bfc5cb3574ee0ae27e08cad32ad1fab157433affd532abbb127d6ed5462836ad\nCMSDigestType=2\nCDHash=bfc5cb3574ee0ae27e08cad32ad1fab157433aff\nSignature=adhoc\nInfo.plist=not bound\nTeamIdentifier=not set\nSealed Resources=none\nInternal requirements=none\nwarning: Specifying ':' in the path is deprecated and will not work in a future release\n"
+    },
+    "helper_3": {
+      "command": [
+        "/usr/bin/codesign",
+        "-dvvv",
+        "--entitlements",
+        ":-",
+        "/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper.app"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Executable=/private/tmp/aino-next-package-MQJqsm/artifact/mac-arm64/Aino.app/Contents/Frameworks/Aino Helper.app/Contents/MacOS/Aino Helper\nIdentifier=Electron Helper\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20400 size=1704 flags=0x20002(adhoc,linker-signed) hashes=50+0 location=embedded\nHash type=sha256 size=32\nCandidateCDHash sha256=df4788479fba65223f7f67e8d15917efbf0b1fe8\nCandidateCDHashFull sha256=df4788479fba65223f7f67e8d15917efbf0b1fe8e56ecf83fa8ec4a89bc5e663\nHash choices=sha256\nCMSDigest=df4788479fba65223f7f67e8d15917efbf0b1fe8e56ecf83fa8ec4a89bc5e663\nCMSDigestType=2\nCDHash=df4788479fba65223f7f67e8d15917efbf0b1fe8\nSignature=adhoc\nInfo.plist=not bound\nTeamIdentifier=not set\nSealed Resources=none\nInternal requirements=none\nwarning: Specifying ':' in the path is deprecated and will not work in a future release\n"
+    },
+    "bundle": {
+      "CFBundleIdentifier": "com.ablankpaper.aino",
+      "CFBundleShortVersionString": "0.21.1",
+      "CFBundleVersion": "0.21.1",
+      "CFBundleExecutable": "Aino"
+    },
+    "install_stamp": {
+      "schemaVersion": 1,
+      "commit": "a2ff532db29182e0d2289e3a29e4935d98c49c87",
+      "branch": "codex/aino-platform-identity-models-billing",
+      "builtAt": "2026-09-17T11:20:42.520Z",
+      "dirty": false,
+      "source": "local"
+    },
+    "readiness": {
+      "checked": "local default keychains, read-only identity list",
+      "command_exit": 0,
+      "valid_signing_identities": 2,
+      "developer_id_application": false,
+      "notary_profile_env_present": false,
+      "api_key_env_present": false,
+      "api_key_id_env_present": false,
+      "api_issuer_env_present": false
+    },
+    "files": 656,
+    "bundle_bytes": 327386356
+  },
+  "archive": {
+    "path": "/private/tmp/aino-next-package-MQJqsm/Aino-0.21.1-mac-arm64-local-candidate.zip",
+    "bytes": 141701636,
+    "sha256": "2f32e2f9067743e67cb2c4b25ce78c2803b42a0dc1c5c52818d434dafc52293a",
+    "unsigned_local_candidate": true,
+    "native_bundle_unchanged": true,
+    "manifest_files": 656
+  },
+  "signing_status": {
+    "distribution_ready": false,
+    "bundle": "Electron linker ad-hoc signatures; no distribution identity, hardened-runtime signing or requested signing entitlements applied to this unsigned directory build.",
+    "strict_codesign_exit": 1,
+    "gatekeeper_exit": 1,
+    "reason": "code has no resources but signature indicates they must be present",
+    "developer_id_application_available": false,
+    "notary_env_configured": false,
+    "stored_keychain_notary_profiles_inspected": false,
+    "notarytool_available": true,
+    "followup": "Use an authorized Developer ID Application identity to build/sign, notarize/staple, then repeat codesign/Gatekeeper and signed-package acceptance."
+  },
+  "review": {
+    "findings": 5,
+    "resolution": "Five harness findings implemented: bounded acquired-app cleanup, OS sandbox metrics, complete startup font audit, PID/start-identity shutdown proof, and exact entry pause/full early output. Controller inspected implementation; all assertions executed in passing package run.",
+    "note": "Browser/main sandboxed=false is normal Electron architecture. Renderer, GPU, network and audio processes reported sandboxed=true. Chromium sandbox is distinct from macOS App Sandbox and hardened-runtime code signing."
+  }
+}

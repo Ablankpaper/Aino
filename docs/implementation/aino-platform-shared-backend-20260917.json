@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "source": {
+    "aino_build": "a2ff532db29182e0d2289e3a29e4935d98c49c87",
+    "api": "93082b333005b8cd35eb9087b23365b5d53fdcb5",
+    "later_changes": "b0cd4e82e9 changes only whitespace in a test; no production, E2E, or bundle change."
+  },
+  "production_fix": "0a5b610ddf",
+  "test_assertion_fix": "4a1ab840cc",
+  "scope": "Managed model live authority and usage isolation in one actual gateway process; two principal/controller pairs and an additional same-principal reconnect socket. Production gateway_ws one-use ticket admission, real AIAgent/SDK/file tool and overlapping loopback provider requests. Not a general multi-tenant session-history ACL audit.",
+  "cases": [
+    "Same exact platform origin, different numeric platform user IDs.",
+    "Different exact platform origins, same numeric platform user ID."
+  ],
+  "fixed_defects": [
+    "Foreign session.usage returned victim usage.",
+    "Foreign prompt.submit rebound victim transport and invalidated its binding before rejecting.",
+    "Sibling session.activate/live session.resume could bypass the prompt guard and rebind the live managed session."
+  ],
+  "contracts": [
+    "Foreign ticket/claim/bind/model selection/usage/send/clear/activate/live resume cannot steal victim live model authority.",
+    "Actual concurrent requests keep the intended key and conversation content.",
+    "Same authenticated principal can reattach, but must obtain a fresh transport-bound delegation and credential binding before continuing.",
+    "A clear or controller disconnect only invalidates A; B completes another real Agent turn.",
+    "Detached history remains recoverable after live credentials have been cleared; fresh binding still validates stored platform owner."
+  ],
+  "results": {
+    "initial_adjacent": {
+      "files": 5,
+      "passed": 41,
+      "failed": 0,
+      "seconds": 21.5
+    },
+    "final_extended_contract": {
+      "passed": 2,
+      "failed": 0,
+      "seconds": 11.8
+    },
+    "gateway_regression": {
+      "command": "HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh -j 4 tests/tui_gateway/",
+      "files": 126,
+      "passed": 1128,
+      "failed": 1,
+      "seconds": 70.9,
+      "failure": "Unrelated legacy account test substring assertion matched 1234 inside random account UUID b7d56d25f1234264a95512a601635d84. Original failed run is retained."
+    },
+    "account_test_correction": {
+      "command": "HERMES_TEST_FILE_RETRIES=0 scripts/run_tests.sh tests/tui_gateway/test_account_methods.py",
+      "passed": 10,
+      "failed": 0,
+      "seconds": 0.5,
+      "change": "Assert pending challenge absent and no complete JSON code string. Do not reject an unrelated UUID substring.",
+      "whole_gateway_rerun": false
+    },
+    "charge_convergence": {
+      "files": 3,
+      "passed": 16,
+      "failed": 0,
+      "seconds": 2.9,
+      "production_change": false
+    },
+    "typecheck": {
+      "renderer": 0,
+      "electron": 0,
+      "e2e": 0
+    },
+    "scoped_lint": {
+      "initial_exit": 1,
+      "initial_errors": 0,
+      "initial_warnings": 1,
+      "correction": "Blank-line-only test correction b0cd4e82e9",
+      "final_exit": 0,
+      "final_warnings": 0
+    },
+    "api_fixture_contracts": {
+      "top_level_tests": 4,
+      "exit": 0,
+      "seconds": 14.004,
+      "lint_exit": 0
+    }
+  },
+  "failure_history": [
+    "First sibling probe expected generic binding error code; existing config.set correctly refused with 5001. Corrected assertion before actual activation RED.",
+    "Initial sibling GREEN attempt used runtime ID for session.resume, which requires durable session_key; corrected fixture input, then both rows passed.",
+    "No failure was relabeled as a whole-suite pass. Prior full 18708 Python and 7985 UI remain at their original recorded source."
+  ],
+  "review": {
+    "agent_report": {
+      "path": "/private/tmp/aino-shared-backend-report.md",
+      "bytes": 5327,
+      "sha256": "d648ce5c758856715397159009aad743501e84d82d833cd61f2104977ffeef03"
+    },
+    "controller_followup": "Controller found and reproduced sibling activation bypass after original agent handoff; centralized existing ownership decision in managed_session and reattach gate, expanded same two contract rows and ran full gateway scope.",
+    "independent_final_review_after_controller_edits": false
+  },
+  "evidence": [
+    {
+      "path": "/private/tmp/aino-shared-backend-red2.log",
+      "bytes": 21154,
+      "sha256": "ff09f727d16f85d56bf79dc1b41d880933a97ce01ba4ef001532386e4e2b14f4"
+    },
+    {
+      "path": "/private/tmp/aino-shared-backend-final-red.log",
+      "bytes": 16048,
+      "sha256": "b72ca73c876e4f76ba1bb12a352b2a0724ba58dc75947edfaae726cb7abfb942"
+    },
+    {
+      "path": "/private/tmp/aino-shared-backend-final-focused.log",
+      "bytes": 1747,
+      "sha256": "62940be5f05b72e28e48ed42e505a89f6cafc019180a4a724612923e3d3e50b8"
+    },
+    {
+      "path": "/private/tmp/aino-shared-sibling-red.log",
+      "bytes": 15959,
+      "sha256": "23d108f519c629bc1ac96330bd936628ea0d0fb518b2e61eeb06688e54368b28"
+    },
+    {
+      "path": "/private/tmp/aino-shared-sibling-red2.log",
+      "bytes": 16638,
+      "sha256": "b4f46fecd4eaa4062896292464d0f9bc57dec684ffd4c8a58de8666c6f3d5c03"
+    },
+    {
+      "path": "/private/tmp/aino-shared-sibling-green.log",
+      "bytes": 16256,
+      "sha256": "40f11c2fee8c1cfeae2c7799f0b90c324fed2ba84b9ce21fc8466c6380474061"
+    },
+    {
+      "path": "/private/tmp/aino-shared-sibling-green2.log",
+      "bytes": 903,
+      "sha256": "798025699bc730e609e9d14d194fd3c0cba36e7cf1780b47916b7e4f4a8dad00"
+    },
+    {
+      "path": "/private/tmp/aino-next-gateway-regression.log",
+      "bytes": 19604,
+      "sha256": "c46862886abe5423d50b317ba44045ec61ddd8747f3de04d0e71fcab8c0170a5"
+    },
+    {
+      "path": "/private/tmp/aino-next-account-contract.log",
+      "bytes": 833,
+      "sha256": "092a867682d217fcfb30f21feb8dcd661f1374e3ddd1dbb8009b9f4f91702b91"
+    },
+    {
+      "path": "/private/tmp/aino-charge-convergence-tests.log",
+      "bytes": 537,
+      "sha256": "6bf1e20ec84e6993438e0873447761aea2cbea57ec4ee2d542dc54491feb2eb5"
+    },
+    {
+      "path": "/private/tmp/aino-charge-convergence-report.md",
+      "bytes": 5581,
+      "sha256": "fd14e8a905545c008f668b7af202c124910cec420870e0d534b4cc7b09b0f25a"
+    },
+    {
+      "path": "/private/tmp/aino-next-typecheck.log",
+      "bytes": 351,
+      "sha256": "c718d9ea017914cc46a0982526d399e30b4af74870a79663c99e48b182e6c5c8"
+    },
+    {
+      "path": "/private/tmp/aino-next-scoped-lint.log",
+      "bytes": 345,
+      "sha256": "081eb4f1ef074cdc08ee48f2c313805bd46e31de85c158dac2ca5c3461fa7279"
+    },
+    {
+      "path": "/private/tmp/aino-next-scoped-lint-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/private/tmp/aino-api-late-counter-NLo1Rp/contracts.log",
+      "bytes": 4095,
+      "sha256": "9e164ed93f9aa5a7fc655614316cf2e2f37f6d3dbde78da5d9210dccfd22379c"
+    },
+    {
+      "path": "/private/tmp/aino-api-late-counter-NLo1Rp/contracts-exit.json",
+      "bytes": 241,
+      "sha256": "e354ea201cff67debc42b57b9bb8c29643a2ef7bbcae2bf20642da77b7a3c72c"
+    },
+    {
+      "path": "/private/tmp/aino-api-late-counter-NLo1Rp/lint.log",
+      "bytes": 10,
+      "sha256": "e92606b0bf483111dff0a120c315ea165821348f31365020e2468a0059095c47"
+    },
+    {
+      "path": "/private/tmp/aino-api-late-counter-NLo1Rp/lint-exit.json",
+      "bytes": 226,
+      "sha256": "b84318a00df577cddb6e6b3632727e8f16028baeeabd346ceba9131044852551"
+    }
+  ],
+  "limits": [
+    "Loopback provider only; genuine production gateway admission and runtime/SDK path, but supplier keys are fixture values.",
+    "No global core tool/schema, prompt-cache, model policy, deployment, or production API changes."
+  ]
+}
