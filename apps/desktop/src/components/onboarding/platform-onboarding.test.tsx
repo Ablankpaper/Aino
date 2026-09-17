@@ -1,9 +1,17 @@
+import { useStore } from '@nanostores/react'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it } from 'vitest'
 
 import { platformAccountActions } from '@/api/platform'
+import {
+  $activeGatewayRoute,
+  setPrimaryGateway,
+  setPrimaryGatewayConnectionId
+} from '@/store/gateway'
 import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { $desktopOnboarding } from '@/store/onboarding'
+import { $activeGatewayProfile } from '@/store/profile'
+import { setConnection } from '@/store/session'
 import { platformModel, platformSnapshot } from '@/test/platform-model'
 
 import type { PlatformAccountSnapshot, PlatformModel } from '../../../shared/platform-contract'
@@ -20,6 +28,18 @@ const requestGateway = async <T,>(method: string): Promise<T> => {
   }
 
   throw new Error(`Unexpected onboarding request: ${method}`)
+}
+
+function ActiveRouteOnboarding() {
+  const profile = useStore($activeGatewayProfile)
+
+  return (
+    <DesktopOnboardingOverlay
+      enabled
+      profile={profile}
+      requestGateway={requestGateway}
+    />
+  )
 }
 
 async function installAccount(list: () => Promise<PlatformModel[]>) {
@@ -57,17 +77,66 @@ async function installAccount(list: () => Promise<PlatformModel[]>) {
 
 afterEach(() => {
   cleanup()
+  setPrimaryGateway(null, 'default')
+  setPrimaryGatewayConnectionId(null)
+  $activeGatewayRoute.set('default')
+  $activeGatewayProfile.set('default')
+  setConnection(null)
   clearGatewayManagedCapabilities()
   Reflect.deleteProperty(window, 'hermesDesktop')
   window.localStorage.clear()
   $desktopOnboarding.set({ ...$desktopOnboarding.get(), configured: null, manual: false })
 })
 
+it('follows the active socket capability when a fresh local workspace retains the local descriptor alias', async () => {
+  await installAccount(async () => [platformModel()])
+  const defaultGateway = { connectionState: 'open' }
+
+  setPrimaryGateway(defaultGateway as never, 'default')
+  setPrimaryGatewayConnectionId('local')
+  $activeGatewayRoute.set('default')
+  $activeGatewayProfile.set('default')
+  setConnection({ connectionId: 'local', mode: 'local', profile: 'default' } as never)
+  recordGatewayReadyCapability(
+    { connectionId: 'local', profile: 'default' },
+    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+  )
+
+  const view = render(<ActiveRouteOnboarding />)
+
+  await waitFor(() => expect(view.container.childElementCount).toBe(0))
+
+  const workspaceGateway = { connectionState: 'open' }
+
+  act(() => {
+    setPrimaryGateway(workspaceGateway as never, 'fixture-workspace')
+    setPrimaryGatewayConnectionId(null)
+    $activeGatewayRoute.set('fixture-workspace')
+    $activeGatewayProfile.set('fixture-workspace')
+    // The presentation descriptor keeps the registry's `local` alias even
+    // though this legacy profile door is owned by a profile-only socket.
+    setConnection({ connectionId: 'local', mode: 'local', profile: 'fixture-workspace' } as never)
+  })
+
+  expect(screen.getByRole('button', { name: "I'll choose a provider later" })).toBeTruthy()
+
+  act(() => recordGatewayReadyCapability(
+    { profile: 'fixture-workspace' },
+    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+  ))
+
+  await waitFor(() => expect(view.container.childElementCount).toBe(0))
+  expect($desktopOnboarding.get().configured).toBe(false)
+})
+
 it('reveals the workspace when the exact backend becomes ready for an available platform model without marking BYOK configured', async () => {
   await installAccount(async () => [platformModel()])
+  setPrimaryGateway({ connectionState: 'open' } as never, 'default')
+  setPrimaryGatewayConnectionId('source-a')
+  $activeGatewayRoute.set('default')
 
   const view = render(
-    <DesktopOnboardingOverlay enabled ownerConnectionId="source-a" profile="default" requestGateway={requestGateway} />
+    <DesktopOnboardingOverlay enabled profile="default" requestGateway={requestGateway} />
   )
 
   expect(screen.getByRole('button', { name: "I'll choose a provider later" })).toBeTruthy()
@@ -102,11 +171,14 @@ it('does not adopt a late foreign catalog or treat an unavailable model as confi
       : Promise.resolve([{ ...platformModel(), state: 'insufficient_balance' }])
   })
 
+  setPrimaryGateway({ connectionState: 'open' } as never, 'default')
+  setPrimaryGatewayConnectionId('source-a')
+  $activeGatewayRoute.set('default')
   recordGatewayReadyCapability(
     { connectionId: 'source-a', profile: 'default' },
     { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
   )
-  render(<DesktopOnboardingOverlay enabled ownerConnectionId="source-a" profile="default" requestGateway={requestGateway} />)
+  render(<DesktopOnboardingOverlay enabled profile="default" requestGateway={requestGateway} />)
   await waitFor(() => expect(calls).toBe(1))
   changeAccount(platformSnapshot('user-b', 2))
   await act(async () => resolve([platformModel()]))

@@ -1,20 +1,26 @@
 import { useStore } from '@nanostores/react'
 import { useEffect } from 'react'
 
+import { $activeGatewayRoute, activeGatewayConnectionId } from '@/store/gateway'
 import {
   $gatewayManagedCapabilities,
-  type ManagedModelRoute,
   managedModelRouteCapabilityFrom
 } from '@/store/gateway-managed-capability'
 import { platformModelCatalog } from '@/store/platform-models'
 
 /** A platform session can be ready without configuring a persistent BYOK provider. */
-export function usePlatformOnboardingReady(enabled: boolean, route: ManagedModelRoute): boolean {
+export function usePlatformOnboardingReady(enabled: boolean): boolean {
   const catalog = platformModelCatalog()
   const account = useStore(catalog.account)
   const state = useStore(catalog.state)
+  const profile = useStore($activeGatewayRoute)
   const capabilities = useStore($gatewayManagedCapabilities)
-  const supported = managedModelRouteCapabilityFrom(capabilities, route) === 'supported'
+
+  const supported = managedModelRouteCapabilityFrom(capabilities, {
+    connectionId: activeGatewayConnectionId(),
+    profile
+  }) === 'supported'
+
   const signedIn = account?.phase === 'signed_in' && Boolean(account.account)
 
   useEffect(() => {

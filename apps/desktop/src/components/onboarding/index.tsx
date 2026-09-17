@@ -56,7 +56,6 @@ import { requestGatewayForProfile } from '@/store/gateway'
 interface DesktopOnboardingOverlayProps {
   enabled: boolean
   onCompleted?: () => void
-  ownerConnectionId?: string
   profile: string
   requestGateway: OnboardingContext['requestGateway']
 }
@@ -191,7 +190,6 @@ const ONBOARDING_EXIT_MS = 1180
 export function DesktopOnboardingOverlay({
   enabled,
   onCompleted,
-  ownerConnectionId,
   profile,
   requestGateway
 }: DesktopOnboardingOverlayProps) {
@@ -202,10 +200,7 @@ export function DesktopOnboardingOverlay({
   onCompletedRef.current = onCompleted
   const targetProfile = onboarding.targetProfile ?? profile
 
-  const platformReady = usePlatformOnboardingReady(enabled && !onboarding.manual, {
-    connectionId: ownerConnectionId,
-    profile
-  })
+  const platformReady = usePlatformOnboardingReady(enabled && !onboarding.manual)
 
   // Async flows retain the initiating route even after the overlay closes.
   const ctx = useMemo<OnboardingContext>(
