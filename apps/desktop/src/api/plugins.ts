@@ -1,6 +1,7 @@
+import { reconnectBackoffDelayMs } from '@hermes/shared'
+
 import type { HermesConnection } from '@/global'
 import { translateNow } from '@/i18n'
-import { reconnectBackoffDelayMs } from '@/lib/reconnect-backoff'
 import { RECONNECT_ATTEMPT_TIMEOUT_MS, withTimeout } from '@/lib/with-timeout'
 
 import { getApiRequestConnection, getApiRequestProfile, hermesApi, profileScoped } from './client'

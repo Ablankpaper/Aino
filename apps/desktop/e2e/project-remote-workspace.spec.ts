@@ -5,6 +5,8 @@ import type { ClientRequest } from 'node:http'
 import * as path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
+import { startMockServer } from '../../../tests-js/scripts/mock-server'
+
 import {
   buildAppEnv,
   createSandbox,
@@ -15,7 +17,6 @@ import {
   writeEnvFile,
   writeMockProviderConfig
 } from './fixtures'
-import { startMockServer } from './mock-server'
 import {
   REMOTE_ID,
   REMOTE_LABEL,

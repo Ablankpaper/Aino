@@ -1,8 +1,8 @@
+import { contrastRatio } from '@hermes/shared/color'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { setRuntimeI18nLocale } from '@/i18n'
 
-import { contrastRatio } from './color'
 import { convertVscodeColorTheme, parseVscodeTheme, vscodeThemeSlug } from './vscode'
 
 afterEach(() => {
@@ -127,7 +127,9 @@ describe('convertVscodeColorTheme', () => {
   it('uses the active locale when a theme has no colors map', () => {
     setRuntimeI18nLocale('zh')
 
-    expect(() => convertVscodeColorTheme({ name: 'Empty' })).toThrow('主题缺少 colors 映射，无法识别为 VS Code 配色主题。')
+    expect(() => convertVscodeColorTheme({ name: 'Empty' })).toThrow(
+      '主题缺少 colors 映射，无法识别为 VS Code 配色主题。'
+    )
   })
 
   const fullAnsi = {

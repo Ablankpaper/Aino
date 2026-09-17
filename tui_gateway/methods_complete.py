@@ -286,7 +286,7 @@ def _(rid, params: dict) -> dict:
         session, error = _sess_nowait(params, rid)
         if error:
             return error
-        if (session.get("transport") is not current_transport()
+        if (not _session_transport_contains(session, current_transport())
                 or Path(session.get("profile_home") or get_hermes_home()).resolve() != get_hermes_home().resolve()):
             return _err(rid, 4403, "session model read forbidden")
         # Use the event producer, including its real runtime registry lookup.

@@ -59,6 +59,7 @@ vi.mock('../shell/model-menu-panel', () => ({
     <div data-testid="model-menu-owner">{ownerConnectionId}</div>
   )
 }))
+vi.mock('../shell/reasoning-menu-panel', () => ({ ReasoningMenuPanel: () => null }))
 
 afterEach(() => {
   cleanup()

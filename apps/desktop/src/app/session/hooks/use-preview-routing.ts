@@ -1,3 +1,4 @@
+import type { GatewayEvent } from '@hermes/shared'
 import { useCallback } from 'react'
 
 import { translateNow } from '@/i18n'
@@ -16,9 +17,8 @@ import {
 } from '@/store/preview'
 import { $activeSessionId, $currentCwd } from '@/store/session'
 import { $focusedRuntimeId, $sessionTiles } from '@/store/session-states'
-import type { RpcEvent } from '@/types/hermes'
 
-type EventHandler = (event: RpcEvent) => void
+type EventHandler = (event: GatewayEvent) => void
 
 interface PreviewRoutingOptions {
   baseHandleGatewayEvent: EventHandler

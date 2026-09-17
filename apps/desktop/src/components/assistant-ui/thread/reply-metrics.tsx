@@ -1,6 +1,7 @@
+import { compactNumber } from '@hermes/shared'
+
 import { formatElapsed } from '@/components/chat/activity-timer'
 import { useI18n } from '@/i18n'
-import { compactNumber } from '@/lib/format'
 import { ChevronDown } from '@/lib/icons'
 import type { TurnMetrics } from '@/lib/turn-metrics'
 

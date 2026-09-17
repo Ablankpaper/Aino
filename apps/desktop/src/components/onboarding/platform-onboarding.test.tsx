@@ -3,11 +3,7 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it } from 'vitest'
 
 import { platformAccountActions } from '@/api/platform'
-import {
-  $activeGatewayRoute,
-  setPrimaryGateway,
-  setPrimaryGatewayConnectionId
-} from '@/store/gateway'
+import { $activeGatewayRoute, setPrimaryGateway, setPrimaryGatewayConnectionId } from '@/store/gateway'
 import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
 import { $desktopOnboarding } from '@/store/onboarding'
 import { platformModelCatalog, requirePlatformSelection } from '@/store/platform-models'
@@ -35,13 +31,7 @@ const requestGateway = async <T,>(method: string): Promise<T> => {
 function ActiveRouteOnboarding() {
   const profile = useStore($activeGatewayProfile)
 
-  return (
-    <DesktopOnboardingOverlay
-      enabled
-      profile={profile}
-      requestGateway={requestGateway}
-    />
-  )
+  return <DesktopOnboardingOverlay enabled profile={profile} requestGateway={requestGateway} />
 }
 
 async function installAccount(list: () => Promise<PlatformModel[]>, initial = platformSnapshot()) {
@@ -64,6 +54,7 @@ async function installAccount(list: () => Promise<PlatformModel[]>, initial = pl
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
   $desktopOnboarding.set({
     configured: false,
+    freeTierReady: false,
     flow: { status: 'idle' },
     mode: 'oauth',
     providers: [],
@@ -122,10 +113,12 @@ it('follows the active socket capability when a fresh local workspace retains th
 
   expect(screen.getByRole('button', { name: "I'll choose a provider later" })).toBeTruthy()
 
-  act(() => recordGatewayReadyCapability(
-    { profile: 'fixture-workspace' },
-    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
-  ))
+  act(() =>
+    recordGatewayReadyCapability(
+      { profile: 'fixture-workspace' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+  )
 
   await waitFor(() => expect(view.container.childElementCount).toBe(0))
   expect($desktopOnboarding.get().configured).toBe(false)
@@ -137,21 +130,23 @@ it('reveals the workspace when the exact backend becomes ready for an available 
   setPrimaryGatewayConnectionId('source-a')
   $activeGatewayRoute.set('default')
 
-  const view = render(
-    <DesktopOnboardingOverlay enabled profile="default" requestGateway={requestGateway} />
+  const view = render(<DesktopOnboardingOverlay enabled profile="default" requestGateway={requestGateway} />)
+
+  expect(screen.getByRole('button', { name: "I'll choose a provider later" })).toBeTruthy()
+
+  act(() =>
+    recordGatewayReadyCapability(
+      { connectionId: 'source-b', profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
   )
-
   expect(screen.getByRole('button', { name: "I'll choose a provider later" })).toBeTruthy()
-
-  act(() => recordGatewayReadyCapability(
-    { connectionId: 'source-b', profile: 'default' },
-    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
-  ))
-  expect(screen.getByRole('button', { name: "I'll choose a provider later" })).toBeTruthy()
-  act(() => recordGatewayReadyCapability(
-    { connectionId: 'source-a', profile: 'default' },
-    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
-  ))
+  act(() =>
+    recordGatewayReadyCapability(
+      { connectionId: 'source-a', profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+  )
   await waitFor(() => expect(view.container.childElementCount).toBe(0))
   expect($desktopOnboarding.get().configured).toBe(false)
   expect(window.localStorage.getItem('hermes-desktop-onboarded-v1')).toBeNull()
@@ -169,7 +164,9 @@ it('does not adopt a late foreign catalog or treat an unavailable model as confi
     calls += 1
 
     return calls === 1
-      ? new Promise<PlatformModel[]>(done => { resolve = done })
+      ? new Promise<PlatformModel[]>(done => {
+          resolve = done
+        })
       : Promise.resolve([{ ...platformModel(), state: 'insufficient_balance' }])
   })
 
@@ -193,7 +190,7 @@ it('does not adopt a late foreign catalog or treat an unavailable model as confi
 it('keeps a verified platform workspace reachable during offline recovery without enabling model selection or dismissing manual setup', async () => {
   const reloaded = deferred<PlatformModel[]>()
   let loads = 0
-  const changeAccount = await installAccount(async () => ++loads === 1 ? [platformModel()] : reloaded.promise)
+  const changeAccount = await installAccount(async () => (++loads === 1 ? [platformModel()] : reloaded.promise))
   setPrimaryGateway({ connectionState: 'open' } as never, 'default')
   setPrimaryGatewayConnectionId('source-a')
   recordGatewayReadyCapability(
@@ -233,7 +230,9 @@ it('never lends offline readiness to another identity, gateway route, unsupporte
   let models = [platformModel()]
 
   const changeAccount = await installAccount(async () => {
-    if (catalogUnavailable) { throw new Error('catalog_unavailable') }
+    if (catalogUnavailable) {
+      throw new Error('catalog_unavailable')
+    }
 
     return models
   })
@@ -266,21 +265,28 @@ it('never lends offline readiness to another identity, gateway route, unsupporte
   await verifyAgain()
   act(() => setPrimaryGatewayConnectionId('source-b'))
   expect(picker()).toBeTruthy()
-  act(() => recordGatewayReadyCapability(
-    { connectionId: 'source-b', profile: 'default' },
-    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
-  ))
+  act(() =>
+    recordGatewayReadyCapability(
+      { connectionId: 'source-b', profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+  )
   expect(picker()).toBeTruthy()
 
   await verifyAgain()
-  act(() => recordGatewayReadyCapability(
-    { connectionId: 'source-b', profile: 'default' }, { type: 'gateway.ready', payload: {} }
-  ))
+  act(() =>
+    recordGatewayReadyCapability(
+      { connectionId: 'source-b', profile: 'default' },
+      { type: 'gateway.ready', payload: {} }
+    )
+  )
   expect(picker()).toBeTruthy()
-  act(() => recordGatewayReadyCapability(
-    { connectionId: 'source-b', profile: 'default' },
-    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
-  ))
+  act(() =>
+    recordGatewayReadyCapability(
+      { connectionId: 'source-b', profile: 'default' },
+      { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+    )
+  )
   expect(picker()).toBeTruthy()
 
   await verifyAgain()

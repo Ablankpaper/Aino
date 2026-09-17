@@ -1,3 +1,4 @@
+import type { GatewayEvent } from '@hermes/shared'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,7 +7,6 @@ import { setRuntimeI18nLocale } from '@/i18n'
 import { assistantTextPart, type ChatMessage } from '@/lib/chat-messages'
 import { $previewTabs, $previewTarget, closeRightRail, type PreviewTarget } from '@/store/preview'
 import { $activeSessionId, $currentCwd, $messages, $selectedStoredSessionId } from '@/store/session'
-import type { RpcEvent } from '@/types/hermes'
 
 import { usePreviewRouting } from './use-preview-routing'
 
@@ -20,7 +20,7 @@ function fileTarget(path: string): PreviewTarget {
   return { kind: 'file', label: path, path, previewKind: 'html', source: path, url: `file://${path}` }
 }
 
-let handleEvent: (event: RpcEvent) => void = () => undefined
+let handleEvent: (event: GatewayEvent) => void = () => undefined
 
 type RestartPreviewServer = (url: string, context?: string) => Promise<string>
 
@@ -58,7 +58,7 @@ async function emitPreviewOpen(url = '/tmp/artifact-test.html', sessionId = RUNT
       payload: { label: 'hi bestie', url },
       session_id: sessionId,
       type: 'preview.open'
-    } as unknown as RpcEvent)
+    } as unknown as GatewayEvent)
   })
 }
 
@@ -68,7 +68,7 @@ async function emitPreviewClose(url?: string, sessionId = RUNTIME_SESSION_ID) {
       payload: url === undefined ? {} : { url },
       session_id: sessionId,
       type: 'preview.close'
-    } as unknown as RpcEvent)
+    } as unknown as GatewayEvent)
   })
 }
 
@@ -135,7 +135,7 @@ describe('preview routing', () => {
           payload: { url: '/tmp/other.html' },
           session_id: 'some-other-session',
           type: 'preview.open'
-        } as unknown as RpcEvent)
+        } as unknown as GatewayEvent)
       })
 
       expect($previewTabs.get()).toHaveLength(0)
@@ -212,12 +212,12 @@ describe('preview routing', () => {
           payload: { inline_diff: 'a/preview-demo.html -> b/preview-demo.html\n' },
           session_id: RUNTIME_SESSION_ID,
           type: 'tool.complete'
-        } as unknown as RpcEvent)
+        } as unknown as GatewayEvent)
         handleEvent({
           payload: { path: './dist/index.html' },
           session_id: RUNTIME_SESSION_ID,
           type: 'tool.complete'
-        } as unknown as RpcEvent)
+        } as unknown as GatewayEvent)
       })
 
       expect($previewTabs.get()).toHaveLength(0)

@@ -58,7 +58,7 @@ import {
   resolveNewChatOwnerRoute
 } from '@/store/profile'
 import { $projectScope, resolveNewSessionCwd } from '@/store/projects'
-import { setApprovalRequest } from '@/store/prompts'
+import { receiveApprovalRequest } from '@/store/prompts'
 import { clearStoredTranscriptReadOnly, markStoredTranscriptReadOnly } from '@/store/read-only-transcript'
 import {
   $activeSessionStoredIdRotation,
@@ -122,6 +122,7 @@ import {
   $sessionTiles,
   closeSessionTile,
   dropSessionState,
+  focusOpenSession,
   holdSessionOwnerUntilForeground,
   openSessionTile,
   patchSessionTile,
@@ -141,13 +142,14 @@ import {
   saveTranscriptTail
 } from '@/store/transcript-tail-cache'
 import { isWatchWindow } from '@/store/windows'
-import type { SessionCreateResponse, SessionMessage, SessionResumeResponse, UsageStats } from '@/types/hermes'
+import type { SessionCreateResponse, SessionMessage, SessionResumeResult, UsageStats } from '@/types/hermes'
 
 import { navigateToWorkspacePage, NEW_CHAT_ROUTE, sessionRoute, SETTINGS_ROUTE } from '../../../routes'
 import type { ClientSessionState, SidebarNavItem } from '../../../types'
 import { sessionContextDrift } from '../session-context-drift'
 import { singleFlightSessionResume } from '../use-prompt-actions/single-flight-resume'
 
+import { sessionCreateOverrideParams, type SessionCreateOverrides, type SessionSeedMessage } from './create-overrides'
 import { pendingClarifyToolPayload, restorePendingClarifyFromSnapshot } from './restore-pending-clarify'
 import {
   createPersistedDisplayTranscriptProvenance,
@@ -181,7 +183,8 @@ import {
   sessionMatchesStoredId,
   sessionShouldHaveTranscript,
   toBranchMessages,
-  upsertOptimisticSession
+  upsertOptimisticSession,
+  upsertUnlistedSessionOwner
 } from './utils'
 
 interface SessionActionsOptions {
@@ -266,7 +269,7 @@ function applyStoredUsage(stored: { input_tokens?: number | null; output_tokens?
 function reconcileAuthoritativeChatMessages(
   authoritativeMessages: ChatMessage[],
   previousMessages: ChatMessage[],
-  liveProjection?: Pick<SessionResumeResponse, 'inflight' | 'queued' | 'session_id'>
+  liveProjection?: Pick<SessionResumeResult, 'inflight' | 'queued' | 'session_id'>
 ): ChatMessage[] {
   const withLiveProjection = liveProjection
     ? appendLiveSessionProjection(authoritativeMessages, liveProjection)
@@ -279,9 +282,9 @@ function reconcileAuthoritativeChatMessages(
 }
 
 function reconcileAuthoritativeMessages(
-  authoritativeMessages: SessionResumeResponse['messages'],
+  authoritativeMessages: SessionResumeResult['messages'],
   previousMessages: ChatMessage[],
-  liveProjection?: Pick<SessionResumeResponse, 'inflight' | 'queued' | 'session_id'>
+  liveProjection?: Pick<SessionResumeResult, 'inflight' | 'queued' | 'session_id'>
 ): ChatMessage[] {
   return reconcileAuthoritativeChatMessages(toChatMessages(authoritativeMessages), previousMessages, liveProjection)
 }
@@ -420,14 +423,17 @@ interface FreshSessionDraftOptions {
   workspaceTarget?: NewChatWorkspaceTarget
 }
 
-function restorePendingApproval(response: SessionResumeResponse, sessionId: string): boolean {
+function restorePendingApproval(response: SessionResumeResult, sessionId: string): boolean {
   const pending = response.pending_approval
 
   if (!pending) {
     return false
   }
 
-  setApprovalRequest({
+  // The live `approval` server request (re-delivered from `open_requests`
+  // before this ran) already parked itself with the same queue id; don't
+  // clobber it with a copy that can only answer through the RPC fallback.
+  void receiveApprovalRequest(null, {
     allowPermanent: pending.allow_permanent !== false,
     choices: pending.choices,
     command: pending.command ?? '',
@@ -616,7 +622,16 @@ export function useSessionActions({
   )
 
   const createBackendSessionForSend = useCallback(
-    async (preview: string | null = null): Promise<string | null> => {
+    async (
+      preview: string | null = null,
+      seedMessages?: SessionSeedMessage[],
+      // Create the session titled or at a pinned reasoning effort (guided
+      // onboarding mints its welcome chat this way). The owning profile is NOT
+      // an override — point $newChatProfile at it first (selectProfile-style)
+      // so the create lands on that profile's own backend and every later
+      // ambient RPC follows.
+      createOverrides?: SessionCreateOverrides
+    ): Promise<string | null> => {
       const startingStoredSessionId = selectedStoredSessionIdRef.current
       const startingRouteToken = getRouteToken()
 
@@ -646,7 +661,8 @@ export function useSessionActions({
         // reduce the owner to a bare profile name that later RPCs dial on a
         // different socket than the one that minted the runtime.
         const capturedRoute = resolveNewChatOwnerRoute()
-        const { params, platformAuthority, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute)
+        const { params: baseParams, platformAuthority, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute)
+        const params: Record<string, unknown> = { ...baseParams, ...sessionCreateOverrideParams(createOverrides, seedMessages) }
 
         // Lease the owner socket for the whole create → owner-publication
         // sequence (#93602 primitive). The per-request lease inside
@@ -843,7 +859,30 @@ export function useSessionActions({
         // occupied (openTab path for "New session in Home").
         const capturedRoute = options?.route !== undefined ? options.route : resolveNewChatOwnerRoute(options?.profile)
 
-        const workspaceScope = options?.workspaceScope ?? { workspaceMode: 'sessions' }
+        // A named local profile uses the legacy profile-only transport (no
+        // connectionId). Tab-strip "+" omits `options.profile`; the draft or
+        // active profile is still the owner. Unique non-default local roster
+        // names stay authoritative; default/remote/duplicate stay unresolved.
+        const requestedProfile = normalizeProfileKey(
+          typeof options?.profile === 'string' && options.profile
+            ? options.profile
+            : $newChatProfile.get() || $activeGatewayProfile.get()
+        )
+
+        const legacyOwnerProfile =
+          options?.route === undefined &&
+          !capturedRoute &&
+          requestedProfile !== null &&
+          requestedProfile !== 'default' &&
+          $connection.get()?.mode !== 'remote' &&
+          $profiles.get().filter(profile => normalizeProfileKey(profile.name) === requestedProfile).length === 1
+            ? requestedProfile
+            : undefined
+
+        const workspaceScope: SessionTileWorkspaceScope = {
+          ...(options?.workspaceScope ?? { workspaceMode: 'sessions' }),
+          ...(legacyOwnerProfile ? { ownerProfile: legacyOwnerProfile } : {})
+        }
 
         const cwd =
           options?.cwd === null ? '' : typeof options?.cwd === 'string' ? options.cwd.trim() : resolveNewSessionCwd()
@@ -888,6 +927,10 @@ export function useSessionActions({
             // moment on, and its socket stays pinned until the tile mounts.
             setSessionOwnerHint(stored, capturedRoute)
             holdSessionOwnerUntilForeground(stored, capturedRoute)
+          } else if (stored && legacyOwnerProfile) {
+            // The tile below persists this bare owner as the stored-id hint;
+            // bridge the create-to-mount gap with the same profile pool.
+            holdSessionOwnerUntilForeground(stored, legacyOwnerProfile)
           }
 
           if (!stored) {
@@ -911,6 +954,8 @@ export function useSessionActions({
           // turn persists and a refresh surfaces it.
           if (listed) {
             upsertOptimisticSession(created, stored, null, null, null, undefined, capturedRoute)
+          } else {
+            upsertUnlistedSessionOwner(created, stored, capturedRoute)
           }
 
           // A tile lives in its OWN worktree, so it must not run the full
@@ -930,7 +975,7 @@ export function useSessionActions({
             setWorkspaceCwdOwner(stored)
           }
 
-          revealTreePane(`session-tile:${stored}`)
+          focusOpenSession(stored, workspaceScope)
 
           if (listed) {
             broadcastSessionsChanged()
@@ -1241,13 +1286,13 @@ export function useSessionActions({
           setSessionStartedAt(Date.now())
 
           try {
-            let activated: SessionResumeResponse | null = null
+            let activated: SessionResumeResult | null = null
             const activateStartedAt = Date.now() / 1000
             const activateBaselineState = sessionStateByRuntimeIdRef.current.get(cachedRuntimeId) ?? cachedViewState
             const clarifyRequestIdAtActivateStart = $clarifyRequests.get()[cachedRuntimeId]?.requestId
 
             try {
-              activated = await requestForSession<SessionResumeResponse>('session.activate', {
+              activated = await requestForSession<SessionResumeResult>('session.activate', {
                 session_id: cachedRuntimeId,
                 cols: 96,
                 omit_messages: true
@@ -1646,7 +1691,7 @@ export function useSessionActions({
         const resumeStartedAt = Date.now() / 1000
 
         const resumePromise = singleFlightSessionResume(storedSessionId, () =>
-          requestForSession<SessionResumeResponse>('session.resume', {
+          requestForSession<SessionResumeResult>('session.resume', {
             session_id: storedSessionId,
             cols: 96,
             source: 'desktop',

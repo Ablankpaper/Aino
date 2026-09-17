@@ -80,6 +80,91 @@ def test_owned_delegation_rejects_strangers_replay_and_wrong_scope(rig):
         assert "error" in call(peer, "session.managed_model_ticket", **(params | {"session_id": session_id}))
 
 
+def test_unpersisted_managed_session_resume_retains_selected_model(rig):
+    from queue import Queue
+
+    call, create, owner, _, _, _ = rig
+    sid = create(model_source="aino", model_id="fixture-model")
+    session = srv._sessions[sid]
+    responses = Queue()
+    owner.write = responses.put
+    response = call(owner, "session.resume", session_id=session["session_key"], omit_messages=True)
+    if response is None:
+        response = responses.get(timeout=10)
+    resumed = result(response)
+    assert resumed["session_id"] == sid
+    assert resumed["info"]["model_source"] == session["managed_model_params"]["model_source"]
+    assert resumed["info"]["model_id"] == session["managed_model_params"]["model_id"]
+    assert resumed["info"]["model_status"] == "awaiting_managed_credentials"
+    assert session["agent"] is None
+
+
+def test_shared_ordinary_session_selects_one_managed_authority(rig, monkeypatch):
+    from pathlib import Path
+    from queue import Queue
+
+    call, create, owner, controller, stranger, home = rig
+    monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.setattr(srv, "_schedule_agent_build", lambda sid: None)
+    sid = create()
+    session = srv._sessions[sid]
+    responses = Queue()
+    for peer in (controller, stranger):
+        peer.write = responses.put
+        response = call(peer, "session.resume", session_id=session["session_key"], omit_messages=True)
+        if response is None:
+            response = responses.get(timeout=10)
+            while response.get("id") != 1:
+                response = responses.get(timeout=10)
+        assert result(response)["session_id"] == sid
+    assert all(srv._session_transport_contains(session, peer) for peer in (owner, controller, stranger))
+
+    result(call(owner, "config.set", session_id=sid, key="model", value="fixture-model", model_source="aino"))
+    assert session["transport"] is owner
+    assert set(session.get("viewers", {})) <= {owner}
+    params, _ = prepare(call, sid, owner, controller)
+    result(call(controller, "session.bind_managed_model", **params))
+    assert get_registry().get(sid, session).owner.user_id == params["owner"]["user_id"]
+    for peer in (controller, stranger):
+        assert "error" in call(peer, "session.managed_model_ticket", **params)
+        assert "error" in call(peer, "config.set", session_id=sid, key="model",
+                               value="fixture-other", model_source="aino")
+    assert "error" in call(stranger, "prompt.submit", session_id=sid, text="foreign prompt")
+    assert session["transport"] is owner
+
+
+def test_shared_ordinary_model_options_authorizes_members_after_viewer_leaves(rig, monkeypatch):
+    from pathlib import Path
+    from queue import Queue
+
+    call, create, owner, viewer, stranger, home = rig
+    monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.setattr(srv, "_schedule_agent_build", lambda sid: None)
+    monkeypatch.setattr("hermes_cli.model_switch.list_authenticated_providers", lambda **kwargs: [])
+    sid = create()
+    session = srv._sessions[sid]
+    responses = Queue()
+    for peer in (owner, viewer, stranger):
+        peer.write = responses.put
+
+    def request(peer, method, **params):
+        response = call(peer, method, **params)
+        if response is None:
+            response = responses.get(timeout=10)
+            while response.get("id") != 1:
+                response = responses.get(timeout=10)
+        return response
+
+    result(request(viewer, "session.resume", session_id=session["session_key"], omit_messages=True))
+    params = {"session_id": sid, "include_session_info": True}
+    expected = result(request(owner, "model.options", **params))["session_info"]
+    assert result(request(viewer, "model.options", **params))["session_info"] == expected
+    assert request(stranger, "model.options", **params)["error"]["code"] == 4403
+    srv._close_sessions_for_transport(viewer)
+    assert result(request(owner, "model.options", **params))["session_info"] == expected
+    assert request(viewer, "model.options", **params)["error"]["code"] == 4403
+
+
 def test_renewal_keeps_active_binding_until_replaced_and_stale_clear_cannot_remove_it(rig):
     call, create, owner, controller, _, home = rig
     sid = create()

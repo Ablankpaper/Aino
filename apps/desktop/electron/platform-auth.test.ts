@@ -130,6 +130,31 @@ async function createPlatformAuthTestRig(options: { delaySave?: boolean } = {}) 
 }
 
 describe('platform auth ownership', () => {
+  it('keeps account revisions stable when authenticated resources fail without changing authentication', async () => {
+    const origin = await servePlatform(async ({ path }) => {
+      if (path === '/api/v1/user/profile') { return okProfile(17, 'owner') }
+
+      return errorEnvelope(404, 'NOT_FOUND')
+    })
+
+    const auth = createAuth(origin, rememberedTokens('owner'))
+
+    await auth.initialize()
+    const snapshot = auth.snapshot()
+    const published: unknown[] = []
+    const unsubscribe = auth.subscribe(value => published.push(value))
+
+    try {
+      await expect(auth.models()).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      await expect(auth.walletSummary('17')).rejects.toMatchObject({ code: 'NOT_FOUND' })
+      expect(auth.snapshot()).toBe(snapshot)
+      expect(published).toEqual([])
+      expect(auth.billingScope('17').generation).toBe(auth.generation())
+    } finally {
+      unsubscribe()
+    }
+  })
+
   it('fences wallet results by account ownership and exposes only the safe platform scope', async () => {
     const started = deferred<void>()
     const response = deferred<unknown>()

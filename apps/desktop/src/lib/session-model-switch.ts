@@ -1,3 +1,4 @@
+import type { ModelOptionsResult } from '@hermes/shared'
 import type { QueryClient } from '@tanstack/react-query'
 
 import { bindSelectedPlatformSession, clearPlatformSession } from '@/api/platform-session-binding'
@@ -31,7 +32,7 @@ import {
   setCurrentReasoningEffort
 } from '@/store/session'
 import { $sessionStates, sessionTileDelegate } from '@/store/session-states'
-import type { ModelOptionsResponse, SessionRuntimeInfo } from '@/types/hermes'
+import type { SessionRuntimeInfo } from '@/types/hermes'
 
 interface SwitchAttempt {
   pending: boolean
@@ -258,7 +259,7 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
   }
 
   let selectedProvider = queryClient
-    .getQueryData<ModelOptionsResponse>(modelOptionsQueryKey(profile, sessionId, connectionId))
+    .getQueryData<ModelOptionsResult>(modelOptionsQueryKey(profile, sessionId, connectionId))
     ?.providers?.find(row => modelProviderMatches(row, selection.provider))
 
   const providerMatchesSelection = (provider?: string) =>
@@ -275,7 +276,7 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
 
   const reconcile = async () => {
     const { session_info: info, providers } = await request<
-      ModelOptionsResponse & { session_info?: SessionRuntimeInfo }
+      ModelOptionsResult & { session_info?: SessionRuntimeInfo }
     >('model.options', {
       session_id: sessionId,
       profile,

@@ -11,13 +11,27 @@
 import { expect, test } from './test'
 
 import { type MockBackendFixture, setupMockBackend, waitForAppReady } from './fixtures'
-import { BLOCKING_CLARIFY_QUESTION, BLOCKING_CLARIFY_TRIGGER } from './mock-server'
+import { BLOCKING_CLARIFY_QUESTION, BLOCKING_CLARIFY_TRIGGER } from '../../../tests-js/scripts/mock-server'
 import { expectVisualSnapshot } from './visual-snapshot'
 
 let fixture: MockBackendFixture | null = null
 
 test.beforeAll(async () => {
-  fixture = await setupMockBackend()
+  fixture = await setupMockBackend({
+    extraDisplayConfig: '  language: en',
+    extraConfig: 'desktop:\n  repo_scan_enabled: false\naccount:\n  dev_mode: true'
+  })
+  const { page } = fixture
+  const agreement = page.getByRole('checkbox', {
+    name: 'Agree to the user agreement and privacy policy',
+    exact: true
+  })
+  await expect(agreement).toBeVisible({ timeout: 120_000 })
+  await page.getByRole('textbox', { name: 'Phone number', exact: true }).fill('+8613800138000')
+  await agreement.check()
+  await page.getByRole('button', { name: 'Send code', exact: true }).click()
+  await page.getByRole('textbox', { name: 'Verification code', exact: true }).fill('1234')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await waitForAppReady(fixture!, 120_000)
 })
 
@@ -115,6 +129,7 @@ test.describe('chat interaction with mock backend', () => {
 
     await page.locator('button:has-text("New session")').first().click()
     await expect(page).not.toHaveURL(targetUrl)
+    await expect(titlebar.locator('[data-window-session-title]')).toHaveCount(0)
     const chatSurface = page.locator('[data-chat-surface]').first()
     const chatBeforeSearch = await chatSurface.boundingBox()
 
@@ -159,23 +174,23 @@ test.describe('chat interaction with mock backend', () => {
 
       const fieldRect = field.getBoundingClientRect()
       const titlebarRect = titlebar.getBoundingClientRect()
-      const heading = titlebar.querySelector('[data-window-session-title]')?.getBoundingClientRect()
+      const windowControls = document.querySelector('[data-slot="titlebar-window-controls"]')?.getBoundingClientRect()
       const tools = document.querySelector('[data-slot="titlebar-app-controls"]')?.getBoundingClientRect()
 
-      if (!heading || !tools) {
-        throw new Error('Conversation title or window tools are missing')
+      if (!windowControls || !tools) {
+        throw new Error('Window control clusters are missing')
       }
 
       return {
         containedVertically: fieldRect.top >= titlebarRect.top && fieldRect.bottom <= titlebarRect.bottom,
-        clearsTitle: fieldRect.left >= heading.right,
+        clearsWindowControls: fieldRect.left >= windowControls.right,
         clearsTools: fieldRect.right <= tools.left,
         width: fieldRect.width
       }
     })
 
     expect(placement.containedVertically, JSON.stringify(placement)).toBe(true)
-    expect(placement.clearsTitle, JSON.stringify(placement)).toBe(true)
+    expect(placement.clearsWindowControls, JSON.stringify(placement)).toBe(true)
     expect(placement.clearsTools, JSON.stringify(placement)).toBe(true)
     expect(placement.width, JSON.stringify(placement)).toBeGreaterThanOrEqual(120)
 
@@ -214,6 +229,24 @@ test.describe('chat interaction with mock backend', () => {
     await expect(page).toHaveURL(targetUrl)
     await expect(titlebarSearch).toHaveValue('')
     await expect(results).toHaveCount(0)
+    const restoredHeading = titlebar.locator('[data-window-session-title]')
+    await expect(restoredHeading).toBeVisible()
+    await expect(restoredHeading).toContainText(targetTitle)
+    const restoredPlacement = await titlebarSearch.locator('..').evaluate(field => {
+      const heading = field.closest('[data-slot="app-titlebar"]')?.querySelector('[data-window-session-title]')
+
+      if (!heading) {
+        throw new Error('The restored conversation title is missing')
+      }
+
+      return {
+        headingRight: heading.getBoundingClientRect().right,
+        searchLeft: field.getBoundingClientRect().left
+      }
+    })
+    expect(restoredPlacement.searchLeft, JSON.stringify(restoredPlacement)).toBeGreaterThanOrEqual(
+      restoredPlacement.headingRight
+    )
   })
 
   test('keeps the composer docked and uses the focused conversation layout after send', async () => {
@@ -334,9 +367,7 @@ test.describe('chat interaction with mock backend', () => {
     const primary = page.locator('[data-slot="composer-root"] button[type="submit"]')
     const queue = page.locator('[data-slot="composer-root"] button[aria-label="Queue message"]')
     const dictation = page.locator('[data-slot="composer-root"] button[aria-label="Voice dictation"]')
-    const speakReplies = page.locator(
-      '[data-slot="composer-root"] button[aria-label="Read replies aloud"], [data-slot="composer-root"] button[aria-label="Stop reading replies aloud"]'
-    )
+    const voice = page.locator('[data-slot="composer-root"]').getByRole('button', { name: 'Voice', exact: true })
 
     await composer.click()
     await composer.type(BLOCKING_CLARIFY_TRIGGER)
@@ -353,18 +384,26 @@ test.describe('chat interaction with mock backend', () => {
     // separate labeled button. Queue remains the explicit secondary action.
     await expect(primary).toHaveAttribute('aria-label', 'Send')
     await expect(dictation).toBeVisible()
-    await expect(speakReplies).toBeVisible()
+    await expect(voice).toBeVisible()
     await expect(queue).toBeVisible()
-    await expect(queue.locator('svg.tabler-icon-layers-intersect-2')).toBeVisible()
+    await expect(queue.locator('svg.tabler-icon-playlist-add')).toBeVisible()
     const controlLabels = await page
       .locator('[data-slot="composer-root"] button')
       .evaluateAll(buttons => buttons.map(button => button.getAttribute('aria-label')))
-    const speakRepliesIndex = controlLabels.findIndex(
-      label => label === 'Read replies aloud' || label === 'Stop reading replies aloud'
-    )
-    expect(controlLabels.indexOf('Voice dictation')).toBeLessThan(speakRepliesIndex)
-    expect(speakRepliesIndex).toBeLessThan(controlLabels.indexOf('Queue message'))
+    expect(controlLabels.indexOf('Voice dictation')).toBeLessThan(controlLabels.indexOf('Voice'))
+    expect(controlLabels.indexOf('Voice')).toBeLessThan(controlLabels.indexOf('Queue message'))
     expect(controlLabels.indexOf('Queue message')).toBeLessThan(controlLabels.indexOf('Send'))
+    await voice.click()
+    const readReplies = page.getByRole('menuitemcheckbox', { name: 'Read replies aloud', exact: true })
+    await expect(readReplies).toHaveAttribute('aria-checked', 'false')
+    await readReplies.click()
+    const stopReading = page.getByRole('menuitemcheckbox', { name: 'Stop reading replies aloud', exact: true })
+    await expect(stopReading).toHaveAttribute('aria-checked', 'true')
+    await stopReading.click()
+    await expect(readReplies).toHaveAttribute('aria-checked', 'false')
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('menu')).toHaveCount(0)
+    await expect(composer).toHaveText('please answer tersely')
     await page.screenshot({ path: testInfo.outputPath('busy-composer-steer.png') })
     await expect(primary.locator('.codicon-arrow-up')).toBeVisible()
 

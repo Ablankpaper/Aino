@@ -105,7 +105,9 @@ describe('desktop i18n runtime translator', () => {
     expect(translateNow('settings.providers.descriptions.AWS Bedrock')).toBe('使用 AWS 配置文件和区域进行认证。')
     expect(translateNow('settings.computerUse.ready')).toBe('已就绪')
     expect(translateNow('settings.uninstall.dangerZone')).toBe('危险区域')
-    expect(translateNow('settings.appearance.themeSearchPlaceholder')).toBe('搜索你的主题或 VS Code Marketplace…')
+    expect(translateNow('settings.appearance.themeSearchPlaceholder')).toBe(
+      zh.settings.appearance.themeSearchPlaceholder
+    )
     expect(translateNow('onboarding.runtimeNotReadyTitle')).toBe('运行时未就绪')
     expect(translateNow('updates.desktopBridgeUnavailable')).toBe('桌面桥接不可用。')
     expect(translateNow('updates.starting')).toBe('正在开始更新…')
@@ -175,14 +177,10 @@ describe('desktop i18n runtime translator', () => {
       '新会话默认从此文件夹开始，除非你选择其他目录。留空则使用你的主目录。'
     )
     expect(translateNow('cron.customPlaceholder')).toBe('0 9 * * * 或工作日 9:00')
-    expect(translateNow('composer.githubSuggestions.doneTip')).toBe(
-      '发送消息后，智能体将引导你完成 GitHub 登录'
-    )
+    expect(translateNow('composer.githubSuggestions.doneTip')).toBe('发送消息后，智能体将引导你完成 GitHub 登录')
     expect(translateNow('desktop.emptySlashCommand')).toBe('空斜杠命令')
     expect(translateNow('desktop.slashInvalidResponse')).toBe('command.dispatch 返回无效响应')
-    expect(translateNow('prompts.sudoDesc')).toBe(
-      'Aino 需要你的 sudo 密码来运行特权命令。它只会发送给你的本地智能体。'
-    )
+    expect(translateNow('prompts.sudoDesc')).toBe('Aino 需要你的 sudo 密码来运行特权命令。它只会发送给你的本地智能体。')
     expect(translateNow('install.fetchingManifest')).toBe('正在获取安装器清单…')
   })
 

@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { en } from '@/i18n/en'
 import type { Translations } from '@/i18n/types'
 import { fmtDate } from '@/lib/time'
+import { FREE_TIER_MODEL } from '@/store/free-tier'
+import { openFreeTierSignIn } from '@/store/free-tier-sign-in'
 
 import type { BillingRefusal, BillingResult } from './api'
 import { useBillingApi } from './api'
@@ -40,10 +42,11 @@ export interface BillingSummaryItemView {
 }
 
 export interface BillingNoticeView {
-  action?: {
-    label: string
-    url: string
-  }
+  /** Either an external portal hop (`url`) or an in-app action (`onSelect`) —
+   *  a discriminated pair, so a consumer never has to guard for "both" or
+   *  "neither". */
+  action?:
+    { label: string; onSelect: () => void; url?: undefined } | { label: string; onSelect?: undefined; url: string }
   message: string
   title: string
   /** `warn` = an actionable blocker (e.g. no card); `info` = neutral guidance. */
@@ -100,7 +103,18 @@ export type BillingPlanCardView = {
   pending?: PendingPlanTransition
   price?: string
   tierName: string
-} & ({ action: { label: string }; link?: undefined } | { action?: undefined; link: { label: string; url: string } })
+} & (
+  | {
+      // `onSelect` overrides the card's default "open the plans grid" action —
+      // the free-tier card signs in instead. Absent = the plans grid.
+      action: { label: string; onSelect?: () => void }
+      link?: undefined
+    }
+  | { action?: undefined; link: { label: string; url: string } }
+  // The free-tier card is the "what you get" text alone: the page's one Sign in lives on the
+  // notice above it, so the card carries neither an action nor a link.
+  | { action?: undefined; link?: undefined }
+)
 
 interface BillingPlanTierBase {
   creditsDisplay?: string
@@ -141,9 +155,11 @@ export interface BillingView {
   paymentRow?: BillingAccountRowView
   /** Current-plan card (Plan section). Absent until billing.state resolves. */
   plan?: BillingPlanCardView
+  /** Small print under the Plan section. Only the free-tier view sets it. */
+  planFootnote?: string
   /** Automatic-refill section row. */
   refillRow?: BillingAccountRowView
-  status: 'loading' | 'logged_out' | 'normal' | 'refusal'
+  status: 'free_tier' | 'loading' | 'logged_out' | 'normal' | 'refusal'
   summary: BillingSummaryItemView[]
   /** Live tier catalog for the plans sub-view (empty when unavailable). */
   tiers: BillingPlanTierView[]
@@ -200,6 +216,13 @@ export function deriveBillingView(
 
   const billing = stateResult.data
   const subscription = subscriptionResult?.ok ? subscriptionResult.data : null
+
+  // Read BEFORE the logged-out branch: a free-tier install has no account, so
+  // `logged_in` is false and the generic "connect your account" notice would
+  // otherwise win and tell the user to go to the portal.
+  if (billing.free_tier) {
+    return freeTierView(billing)
+  }
 
   if (!billing.logged_in || subscription?.logged_in === false) {
     return {
@@ -307,6 +330,38 @@ function emptySummary(copy: BillingCopy): BillingSummaryItemView[] {
     { label: copy.summary.plan, value: EMPTY_BILLING_VALUE },
     { label: copy.summary.autoRefill, value: EMPTY_BILLING_VALUE }
   ]
+}
+
+/**
+ * The no-account state: nothing is owed, nothing is owned, and every money
+ * control would be a lie. So the page collapses to one notice, a three-item
+ * summary, and a single plan card whose only action is signing in — no payment,
+ * credits, auto-refill or usage sections at all.
+ */
+function freeTierView(billing: BillingStateResponse): BillingView {
+  return {
+    notice: {
+      action: { label: 'Sign in', onSelect: openFreeTierSignIn },
+      message: 'Sign in with a Nous account to unlock more models and tools.',
+      title: "You're on the Nous free tier",
+      tone: 'info'
+    },
+    plan: {
+      caption:
+        'Runs on nous/welcome with connectors included. Signing in keeps your connectors and adds the tools that need an account and every other model.',
+      tierName: 'Nous · free tier'
+    },
+    planFootnote:
+      'The free tier has no balance and nothing to pay. Payment and usage appear when you sign in with a Nous account.',
+    status: 'free_tier',
+    summary: [
+      { label: 'Plan', value: 'Free tier' },
+      { label: 'Model', value: billing.free_tier_model ?? FREE_TIER_MODEL },
+      { label: 'Connectors', tone: 'primary', value: 'Included' }
+    ],
+    tiers: [],
+    usageRows: []
+  }
 }
 
 function refusalNotice(refusal: BillingRefusal, copy: BillingCopy): BillingNoticeView {

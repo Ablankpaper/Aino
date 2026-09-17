@@ -19,6 +19,9 @@ import hermes_cli.main_install_repair as main_install_repair
 from hermes_cli import update_cmd
 
 
+pytestmark = pytest.mark.usefixtures("isolated_update_runtime")
+
+
 def _make_head_moved_side_effect(pre_sha="abc123", post_sha="def456"):
     """Simulate git commands where HEAD advances from pre_sha to post_sha."""
     calls = {"n": 0}
@@ -81,8 +84,6 @@ def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
     monkeypatch.setattr(
         hermes_main, "_resolve_update_branch", lambda args: "main"
     )
-    monkeypatch.setattr(hermes_main, "_is_windows", lambda: False)
-    monkeypatch.setattr(main_install_repair, "_is_windows", lambda: False)
     monkeypatch.setattr(
         hermes_main, "_get_origin_url",
         lambda *a, **k: "https://github.com/NousResearch/hermes-agent.git",
@@ -108,6 +109,7 @@ def _patch_update_deps(monkeypatch, tmp_path, run_side_effect):
         hermes_main, "_resume_windows_gateways_after_update", lambda *a, **k: None
     )
     # Short-circuit the long tail: dependency install + desktop build.
+    monkeypatch.setattr(update_cmd, "_sync_python_dependencies_after_pull", lambda *a, **k: None)
     monkeypatch.setattr(hermes_main, "_write_update_incomplete_marker", lambda: None)
     monkeypatch.setattr(hermes_main, "_clear_update_incomplete_marker", lambda: None)
     monkeypatch.setattr(main_install_repair, "_clear_update_incomplete_marker", lambda: None)

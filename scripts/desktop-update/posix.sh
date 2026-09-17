@@ -319,6 +319,10 @@ stop_ui() { # error/manual outcomes keep the window up briefly so a watching
 GATE="" GATE_MSG=""
 linux_gate() {
   local release="$INSTALL_ROOT/apps/desktop/release" unpacked="" sb arg candidate
+  # /proc resolves symlinks in the executable path; compare canonical paths
+  # when the install root uses a spelling such as /home -> /var/home.
+  release="$(readlink -m -- "$release")"
+  [ -n "$RELAUNCH_TARGET" ] && RELAUNCH_TARGET="$(readlink -m -- "$RELAUNCH_TARGET")"
   # electron-builder may emit linux-unpacked or an architecture-qualified
   # sibling (for example linux-arm64-unpacked). Resolve the directory from
   # the actual relaunch target instead of assuming the legacy name; this keeps
@@ -632,7 +636,7 @@ tcc_pick_update_invoke() { # sets UPDATE_INVOKE; safety net past a failed heal
 # ── self-tests: no update, touch nothing ────────────────────────────────────
 if [ "$SELF_TEST_TCC_HEAL" -eq 1 ]; then
   # Runs the REAL heal + invoke selection against --install-root and reports;
-  # tests/test_desktop_update_tcc_heal.py drives the state matrix through it.
+  # tests/scripts/desktop_update/test_desktop_update_tcc_heal.py drives the state matrix through it.
   trap - EXIT
   tcc_anchor_heal "$INSTALL_ROOT/venv/bin" || true
   tcc_pick_update_invoke "$INSTALL_ROOT/venv/bin"

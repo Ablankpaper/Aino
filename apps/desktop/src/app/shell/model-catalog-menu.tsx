@@ -1,3 +1,5 @@
+import type { ModelOptionProvider, ModelOptionsResult } from '@hermes/shared'
+import { DEFAULT_REASONING_EFFORT } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
 import { useQuery } from '@tanstack/react-query'
 import { createContext, type ReactNode, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -21,9 +23,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { HermesGateway } from '@/hermes'
 import { getLocalModelsStatus } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { modelOptionsQueryKey, modelProviderMatches, requestModelOptions } from '@/lib/model-options'
+import { isSubmitEnter } from '@/lib/ime'
+import { catalogProviderMatches, modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
 import { displayModelName, modelDisplayParts } from '@/lib/model-status-label'
-import { DEFAULT_REASONING_EFFORT, reasoningEffortLabel } from '@/lib/reasoning-effort'
+import { reasoningEffortLabel } from '@/lib/reasoning-effort'
 import { foldIncludes, normalize } from '@/lib/text'
 import { useStoreSelector } from '@/lib/use-session-slice'
 import { cn } from '@/lib/utils'
@@ -41,7 +44,7 @@ import {
 import { notifyError } from '@/store/notifications'
 import { $collapsedProviders, toggleCollapsedProvider } from '@/store/provider-collapse'
 import { $defaultReasoningEffort } from '@/store/session'
-import type { LocalModelLoadProgress, ModelOptionProvider, ModelOptionsResponse } from '@/types/hermes'
+import type { LocalModelLoadProgress } from '@/types/hermes'
 
 import { type FastControl, ModelEditSubmenu, resolveFastControl } from './model-edit-submenu'
 
@@ -165,7 +168,7 @@ export function ModelCatalogMenu({
     // Gateway-first even with no session: a connected (possibly remote)
     // gateway owns the model catalog, including virtual providers the local
     // REST fallback can't know about (#53817).
-    queryFn: (): Promise<ModelOptionsResponse> => requestModelOptions({ gateway, profile, request, sessionId })
+    queryFn: (): Promise<ModelOptionsResult> => requestModelOptions({ gateway, profile, request, sessionId })
   })
 
   const loading = modelOptions.isPending && !modelOptions.data
@@ -406,14 +409,10 @@ export function ModelCatalogMenu({
   const rowIsCurrent = (row: KbRow) =>
     row.kind === 'moa'
       ? current.provider === 'moa' && row.preset === current.model
-      : modelProviderMatches(row.provider, current.provider) &&
+      : catalogProviderMatches(row.provider, current.provider) &&
         (row.family.id === current.model || row.family.fastId === current.model)
 
-  const autoIndex = q
-    ? kbRows.length > 0
-      ? 0
-      : -1
-    : kbRows.findIndex(row => rowIsCurrent(row) || (row.kind === 'family' && row.family.fastId === current.model))
+  const autoIndex = q ? (kbRows.length > 0 ? 0 : -1) : kbRows.findIndex(row => rowIsCurrent(row))
 
   const kbIndex = kbOverride !== null && kbOverride < kbRows.length ? kbOverride : autoIndex
   const kbActiveKey = kbIndex >= 0 ? kbRows[kbIndex].key : null
@@ -445,7 +444,7 @@ export function ModelCatalogMenu({
       return
     }
 
-    if (!rowIsCurrent(row) && row.family.fastId !== current.model) {
+    if (!rowIsCurrent(row)) {
       void selectFamily(row.family, row.provider)
     } else {
       closeMenu()
@@ -482,7 +481,7 @@ export function ModelCatalogMenu({
             event.preventDefault()
             event.stopPropagation()
             stepKb(event.key === 'ArrowDown' ? 1 : -1)
-          } else if (event.key === 'Enter') {
+          } else if (isSubmitEnter(event)) {
             event.preventDefault()
             event.stopPropagation()
             commitKbRow()
@@ -552,7 +551,7 @@ export function ModelCatalogMenu({
                     // The active id may be the base or its -fast sibling; either
                     // way this one family row represents both.
                     const activeId =
-                      modelProviderMatches(group.provider, current.provider) &&
+                      catalogProviderMatches(group.provider, current.provider) &&
                       (current.model === family.id || current.model === family.fastId)
                         ? current.model
                         : null
@@ -645,7 +644,7 @@ export function ModelCatalogMenu({
                           ) : null}
                         </DropdownMenuSubTrigger>
                         <ModelEditSubmenu
-                          canDisableReasoning={caps?.can_disable_reasoning}
+                          canDisableReasoning={caps?.can_disable_reasoning ?? undefined}
                           defaultEffort={defaultEffort}
                           effort={effEffort}
                           fastControl={fastControl}
@@ -816,7 +815,7 @@ function groupModels(
     // stable curated order, so selecting a model can't shuffle the list. While
     // SEARCHING the pin is skipped: a query means "show me matches".
     const activeId =
-      !q && modelProviderMatches(provider, current.provider) && current.model
+      !q && catalogProviderMatches(provider, current.provider) && current.model
         ? allFamilies.find(family => family.id === current.model || family.fastId === current.model)?.id
         : undefined
 

@@ -3,8 +3,9 @@ import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs'
 import * as path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
+import { receivedUserTexts } from '../../../tests-js/scripts/mock-server'
+
 import { buildAppEnv, launchDesktop, type MockBackendFixture, setupMockBackend, waitForAppReady } from './fixtures'
-import { receivedUserTexts } from './mock-server'
 import { expect, test } from './test'
 
 let fixture: MockBackendFixture

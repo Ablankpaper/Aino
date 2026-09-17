@@ -93,7 +93,9 @@ def test_nickname_update_persists_for_only_the_signed_in_account(tmp_path, monke
     _call(server, "account.request_code", {"identifier": "second@example.com"})
     second = _call(server, "account.verify_code", {"identifier": "second@example.com", "code": "1234"})["result"]["account"]
 
-    updated = _call(server, "account.update_profile", {"display_name": "  小海盗 🏴‍☠️  ", "account_id": first["id"]})["result"]
+    rejected = _call(server, "account.update_profile", {"display_name": "  小海盗 🏴‍☠️  ", "account_id": first["id"]})
+    assert rejected["error"]["code"] == 4000
+    updated = _call(server, "account.update_profile", {"display_name": "  小海盗 🏴‍☠️  "})["result"]
     assert updated["authenticated"] is True
     assert updated["account"] == {**second, "display_name": "小海盗 🏴‍☠️"}
     persisted = json.loads((home / "account.json").read_text(encoding="utf-8"))

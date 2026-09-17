@@ -31,6 +31,7 @@ import {
   $sidebarProjectFilter,
   $sidebarRecentGrouping,
   $sidebarRowMeta,
+  $sidebarShowAllSessions,
   $sidebarShowArchived,
   $sidebarStatusFilter,
   $sidebarViewCustomized,
@@ -39,6 +40,7 @@ import {
   setSidebarCardRows,
   setSidebarGrouping,
   setSidebarOrdering,
+  setSidebarShowAllSessions,
   setSidebarShowArchived,
   setWorkspaceNodesOpen,
   type SidebarGrouping,
@@ -172,6 +174,7 @@ export function SidebarFilterMenu({
   const ordering = useStore($sidebarOrdering)
   const rowMeta = useStore($sidebarRowMeta)
   const cardRows = useStore($sidebarCardRows)
+  const showAllSessions = useStore($sidebarShowAllSessions)
   const statusFilter = useStore($sidebarStatusFilter)
   const projectFilter = useStore($sidebarProjectFilter)
   const profileFilter = useStore($sidebarProfileFilter)
@@ -201,8 +204,11 @@ export function SidebarFilterMenu({
 
   const foldCollapsed = foldIds.length > 0 && foldIds.every(id => nodeOpen[id] === false)
 
-  const groupingOption = GROUPINGS.find(option => option.id === recentGrouping)
-  const groupingLabel = groupingOption ? filterLabels[groupingOption.labelKey] : undefined
+  const groupings = GROUPINGS.map(option => ({
+    ...localizeFilterOption(option, filterLabels),
+    ...(option.id === 'profile' ? { label: t.sidebar.gatewayGroups.grouping } : {})
+  }))
+  const groupingLabel = groupings.find(option => option.id === recentGrouping)?.label
 
   // Two options are conditional: dragging a row is what picks manual, so it
   // only appears as a way back out once there's a hand-picked order to leave;
@@ -254,7 +260,7 @@ export function SidebarFilterMenu({
           <>
             <DropdownMenuItem onSelect={onImportSession}>
               <Codicon name="cloud-download" size="0.8125rem" />
-              {t.sidebar.nav['session-import']}
+              {t.sessionImport.action}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
@@ -273,8 +279,8 @@ export function SidebarFilterMenu({
                 onValueChange={value => setSidebarGrouping(value as SidebarGrouping)}
                 value={recentGrouping}
               >
-                {GROUPINGS.map(option => (
-                  <OptionRadio key={option.id} option={localizeFilterOption(option, filterLabels)} />
+                {groupings.map(option => (
+                  <OptionRadio key={option.id} option={option} />
                 ))}
               </DropdownMenuRadioGroup>
             </DropdownMenuSubContent>
@@ -307,6 +313,12 @@ export function SidebarFilterMenu({
               ))}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+
+          <OptionCheckbox
+            checked={showAllSessions}
+            onCheck={() => setSidebarShowAllSessions(!showAllSessions)}
+            option={{ icon: 'list-unordered', id: 'all-sessions', label: t.sidebar.projects.showAllSessions }}
+          />
 
           {/* A render variant, not a grouping: three-line cards (project · age /
               title / model · size) compose with whichever grouping is active. */}

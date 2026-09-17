@@ -43,7 +43,7 @@ export function HumanMessageContainer({
     // assistant turn scrolls, making the two sides drift apart.
     <>
       <div
-        className="group/user-message -mx-4 flex w-[calc(100%+2rem)] min-w-0 max-w-none flex-col items-stretch gap-0 self-end overflow-visible bg-(--ui-chat-surface-background) px-4 pb-(--conversation-turn-gap) pt-1"
+        className="group/user-message -mx-4 flex w-[calc(100%+2rem)] min-w-0 max-w-none flex-col items-stretch gap-0 self-end overflow-visible px-4 pb-(--conversation-turn-gap) pt-1"
         data-message-id={messageId}
         data-role="user"
         data-slot="aui_user-message-root"

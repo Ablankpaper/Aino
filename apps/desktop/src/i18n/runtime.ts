@@ -1,3 +1,5 @@
+import { isRecord } from '@hermes/shared/i18n'
+
 import { applyProductBrand } from '@/lib/brand'
 
 import { TRANSLATIONS } from './catalog'
@@ -5,10 +7,6 @@ import { DEFAULT_LOCALE } from './languages'
 import type { Locale } from './types'
 
 let runtimeLocale: Locale = DEFAULT_LOCALE
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 /** Walk a dot-path (`a.b.c`) into a nested message tree. */
 function resolvePath(source: unknown, key: string): unknown {

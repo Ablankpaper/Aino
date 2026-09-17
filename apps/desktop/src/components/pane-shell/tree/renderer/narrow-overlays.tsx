@@ -9,6 +9,7 @@
 import { useStore } from '@nanostores/react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { $chatOnboardingSolo } from '@/components/onboarding-chat/assembly'
 import { PaneTab, PaneTabLabel, PaneTabStrip } from '@/components/ui/pane-tab'
 import { ContribBoundary, ContribRender } from '@/contrib/react/boundary'
 import { useContributions } from '@/contrib/react/use-contributions'
@@ -28,6 +29,7 @@ import { paneChrome } from './track-model'
 export function NarrowOverlays() {
   const { locale, t } = useI18n()
   const narrow = useStore($narrowViewport)
+  const solo = useStore($chatOnboardingSolo)
   const tree = useStore($layoutTree)
   const panes = useContributions('panes')
   const hiddenPanes = useStore($hiddenTreePanes)
@@ -41,14 +43,16 @@ export function NarrowOverlays() {
   const inTree = useMemo(() => new Set(tree ? allPaneIds(tree) : []), [tree])
 
   const collapsibles = useMemo(
-    () => panes.filter(p => paneChrome(p).collapsible && inTree.has(p.id) && !hiddenPanes.has(p.id)),
-    [panes, inTree, hiddenPanes]
+    // Solo adopts sidebar panes without their surrounding sidebar chrome.
+    // Suppress every reveal path while those panes are intentionally hidden.
+    () => (solo ? [] : panes.filter(p => paneChrome(p).collapsible && inTree.has(p.id) && !hiddenPanes.has(p.id))),
+    [solo, panes, inTree, hiddenPanes]
   )
 
   // ⌘B / ⌘G's narrow branch dispatches the app's toggle-reveal event with the
   // REAL pane id — accept those via each contribution's revealAliases.
   useEffect(() => {
-    if (!narrow) {
+    if (!narrow || solo) {
       setReveal(null)
 
       return
@@ -113,11 +117,11 @@ export function NarrowOverlays() {
       window.removeEventListener(PANE_TOGGLE_REVEAL_EVENT, onToggle)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [narrow])
+  }, [narrow, solo])
 
   const revealed = reveal ? collapsibles.find(p => p.id === reveal.id) : undefined
 
-  if (!narrow || collapsibles.length === 0) {
+  if (!narrow || solo || collapsibles.length === 0) {
     return null
   }
 

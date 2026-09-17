@@ -53,7 +53,8 @@ def test_reply_metrics_measure_all_calls_and_survive_reopening(tmp_path, monkeyp
             assert reopened.get_message_reactions("metrics", row)[0]["emoji"] == "ok"
         assert [m["content"] for m in messages] == ["question", "answer"]
         assert session["history"][-1]["display_metadata"]["turn_metrics"] == metrics
-        from agent.turn_context import build_api_messages
+        from agent.turn_context import _reset_per_turn_agent_state, build_api_messages
+        _reset_per_turn_agent_state(agent)
         wire, system = build_api_messages(
             agent, messages, current_turn_user_idx=-1, ext_prefetch_cache=None,
             plugin_user_context=None, moa_config=None, active_system_prompt="stable system")

@@ -14,34 +14,10 @@ import pytest
 from agent import verification_evidence as ve
 
 
-class _TrackingConnection:
-    """Delegates to a real sqlite3.Connection while recording close() calls.
-
-    sqlite3.Connection is a static C type: it has no per-instance __dict__ and
-    its methods can't be monkeypatched, so open/close tracking is done via a
-    delegating wrapper returned in place of the real connection.
-    """
-
-    def __init__(self, real, closed_ids):
-        object.__setattr__(self, "_real", real)
-        object.__setattr__(self, "_closed_ids", closed_ids)
-
-    def close(self):
-        self._closed_ids.append(id(self._real))
-        self._real.close()
-
-    def __enter__(self):
-        self._real.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        return self._real.__exit__(exc_type, exc, tb)
-
-    def __getattr__(self, name):
-        return getattr(self._real, name)
-
-    def __setattr__(self, name, value):
-        setattr(self._real, name, value)
+@pytest.fixture(autouse=True)
+def _ledger_on(monkeypatch):
+    """The ledger is inert unless verify-on-stop is enabled; these tests exercise the ledger."""
+    monkeypatch.setenv("HERMES_VERIFY_ON_STOP", "1")
 
 
 def _point_ledger(monkeypatch, tmp_path):
@@ -54,9 +30,18 @@ def _track_connections(monkeypatch):
     real_connect = sqlite3.connect
 
     def tracking_connect(*args, **kwargs):
+        # Preserve the production factory's connection tracking and close behavior.
+        factory = kwargs.get("factory", sqlite3.Connection)
+
+        class TrackingConnection(factory):
+            def close(self):
+                super().close()
+                closed.append(id(self))
+
+        kwargs["factory"] = TrackingConnection
         conn = real_connect(*args, **kwargs)
         opened.append(id(conn))
-        return _TrackingConnection(conn, closed)
+        return conn
 
     monkeypatch.setattr(ve.sqlite3, "connect", tracking_connect)
     return opened, closed
@@ -102,23 +87,14 @@ def test_exception_during_operation_still_closes_connection(monkeypatch, tmp_pat
 def test_schema_init_failure_still_closes_connection(monkeypatch, tmp_path):
     """A PRAGMA/DDL failure after connect() must still close the connection."""
     _point_ledger(monkeypatch, tmp_path)
-    opened, closed = [], []
-    real_connect = sqlite3.connect
+    opened, closed = _track_connections(monkeypatch)
 
-    class _FailingSchemaConnection(_TrackingConnection):
-        def execute(self, sql, *args, **kwargs):
-            if "CREATE TABLE" in sql:
-                raise sqlite3.OperationalError("simulated schema init failure")
-            return self._real.execute(sql, *args, **kwargs)
+    def fail_schema(conn):
+        conn.execute("CREATE TABLE")
 
-    def tracking_connect(*args, **kwargs):
-        conn = real_connect(*args, **kwargs)
-        opened.append(id(conn))
-        return _FailingSchemaConnection(conn, closed)
+    monkeypatch.setattr(ve, "_ensure_schema", fail_schema)
 
-    monkeypatch.setattr(ve.sqlite3, "connect", tracking_connect)
-
-    with pytest.raises(sqlite3.OperationalError):
+    with pytest.raises(sqlite3.OperationalError, match="incomplete input"):
         with ve._transaction():
             pass
 

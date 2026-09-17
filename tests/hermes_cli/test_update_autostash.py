@@ -61,6 +61,8 @@ def _patch_gateway_discovery():
     with patch("hermes_cli.gateway.find_gateway_pids", return_value=[]), \
          patch("hermes_cli.gateway.supports_systemd_services", return_value=False), \
          patch("hermes_cli.gateway.find_profile_gateway_processes", return_value=[]), \
+         patch("hermes_cli.update_cmd_fleet._restart_macos_launchd_gateways"), \
+         patch("hermes_cli.update_cmd._finish_dashboard_update_cleanup"), \
          patch("hermes_cli.update_inventory.collect_runtime_inventory", return_value=None), \
          patch("hermes_cli.update_inventory.report_unaccounted_runtimes", return_value=False), \
          patch.object(hermes_main, "_fleet_probe_expected_runtimes", lambda *a, **kw: False), \
@@ -96,6 +98,8 @@ def _setup_update_mocks(monkeypatch, tmp_path):
     monkeypatch.setattr(hermes_config, "migrate_config", lambda **kw: {"env_added": [], "config_added": []})
     monkeypatch.setattr(hermes_main, "_upgrade_pip_before_lazy_refresh", lambda *a, **kw: None)
     monkeypatch.setattr(hermes_main, "_refresh_active_lazy_features", lambda *a, **kw: True)
+    # Stash tests do not install dependencies or rewrite the host's TCC anchor.
+    monkeypatch.setattr(update_cmd, "_sync_python_dependencies_after_pull", lambda *a, **kw: None)
 
 
 

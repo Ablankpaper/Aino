@@ -15,7 +15,7 @@ import { isMissingRestEndpoint, isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { isUnderPath } from '@/lib/path-compare'
 import { persistentAtom } from '@/lib/persisted'
 import { $gateway, activeGateway, ensureActiveGatewayOpen } from '@/store/gateway'
-import { setSidebarAgentsGrouped, setWorkspaceNodeOpen } from '@/store/layout'
+import { $sidebarShowAllSessions, setSidebarAgentsGrouped, setWorkspaceNodeOpen } from '@/store/layout'
 import { notify } from '@/store/notifications'
 import {
   $activeGatewayProfile,
@@ -346,16 +346,20 @@ function isRetryableProjectTreeReadError(error: unknown): boolean {
 interface ActiveProjectsContext {
   gateway: HermesGateway
   profile: string
+  scope: string
 }
 
 function stillOnProjectsContext(context: ActiveProjectsContext): boolean {
-  return activeGateway() === context.gateway && projectProfile() === context.profile
+  return (
+    activeGateway() === context.gateway &&
+    normalizeProfileKey($activeGatewayProfile.get()) === context.profile &&
+    $profileScope.get() === context.scope
+  )
 }
 
-async function activeProjectsContext(): Promise<ActiveProjectsContext> {
-  const profile = projectProfile()
-
-  if (!profile) {
+async function activeProjectsContext(profile = projectProfile()): Promise<ActiveProjectsContext> {
+  const scope = $profileScope.get()
+  if (!profile || profile === ALL_PROFILES) {
     throw new Error(translateNow('sidebar.projects.unavailableAllProfiles'))
   }
 
@@ -369,11 +373,15 @@ async function activeProjectsContext(): Promise<ActiveProjectsContext> {
     throw new Error(translateNow('desktop.gatewayNotConnected'))
   }
 
-  if (gateway !== activeGateway() || profile !== projectProfile()) {
+  if (
+    gateway !== activeGateway() ||
+    profile !== normalizeProfileKey($activeGatewayProfile.get()) ||
+    scope !== $profileScope.get()
+  ) {
     throw new Error(translateNow('sidebar.projects.activeProfileChanged'))
   }
 
-  return { gateway, profile }
+  return { gateway, profile, scope }
 }
 
 function applyPayload(payload: ProjectsPayload): void {
@@ -418,7 +426,9 @@ interface ProjectTreePayload {
   scoped_session_ids: string[]
 }
 
-const PROJECT_TREE_PREVIEW_LIMIT = 3
+// Expanded previews need the complete existing tree window before the renderer
+// finds its two recency groups. Keep the normal three-row payload unchanged.
+const projectTreePreviewLimit = () => ($sidebarShowAllSessions.get() ? 2000 : 3)
 // The all-profiles fan-out reads one database per profile, so it is allowed the
 // same headroom as the cross-profile session list rather than the interactive
 // default.
@@ -476,7 +486,7 @@ async function refreshProjectTreeOn(context: ActiveProjectsContext): Promise<Sid
       res = await gatewayRequestOn<ProjectTreePayload>(
         gateway,
         'projects.tree',
-        projectParams({ preview_limit: PROJECT_TREE_PREVIEW_LIMIT }, profile)
+        projectParams({ preview_limit: projectTreePreviewLimit() }, profile)
       )
     } catch (error) {
       // A remote source switch can leave the first read RPC on a newly-opened
@@ -490,7 +500,7 @@ async function refreshProjectTreeOn(context: ActiveProjectsContext): Promise<Sid
       res = await gatewayRequestOn<ProjectTreePayload>(
         gateway,
         'projects.tree',
-        projectParams({ preview_limit: PROJECT_TREE_PREVIEW_LIMIT }, profile)
+        projectParams({ preview_limit: projectTreePreviewLimit() }, profile)
       )
     }
 
@@ -546,7 +556,7 @@ async function refreshProjectTreeAcrossProfiles(): Promise<void> {
 
   try {
     const res = await hermesApi<ProjectTreePayload>({
-      path: `/api/profiles/projects/tree?preview_limit=${PROJECT_TREE_PREVIEW_LIMIT}`,
+      path: `/api/profiles/projects/tree?preview_limit=${projectTreePreviewLimit()}`,
       timeoutMs: PROJECT_TREE_REQUEST_TIMEOUT_MS
     })
 
@@ -940,7 +950,7 @@ export async function createProject(input: CreateProjectInput): Promise<ProjectI
     throw projectsStaleBackendError()
   }
 
-  const context = await activeProjectsContext()
+  const context = await activeProjectsContext(normalizeProfileKey($activeGatewayProfile.get()))
   let res: { project: ProjectInfo | null }
 
   try {

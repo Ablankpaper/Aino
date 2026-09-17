@@ -44,6 +44,7 @@ const {
   closeLegacySecondaryGateways,
   closeSecondaryGateways,
   configureGatewayRegistry,
+  dispatchPrimaryServerRequest,
   ensureGatewayForAgent,
   ensureGatewayForProfile,
   openGatewayForAgent,
@@ -91,6 +92,21 @@ afterEach(() => {
 })
 
 describe('primary gateway registry scope', () => {
+  it('routes a primary server request under its socket identity while another source is active', () => {
+    const onServerRequest = vi.fn()
+    configureGatewayRegistry({
+      activeConnectionId: () => 'secondary',
+      onEvent: vi.fn(),
+      onServerRequest
+    })
+    setPrimaryGatewayConnectionId('primary')
+    const request = { id: 'approval-1', method: 'approval', params: {}, respond: vi.fn(), fail: vi.fn() }
+
+    dispatchPrimaryServerRequest(request, 'default')
+
+    expect(onServerRequest).toHaveBeenCalledWith({ ...request, connectionId: 'primary', profile: 'default' })
+  })
+
   it('publishes a registered primary connection id for ambient API/WebSocket helpers', () => {
     setPrimaryGateway({ connectionState: 'open' } as never, 'default')
     setPrimaryGatewayConnectionId(' homelab-ssh ')

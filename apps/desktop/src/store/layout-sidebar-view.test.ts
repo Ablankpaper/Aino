@@ -5,12 +5,14 @@ import {
   $sidebarOrdering,
   $sidebarRecentGrouping,
   $sidebarRowMeta,
+  $sidebarShowAllSessions,
   $sidebarViewCustomized,
   $sidebarWidth,
   resetSidebarView,
   setSidebarAgentsGrouped,
   setSidebarGrouping,
   setSidebarOrdering,
+  setSidebarShowAllSessions,
   setSidebarWidth,
   toggleSidebarRowMeta,
   toggleSidebarStatusFilter
@@ -36,6 +38,23 @@ describe('the sidebar as it ships', () => {
     setSidebarWidth(0)
 
     expect($sidebarWidth.get()).toBe(245)
+  })
+
+  it('remembers expanded project previews across grouping changes and clears them on reset', () => {
+    expect($sidebarShowAllSessions.get()).toBe(false)
+    setSidebarGrouping('project')
+    setSidebarShowAllSessions(true)
+    setSidebarGrouping('date')
+
+    expect($sidebarShowAllSessions.get()).toBe(true)
+    expect($sidebarViewCustomized.get()).toBe(true)
+    expect(window.localStorage.getItem('hermes.desktop.sidebarShowAllSessions')).toBe('true')
+
+    resetSidebarView()
+
+    expect($sidebarShowAllSessions.get()).toBe(false)
+    expect($sidebarViewCustomized.get()).toBe(false)
+    expect(window.localStorage.getItem('hermes.desktop.sidebarShowAllSessions')).toBe('false')
   })
 
   it('groups by date, sorts by recency, and pins the timestamp and preview', () => {

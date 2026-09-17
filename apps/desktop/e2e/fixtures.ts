@@ -26,13 +26,14 @@ import * as path from 'node:path'
 
 import { _electron, type ElectronApplication, type Page } from '@playwright/test'
 
+import { type MockServerOptions, startMockServer } from '../../../tests-js/scripts/mock-server'
+
 import { resolveElectronBinary } from './electron-binary'
 import {
-  type PackagedBinaryPathOptions,
   packagedBinaryCandidates as packagedBinaryCandidatesFor,
+  type PackagedBinaryPathOptions,
   resolvePackagedBinaryPath as resolvePackagedBinaryPathFor
 } from './packaged-paths'
-import { type MockServerOptions, startMockServer } from './mock-server'
 import { installErrorBannerGuard } from './test'
 
 const DESKTOP_ROOT = path.resolve(import.meta.dirname, '..')
@@ -208,7 +209,7 @@ ${modelContextLength ? `  context_length: ${modelContextLength}\n` : ''}provider
     key_env: MOCK_API_KEY
     models:
       mock-model: {}
-    context_length: 4096
+    context_length: 64000
 ${autoTitleDefault}${approvalsDefault}${displaySection}${extraConfig ? `\n${extraConfig.trim()}\n` : ''}`
 
   fs.writeFileSync(configPath, config, 'utf8')
@@ -375,6 +376,7 @@ export interface MockBackendFixture {
 }
 
 export interface MockBackendOptions {
+  mockServer?: MockServerOptions
   /**
    * Optional YAML lines to inject under the `display:` section of the
    * generated config.yaml. Used by the interim-message e2e test to toggle
@@ -394,10 +396,6 @@ export interface MockBackendOptions {
  *   3. Launch the desktop app
  *   4. Return handles for test interaction
  */
-export interface MockBackendOptions {
-  mockServer?: MockServerOptions
-}
-
 export async function setupMockBackend(options: MockBackendOptions = {}): Promise<MockBackendFixture> {
   // 1. Start mock server
   const mock = await startMockServer(options.mockServer)
@@ -501,7 +499,7 @@ providers:
     key_env: MOCK_API_KEY
     models:
       mock-model: {}
-    context_length: 4096
+    context_length: 64000
 `,
     'utf8',
   )
@@ -658,6 +656,7 @@ export async function waitForAppReady(fixture: MockBackendFixture | NoProviderFi
       // `position: fixed; inset: 0`. If the hit element or an ancestor
       // is a full-viewport fixed overlay, we're still covered.
       let node: Element | null = el
+
       while (node) {
         const cs = window.getComputedStyle(node)
 

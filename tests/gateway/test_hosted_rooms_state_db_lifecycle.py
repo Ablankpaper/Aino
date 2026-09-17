@@ -76,7 +76,7 @@ def test_session_startup_preserves_shared_store_first_open(monkeypatch, creator,
 @pytest.mark.parametrize("connection_boundary", ["opening_during_rename", "failed_room_read"])
 def test_quarantine_preserves_offline_store_across_connection_boundaries(monkeypatch, connection_boundary):
     from hermes_cli.sqlite_safe_read import connect_tracked
-    from hermes_state_dbfile import quarantine_zeroed_state_db
+    from hermes_state_dbfile import quarantine_invalid_state_db
 
     db_path = get_hermes_home() / "state.db"
     damaged = bytes(128)
@@ -119,7 +119,7 @@ def test_quarantine_preserves_offline_store_across_connection_boundaries(monkeyp
 
     monkeypatch.setattr(Path, "rename", pause_rename)
     with ThreadPoolExecutor(max_workers=2) as pool:
-        quarantine = pool.submit(quarantine_zeroed_state_db, db_path)
+        quarantine = pool.submit(quarantine_invalid_state_db, db_path)
         opener = None
         try:
             assert rename_started.wait(5), "quarantine did not reach the real rename"

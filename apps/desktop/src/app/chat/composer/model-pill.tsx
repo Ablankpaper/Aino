@@ -5,6 +5,7 @@ import { useSessionView } from '@/app/chat/session-view'
 import { useTourMarker } from '@/app/chat/tour-marker'
 import { ModelMenuOpenInstanceContext } from '@/app/shell/model-catalog-menu'
 import { ModelMenuCloseContext } from '@/app/shell/model-menu-panel'
+import { isElementInHiddenPane } from '@/components/pane-shell/pane-visibility'
 import { usePlatformModels } from '@/components/platform-model-list'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -13,16 +14,12 @@ import { releaseTypingFocus } from '@/components/ui/keyboard-first'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { ChevronDown } from '@/lib/icons'
-import { formatModelStatusLabel } from '@/lib/model-status-label'
+import { formatModelPillLabel } from '@/lib/model-status-label'
 import { cn } from '@/lib/utils'
-import {
-  $currentModelSource,
-  $defaultReasoningEffort,
-  $modelDefaultUnavailable,
-  setModelPickerOpen
-} from '@/store/session'
+import { $currentModelSource, $modelDefaultUnavailable, setModelPickerOpen } from '@/store/session'
 
 import { onComposerModelMenuRequest } from './focus'
+import { RICH_INPUT_SLOT } from './rich-editor'
 import { useComposerScope } from './scope'
 import type { ChatBarState } from './types'
 
@@ -68,12 +65,11 @@ export function ModelPill({
     currentProvider === 'aino' ? platform.models.find(row => row.id === currentModel)?.display_name : undefined
 
   const fastMode = useStore(view.$fast)
-  const reasoningEffort = useStore(view.$reasoningEffort)
   const modelSource = useStore($currentModelSource)
   const modelDefaultUnavailableState = useStore($modelDefaultUnavailable)
   const modelDefaultUnavailable = view.kind === 'primary' && modelDefaultUnavailableState
-  const defaultEffort = useStore($defaultReasoningEffort)
   const runtimeId = useStore(view.$runtimeId)
+  const restoreSelection = useRef<(() => void) | null>(null)
   const [menuState, setMenuState] = useState({ open: false, instance: 0 })
   const menuStateRef = useRef(menuState)
   const readOpenInstance = useCallback(() => menuStateRef.current.instance, [])
@@ -108,6 +104,34 @@ export function ModelPill({
         }
 
         if (hasLiveMenu) {
+          const editor = document.activeElement
+          const selection = window.getSelection()
+
+          if (
+            editor instanceof HTMLElement &&
+            editor.dataset.slot === RICH_INPUT_SLOT &&
+            selection?.anchorNode &&
+            selection.focusNode &&
+            editor.contains(selection.anchorNode) &&
+            editor.contains(selection.focusNode)
+          ) {
+            const { anchorNode, anchorOffset, focusNode, focusOffset } = selection
+
+            restoreSelection.current = () => {
+              if (
+                !editor.isConnected ||
+                isElementInHiddenPane(editor) ||
+                !editor.contains(anchorNode) ||
+                !editor.contains(focusNode)
+              ) {
+                return
+              }
+
+              editor.focus({ preventScroll: true })
+              window.getSelection()?.setBaseAndExtent(anchorNode, anchorOffset, focusNode, focusOffset)
+            }
+          }
+
           setMenuOpen(!menuStateRef.current.open)
         } else {
           setModelPickerOpen(true)
@@ -133,9 +157,7 @@ export function ModelPill({
   ) : (
     <>
       {currentModel.trim() ? (
-        <span className="truncate">
-          {platformName || formatModelStatusLabel(currentModel, { defaultEffort, fastMode, reasoningEffort })}
-        </span>
+        <span className="truncate">{platformName || formatModelPillLabel(currentModel, { fastMode })}</span>
       ) : modelDefaultUnavailable ? (
         <span className="truncate">{copy.noModel}</span>
       ) : (
@@ -204,7 +226,20 @@ export function ModelPill({
           </Button>
         </DropdownMenuTrigger>
       </Tip>
-      <DropdownMenuContent align="end" className="w-64 p-0" side="top" sideOffset={8}>
+      <DropdownMenuContent
+        align="end"
+        className="w-64 p-0"
+        onCloseAutoFocus={event => {
+          if (restoreSelection.current) {
+            event.preventDefault()
+            restoreSelection.current()
+            restoreSelection.current = null
+          }
+        }}
+        onInteractOutside={() => { restoreSelection.current = null }}
+        side="top"
+        sideOffset={8}
+      >
         <ModelMenuOpenInstanceContext.Provider value={readOpenInstance}>
           <ModelMenuCloseContext.Provider
             value={() => {

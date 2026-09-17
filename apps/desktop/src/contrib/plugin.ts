@@ -118,7 +118,7 @@ export interface HermesPlugin {
    *  older hosts that do not know this field. */
   localized?: PluginLocalizedMetadata
   /** Registers on load when the user hasn't chosen (default true). Set false
-   *  for opt-in plugins: they inventory in Settings ▸ Plugins, off until the
+   *  for opt-in plugins: they inventory in Capabilities ▸ Plugins, off until the
    *  user flips the switch. */
   defaultEnabled?: boolean
   /** Called once at load; wire contributions through `ctx`. */

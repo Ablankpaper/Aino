@@ -12,18 +12,12 @@ import { SummaryWorkspace } from '@/app/shell/summary-workspace'
 import { TITLEBAR_HEIGHT } from '@/app/shell/titlebar'
 import tabSessionsIcon from '@/assets/aino-home/tab-sessions.svg'
 import { AinoDesignIcon } from '@/components/aino-design-icon'
+import { AskDirective } from '@/components/assistant-ui/ask-directive'
 import { InlinePreviewDirective } from '@/components/assistant-ui/inline-preview-directive'
 import { IdleMount } from '@/components/idle-mount'
+import { OnboardingChatDirective } from '@/components/onboarding-chat/directive'
 import { $layoutEditMode, toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
-import {
-  allPaneIds,
-  findGroupOfPane,
-  group,
-  groupLeafIds,
-  movePane,
-  setActivePane,
-  split
-} from '@/components/pane-shell/tree/model'
+import { allPaneIds, findGroupOfPane, groupLeafIds, movePane, setActivePane } from '@/components/pane-shell/tree/model'
 import { LayoutTreeRoot } from '@/components/pane-shell/tree/renderer'
 import { WindowTitlebarContext } from '@/components/pane-shell/tree/renderer/header-placement'
 import {
@@ -63,6 +57,7 @@ import { translateNow } from '@/i18n'
 import { newSessionTitle, sessionTitle as storedSessionTitle } from '@/lib/chat-runtime'
 import { Download, FileText, LayoutDashboard, PanelTop, Terminal, Upload, Zap } from '@/lib/icons'
 import { type KeybindContribution, KEYBINDS_AREA } from '@/lib/keybinds/actions'
+import { isOnboardingEnabled } from '@/lib/onboarding-enabled'
 import { readKey, writeKey } from '@/lib/storage'
 import { TRANSCRIPT_DIRECTIVE_AREA, type TranscriptDirectiveContribution } from '@/lib/transcript-directives'
 import { setYoloEnabled } from '@/lib/yolo-session'
@@ -106,6 +101,7 @@ import { HudShell } from '../hud/hud-shell'
 import { $terminalTakeover, setTerminalTakeover } from '../right-sidebar/store'
 import { $workspaceIsPage, appViewForPath } from '../routes'
 
+import { DEFAULT_TREE, registerLayoutPresets } from './layout-presets'
 import { FilesPane, LogsPane, ReviewPaneContent } from './panes'
 import { ContribWiring, WiredPane } from './wiring'
 
@@ -323,6 +319,28 @@ registry.registerMany([
       render: ({ attrs, streaming }) => <InlinePreviewDirective attrs={attrs} streaming={streaming} />
     } satisfies TranscriptDirectiveContribution
   },
+  ...(isOnboardingEnabled()
+    ? [
+        {
+          id: 'transcript.onboarding',
+          area: TRANSCRIPT_DIRECTIVE_AREA,
+          data: {
+            name: 'onboarding',
+            render: ({ attrs, streaming }) => <OnboardingChatDirective attrs={attrs} streaming={streaming} />
+          } satisfies TranscriptDirectiveContribution
+        },
+        // ::ask is the guided chat's question card, registered only with the
+        // onboarding flag. B4 decides its wider use.
+        {
+          id: 'transcript.ask',
+          area: TRANSCRIPT_DIRECTIVE_AREA,
+          data: {
+            name: 'ask',
+            render: ({ attrs, streaming }) => <AskDirective attrs={attrs} streaming={streaming} />
+          } satisfies TranscriptDirectiveContribution
+        }
+      ]
+    : []),
   {
     id: 'layout.reset',
     area: PALETTE_AREA,
@@ -384,61 +402,7 @@ registry.registerMany([
   }
 ])
 
-// ---------------------------------------------------------------------------
-// Layout presets — CHAT (main) always dominates.
-// ---------------------------------------------------------------------------
-
-// Navigation and file/review rails stay full-height. Only the chat workspace
-// shares its height with the terminal deck.
-//
-// Preview tiles are DYNAMIC panes (like session tiles), so no preset names one:
-// they're registered by watchPreviewTiles as tabs open, and dockPaneBeside lands
-// each one directly beside the file tree wherever that currently lives — so a
-// file double-click still slides a preview open as its own pane next to the
-// tree, never as a tab stacked into the files sidebar.
-const DEFAULT_TREE = split(
-  'row',
-  [
-    group(['sessions'], { id: 'grp-sessions' }),
-    split(
-      'column',
-      [group(['workspace'], { id: 'grp-main' }), group(['terminal'], { id: 'grp-terminal' })],
-      [3, 1],
-      'spl-workspace'
-    ),
-    split('row', [group(['review'], { id: 'grp-review' }), group(['files'], { id: 'grp-files' })], [1, 1.2], 'spl-rail')
-  ],
-  [1, 3.4, 1.25],
-  'spl-root'
-)
-
-const FOCUS_TREE = split('row', [group(['sessions']), group(['workspace', 'files', 'review', 'terminal'])], [1, 4.6])
-
-const TERMINAL_TREE = split(
-  'row',
-  [
-    group(['sessions']),
-    split('column', [group(['workspace']), group(['terminal'])], [3, 1]),
-    group(['files', 'review'])
-  ],
-  [1, 3.2, 1.2]
-)
-
-const QUAD_TREE = split(
-  'column',
-  [
-    split('row', [group(['sessions', 'files']), group(['workspace'])], [1, 3]),
-    split('row', [group(['terminal']), group(['review'])], [1.4, 1])
-  ],
-  [3, 1]
-)
-
-registry.registerMany([
-  { id: 'default', area: 'layouts', title: 'Default', order: 0, data: DEFAULT_TREE },
-  { id: 'focus', area: 'layouts', title: 'Focus', order: 10, data: FOCUS_TREE },
-  { id: 'terminal-deck', area: 'layouts', title: 'Terminal deck', order: 20, data: TERMINAL_TREE },
-  { id: 'quad', area: 'layouts', title: 'Quad', order: 30, data: QUAD_TREE }
-])
+registerLayoutPresets()
 
 declareDefaultTree(DEFAULT_TREE)
 
@@ -940,13 +904,13 @@ export function ContribController() {
             />
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-[calc(var(--titlebar-controls-left,14px)+(var(--titlebar-control-size,24px)*2)+0.75rem)] right-[calc(var(--titlebar-tools-right,0.75rem)+var(--titlebar-tools-width,5.5rem)+0.75rem)] [-webkit-app-region:drag]"
+              className="pointer-events-none absolute inset-y-0 left-[calc(var(--titlebar-controls-left,14px)+var(--titlebar-controls-width,3rem)+0.75rem)] right-[calc(var(--titlebar-tools-right,0.75rem)+var(--titlebar-tools-width,5.5rem)+0.75rem)] [-webkit-app-region:drag]"
             />
             <div
               className="pointer-events-none absolute inset-y-0 z-10 flex min-w-0 items-center justify-center gap-3 [&_[data-titlebar-slot]>*]:pointer-events-auto [&_[data-titlebar-slot]>*]:min-w-0 [&_[data-titlebar-slot]>*]:max-w-full [&_[data-titlebar-slot]>*]:[-webkit-app-region:no-drag]"
               data-titlebar-content=""
               style={{
-                left: 'max(calc(var(--workspace-left, 0px) + 0.5rem), calc(var(--titlebar-controls-left, 14px) + 2 * var(--titlebar-control-size, 24px) + 1rem))',
+                left: 'max(calc(var(--workspace-left, 0px) + 0.5rem), calc(var(--titlebar-controls-left, 14px) + var(--titlebar-controls-width, 3rem) + 1rem))',
                 right:
                   'max(calc(var(--workspace-right, 0px) + 0.5rem), calc(var(--titlebar-tools-right, 0.75rem) + var(--titlebar-tools-width, 8.5rem) + 0.75rem))'
               }}

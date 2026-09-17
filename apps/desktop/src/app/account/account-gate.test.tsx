@@ -4,8 +4,10 @@ import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createPlatformAccountActions } from '@/api/platform'
+import { HermesGateway } from '@/hermes'
 import { I18nProvider } from '@/i18n'
-import { setConnection, setGatewayState } from '@/store/session'
+import { setPrimaryGateway, setPrimaryGatewayConnection } from '@/store/gateway'
+import { $gatewayState, setConnection, setGatewayState } from '@/store/session'
 import { stubResizeObserver } from '@/test/jsdom'
 
 import type {
@@ -82,17 +84,68 @@ function renderFlow(actions: ReturnType<typeof createPlatformAccountActions>, ch
 beforeEach(() => {
   Object.defineProperty(window, 'hermesDesktop', {
     configurable: true,
-    value: { ...(window.hermesDesktop ?? {}), setAccountWindowMode: vi.fn().mockResolvedValue(true) }
+    value: {
+      ...(window.hermesDesktop ?? {}),
+      accountAdapter: 'platform',
+      setAccountWindowMode: vi.fn().mockResolvedValue(true)
+    }
   })
 })
 
 afterEach(() => {
   cleanup()
+  setPrimaryGateway(null)
   setConnection(null)
   setGatewayState('idle')
 })
 
 describe('standalone Aino account flow', () => {
+  it('initializes legacy account policy only after its gateway opens', async () => {
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: { ...window.hermesDesktop, accountAdapter: 'legacy-development' }
+    })
+    const gateway = new HermesGateway()
+
+    const request = vi.spyOn(gateway, 'request').mockImplementation(async () => {
+      if ($gatewayState.get() !== 'open') {
+        throw new Error('Gateway not connected')
+      }
+
+      return { authenticated: false, account: null }
+    })
+
+    setPrimaryGateway(gateway)
+    setPrimaryGatewayConnection({ connectionId: 'local' })
+    setConnection({ connectionId: 'local' } as never)
+    setGatewayState('connecting')
+
+    render(
+      <I18nProvider configClient={null} initialLocale="en">
+        <MemoryRouter>
+          <AccountGate>
+            <p>Workspace</p>
+          </AccountGate>
+        </MemoryRouter>
+      </I18nProvider>
+    )
+    await act(async () => {})
+    expect(request).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    await act(async () => setGatewayState('open'))
+
+    const agreement = await screen.findByRole('checkbox', {
+      name: 'Agree to the user agreement and privacy policy'
+    })
+
+    fireEvent.change(screen.getByLabelText('Phone number'), { target: { value: '+8613800138000' } })
+    fireEvent.click(agreement)
+    expect((screen.getByRole('button', { name: 'Send code' }) as HTMLButtonElement).disabled).toBe(false)
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(request).toHaveBeenCalledWith('account.status', {})
+  })
+
   it('preserves a mounted draft and attachments through the separate login window', async () => {
     const account = { id: 'a', display_name: 'A', phone_masked: '', email: '' }
     const platformBridge = bridge(snapshot('signed_in', account))

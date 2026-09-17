@@ -88,18 +88,25 @@ function NoticeCard({ notice }: { notice: BillingNoticeView }) {
       <div className="mt-1 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
         {notice.message}
       </div>
-      {notice.action && (
-        <Button
-          className="mt-3"
-          onClick={() => openExternal(notice.action?.url)}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {notice.action.label}
-          <ExternalLink className="size-3.5" />
-        </Button>
-      )}
+      {notice.action &&
+        (notice.action.onSelect ? (
+          // In-app action (free-tier sign-in): a plain button, no external-link
+          // glyph — nothing leaves the app.
+          <Button className="mt-3" onClick={notice.action.onSelect} size="sm" type="button" variant="outline">
+            {notice.action.label}
+          </Button>
+        ) : (
+          <Button
+            className="mt-3"
+            onClick={() => openExternal(notice.action?.url)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {notice.action.label}
+            <ExternalLink className="size-3.5" />
+          </Button>
+        ))}
     </div>
   )
 }
@@ -531,6 +538,11 @@ function BillingSettingsContent({
       {view.plan && (
         <SettingsSection icon={Package} title={t.billing.sections.plan}>
           <CurrentPlanCard onViewPlans={() => setSubView('plans')} plan={view.plan} />
+          {view.planFootnote && (
+            <div className="mt-1 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+              {view.planFootnote}
+            </div>
+          )}
         </SettingsSection>
       )}
 

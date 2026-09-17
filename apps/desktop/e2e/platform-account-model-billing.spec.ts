@@ -2,8 +2,9 @@ import { execFileSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
+import { startMockServer } from '../../../tests-js/scripts/mock-server'
+
 import { buildAppEnv, createSandbox, waitForAppReady, writeEnvFile, writeMockProviderConfig } from './fixtures'
-import { startMockServer } from './mock-server'
 import { assertEdgeAlerts, observeEdgeAlerts, observeNativeRuntime, sendPrompt, sendToolTurn, verifyConcurrentAccountLifecycle, verifyOfflineAndAuthorizationRecovery } from './platform-account-edge-proof'
 import { observeInferenceAlerts, verifyInferenceFailures } from './platform-inference-failure-proof'
 import { assertIsolationAlerts, type IsolationParticipant, observeIsolationAlerts, verifyConcurrentIsolation, verifyRetainedHistoryIsolation } from './platform-isolation-proof'

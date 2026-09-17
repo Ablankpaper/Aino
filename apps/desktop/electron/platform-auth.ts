@@ -294,8 +294,12 @@ export function createPlatformAuth({
         return value
       }
     } catch (error) {
-      if (expected === generation) {
-        publish({ phase: operationPhase(error), error: safeError(error) })
+      const phase = operationPhase(error)
+
+      // Resource errors belong to the caller; new account revisions invalidate
+      // resource caches and can turn a failed read into an automatic retry loop.
+      if (expected === generation && phase !== current.phase) {
+        publish({ phase, error: safeError(error) })
       }
 
       throw error

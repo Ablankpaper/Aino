@@ -21,11 +21,6 @@ export interface StepUpMessage {
   title: string
 }
 
-interface StepUpVerificationPayload {
-  user_code?: unknown
-  verification_url?: unknown
-}
-
 export function useStepUpFlow() {
   const api = useBillingApi()
   const { t } = useI18n()
@@ -84,7 +79,7 @@ export function useStepUpFlow() {
     setPhase('waiting')
 
     offRef.current =
-      gateway?.on<StepUpVerificationPayload>('billing.step_up.verification', event => {
+      gateway?.on('billing.step_up.verification', event => {
         const payload = event.payload
         const url = typeof payload?.verification_url === 'string' ? payload.verification_url : null
 

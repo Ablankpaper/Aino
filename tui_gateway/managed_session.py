@@ -116,23 +116,32 @@ def select_model(sid, session, model_id, confirmed):
     """Stage a user-selected catalog id via config.set; no auth or global config writes."""
     from . import server
     if (not session or server._session_source(session) != "desktop"
-            or session.get("transport") is not server.current_transport()
             or not isinstance(model_id, str) or not model_id.strip() or len(model_id) > 128):
         raise ManagedBindingError("managed_binding_forbidden")
+    peer = server.current_transport()
     with session["history_lock"]:
-        ready = session.get("agent_ready")
-        if session.get("running") or (session.get("agent_build_started") and ready and not ready.is_set()):
-            raise ManagedBindingError("managed_binding_busy")
-        previous = session.get("managed_model_params") or {}
-        if previous.get("model_id") == model_id:
-            return False
-        if session.get("history") and not confirmed:
-            return True
-        selected = {"model_source": "aino", "model_id": model_id}
-        if previous.get("platform_owner"):
-            selected["platform_owner"] = previous["platform_owner"]
-        session["managed_model_params"] = selected
-        session["managed_pending_switch"] = True
+        with server._session_transport_lock:
+            if not server._session_transport_contains(session, peer):
+                raise ManagedBindingError("managed_binding_forbidden")
+            ready = session.get("agent_ready")
+            if session.get("running") or (session.get("agent_build_started") and ready and not ready.is_set()):
+                raise ManagedBindingError("managed_binding_busy")
+            previous = session.get("managed_model_params") or {}
+            if previous.get("model_id") == model_id:
+                return False
+            if session.get("history") and not confirmed:
+                return True
+            selected = {"model_source": "aino", "model_id": model_id}
+            if previous.get("platform_owner"):
+                selected["platform_owner"] = previous["platform_owner"]
+            if not previous:
+                # A shared ordinary session becomes one socket's managed authority.
+                # Retired viewers must not regain it through disconnect failover.
+                session["transport"] = peer
+                viewers = session.get("viewers") or {}
+                session["viewers"] = {peer: viewers.get(peer, time.time())}
+            session["managed_model_params"] = selected
+            session["managed_pending_switch"] = True
         get_registry().clear_session(sid)
     return False
 

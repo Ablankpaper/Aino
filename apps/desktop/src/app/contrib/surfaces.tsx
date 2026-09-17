@@ -22,6 +22,7 @@ import { ChatSidebar } from '../chat/sidebar'
 import { TerminalPaneChrome } from '../right-sidebar/terminal/chrome'
 import { contributedRoutes, NEW_CHAT_ROUTE, ROUTES_AREA, sessionRoute } from '../routes'
 import { ModelMenuPanel } from '../shell/model-menu-panel'
+import { ReasoningMenuPanel } from '../shell/reasoning-menu-panel'
 
 import { latestChatActions, latestSidebarActions } from './latest-actions'
 import { setStatusbarItemGroup } from './panes'
@@ -92,6 +93,20 @@ export const ChatRoutesSurface = memo(function ChatRoutesSurface({
     [actions, activeGatewayProfile, activeModelConnectionId, gateway, gatewayState]
   )
 
+  const reasoningMenuContent = useMemo(
+    () =>
+      gatewayState === 'open' ? (
+        <ReasoningMenuPanel
+          gateway={gateway || undefined}
+          onSelectModel={actions.selectModel}
+          ownerConnectionId={activeModelConnectionId || undefined}
+          profile={activeGatewayProfile}
+          requestGateway={actions.requestGateway}
+        />
+      ) : null,
+    [actions, activeModelConnectionId, activeGatewayProfile, gateway, gatewayState]
+  )
+
   const chatActions = useMemo(() => latestChatActions(actions), [actions])
 
   const chatView = (
@@ -101,6 +116,7 @@ export const ChatRoutesSurface = memo(function ChatRoutesSurface({
       modelMenuContent={modelMenuContent}
       modelOptionsOwnerConnectionId={activeModelConnectionId || undefined}
       modelOptionsProfile={activeGatewayProfile}
+      reasoningMenuContent={reasoningMenuContent}
       requestModelOptionsForOwner={actions.requestGateway}
       {...chatActions}
     />

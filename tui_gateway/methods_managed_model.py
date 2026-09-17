@@ -126,4 +126,5 @@ def _clear_managed_model(params, sid, session, peer):
 
 
 def register(server):
-    server._methods.update(_handlers)
+    for name, handler in _handlers.items():
+        server.register_method(name, handler)

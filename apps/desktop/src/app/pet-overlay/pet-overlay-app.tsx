@@ -13,6 +13,7 @@ import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { PRODUCT_NAME } from '@/lib/brand'
 import { Mail } from '@/lib/icons'
+import { isSubmitEnter } from '@/lib/ime'
 import { $petActivity, $petInfo, setPetInfo } from '@/store/pet'
 import { overlayWindowSize } from '@/store/pet-overlay'
 import { setAwaitingResponse, setBusy } from '@/store/session'
@@ -399,7 +400,7 @@ export function PetOverlayApp() {
           className="aino-pet-composer"
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (isSubmitEnter(e) && !e.shiftKey) {
               e.preventDefault()
               send()
             } else if (e.key === 'Escape') {

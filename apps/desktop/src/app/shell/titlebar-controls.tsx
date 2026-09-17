@@ -1,3 +1,4 @@
+import { compactNumber } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
 import { type ComponentProps, type MouseEvent, type ReactNode, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
@@ -21,8 +22,9 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
+import { Slot } from '@/contrib/react/slot'
+import { useContributions } from '@/contrib/react/use-contributions'
 import { useI18n } from '@/i18n'
-import { compactNumber } from '@/lib/format'
 import { triggerHaptic } from '@/lib/haptics'
 import { formatModifierToken } from '@/lib/keybinds/combo'
 import { cn } from '@/lib/utils'
@@ -37,8 +39,9 @@ import {
   toggleSidebarOpen
 } from '@/store/layout'
 import { $unreadSessionCount } from '@/store/session-dot-state'
+import { $titlebarAppActionsSide } from '@/store/titlebar-app-actions'
 
-import { appViewForPath, isRouteBlockingSurface } from '../routes'
+import { appViewForPath, hidesFixedTitlebarClusters, isRouteBlockingSurface } from '../routes'
 
 import { SummaryToggle } from './summary-toggle'
 import {
@@ -153,6 +156,7 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
   const sidebarOpen = useStore($sidebarOpen)
   const unreadCount = useStore($unreadSessionCount)
   const terminalVisible = useStore($paneVisible('terminal'))
+  const appActionsSide = useStore($titlebarAppActionsSide)
   const unreadBadge = unreadCount > 0 ? unreadCount : undefined
   const unreadHint = unreadBadge ? ` · ${t.titlebar.unreadSessions(unreadBadge)}` : ''
 
@@ -160,13 +164,19 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
     if (!hapticsMuted) {
       triggerHaptic('tap')
     }
-
     toggleHapticsMuted()
-
     if (hapticsMuted) {
       window.requestAnimationFrame(() => triggerHaptic('success'))
     }
   }
+
+  // `titleBar.*` slot content is mount-scoped — a page's <Contribute> registers
+  // only while that surface is up — so a non-empty area means a page is
+  // actively projecting chrome into the band right now.
+  const titleBarLeft = useContributions('titleBar.left')
+  const titleBarCenter = useContributions('titleBar.center')
+  const titleBarRight = useContributions('titleBar.right')
+  const pageOwnsTitlebar = titleBarLeft.length + titleBarCenter.length + titleBarRight.length > 0
 
   // POSITIONAL toggles: each button shows/hides everything on its physical
   // side of the main zone (the layout tree collapses the whole side), so they
@@ -178,40 +188,38 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
   const leftLabel = leftEdge.open ? t.titlebar.hideSidebar : t.titlebar.showSidebar
   const rightLabel = rightEdge.open ? t.titlebar.hideRightSidebar : t.titlebar.showRightSidebar
 
-  const leftToolbarTools: TitlebarTool[] = [
-    {
-      actionId: 'view.toggleSidebar',
-      badge: panesFlipped ? undefined : unreadBadge,
-      icon: (
-        <AinoDesignIcon
-          src={titlebarSidebarToggleIcon}
-          style={{ height: TITLEBAR_LEFT_ICON_SIZE, width: TITLEBAR_LEFT_ICON_SIZE }}
-        />
-      ),
-      id: 'sidebar',
-      label: `${leftLabel}${panesFlipped ? '' : unreadHint}`,
-      onSelect: () => {
-        triggerHaptic('tap')
-        leftEdge.toggle()
-      }
-    },
-    {
-      actionId: 'view.flipPanes',
-      icon: (
-        <AinoDesignIcon
-          src={titlebarSwapIcon}
-          style={{ height: TITLEBAR_LEFT_ICON_SIZE, width: TITLEBAR_LEFT_ICON_SIZE }}
-        />
-      ),
-      id: 'flip-panes',
-      label: t.titlebar.swapSidebarSides,
-      onSelect: () => {
-        triggerHaptic('tap')
-        togglePanesFlipped()
-      }
-    },
-    ...leftTools
-  ]
+  const sidebarTool: TitlebarTool = {
+    actionId: 'view.toggleSidebar',
+    badge: panesFlipped ? undefined : unreadBadge,
+    icon: (
+      <AinoDesignIcon
+        src={titlebarSidebarToggleIcon}
+        style={{ height: TITLEBAR_LEFT_ICON_SIZE, width: TITLEBAR_LEFT_ICON_SIZE }}
+      />
+    ),
+    id: 'sidebar',
+    label: `${leftLabel}${panesFlipped ? '' : unreadHint}`,
+    onSelect: () => {
+      triggerHaptic('tap')
+      leftEdge.toggle()
+    }
+  }
+
+  const flipTool: TitlebarTool = {
+    actionId: 'view.flipPanes',
+    icon: (
+      <AinoDesignIcon
+        src={titlebarSwapIcon}
+        style={{ height: TITLEBAR_LEFT_ICON_SIZE, width: TITLEBAR_LEFT_ICON_SIZE }}
+      />
+    ),
+    id: 'flip-panes',
+    label: t.titlebar.swapSidebarSides,
+    onSelect: () => {
+      triggerHaptic('tap')
+      togglePanesFlipped()
+    }
+  }
 
   const rightSidebarTool: TitlebarTool = {
     actionId: 'view.toggleRightSidebar',
@@ -226,7 +234,7 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
     tour: 'right-pane-toggle'
   }
 
-  // Static system tools — always pinned to the screen's right edge.
+  // App actions follow the user's titlebar-side preference.
   const systemTools: TitlebarTool[] = [
     {
       className: 'group/tool',
@@ -285,42 +293,70 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
     }
   }
 
+  const view = appViewForPath(location.pathname)
+
   // While a route-owned surface (the full-page Settings workspace or a modal
   // route such as Command Center) owns the window, these fixed control clusters
   // must stand down so they cannot bleed over the surface. Native traffic lights
   // and the surface's own navigation remain available.
-  if (isRouteBlockingSurface(appViewForPath(location.pathname))) {
+  if (isRouteBlockingSurface(view)) {
     return null
   }
 
-  const visibleSystemTools = systemTools.filter(tool => !tool.hidden)
+  const titlebarSlots = (
+    <>
+      <Slot area="titleBar.left" />
+      <Slot area="titleBar.center" />
+      <Slot area="titleBar.right" />
+    </>
+  )
+
+  const leftClusterClass = cn(
+    titlebarToolClusterClass,
+    'left-(--titlebar-controls-left) top-(--titlebar-controls-top) translate-y-(--titlebar-controls-y-nudge)'
+  )
+
+  // A contributed full page (`extension`) yields the fixed clusters only while
+  // it actually projects chrome into the band — page-mounted `titleBar.*` slots
+  // like kanban's board switcher. A page that mounts no titlebar chrome keeps
+  // the app's controls; an empty claim would leave a bare strip on every plugin
+  // route. Contributed `titleBar.tools` items keep rendering here too, so a
+  // chrome-owning page never silently drops a registered item.
+  if (hidesFixedTitlebarClusters(view) && pageOwnsTitlebar) {
+    const pageTools = [...leftTools, ...tools].filter(tool => !tool.hidden)
+
+    return (
+      <div className={leftClusterClass}>
+        {pageTools.map(tool => (
+          <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
+        ))}
+        {titlebarSlots}
+      </div>
+    )
+  }
+
+  const visibleLeftTools = (
+    appActionsSide === 'left'
+      ? [sidebarTool, flipTool, ...systemTools, ...leftTools]
+      : [sidebarTool, flipTool, ...leftTools]
+  ).filter(tool => !tool.hidden)
+
+  const visibleSystemTools = appActionsSide === 'right' ? systemTools.filter(tool => !tool.hidden) : []
   const visiblePaneTools = tools.filter(tool => !tool.hidden)
 
   return (
     <>
       <div
         aria-label={t.shell.windowControls}
-        className={cn(
-          titlebarToolClusterClass,
-          'left-(--titlebar-controls-left) top-(--titlebar-controls-top) translate-y-(--titlebar-controls-y-nudge)'
-        )}
+        className={leftClusterClass}
         data-slot="titlebar-window-controls"
+        data-titlebar-cluster="left"
       >
-        {leftToolbarTools
-          .filter(tool => !tool.hidden)
-          .map(tool => (
-            <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
-          ))}
+        {visibleLeftTools.map(tool => (
+          <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
+        ))}
       </div>
 
-      {/*
-        Pane-scoped tools (preview's monitor / devtools / refresh / X) render
-        as their own fixed cluster. AppShell sets --shell-preview-toolbar-gap
-        to either the static cluster's width (file-browser closed → cluster
-        sits flush against system tools) or the file-browser pane's width
-        (file-browser open → cluster sits flush against the file-browser pane,
-        i.e. at the preview pane's right edge). No margin hacks needed.
-      */}
       {visiblePaneTools.length > 0 && (
         <div
           aria-label={t.shell.paneControls}
@@ -343,6 +379,7 @@ export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControl
           'right-(--titlebar-tools-right) top-(--titlebar-controls-top) translate-y-[3.5px] gap-1'
         )}
         data-slot="titlebar-app-controls"
+        data-titlebar-cluster="right"
       >
         {visibleSystemTools.map(tool => (
           <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />

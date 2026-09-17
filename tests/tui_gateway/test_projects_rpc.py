@@ -723,6 +723,38 @@ def _cached_repo_labels(home: Path) -> list[str]:
         return sorted(str(entry.get("label") or "") for entry in pdb.list_discovered_repos(conn))
 
 
+@pytest.mark.parametrize("method", ["projects.tree", "projects.project_sessions"])
+def test_project_tree_wire_contract_keeps_full_session_membership(monkeypatch, tmp_path, method):
+    launch_home = _profile_dir(tmp_path, "launch")
+    coder_home = _profile_dir(tmp_path, "coder")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _bind_profiles(monkeypatch, tmp_path, {"default": launch_home, "coder": coder_home})
+    project = _create_project(coder_home, "Coder", repo)
+    session_ids = {"earlier-session", "later-session"}
+    for session_id in sorted(session_ids):
+        _create_session(coder_home, session_id, repo)
+    params = {"profile": "coder"}
+    params.update({"preview_limit": 1} if method == "projects.tree" else {"project_id": project["id"]})
+
+    with _serving_launch_profile(launch_home):
+        response = server.handle_request({"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
+
+    assert "error" not in response, response.get("error")
+    result = response["result"]
+    node = result["projects"][0] if method == "projects.tree" else result["project"]
+    assert {row["id"] for row in node["sessionIdentities"]} == session_ids
+    assert all(row["profile"] == "coder" for row in node["sessionIdentities"])
+
+    from tui_gateway.contracts import registry
+
+    validated = registry.METHODS[method].result.model_validate(result).model_dump(by_alias=True, exclude_unset=True)
+    validated_node = validated["projects"][0] if method == "projects.tree" else validated["project"]
+    assert validated_node["sessionIdentities"] == node["sessionIdentities"]
+    if method == "projects.tree":
+        assert len(node["previewSessions"]) < len(node["sessionIdentities"])
+
+
 def test_projects_reads_are_scoped_to_the_requested_profile(monkeypatch, tmp_path):
     """A ``profile`` param reads that profile's projects.db AND its state.db."""
     launch_home = _profile_dir(tmp_path, "launch")
@@ -886,5 +918,4 @@ def test_projects_without_a_profile_stay_on_the_launch_home(monkeypatch, tmp_pat
     assert _cached_repo_labels(launch_home) == ["only"]
     assert not (coder_home / "projects.db").exists()
     assert not (Path(os.environ["HERMES_HOME"]) / "projects.db").exists()
-
 

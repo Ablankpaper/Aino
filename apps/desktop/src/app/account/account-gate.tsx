@@ -2,13 +2,13 @@ import { useStore } from '@nanostores/react'
 import { Activity, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import { platformAccountActions } from '@/api/platform'
-import { createLegacyDevelopmentAccountActions } from '@/api/platform'
+import { createLegacyDevelopmentAccountActions, platformAccountActions } from '@/api/platform'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
 import type { AccountActions } from '@/store/account'
 import { $activeConnectionId } from '@/store/connections'
 import { requestGatewayForAgent } from '@/store/gateway'
+import { $gatewayState } from '@/store/session'
 
 import { AccountContext } from './account-context'
 import { AccountLoginCard } from './account-login-card'
@@ -16,9 +16,10 @@ import { AccountLoginCard } from './account-login-card'
 export interface AccountFlowProps {
   actions: AccountActions
   children: ReactNode
+  refreshEnabled?: boolean
 }
 
-export function AccountFlow({ actions, children }: AccountFlowProps) {
+export function AccountFlow({ actions, children, refreshEnabled = true }: AccountFlowProps) {
   const state = useStore(actions.state)
   const { t } = useI18n()
   const copy = t.settings.account
@@ -29,8 +30,10 @@ export function AccountFlow({ actions, children }: AccountFlowProps) {
   const [workspaceMounted, setWorkspaceMounted] = useState(false)
 
   useEffect(() => {
-    void actions.refresh()
-  }, [actions])
+    if (refreshEnabled) {
+      void actions.refresh()
+    }
+  }, [actions, refreshEnabled])
 
   useLayoutEffect(() => {
     const setMode = window.hermesDesktop?.setAccountWindowMode
@@ -157,6 +160,7 @@ export function shouldGatePlatformAccount(search: string) {
 
 export function AccountGate({ children }: { children: ReactNode }) {
   const connectionId = useStore($activeConnectionId)
+  const gatewayState = useStore($gatewayState)
 
   const legacyActions = useMemo(
     () =>
@@ -170,10 +174,13 @@ export function AccountGate({ children }: { children: ReactNode }) {
     return children
   }
 
-  const actions =
-    window.hermesDesktop.accountAdapter === 'legacy-development'
-      ? legacyActions
-      : platformAccountActions(window.hermesDesktop.platformAccount)
+  const legacy = window.hermesDesktop.accountAdapter === 'legacy-development'
+  const actions = legacy ? legacyActions : platformAccountActions(window.hermesDesktop.platformAccount)
 
-  return <AccountFlow actions={actions}>{children}</AccountFlow>
+  // The descriptor arrives before the WebSocket opens; only legacy auth uses that socket.
+  return (
+    <AccountFlow actions={actions} refreshEnabled={!legacy || gatewayState === 'open'}>
+      {children}
+    </AccountFlow>
+  )
 }
