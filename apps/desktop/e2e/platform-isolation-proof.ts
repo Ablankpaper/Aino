@@ -162,7 +162,7 @@ async function selectAndSend(participant: IsolationParticipant) {
   await sendPrompt(page, `Read ${participant.api.info.fixture_path} and verify its content.`)
 }
 
-async function settled(participant: IsolationParticipant, before: IsolationState) {
+async function settledFreshDraft(participant: IsolationParticipant, before: IsolationState) {
   await expect.poll(async () => (await state(participant)).usage_calls, { timeout: 60_000 }).toBe(before.usage_calls + 2)
   const { page } = participant.launched
   await expect(page.getByText(`Verified ${participant.api.info.fixture_content}`, { exact: false }).first()).toBeVisible()
@@ -177,7 +177,11 @@ async function settled(participant: IsolationParticipant, before: IsolationState
   expect(rows.every(row => row.desktop_session_id.length > 0 && row.desktop_turn_id.length > 0)).toBe(true)
   expect(units(before.balance) - units(after.balance)).toBe(units(after.usage_cost) - units(before.usage_cost))
   expect(rows.reduce((sum, row) => sum + units(row.actual_cost), 0n)).toBe(units(before.balance) - units(after.balance))
-  expect(after.credential_successes).toBe(before.credential_successes + 1)
+  // A fresh draft binds once in createPlatformDraft, then the routed first
+  // prompt rebinds through preparePlatformSessionRequest before submission.
+  // Each binding obtains a lease; the two inference calls must add no others.
+  expect(after.credential_requests - before.credential_requests).toBe(2)
+  expect(after.credential_successes - before.credential_successes).toBe(2)
   expect(after.inference_requests).toBe(before.inference_requests + 2)
   expect(after.orders).toBe(before.orders)
 
@@ -216,7 +220,7 @@ export async function verifyConcurrentIsolation(left: IsolationParticipant, righ
     expect(ledger(await state(left))).toEqual(ledger(before[0]))
     expect(ledger(await state(right))).toEqual(ledger(before[1]))
     await left.api.control('faults', JSON.stringify({ hold_inference_before_auth: false }))
-    const leftAfter = await settled(left, before[0])
+    const leftAfter = await settledFreshDraft(left, before[0])
     let rightHeld: IsolationState | null = null
 
     if (!sameSite) {
@@ -226,7 +230,7 @@ export async function verifyConcurrentIsolation(left: IsolationParticipant, righ
       await right.api.control('faults', JSON.stringify({ hold_inference_before_auth: false }))
     }
 
-    const rightAfter = await settled(right, before[1])
+    const rightAfter = await settledFreshDraft(right, before[1])
     const histories = await Promise.all([captureIsolationHistory(left), captureIsolationHistory(right)])
     expect(histories[0].runtimeId).not.toBe(histories[1].runtimeId)
     const leftTurns = new Set(leftAfter.usage_ledger.map(row => row.desktop_turn_id))
@@ -279,7 +283,7 @@ export async function verifyRetainedHistoryIsolation(
 
   await recover.click()
   await selectAndSend(current)
-  const recovered = await settled(current, denied[1])
+  const recovered = await settledFreshDraft(current, denied[1])
   const history = await captureIsolationHistory(current)
   expect(history.owner).toEqual(identity.owner)
   expect(history.runtimeId).not.toBe(prior.runtimeId)

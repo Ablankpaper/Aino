@@ -6,7 +6,7 @@ import { buildAppEnv, createSandbox, waitForAppReady, writeEnvFile, writeMockPro
 import { startMockServer } from './mock-server'
 import { assertEdgeAlerts, observeEdgeAlerts, observeNativeRuntime, verifyConcurrentAccountLifecycle, verifyOfflineAndAuthorizationRecovery } from './platform-account-edge-proof'
 import { observeInferenceAlerts, verifyInferenceFailures } from './platform-inference-failure-proof'
-import { assertIsolationAlerts, observeIsolationAlerts, verifyConcurrentIsolation, verifyRetainedHistoryIsolation } from './platform-isolation-proof'
+import { assertIsolationAlerts, type IsolationParticipant, observeIsolationAlerts, verifyConcurrentIsolation, verifyRetainedHistoryIsolation } from './platform-isolation-proof'
 import { auditFixtureText, fixtureEnvironment, installLoopbackNodeGuard, installLoopbackPythonGuard, isExpectedBlockedThemeFontRequest, KNOWN_BLOCKED_THEME_FONT_URL, launchGuardedDesktop, type NativeState, type NativeTransportAudit, persistedFixtureText, startRealPlatformAPI } from './platform-real-api'
 import { verifyWebsiteWallet } from './platform-website-wallet'
 import { seedPlatformWorkspace, verifyPlatformWorkspace } from './platform-workspace-proof'
@@ -666,6 +666,7 @@ for (const sameSite of [true, false]) {
     const launchAudits: NativeTransportAudit[][] = [[], []]
     const consoleLines: string[][] = [[], []]
     const rendererAudits: unknown[] = []
+    const participants: IsolationParticipant[] = []
     let primaryError: unknown
     let stage = 'fixture-start'
     const cleanupErrors: unknown[] = []
@@ -677,7 +678,6 @@ for (const sameSite of [true, false]) {
 
       const sites = [apis[0], sameSite ? apis[0] : apis[1]]
       const prepared = sandboxes.map((sandbox, index) => prepareNativePlatformEnvironment(sandbox, sites[index]))
-      const participants = []
       const codeTimes: number[] = []
 
       for (const index of [0, 1]) {
@@ -768,6 +768,18 @@ for (const sameSite of [true, false]) {
     } catch (error) {
       primaryError = error
       console.log(`Native isolation failed at ${stage}`)
+      const states = []
+
+      for (const participant of participants) {
+        states.push(await participant.api.control(`state?user_id=${encodeURIComponent(participant.accountId)}`).catch(() => null))
+      }
+
+      const faults = []
+
+      for (const api of apis) { faults.push(await api.control('faults').catch(() => null)) }
+      await testInfo.attach('native-isolation-failure-state', {
+        body: JSON.stringify({ stage, states, faults }, null, 2), contentType: 'application/json'
+      })
 
       for (const index of [0, 1]) {
         const launched = launches[index]
