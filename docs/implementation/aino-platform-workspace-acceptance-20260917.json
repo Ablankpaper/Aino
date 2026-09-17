@@ -1,0 +1,60 @@
+{
+  "run_id": "3ba97b00-d16f-45ed-a446-17af3f3ddf7d",
+  "source": {
+    "aino_sha": "8e8699e4b1d779026238159c9cadfa48d3ea28cb",
+    "api_sha": "a5f720aa831c9e1c75b234ac2eb1ab21e7a6e7a1"
+  },
+  "identity": {
+    "initial_account_id": "1",
+    "workspace_account_id": "1",
+    "workspace_profile": "fixture-workspace",
+    "distinct_guarded_backend": true,
+    "peer_account_matches": true,
+    "peer_wallet_matches": true,
+    "hide_show_preserves_account": true,
+    "hide_show_preserves_wallet": true
+  },
+  "amounts": {
+    "before_balance": "10.00000000",
+    "after_balance": "9.99980000",
+    "charged_units": "20000",
+    "recorded_cost_units": "20000"
+  },
+  "counters": {
+    "usage_calls": 2,
+    "tool_results": 1,
+    "orders": 0
+  },
+  "audits": {
+    "renderer": {
+      "checked_credentials": 5,
+      "leaked": false
+    },
+    "peer_renderer": {
+      "checked_credentials": 5,
+      "leaked": false
+    },
+    "persisted": {
+      "leaked": false,
+      "checked_credentials": 5,
+      "batches": 5,
+      "audited_bytes": 35153521
+    },
+    "transport": {
+      "denied_public_font_hosts": [
+        "fonts.googleapis.com",
+        "fonts.googleapis.com"
+      ],
+      "blocked_before_transport": true
+    }
+  },
+  "screenshot": "platform-native-workspace.png",
+  "verification": {
+    "date": "2026-09-17",
+    "command": "playwright test e2e/platform-account-model-billing.spec.ts -g 'real API workspace switch' --workers=1 --retries=0 --reporter=list",
+    "result": "1 passed (22.5s), exit 0",
+    "evidence_directory": "/private/tmp/aino-workspace-final-eqiGqW",
+    "raw_receipt_sha256": "154aea82ad5624b4d7c968cd8e597a64a0331f23df6e90c29187f63e6cf8e2f2",
+    "scope": "Real Electron/main/preload, two real isolated Python profile backends, real PG/Redis/auth/lease/ledger; loopback model/SMS fixture, no production service or personal account."
+  }
+}

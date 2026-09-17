@@ -1,5 +1,7 @@
 # B：内置模型与运行时 Implementation Plan
 
+> 进度说明：以下复选框保留原始任务拆解，不表示当前实施待办；实际已完成阶段、对应提交和验收边界统一以 [阶段进度](../implementation/aino-platform-progress.md) 与 [验收矩阵](../implementation/aino-platform-acceptance-matrix.md) 为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 用户登录后无须配置 Key 即可使用内置模型，真实 Agent 工具/流式/压缩均保留，BYOK 不被覆盖。

@@ -1,0 +1,49 @@
+{
+  "run_id": "44b14b44-d135-48e4-93cc-11693465003f",
+  "aino_sha": "330044762732d7197a8f05affe22c0c5af479ee6",
+  "api_sha": "a5f720aa831c9e1c75b234ac2eb1ab21e7a6e7a1",
+  "account_id": "1",
+  "before_balance": "10.00000000",
+  "after_balance": "12.80000000",
+  "credited_units": "280000000",
+  "orders": 1,
+  "payment_calls": 1,
+  "usage_calls": 0,
+  "model_calls": 0,
+  "desktop_balance": "12.80000000",
+  "website": {
+    "accountId": "1",
+    "balance": "12.80",
+    "transport": {
+      "rejectedHTTP": [],
+      "rejectedHTTPCount": 0,
+      "rejectedWebSockets": [],
+      "rejectedWebSocketCount": 0
+    }
+  },
+  "rendererAudit": {
+    "checked_credentials": 5,
+    "leaked": false
+  },
+  "persistedAudit": {
+    "checked_credentials": 5,
+    "leaked": false
+  },
+  "transport": {
+    "denied_public_font_hosts": [
+      "fonts.googleapis.com"
+    ],
+    "blocked_before_transport": true
+  },
+  "verification": {
+    "date": "2026-09-17",
+    "command": "playwright test e2e/platform-account-model-billing.spec.ts -g 'desktop recharge reaches' --workers=1 --retries=0 --reporter=list",
+    "result": "1 passed (1.3m), exit 0",
+    "evidence_directory": "/private/tmp/aino-cross-client-audited-fEaG6H",
+    "raw_receipt_sha256": "b845280beadf74fe8b0b87e3987fffda5ee23936073e1c6587dfea73b67c563c",
+    "tested_desktop_business_sha": "0eace11bfcefc312d97d70cf9142cbdc4e989dd6",
+    "build_origin_manifest_sha256": "1f209d2cb52dab198e0dca18cd60a058f3102815a97fda5798f24f31294dc810",
+    "review_fix": "Explicitly assert and preserve model_calls=0 independently from settled usage_calls=0.",
+    "scope": "Real Electron/main/preload and independent Vue login against real isolated PG/Redis/auth/payment fulfillment. SMS and payment providers are loopback fixtures; no real payment. The unchanged 0eace11bfc build was used while a renderer fix was committed concurrently; aino_sha is the checkout HEAD when attached, not the tested business build."
+  }
+}

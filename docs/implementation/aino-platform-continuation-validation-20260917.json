@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-17",
+  "scope": "Local continuation validation; each result is bound to the recorded source, not a complete release gate.",
+  "final_business_source": "3517ccfd3baecfa7d42600e4cc0f979d5f951f21",
+  "paired_api_source": "a5f720aa831c9e1c75b234ac2eb1ab21e7a6e7a1",
+  "full_ui": {
+    "command": "npm",
+    "args": [
+      "run",
+      "test:ui",
+      "--",
+      "--maxWorkers=4"
+    ],
+    "source": "8e8699e4b1d779026238159c9cadfa48d3ea28cb",
+    "exit": 0,
+    "signal": null,
+    "timedOut": false,
+    "duration_ms": 355490,
+    "files_passed": 874,
+    "tests_passed": 7979,
+    "vitest_duration_seconds": 354.69,
+    "logs": [
+      {
+        "path": "/private/tmp/aino-ui-final-continuation-hMD5xI/ui.log",
+        "sha256": "d7defc34fc427d05ceff84e24cbcea817bd51ace56d4549565ba479723e83215"
+      },
+      {
+        "path": "/private/tmp/aino-ui-final-continuation-hMD5xI/ui-exit.json",
+        "sha256": "74173fac9d9b4e3001b589869d36c84915bd1ce5cd27b1d9d09a556e48bc8e39"
+      }
+    ],
+    "boundary": "Executed before the subsequent abandoned-draft cleanup change. The later change has focused coverage below."
+  },
+  "abandoned_draft_cleanup": {
+    "source": "3517ccfd3baecfa7d42600e4cc0f979d5f951f21",
+    "red_base": "8e8699e4b1d779026238159c9cadfa48d3ea28cb",
+    "red_failed_tests": 2,
+    "red_reason": "Navigation drift and missing stored ID both released the socket without closing the original managed-profile runtime.",
+    "green_command": "vitest run --project ui src/app/session/hooks/use-session-actions.test.tsx src/app/session/hooks/profile-rail-fresh-chat-owner.test.tsx src/api/platform-session-binding.test.ts --maxWorkers=3",
+    "green_files": 3,
+    "green_tests": 124,
+    "green_duration_seconds": 4.58,
+    "exit": 0,
+    "contract": "Close the captured profile runtime and await close completion before releasing its socket; retain the lease through normal publication.",
+    "logs": [
+      {
+        "path": "/private/tmp/aino-cleanup-red.log",
+        "sha256": "ebd9488ffedc0963562f35084abd34a44cc88a14510c0823930a6cce90e64cca"
+      },
+      {
+        "path": "/private/tmp/aino-cleanup-covering.log",
+        "sha256": "b6257c6626af36c1be70ede7b1697646e9634a134d2b8b05cd6e878acedced70"
+      }
+    ],
+    "independent_review": {
+      "verdict": "APPROVED; prior P2 closed; no new findings",
+      "report": ".superpowers/sdd/implementation-plan/workspace-production-review.md"
+    }
+  },
+  "quality": {
+    "source": "3517ccfd3baecfa7d42600e4cc0f979d5f951f21",
+    "typecheck": {
+      "command": "npm run typecheck",
+      "configs": [
+        "tsconfig.json",
+        "tsconfig.electron.json",
+        "tsconfig.e2e.json"
+      ],
+      "exit": 0,
+      "log": {
+        "path": "/private/tmp/aino-cleanup-types.log",
+        "sha256": "c718d9ea017914cc46a0982526d399e30b4af74870a79663c99e48b182e6c5c8"
+      }
+    },
+    "scoped_lint": {
+      "exit": 0,
+      "errors": 0,
+      "warnings": 0,
+      "paths": [
+        "apps/desktop/src/app/session/hooks/use-session-actions/index.ts",
+        "apps/desktop/src/app/session/hooks/use-session-actions.test.tsx",
+        "apps/desktop/e2e/platform-account-model-billing.spec.ts",
+        "apps/desktop/e2e/platform-real-api.ts",
+        "apps/desktop/e2e/platform-website-wallet.ts",
+        "apps/desktop/e2e/platform-workspace-proof.ts",
+        "apps/desktop/e2e/platform-workspace-proof.spec.ts"
+      ],
+      "log": {
+        "path": "/private/tmp/aino-continuation-final-lint.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "development_build": {
+    "source": "3517ccfd3baecfa7d42600e4cc0f979d5f951f21",
+    "steps": [
+      {
+        "command": "node",
+        "args": [
+          "scripts/assert-root-install.mjs"
+        ],
+        "exit": 0,
+        "signal": null,
+        "duration_ms": 26
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/write-build-stamp.mjs"
+        ],
+        "exit": 0,
+        "signal": null,
+        "duration_ms": 80
+      },
+      {
+        "command": "../../node_modules/.bin/vite",
+        "args": [
+          "build"
+        ],
+        "exit": 0,
+        "signal": null,
+        "duration_ms": 11142
+      },
+      {
+        "command": "../../node_modules/.bin/tsc",
+        "args": [
+          "-p",
+          "tsconfig.electron.json"
+        ],
+        "exit": 0,
+        "signal": null,
+        "duration_ms": 635
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/bundle-electron-main.mjs",
+          "--dev"
+        ],
+        "exit": 0,
+        "signal": null,
+        "duration_ms": 94
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/stage-native-deps.mjs"
+        ],
+        "exit": 0,
+        "signal": null,
+        "duration_ms": 36
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/assert-dist-built.mjs"
+        ],
+        "exit": 0,
+        "signal": null,
+        "duration_ms": 94
+      }
+    ],
+    "log": {
+      "path": "/private/tmp/aino-continuation-final-build.log",
+      "sha256": "1410a076cf156c2901b97846161aa706a0c195b8ef80672631a7563ad4f99278"
+    },
+    "dist_manifest": {
+      "path": "/private/tmp/aino-continuation-final-dist-manifest.json",
+      "sha256": "ff05a9ac4dc67bdf46e6c134039e264e5776034fb145912f0702b5c2b0b0f863"
+    },
+    "dist_files": 395,
+    "stamp": {
+      "schemaVersion": 1,
+      "commit": "3517ccfd3baecfa7d42600e4cc0f979d5f951f21",
+      "branch": "codex/aino-platform-identity-models-billing",
+      "builtAt": "2026-09-17T04:52:36.937Z",
+      "dirty": true,
+      "source": "local"
+    },
+    "boundary": "Renderer and Electron development main/preload regenerated after cleanup. This is not a signed/notarized installer or a new native acceptance run; dirty tracked changes were E2E/docs only."
+  },
+  "native_receipts": {
+    "workspace": "aino-platform-workspace-acceptance-20260917.json",
+    "cross_client_recharge": "aino-platform-cross-client-recharge-20260917.json",
+    "website_login": "aino-platform-website-acceptance-20260917.json",
+    "core_lifecycle": "aino-platform-native-acceptance-20260917.json"
+  },
+  "persisted_audit_contract": {
+    "result": "1 passed (1.4s), exit 0",
+    "log": {
+      "path": "/private/tmp/aino-audit-batch-proof.log",
+      "sha256": "0a58aa6aa435724627f8a0cc9e1f44ab341b108647462095734e7536f5c07795"
+    },
+    "boundary": "Short behavioral proof for complete-file batching and fail-closed receipt validation; the strict response validation was added after the native workspace run, whose receipts already satisfy it."
+  },
+  "e2e_review": {
+    "verdict": "APPROVED; no remaining findings in reviewed continuation scope",
+    "report": ".superpowers/sdd/implementation-plan/continuation-e2e-review.md",
+    "source_sha256": {
+      "apps/desktop/e2e/platform-account-model-billing.spec.ts": "c3c1f0564d3028a30f577cb8e2981c7caa1dd419759e33c1271d3147784eecde",
+      "apps/desktop/e2e/platform-real-api.ts": "f37aaf1e3d66ac5c3d8123addfae581f8ca422ac203f5113f6bcbf10d6011761",
+      "apps/desktop/e2e/platform-website-wallet.ts": "03258c92d2540918982f9fa9dbfe7495885bcf98079d4ff47fbe9550fb87de98",
+      "apps/desktop/e2e/platform-workspace-proof.ts": "de7094aace2be63df4c6c02d47e2938be2df681f3068c1dc0342a1ec911485b5",
+      "apps/desktop/e2e/platform-workspace-proof.spec.ts": "652dab3c5ba0f603f6569314de38b0ec6c145ebe95c4d56001edaf7341c51f48"
+    }
+  },
+  "remaining_gates": [
+    "Python whole-scope SIGBUS root cause",
+    "Normal default-sandbox launch of current signed/notarized macOS package",
+    "Windows/Linux and locked/denied secure storage",
+    "Remaining remote, concurrent, failure and long-running native scenarios",
+    "Real SMS/captcha/model billing/payment suppliers and production rollout/backup cutoff/rollback"
+  ],
+  "external_actions": {
+    "pushed": false,
+    "merged": false,
+    "deployed": false,
+    "real_supplier_calls": false
+  },
+  "e2e_fixture_commit": "855edc2e1d3bface6d51e571d8f6a4e96a651463"
+}

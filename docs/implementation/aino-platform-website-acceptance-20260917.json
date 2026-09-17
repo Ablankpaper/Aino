@@ -1,0 +1,45 @@
+{
+  "date": "2026-09-17",
+  "scope": "Standalone real website phone login and database-backed wallet; not the post-recharge cross-client acceptance",
+  "accountId": "1",
+  "balance": "10.00",
+  "transport": {
+    "rejectedHTTP": [],
+    "rejectedHTTPCount": 0,
+    "rejectedWebSockets": [],
+    "rejectedWebSocketCount": 0
+  },
+  "passed": 1,
+  "elapsed_reported": "37.6s",
+  "exit_code": 0,
+  "environment": "Actual built Vue site, fresh browser/context, real local JWT/auth/profile services and isolated PostgreSQL/Redis; synthetic SMS sender",
+  "tested_aino_head_plus_recorded_diff": "37c2bedb4f",
+  "tested_api_head_plus_recorded_diff": "ff00058c3",
+  "equivalent_committed_api_fixture": "a5f720aa8",
+  "evidence_directory": "/private/tmp/aino-website-refreshed-TwPE3S/",
+  "command": "../../node_modules/.bin/playwright test e2e/platform-account-model-billing.spec.ts -g 'real website wallet' --workers=1 --retries=0 --reporter=list",
+  "checks": {
+    "real_ui_fresh_otp_login": true,
+    "jwt_protected_auth_me_http_200": true,
+    "rendered_balance_matches_ledger_at_website_two_decimal_precision": true,
+    "authenticated_website_user_id_matches_fixture": true,
+    "model_usage_and_orders_remain_zero": true,
+    "types_exit_code": 0,
+    "scoped_lint_exit_code": 0,
+    "browser_context_browser_and_loopback_server_cleanup": true
+  },
+  "hashes_sha256": {
+    "spec": "cb2a34669cd75286415f5ae3c9a5d0544f1254fb142cf5b96540c6075c3fdcfc",
+    "website_helper": "03258c92d2540918982f9fa9dbfe7495885bcf98079d4ff47fbe9550fb87de98",
+    "review_diff": "6460c99b3f32c0d57f0a1f9a114431cc07e62d3df60333089101f26eac700a0e",
+    "website_screenshot": "2016560be07960bbea0fc6d721ba1c8bb92646eb464fd82009a966fdeefd9b1d"
+  },
+  "limitations": [
+    "The website performs its own login; no Desktop token is supplied.",
+    "Transport receipt covers the isolated browser context and WebSockets, not all browser-process or OS background traffic.",
+    "No real SMS, payment, paid inference or production deployment.",
+    "Profile ancillary endpoints outside the wallet proof may return 404; this is not a complete website QA pass.",
+    "Post-recharge website/Desktop comparison remains gated by the combined native scenario.",
+    "Raw trace contains disposable test authentication material and is not committed."
+  ]
+}

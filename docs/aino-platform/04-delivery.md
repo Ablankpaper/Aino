@@ -10,7 +10,7 @@
 
 **Spec:** [完整设计](/Users/zizimutou/Protect/Aino/docs/aino-platform/design.md)。
 
-**2026-09-17 执行回写：** 现有原生用例已完整通过，覆盖登录→Agent 工具→停止结算→充值→重启重新认证/历史重绑定→BYOK 及秘密审计（Aino 夹具 `32c0ca8eae` / API `ff00058c3`）。这不覆盖全部矩阵，原生工作区切换、网站余额 UI、正常发行启动、Python 整套 Bus error、跨平台与真实服务仍开放。逐项事实及受控回执见[验收矩阵](../implementation/aino-platform-acceptance-matrix.md)。下列复选框仅对完整满足的步骤勾选。
+**2026-09-17 执行回写：** 旧核心原生用例已通过登录→Agent 工具→停止结算→充值→重启重新认证/历史重绑定→BYOK 及秘密审计（夹具 `32c0ca8eae` / API `ff00058c3`）。本次独立工作区切片在业务 `8e8699e4b1` / API `a5f720aa8` 上通过（1 项、22.5 秒），包含工具、回默认、双窗口账户/钱包一致和隐藏恢复；充值后网站独立核对在业务 `0eace11bfc` / API `a5f720aa8` 上通过（1 项、1.3 分钟，checkout `3300447627` 不等于被测构建）。完整 UI 在 `8e8699e4b1` 上通过 874 文件/7,979 项，Vitest 354.69 秒、外层命令 355.49 秒、exit 0。后续清理修复 `3517ccfd3b` 经 2 项行为 RED、3 文件/124 项 GREEN（4.58 秒）、三个 TS 配置/scoped lint 和独立 `delivery_audit` APPROVED，唯一 P2 已关闭；最终开发构建 `3517ccfd3b` 各步骤 exit 0，395 文件 dist 清单/日志哈希及 E2E 夹具提交 `855edc2e1d` 已记录，见[接续验证回执](../implementation/aino-platform-continuation-validation-20260917.json)。正常签名发行启动、Python SIGBUS、矩阵其余异常/远程/并发场景、跨平台与真实服务仍开放。逐项事实及回执见[验收矩阵](../implementation/aino-platform-acceptance-matrix.md) E18/E21–E25；下列复选框只按完整满足的具体步骤勾选，不把切片成功视为整个 D 完成。
 
 ## Global Constraints
 
@@ -32,7 +32,7 @@
 **Interfaces:** 每次测试生成 `run_id`，关联各仓库commit、独立DB/Redis、app userData、测试HERMES_HOME和人工可读报告。fake供应商数据只能来自 `fixture-*`，端到端业务service仍是真实实现。
 
 - [x] **Step 1：建立 isolated infrastructure。** 复用项目既有testcontainers Postgres/Redis setup，不连接生产；SMS和模型/支付出口替换为协议兼容的本地服务。fake模型需要支持先tool_call、再收到tool_result后最终回答，不能只永远返回hello。
-- [ ] **Step 2：写跨仓库核心场景。**
+- [x] **Step 2：写跨仓库核心场景。** 已以 E18 核心原生、E21 工作区、E22 充值后双端三条独立隔离切片实现并执行下列场景；源码/构建分别记录，供应商为本地替身。剩余矩阵在后续步骤单列；清理修复定向证据另记 E24。
 
 ```text
 given: 隔离API实例、允许注册的测试配置、测试官方模型组、余额初始值
@@ -212,7 +212,7 @@ npx playwright test e2e/platform-account-model-billing.spec.ts
 ```
 
 - [ ] **Step 1：检查差异与提交范围。** 两仓库 `git diff --check`、branch diff、status；本地含秘密文件不入Git，sample配置无真实密钥/手机号；lockfiles与生成物可解释。没有把未提交用户改动混进本任务。
-- [x] **Step 2：对照矩阵写报告。** 每个ID有证据或明确未完成原因；失败之后的修复有复验；测试报告与最终提交相符。UI截图不能替代账本/身份数据证据。
+- [x] **Step 2：对照矩阵写报告。** E18/E21/E22 核心原生、工作区及充值后双端均有耐久回执；E23 完整 UI 874 文件/7,979 项通过；E24 清理修复 `3517ccfd3b` 定向验证/独立复核通过；E25 最终开发构建、配对来源与 395 文件清单已记录。报告明确区分各次源码和开发构建/正式安装包，Python SIGBUS、签名发行、其余原生/多平台及真实服务门禁仍未完成，不因报告完成而勾选整个 D。
 - [ ] **Step 3：交付用户。** 给出两仓库分支/commit、阅读入口、安装包/启动方式、已完成与待联调项；有推送授权才推到自有origin，未授权只提供本地结果。
 - [ ] **Step 4：Codex接手时检查以下实质问题。** 这一步是后续复核责任，不在没有执行结果时打勾通过。
 
