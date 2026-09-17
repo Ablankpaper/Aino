@@ -4,10 +4,11 @@ import * as path from 'node:path'
 
 import { buildAppEnv, createSandbox, waitForAppReady, writeEnvFile, writeMockProviderConfig } from './fixtures'
 import { startMockServer } from './mock-server'
+import { assertEdgeAlerts, observeEdgeAlerts, observeNativeRuntime, verifyConcurrentAccountLifecycle, verifyOfflineAndAuthorizationRecovery } from './platform-account-edge-proof'
 import { auditFixtureText, fixtureEnvironment, installLoopbackNodeGuard, installLoopbackPythonGuard, isExpectedBlockedThemeFontRequest, KNOWN_BLOCKED_THEME_FONT_URL, launchGuardedDesktop, type NativeState, type NativeTransportAudit, persistedFixtureText, startRealPlatformAPI } from './platform-real-api'
 import { verifyWebsiteWallet } from './platform-website-wallet'
 import { seedPlatformWorkspace, verifyPlatformWorkspace } from './platform-workspace-proof'
-import { expect, type Page, test } from './test'
+import { allowErrorBanners, expect, type Page, test } from './test'
 
 interface NativeWindow {
   hermesDesktop: {
@@ -32,6 +33,7 @@ test('transport audit accepts only the inert denied theme stylesheet shape', () 
 
 function observeNativeLaunch({ app, page, transportAudit }: NativeLaunch, consoleLines: string[]): NativeTransportAudit {
   page.on('console', message => consoleLines.push(message.text()))
+  app.on('window', peer => peer.on('console', message => consoleLines.push(message.text())))
   app.process().stdout?.on('data', value => consoleLines.push(String(value)))
   app.process().stderr?.on('data', value => consoleLines.push(String(value)))
 
@@ -166,12 +168,17 @@ test('fixture decimal parser preserves exact eight-place values', () => {
 })
 
 async function auditRenderer(page: Page, api: Awaited<ReturnType<typeof startRealPlatformAPI>>) {
-  const publicData = await page.evaluate(async () => ({
-    account: await (window as unknown as NativeWindow).hermesDesktop.platformAccount.status(),
-    models: await (window as unknown as NativeWindow).hermesDesktop.platformModels.list(),
-    localStorage: { ...localStorage },
-    body: document.body.innerText
-  }))
+  const publicData = await page.evaluate(async () => {
+    const desktop = (window as unknown as NativeWindow).hermesDesktop
+    const account = await desktop.platformAccount.status()
+
+    return {
+      account,
+      models: account.phase === 'signed_in' ? await desktop.platformModels.list() : null,
+      localStorage: { ...localStorage },
+      body: document.body.innerText
+    }
+  })
 
   const audit = await api.control<{ leaked: boolean; checked_credentials: number }>('audit', JSON.stringify(publicData))
 
@@ -491,6 +498,93 @@ test('real API workspace switch preserves platform account across native windows
 
   if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Native workspace fixture cleanup failed') }
 })
+
+for (const scenario of [
+  { name: 'concurrent refresh and logout', verify: verifyConcurrentAccountLifecycle },
+  { name: 'offline and revoked authorization recovery', verify: verifyOfflineAndAuthorizationRecovery }
+]) {
+  test(`native account edges: ${scenario.name}`, async ({ browserName: _browserName }, testInfo) => {
+    test.setTimeout(240_000)
+    allowErrorBanners()
+    const repoRoot = path.resolve(import.meta.dirname, '../../..')
+    const sandbox = createSandbox('platform-account-edges')
+    let api: Awaited<ReturnType<typeof startRealPlatformAPI>> | null = null
+    let launched: NativeLaunch | null = null
+    const consoleLines: string[] = []
+    const launchAudits: NativeTransportAudit[] = []
+    let primaryError: unknown
+    const cleanupErrors: unknown[] = []
+
+    try {
+      api = await startRealPlatformAPI(path.resolve(repoRoot, '../Aino-API'))
+      const prepared = prepareNativePlatformEnvironment(sandbox, api)
+      launched = await launchGuardedDesktop(prepared.env, prepared.nodeGuard)
+      launchAudits.push(observeNativeLaunch(launched, consoleLines))
+      assertNativeGuardsReady(sandbox, launched.app)
+      await observeEdgeAlerts(launched, scenario.verify === verifyOfflineAndAuthorizationRecovery)
+      await observeNativeRuntime(launched.page)
+      const codeAt = await signInForThisSession(launched.page, api)
+      await waitForAppReady(launched as never, 120_000)
+      assertNewGuardedBackend(sandbox, prepared.pythonGuardPids)
+      const initialAccount = await launched.page.evaluate(() => (window as unknown as NativeWindow).hermesDesktop.platformAccount.status())
+      const active = launched
+      const fixture = api
+
+      const proof = await scenario.verify({
+        launched, api, accountId: initialAccount.account!.id,
+        signInAgain: async () => { await signInForThisSession(active.page, fixture, codeAt) }
+      })
+
+      await assertEdgeAlerts(launched)
+      const rendererAudits = []
+
+      for (const page of launched.app.windows()) { rendererAudits.push(await auditRenderer(page, api)) }
+      expect(rendererAudits).toHaveLength(2)
+      const transport = await assertNoBlockedTransport(sandbox, launchAudits)
+      await launched.page.screenshot({ path: testInfo.outputPath('native-account-edge.png') })
+      await launched.app.close()
+      launched = null
+
+      const persistedAudit = await auditFixtureText(api, [
+        ...persistedFixtureText(sandbox.hermesHome), ...persistedFixtureText(sandbox.userDataDir),
+        fs.readFileSync(api.logPath, 'utf8'), ...consoleLines
+      ])
+
+      await testInfo.attach('native-account-edge-receipt', {
+        body: JSON.stringify({
+          scenario: scenario.name, run_id: api.info.run_id,
+          source: { aino: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), api: api.apiSha },
+          proof, rendererAudits, persistedAudit,
+          transport: { blocked_before_transport: true, denied_public_font_hosts: transport.expectedFontHosts }
+        }, null, 2), contentType: 'application/json'
+      })
+    } catch (error) {
+      primaryError = error
+
+      if (launched) {
+        await launched.page.screenshot({ path: testInfo.outputPath('native-account-edge-failure.png') }).catch(() => undefined)
+      }
+    } finally {
+      // Release fixture-only gates before closing clients, including failed runs.
+      if (api) {
+        try { await api.control('faults', JSON.stringify({ offline: false, profile_401_for_current_access: false,
+          hold_refresh_response: false, hold_logout_response: false, hold_inference_before_auth: false })) } catch (error) { cleanupErrors.push(error) }
+      }
+
+      try { await launched?.app.close() } catch (error) { cleanupErrors.push(error) }
+
+      try { await api?.close() } catch (error) { cleanupErrors.push(error) }
+
+      try { sandbox.cleanup() } catch (error) { cleanupErrors.push(error) }
+    }
+
+    if (primaryError !== undefined && cleanupErrors.length > 0) { throw new AggregateError([primaryError, ...cleanupErrors], 'Native edge fixture and cleanup failed') }
+
+    if (primaryError !== undefined) { throw primaryError }
+
+    if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Native edge cleanup failed') }
+  })
+}
 
 test('desktop recharge reaches the same wallet through independent website login', async ({ browserName: _browserName }, testInfo) => {
   test.setTimeout(180_000)
