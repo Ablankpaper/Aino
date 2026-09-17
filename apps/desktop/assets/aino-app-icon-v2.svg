@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Aino application icon, woven loop</title>
+  <desc id="desc">A warm amber and coral woven loop on a deep plum rounded square.</desc>
+  <defs>
+    <linearGradient id="background" x1="112" y1="88" x2="896" y2="944" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3A234B"/>
+      <stop offset="0.52" stop-color="#20172E"/>
+      <stop offset="1" stop-color="#100D19"/>
+    </linearGradient>
+    <radialGradient id="warmGlow" cx="0" cy="0" r="1" gradientTransform="translate(312 190) rotate(45) scale(560)">
+      <stop stop-color="#FFB84A" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFB84A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="amber" x1="248" y1="292" x2="552" y2="740" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE29A"/>
+      <stop offset="0.48" stop-color="#FFC857"/>
+      <stop offset="1" stop-color="#F29B38"/>
+    </linearGradient>
+    <linearGradient id="coral" x1="776" y1="292" x2="472" y2="740" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB09B"/>
+      <stop offset="0.48" stop-color="#FF756B"/>
+      <stop offset="1" stop-color="#D94762"/>
+    </linearGradient>
+    <filter id="tileShadow" x="-20%" y="-20%" width="140%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="26" stdDeviation="28" flood-color="#090611" flood-opacity="0.52"/>
+    </filter>
+    <filter id="lineGlow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <clipPath id="tileClip">
+      <rect x="48" y="48" width="928" height="928" rx="224"/>
+    </clipPath>
+  </defs>
+
+  <rect x="48" y="48" width="928" height="928" rx="224" fill="#0B0812" filter="url(#tileShadow)"/>
+  <g clip-path="url(#tileClip)">
+    <rect x="48" y="48" width="928" height="928" fill="url(#background)"/>
+    <rect x="48" y="48" width="928" height="928" fill="url(#warmGlow)"/>
+    <path d="M40 770C224 670 354 760 512 700s300-178 486-60v336H40Z" fill="#0B0812" opacity="0.28"/>
+    <path d="M58 254C242 156 380 208 530 148s292-30 430 42v-150H58Z" fill="#FFD37A" opacity="0.055"/>
+  </g>
+
+  <rect x="64" y="64" width="896" height="896" rx="208" fill="none" stroke="#FFE8C2" stroke-opacity="0.16" stroke-width="8"/>
+
+  <!-- Soft under-glow keeps the mark legible on small dark surfaces. -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.38" filter="url(#lineGlow)">
+    <path d="M246 512C246 374 356 286 464 286C574 286 614 390 512 512C410 634 450 738 560 738C668 738 778 650 778 512" stroke="#FFC857" stroke-width="128"/>
+    <path d="M778 512C778 374 668 286 560 286C450 286 410 390 512 512C614 634 574 738 464 738C356 738 246 650 246 512" stroke="#FF6B6B" stroke-width="128"/>
+  </g>
+
+  <!-- Two independent paths overlap into one continuous woven loop. -->
+  <path d="M246 512C246 374 356 286 464 286C574 286 614 390 512 512C410 634 450 738 560 738C668 738 778 650 778 512" fill="none" stroke="url(#amber)" stroke-linecap="round" stroke-linejoin="round" stroke-width="104"/>
+  <path d="M778 512C778 374 668 286 560 286C450 286 410 390 512 512C614 634 574 738 464 738C356 738 246 650 246 512" fill="none" stroke="url(#coral)" stroke-linecap="round" stroke-linejoin="round" stroke-width="104"/>
+
+  <!-- A small negative-space aperture makes the crossing read as woven, not as a letter. -->
+  <path d="M512 454 570 512 512 570 454 512Z" fill="#20172E" stroke="#FFF1D4" stroke-opacity="0.88" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M512 480 544 512 512 544 480 512Z" fill="#FFF1D4" opacity="0.94"/>
+</svg>

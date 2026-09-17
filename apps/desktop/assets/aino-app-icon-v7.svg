@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Aino application icon, friendly companion</title>
+  <desc id="desc">An original friendly companion silhouette with a soft mint face sweep, two pill eyes, and a warm cheek on a green circular badge.</desc>
+  <defs>
+    <linearGradient id="badge" x1="188" y1="54" x2="844" y2="956" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#25D0AE"/>
+      <stop offset="0.52" stop-color="#05BC91"/>
+      <stop offset="1" stop-color="#63D764"/>
+    </linearGradient>
+    <radialGradient id="badgeLight" cx="0" cy="0" r="1" gradientTransform="translate(274 122) rotate(44) scale(620)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CBFFE2" stop-opacity="0.46"/>
+      <stop offset="1" stop-color="#CBFFE2" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="warmGlow" cx="0" cy="0" r="1" gradientTransform="translate(790 756) rotate(180) scale(300 260)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE45F" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#FFE45F" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="274" y1="302" x2="760" y2="786" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2D858D"/>
+      <stop offset="1" stop-color="#0C5265"/>
+    </linearGradient>
+    <linearGradient id="face" x1="156" y1="336" x2="778" y2="690" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7FFF8"/>
+      <stop offset="0.56" stop-color="#E5F8E8"/>
+      <stop offset="1" stop-color="#C7EED8"/>
+    </linearGradient>
+    <linearGradient id="cheek" x1="738" y1="414" x2="804" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD477"/>
+      <stop offset="1" stop-color="#F17B68"/>
+    </linearGradient>
+    <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="25" flood-color="#00685F" flood-opacity="0.28"/>
+    </filter>
+    <filter id="characterShadow" x="-20%" y="-20%" width="140%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="18" flood-color="#005B68" flood-opacity="0.28"/>
+    </filter>
+    <clipPath id="badgeClip"><circle cx="512" cy="512" r="464"/></clipPath>
+  </defs>
+
+  <circle cx="512" cy="512" r="464" fill="#079B85" filter="url(#badgeShadow)"/>
+  <g clip-path="url(#badgeClip)">
+    <rect x="48" y="48" width="928" height="928" fill="url(#badge)"/>
+    <rect x="48" y="48" width="928" height="928" fill="url(#badgeLight)"/>
+    <rect x="48" y="48" width="928" height="928" fill="url(#warmGlow)"/>
+    <path d="M-10 824C190 706 376 828 572 750s308-136 480-38v304H-10Z" fill="#008D80" opacity="0.16"/>
+  </g>
+
+  <g filter="url(#characterShadow)">
+    <!-- Aino's body is a single soft, rounded companion silhouette. -->
+    <path d="M206 659C166 570 184 464 268 401C338 348 434 330 528 350C651 376 756 456 798 562C829 642 790 726 708 771C620 818 438 809 316 771C263 754 226 715 206 659Z" fill="url(#body)"/>
+    <!-- The pale face sweep is an original profile, inspired by friendly mascot geometry rather than copied artwork. -->
+    <path d="M167 424C227 386 304 390 375 417C427 389 474 343 506 289C535 241 560 180 599 150C621 133 645 148 665 174C706 226 748 296 782 361C802 398 825 425 850 441C790 429 735 435 685 454C612 484 559 535 500 586C437 640 368 686 299 676C237 667 191 624 170 565C151 514 151 463 167 424Z" fill="url(#face)"/>
+    <!-- A small rounded tail/fin makes the creature concrete and gives it its own silhouette. -->
+    <path d="M191 452C145 438 109 451 92 480C77 506 90 533 120 549C145 562 169 557 188 541C181 510 182 480 191 452Z" fill="#DDF5E3"/>
+  </g>
+
+  <!-- Two simple pill eyes retain the friendly reference language with a new placement and shape. -->
+  <rect x="567" y="541" width="38" height="108" rx="19" transform="rotate(-28 567 541)" fill="#FFFDF5"/>
+  <rect x="696" y="474" width="38" height="108" rx="19" transform="rotate(-28 696 474)" fill="#FFFDF5"/>
+  <circle cx="746" cy="431" r="31" fill="url(#cheek)"/>
+  <path d="M733 434C741 445 751 450 762 448" fill="none" stroke="#FFF4D8" stroke-width="8" stroke-linecap="round"/>
+</svg>
