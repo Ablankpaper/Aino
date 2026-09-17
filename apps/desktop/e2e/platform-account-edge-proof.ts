@@ -25,6 +25,7 @@ interface EdgeWindow {
   edgeOfflineAllowed: boolean
   edgeAlerts: Array<{ expected: boolean; message: string }>
   edgeRuntime?: { socket: WebSocket; id: string }
+  edgeRuntimeObserverInstalled?: boolean
 }
 export interface NativeFaultState {
   profile_calls: number
@@ -44,7 +45,7 @@ export interface NativeFaultState {
   gate_cancellations: number
   refresh_responses: number
 }
-interface EdgeContext {
+export interface EdgeContext {
   launched: Launch
   api: API
   accountId: string
@@ -98,8 +99,11 @@ export async function assertEdgeAlerts(launched: Launch) {
 // Observe the real renderer transport before login mounts the gateway. Retain
 // its runtime only to issue the existing read-only, owner-checked model.options.
 export async function observeNativeRuntime(page: Page) {
-  await page.evaluate(() => {
+  const observe = () => {
     const target = window as unknown as EdgeWindow
+
+    if (target.edgeRuntimeObserverInstalled) { return }
+    target.edgeRuntimeObserverInstalled = true
     const Original = window.WebSocket
     window.WebSocket = new Proxy(Original, {
       construct(ctor, args) {
@@ -125,7 +129,10 @@ export async function observeNativeRuntime(page: Page) {
         return socket
       }
     })
-  })
+  }
+
+  await page.addInitScript(observe)
+  await page.evaluate(observe)
 }
 
 async function runtimeStatus(page: Page) {
@@ -198,7 +205,7 @@ async function runtimeStatus(page: Page) {
   )
 }
 
-async function account(page: Page) {
+export async function account(page: Page) {
   return page.evaluate(() => (window as unknown as EdgeWindow).hermesDesktop.platformAccount.status())
 }
 
@@ -250,7 +257,7 @@ async function bothAccount(pages: Page[], phase: AccountSnapshot['phase'], id: s
   }
 }
 
-async function sendToolTurn(page: Page, api: API) {
+export async function sendToolTurn(page: Page, api: API) {
   const before = await api.control<NativeState>('state')
   await page.locator('[data-tour="model-pill"]').first().click()
   await page.getByRole('button', { name: 'Aino models', exact: true }).click()
@@ -274,14 +281,14 @@ async function sendToolTurn(page: Page, api: API) {
   return after
 }
 
-async function sendPrompt(page: Page, text: string) {
+export async function sendPrompt(page: Page, text: string) {
   const composer = page.locator('[contenteditable="true"]').first()
   await composer.click()
   await composer.pressSequentially(text)
   await page.keyboard.press('Enter')
 }
 
-function consumption(state: NativeState) {
+export function consumption(state: NativeState) {
   return {
     model_calls: state.model_calls,
     usage_calls: state.usage_calls,

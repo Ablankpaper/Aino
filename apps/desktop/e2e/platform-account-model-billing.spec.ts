@@ -5,6 +5,8 @@ import * as path from 'node:path'
 import { buildAppEnv, createSandbox, waitForAppReady, writeEnvFile, writeMockProviderConfig } from './fixtures'
 import { startMockServer } from './mock-server'
 import { assertEdgeAlerts, observeEdgeAlerts, observeNativeRuntime, verifyConcurrentAccountLifecycle, verifyOfflineAndAuthorizationRecovery } from './platform-account-edge-proof'
+import { observeInferenceAlerts, verifyInferenceFailures } from './platform-inference-failure-proof'
+import { assertIsolationAlerts, observeIsolationAlerts, verifyConcurrentIsolation, verifyRetainedHistoryIsolation } from './platform-isolation-proof'
 import { auditFixtureText, fixtureEnvironment, installLoopbackNodeGuard, installLoopbackPythonGuard, isExpectedBlockedThemeFontRequest, KNOWN_BLOCKED_THEME_FONT_URL, launchGuardedDesktop, type NativeState, type NativeTransportAudit, persistedFixtureText, startRealPlatformAPI } from './platform-real-api'
 import { verifyWebsiteWallet } from './platform-website-wallet'
 import { seedPlatformWorkspace, verifyPlatformWorkspace } from './platform-workspace-proof'
@@ -188,10 +190,10 @@ async function auditRenderer(page: Page, api: Awaited<ReturnType<typeof startRea
   return audit
 }
 
-async function signInForThisSession(page: Page, api: Awaited<ReturnType<typeof startRealPlatformAPI>>, previousCodeAt = 0) {
+async function signInForThisSession(page: Page, api: Awaited<ReturnType<typeof startRealPlatformAPI>>, previousCodeAt = 0, phone = api.info.phone) {
   await expect(page.getByRole('textbox', { name: 'Phone number', exact: true })).toBeVisible({ timeout: 90_000 })
   await page.getByRole('checkbox', { name: 'Keep me signed in on this device', exact: true }).uncheck()
-  await page.getByRole('textbox', { name: 'Phone number', exact: true }).fill(api.info.phone)
+  await page.getByRole('textbox', { name: 'Phone number', exact: true }).fill(phone)
   // Honor the real SMS cooldown before the restart's fresh challenge.
   const remaining = 61_000 - (Date.now() - previousCodeAt)
 
@@ -583,6 +585,212 @@ for (const scenario of [
     if (primaryError !== undefined) { throw primaryError }
 
     if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Native edge cleanup failed') }
+  })
+}
+
+test('native inference failures: balance, rate limit and service recovery', async ({ browserName: _browserName }, testInfo) => {
+  test.setTimeout(240_000)
+  allowErrorBanners()
+  const repoRoot = path.resolve(import.meta.dirname, '../../..')
+  const sandbox = createSandbox('platform-inference-failures')
+  let api: Awaited<ReturnType<typeof startRealPlatformAPI>> | null = null
+  let launched: NativeLaunch | null = null
+  const consoleLines: string[] = []
+  const launchAudits: NativeTransportAudit[] = []
+  let primaryError: unknown
+  const cleanupErrors: unknown[] = []
+
+  try {
+    api = await startRealPlatformAPI(path.resolve(repoRoot, '../Aino-API'))
+    const prepared = prepareNativePlatformEnvironment(sandbox, api)
+    launched = await launchGuardedDesktop(prepared.env, prepared.nodeGuard)
+    launchAudits.push(observeNativeLaunch(launched, consoleLines))
+    assertNativeGuardsReady(sandbox, launched.app)
+    await observeInferenceAlerts(launched.page)
+    await signInForThisSession(launched.page, api)
+    await waitForAppReady(launched as never, 120_000)
+    assertNewGuardedBackend(sandbox, prepared.pythonGuardPids)
+    const account = await launched.page.evaluate(() => (window as unknown as NativeWindow).hermesDesktop.platformAccount.status())
+
+    const proof = await verifyInferenceFailures({ launched, api, accountId: account.account!.id,
+      signInAgain: async () => { throw new Error('Inference recovery must preserve the signed-in identity') } })
+
+    const rendererAudit = await auditRenderer(launched.page, api)
+    const transport = await assertNoBlockedTransport(sandbox, launchAudits)
+    await launched.page.screenshot({ path: testInfo.outputPath('native-inference-failures.png') })
+    await launched.app.close()
+    launched = null
+
+    const persistedAudit = await auditFixtureText(api, [
+      ...persistedFixtureText(sandbox.hermesHome), ...persistedFixtureText(sandbox.userDataDir),
+      fs.readFileSync(api.logPath, 'utf8'), ...consoleLines
+    ])
+
+    await testInfo.attach('native-inference-failures-receipt', {
+      body: JSON.stringify({ source: { aino: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), api: api.apiSha },
+        run_id: api.info.run_id, proof, rendererAudit, persistedAudit, transport }, null, 2), contentType: 'application/json'
+    })
+  } catch (error) {
+    primaryError = error
+
+    if (launched) {
+      await launched.page.screenshot({ path: testInfo.outputPath('native-inference-failures-error.png') }).catch(() => undefined)
+    }
+  } finally {
+    if (api) {
+      try { await api.control('faults', JSON.stringify({ hold_inference_before_auth: false,
+        inference_http_status: 0, inference_http_failures: 0, inference_retry_after_seconds: 0 })) } catch (error) { cleanupErrors.push(error) }
+    }
+
+    try { await launched?.app.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { await api?.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { sandbox.cleanup() } catch (error) { cleanupErrors.push(error) }
+  }
+
+  if (primaryError !== undefined && cleanupErrors.length > 0) { throw new AggregateError([primaryError, ...cleanupErrors], 'Inference fixture and cleanup failed') }
+
+  if (primaryError !== undefined) { throw primaryError }
+
+  if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Inference fixture cleanup failed') }
+})
+
+for (const sameSite of [true, false]) {
+  test(`native concurrent isolation: ${sameSite ? 'two accounts on one site' : 'same numeric account on two sites'}`, async ({ browserName: _browserName }, testInfo) => {
+    test.setTimeout(300_000)
+    const repoRoot = path.resolve(import.meta.dirname, '../../..')
+    const sandboxes = [createSandbox('platform-isolation-left'), createSandbox('platform-isolation-right')]
+    const apis: Awaited<ReturnType<typeof startRealPlatformAPI>>[] = []
+    const launches: Array<NativeLaunch | null> = [null, null]
+    const launchAudits: NativeTransportAudit[][] = [[], []]
+    const consoleLines: string[][] = [[], []]
+    const rendererAudits: unknown[] = []
+    let primaryError: unknown
+    let stage = 'fixture-start'
+    const cleanupErrors: unknown[] = []
+
+    try {
+      apis.push(await startRealPlatformAPI(path.resolve(repoRoot, '../Aino-API')))
+
+      if (!sameSite) { apis.push(await startRealPlatformAPI(path.resolve(repoRoot, '../Aino-API'))) }
+
+      const sites = [apis[0], sameSite ? apis[0] : apis[1]]
+      const prepared = sandboxes.map((sandbox, index) => prepareNativePlatformEnvironment(sandbox, sites[index]))
+      const participants = []
+      const codeTimes: number[] = []
+
+      for (const index of [0, 1]) {
+        stage = `login-${index}`
+        const launched = await launchGuardedDesktop(prepared[index].env, prepared[index].nodeGuard)
+        launches[index] = launched
+        launchAudits[index].push(observeNativeLaunch(launched, consoleLines[index]))
+        assertNativeGuardsReady(sandboxes[index], launched.app)
+        await observeIsolationAlerts(launched)
+        await observeNativeRuntime(launched.page)
+        const phone = sameSite && index === 1 ? sites[index].info.secondary_phone : sites[index].info.phone
+        codeTimes[index] = await signInForThisSession(launched.page, sites[index], 0, phone)
+        await waitForAppReady(launched as never, 120_000)
+        assertNewGuardedBackend(sandboxes[index], prepared[index].pythonGuardPids)
+        const snapshot = await launched.page.evaluate(() => (window as unknown as NativeWindow).hermesDesktop.platformAccount.status())
+        expect(snapshot.account?.id).toBeTruthy()
+        participants.push({ launched, api: sites[index], accountId: snapshot.account!.id })
+      }
+
+      stage = 'overlapping-inference'
+      const concurrent = await verifyConcurrentIsolation(participants[0], participants[1])
+      const previous = concurrent.histories[0]
+      const left = launches[0]!
+      await assertIsolationAlerts(left)
+      rendererAudits.push(await auditRenderer(left.page, sites[0]))
+      await left.page.screenshot({ path: testInfo.outputPath('native-isolation-before-switch.png') })
+      stage = 'replace-left-owner'
+
+      if (sameSite) {
+        await left.page.getByRole('button', { name: /^My account/ }).click()
+        await left.page.getByRole('button', { name: 'Sign out', exact: true }).click()
+        await expect.poll(async () => (await left.page.evaluate(() => (window as unknown as NativeWindow).hermesDesktop.platformAccount.status())).phase).toBe('signed_out')
+        await signInForThisSession(left.page, sites[1], codeTimes[1], sites[1].info.secondary_phone)
+        await waitForAppReady(left as never, 120_000)
+      } else {
+        await assertNoBlockedTransport(sandboxes[0], launchAudits[0])
+        await left.app.close()
+        launches[0] = null
+        const priorPids = pythonGuardPids(sandboxes[0])
+        fs.writeFileSync(path.join(sandboxes[0].userDataDir, 'platform-development.json'),
+          JSON.stringify({ enabled: true, origin: sites[1].info.origin }), { mode: 0o600 })
+        const restarted = await launchGuardedDesktop(prepared[0].env, prepared[0].nodeGuard)
+        launches[0] = restarted
+        launchAudits[0].push(observeNativeLaunch(restarted, consoleLines[0]))
+        assertNativeGuardsReady(sandboxes[0], restarted.app)
+        await observeIsolationAlerts(restarted)
+        await observeNativeRuntime(restarted.page)
+        await signInForThisSession(restarted.page, sites[1], codeTimes[1])
+        await waitForAppReady(restarted as never, 120_000)
+        assertNewGuardedBackend(sandboxes[0], priorPids)
+      }
+
+      stage = 'retained-history-and-new-chat'
+
+      const retained = await verifyRetainedHistoryIsolation({
+        launched: launches[0]!, api: sites[1], accountId: participants[1].accountId
+      }, previous, sites[0])
+
+      const transports = []
+
+      for (const index of [0, 1]) {
+        const launched = launches[index]!
+        await assertIsolationAlerts(launched)
+
+        for (const api of apis) { rendererAudits.push(await auditRenderer(launched.page, api)) }
+        transports.push(await assertNoBlockedTransport(sandboxes[index], launchAudits[index]))
+        await launched.page.screenshot({ path: testInfo.outputPath(`native-isolation-final-${index}.png`) })
+        await launched.app.close()
+        launches[index] = null
+      }
+
+      stage = 'persisted-secret-audit'
+
+      const persisted = sandboxes.flatMap(sandbox => [
+        ...persistedFixtureText(sandbox.hermesHome), ...persistedFixtureText(sandbox.userDataDir)
+      ])
+
+      persisted.push(...apis.map(api => fs.readFileSync(api.logPath, 'utf8')), ...consoleLines.flat())
+      const persistedAudits = []
+
+      for (const api of apis) { persistedAudits.push(await auditFixtureText(api, persisted)) }
+
+      await testInfo.attach('native-isolation-receipt', {
+        body: JSON.stringify({ source: { aino: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), api: apis[0].apiSha },
+          run_ids: apis.map(api => api.info.run_id), same_site: sameSite, concurrent, retained,
+          rendererAudits, persistedAudits, transports }, null, 2), contentType: 'application/json'
+      })
+    } catch (error) {
+      primaryError = error
+      console.log(`Native isolation failed at ${stage}`)
+
+      for (const index of [0, 1]) {
+        const launched = launches[index]
+
+        if (launched) { await launched.page.screenshot({ path: testInfo.outputPath(`native-isolation-error-${index}.png`) }).catch(() => undefined) }
+      }
+    } finally {
+      for (const api of apis) {
+        try { await api.control('faults', JSON.stringify({ hold_inference_before_auth: false, hold_credential_response: false })) } catch (error) { cleanupErrors.push(error) }
+      }
+
+      for (const launched of launches) { try { await launched?.app.close() } catch (error) { cleanupErrors.push(error) } }
+
+      for (const api of apis) { try { await api.close() } catch (error) { cleanupErrors.push(error) } }
+
+      for (const sandbox of sandboxes) { try { sandbox.cleanup() } catch (error) { cleanupErrors.push(error) } }
+    }
+
+    if (primaryError !== undefined && cleanupErrors.length > 0) { throw new AggregateError([primaryError, ...cleanupErrors], 'Isolation fixture and cleanup failed') }
+
+    if (primaryError !== undefined) { throw primaryError }
+
+    if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Isolation fixture cleanup failed') }
   })
 }
 

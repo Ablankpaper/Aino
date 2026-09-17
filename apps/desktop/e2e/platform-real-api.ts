@@ -38,6 +38,7 @@ export interface NativeManifest {
   origin: string
   nonce: string
   phone: string
+  secondary_phone: string
   run_id: string
   fixture_path: string
   fixture_content: string
