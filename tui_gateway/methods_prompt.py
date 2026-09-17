@@ -552,6 +552,9 @@ def _(rid, params: dict) -> dict:
     session, err = _sess_nowait(params, rid)
     if err:
         return err
+    from .managed_session import transport_may_use_session
+    if not transport_may_use_session(session, current_transport()):
+        return _err(rid, 4403, "session prompt forbidden")
     hosted_task = params.get("_hosted_task")
     from .managed_session import submit_refusal
     if reason := submit_refusal(sid, session):

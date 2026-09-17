@@ -1162,6 +1162,8 @@ def _(rid, params: dict) -> dict:
 # ── usage ────────────────────────────────────────────────────────────
 @_session_method("session.usage")
 def _(rid, params: dict, session: dict) -> dict:
+    if session.get("transport") is not current_transport():
+        return _err(rid, 4403, "session usage read forbidden")
     usage: dict = _session_usage_snapshot(session)
     if session.get("agent") is None and not usage:
         usage = {"calls": 0, "input": 0, "output": 0, "total": 0}

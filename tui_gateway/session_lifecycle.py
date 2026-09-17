@@ -462,6 +462,12 @@ def _reattach_refusal(rid, sid: str, session: dict) -> dict | None:
         return _err(rid, 4007, "session no longer live; retry resume")
     if session.get("_client_gone_interrupt_requested"):
         return _err(rid, 4009, "session disconnect interrupt settling")
+    from .managed_session import transport_may_use_session
+    # Detached sessions have already lost their model authority; normal history
+    # recovery remains available and requires a fresh owner-matching binding.
+    if (not _ws_session_is_detached(session)
+            and not transport_may_use_session(session, current_transport())):
+        return _err(rid, 4403, "session reattach forbidden")
     return None
 
 

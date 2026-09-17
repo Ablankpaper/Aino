@@ -15,6 +15,18 @@ def managed_metadata(value):
     return result
 
 
+def transport_may_use_session(session, transport):
+    """A live managed session can move only within its authenticated principal."""
+    if not session.get("managed_model_params") or transport is session.get("transport"):
+        return True
+    from .managed_model_runtime import transport_principal
+    try:
+        owner = transport_principal(session.get("transport"))
+        return owner is not None and transport_principal(transport) == owner
+    except ManagedBindingError:
+        return False
+
+
 def validate_selection(session, owner, model_id):
     selected = session.get("managed_model_params")
     if not selected:
