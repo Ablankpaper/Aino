@@ -127,3 +127,50 @@ it('closes a created draft instead of binding it to a newer same-user authority'
   expect(desktop.platformModels.bind).not.toHaveBeenCalled()
   expect(desktop.platformModels.clear).toHaveBeenCalledOnce()
 })
+
+it.each([false, true])('keeps a profile-only draft binding and cleanup on its creation profile (rejected=%s)', async rejected => {
+  const account = platformSnapshot()
+  const platformOwner = { user_id: 'user-a', platform_origin: 'http://127.0.0.1:1234' }
+
+  const bind = vi.fn(async () => rejected
+    ? { ok: false, error: { code: 'gateway_binding_failed' } }
+    : { ok: true, ready: true, model_id: 'catalog-a', billing_source: 'aino', expires_at: 'later' })
+
+  const clear = vi.fn()
+
+  const desktop = {
+    platformAccount: { status: async () => account, capabilities: async () => ({}), onChanged: () => () => undefined },
+    platformModels: { list: async () => [platformModel()], owner: async () => platformOwner, bind, clear }
+  }
+
+  Object.defineProperty(window, 'hermesDesktop', { configurable: true, value: desktop })
+  await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
+  await platformModelCatalog().load()
+  const params = { profile: 'fixture-workspace', model_source: 'aino', model_id: 'catalog-a' }
+
+  const request = vi.fn(async (method: string) => {
+    if (method === 'session.create') {
+      return { session_id: 'profile-session', info: { model_source: 'aino', model_id: 'catalog-a' } }
+    }
+
+    if (method === 'session.managed_model_ticket') {
+      return { managed_model_binding: 1, session_ticket: 'profile-ticket' }
+    }
+
+    if (method === 'session.close') { return {} }
+    throw new Error(`unexpected ${method}`)
+  })
+
+  const pending = createPlatformDraft(request as never, params, 'user-a', null, { account, owner: platformOwner })
+
+  if (rejected) {
+    await expect(pending).rejects.toMatchObject({ code: 'gateway_binding_failed' })
+    expect(clear).toHaveBeenCalledWith({ connection_id: '', profile: params.profile, session_id: 'profile-session' })
+  } else {
+    await expect(pending).resolves.toMatchObject({ info: { model_status: 'ready' } })
+    expect(clear).not.toHaveBeenCalled()
+  }
+
+  expect(request).toHaveBeenCalledWith('session.create', params)
+  expect(bind).toHaveBeenCalledWith(expect.objectContaining({ connection_id: '', profile: params.profile, session_id: 'profile-session' }))
+})

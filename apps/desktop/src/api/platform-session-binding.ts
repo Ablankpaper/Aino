@@ -97,6 +97,9 @@ export async function createPlatformDraft(
   }
 
   requirePlatformSelection(authority.account, catalog.state.get().models, modelId, ownerUserId)
+  // A profile-only socket has no registry route. Its create params still own
+  // the native binding target; falling back to default dials another backend.
+  const bindingOwner = owner ?? (typeof params.profile === 'string' ? params.profile : 'default')
   const created = await request<SessionCreateResponse>('session.create', params)
 
   try {
@@ -109,7 +112,7 @@ export async function createPlatformDraft(
     }
 
     const authoritativeOwner = await bindSelectedPlatformSession(
-      owner,
+      bindingOwner,
       created.session_id,
       { modelId, ownerUserId, platformOrigin: authority.owner.platform_origin, status: 'awaiting_managed_credentials' },
       request,
@@ -123,7 +126,7 @@ export async function createPlatformDraft(
     }
   } catch (error) {
     await request('session.close', { session_id: created.session_id }).catch(() => undefined)
-    await clearPlatformSession(owner, created.session_id)
+    await clearPlatformSession(bindingOwner, created.session_id)
     throw error
   }
 }
