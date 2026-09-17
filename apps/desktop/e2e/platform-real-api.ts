@@ -258,6 +258,49 @@ export function persistedFixtureText(directory: string): string[] {
   return values
 }
 
+export async function auditFixtureText(
+  api: { control<T>(endpoint: string, body?: string): Promise<T> },
+  values: string[]
+) {
+  let entries: string[] = []
+  let bytes = 2
+  let auditedBytes = 0
+  let batches = 0
+  let checkedCredentials = 0
+
+  async function flush() {
+    if (entries.length === 0) { return }
+    const result = await api.control<{ leaked: boolean; checked_credentials: number }>('audit', `[${entries.join(',')}]`)
+
+    if (result.leaked !== false || !Number.isInteger(result.checked_credentials) || result.checked_credentials < 1) {
+      throw new Error('Fixture secret audit failed')
+    }
+
+    checkedCredentials = Math.max(checkedCredentials, result.checked_credentials)
+    auditedBytes += bytes
+    batches += 1
+    entries = []
+    bytes = 2
+  }
+
+  for (const value of values) {
+    const encoded = JSON.stringify(value)
+    const size = Buffer.byteLength(encoded)
+
+    // Preserve complete file contents: splitting could hide a credential at a
+    // chunk boundary. The server independently enforces its 32 MiB body cap.
+    if (size + 2 > 32 * 1024 * 1024) { throw new Error(`Fixture audit file exceeds request limit (${size} bytes)`) }
+
+    if (bytes + size + 1 > 8 * 1024 * 1024) { await flush() }
+    entries.push(encoded)
+    bytes += size + (entries.length > 1 ? 1 : 0)
+  }
+
+  await flush()
+
+  return { leaked: false, checked_credentials: checkedCredentials, batches, audited_bytes: auditedBytes }
+}
+
 export async function startRealPlatformAPI(apiRoot: string) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aino-native-api-'))
   fs.chmodSync(dir, 0o700)
