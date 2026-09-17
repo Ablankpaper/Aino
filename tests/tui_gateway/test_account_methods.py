@@ -42,7 +42,8 @@ def test_request_verify_once_and_persist_multiple_identifiers(tmp_path, monkeypa
     aid = verified["account"]["id"]
     assert verified["created"] is True
     raw = (home / "account.json").read_text(encoding="utf-8")
-    assert "1234" not in raw
+    assert "pending_code" not in json.loads(raw)
+    assert json.dumps("1234") not in raw
     assert _call(server, "account.verify_code", {"identifier": "user@example.com", "code": "1234"})["error"]["data"]["reason"] == "missing_code"
     _call(server, "account.request_code", {"identifier": "13800138000"})
     bid = _call(server, "account.verify_code", {"identifier": "13800138000", "code": "1234"})["result"]["account"]["id"]
