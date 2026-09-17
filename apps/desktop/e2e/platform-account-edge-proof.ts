@@ -404,6 +404,10 @@ export async function verifyOfflineAndAuthorizationRecovery({ launched, api, acc
   await api.control('faults', JSON.stringify({ offline: false }))
   await page.getByRole('button', { name: 'Retry', exact: true }).click()
   await bothAccount(pages, 'signed_in', accountId)
+  // Wallet reads have their own explicit retry; account broadcasts must not
+  // start a feedback loop of failed billing reads while the service is offline.
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click()
+  await expect(page.getByText(`${Number(initial.balance)} USD`, { exact: true })).toBeVisible()
 
   for (const candidate of pages) {
     await expect(candidate.getByText('The account service is offline. Check your connection and retry.', { exact: true })).toHaveCount(0)
@@ -454,6 +458,7 @@ export async function verifyOfflineAndAuthorizationRecovery({ launched, api, acc
   return {
     offline_identity_preserved: true,
     explicit_retry_recovers: true,
+    explicit_wallet_refresh_recovers: true,
     original_inference_revoked: true,
     no_automatic_paid_replay: true,
     retired,
