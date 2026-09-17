@@ -28,7 +28,8 @@ export function PlatformHistoryNotice({ ownerUserId }: { ownerUserId: string }) 
   const { t } = useI18n()
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs text-muted-foreground" role="status">
+    // The composer grab ring is an absolute sibling; recovery must sit above it.
+    <div className="relative z-4 flex flex-wrap items-center gap-2 px-3 py-2 text-xs text-muted-foreground" role="status">
       <span>{t.platformModels.historyReadOnly(ownerUserId)}</span>
       <Button onClick={requestFreshSession} size="sm" variant="textStrong">
         {t.platformModels.newChatCurrentAccount}
