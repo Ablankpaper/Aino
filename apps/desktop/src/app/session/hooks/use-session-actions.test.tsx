@@ -225,6 +225,14 @@ function Harness({
   return null
 }
 
+function routeManagedDraftRequests(request: (method: string, params?: Record<string, unknown>) => Promise<unknown>) {
+  vi.mocked(requestGatewayForAgent).mockImplementation((connectionId, profile, method, params) => {
+    expect({ connectionId, profile }).toEqual({ connectionId: null, profile: 'default' })
+
+    return request(method, params) as never
+  })
+}
+
 function FirstSendHarness({
   onReady,
   requestGateway
@@ -1134,6 +1142,7 @@ describe('createBackendSessionForSend profile routing', () => {
     setCurrentReasoningEffort('high')
     setNewChatWorkspaceTarget(undefined)
 
+    routeManagedDraftRequests(requestGateway)
     let submitText: null | ((text: string) => Promise<boolean>) = null
     render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
     await waitFor(() => expect(submitText).not.toBeNull())
@@ -1241,6 +1250,7 @@ describe('createBackendSessionForSend profile routing', () => {
     expect([$currentPlatformOwner.get(), $currentPlatformOrigin.get()]).toEqual(['user-a', 'http://127.0.0.1:7001'])
 
     snapshot = platformSnapshot('user-a', 4)
+    routeManagedDraftRequests(requestGateway)
     let handle: HarnessHandle | null = null
     render(<Harness onReady={value => (handle = value)} requestGateway={requestGateway} />)
     await waitFor(() => expect(handle).not.toBeNull())
@@ -1325,6 +1335,7 @@ describe('createBackendSessionForSend profile routing', () => {
 
   it('rejects a deferred first send after its captured commercial authority changes', async () => {
     const deferredCreate = await prepareDeferredManagedCreate()
+    routeManagedDraftRequests(deferredCreate.requestGateway)
     let submitText: null | ((text: string) => Promise<boolean>) = null
     render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={deferredCreate.requestGateway} />)
     await waitFor(() => expect(submitText).not.toBeNull())
@@ -1347,6 +1358,7 @@ describe('createBackendSessionForSend profile routing', () => {
 
   it('rejects a deferred managed tile after its captured commercial authority changes', async () => {
     const deferredCreate = await prepareDeferredManagedCreate()
+    routeManagedDraftRequests(deferredCreate.requestGateway)
     let handle: HarnessHandle | null = null
     render(<Harness onReady={value => (handle = value)} requestGateway={deferredCreate.requestGateway} />)
     await waitFor(() => expect(handle).not.toBeNull())
@@ -1428,6 +1440,7 @@ describe('createBackendSessionForSend profile routing', () => {
       return {} as never
     })
 
+    routeManagedDraftRequests(requestGateway)
     let submitText: null | ((text: string) => Promise<boolean>) = null
     render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
     await waitFor(() => expect(submitText).not.toBeNull())
@@ -1540,6 +1553,7 @@ describe('createBackendSessionForSend profile routing', () => {
       })
     )
 
+    routeManagedDraftRequests(requestGateway)
     let submitText: null | ((text: string) => Promise<boolean>) = null
     render(<FirstSendHarness onReady={value => (submitText = value)} requestGateway={requestGateway} />)
     await waitFor(() => expect(submitText).not.toBeNull())

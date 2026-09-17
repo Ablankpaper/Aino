@@ -654,8 +654,11 @@ export function useSessionActions({
         // foreground hold below takes over from that point until the created
         // chat is selected. Between the two, nothing may close the socket
         // that just minted the runtime.
-        const releaseCreateLease = capturedRoute
-          ? await retainGatewayForAgent(capturedRoute.connectionId, capturedRoute.profile)
+        const managedProfileOnly = !capturedRoute && params.model_source === 'aino'
+        const createProfile = capturedRoute?.profile || String(params.profile || 'default')
+
+        const releaseCreateLease = capturedRoute || managedProfileOnly
+          ? await retainGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile)
           : () => undefined
 
         let created: SessionCreateResponse
@@ -663,9 +666,9 @@ export function useSessionActions({
 
         try {
           created = await createPlatformDraft(
-            capturedRoute
+            capturedRoute || managedProfileOnly
               ? (method, payload) =>
-                  requestGatewayForAgent(capturedRoute.connectionId, capturedRoute.profile, method, payload)
+                  requestGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile, method, payload)
               : requestGateway,
             params,
             platformOwner,
@@ -855,8 +858,11 @@ export function useSessionActions({
         // Same lease chain as createBackendSessionForSend: owner socket held
         // across the create, then the foreground hold carries it until the
         // tile is mounted ($sessionTiles names the owner from then on).
-        const releaseCreateLease = capturedRoute
-          ? await retainGatewayForAgent(capturedRoute.connectionId, capturedRoute.profile)
+        const managedProfileOnly = !capturedRoute && prepared.params.model_source === 'aino'
+        const createProfile = capturedRoute?.profile || String(prepared.params.profile || 'default')
+
+        const releaseCreateLease = capturedRoute || managedProfileOnly
+          ? await retainGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile)
           : () => undefined
 
         let created: SessionCreateResponse
@@ -864,9 +870,9 @@ export function useSessionActions({
 
         try {
           created = await createPlatformDraft(
-            capturedRoute
+            capturedRoute || managedProfileOnly
               ? (method, payload) =>
-                  requestGatewayForAgent(capturedRoute.connectionId, capturedRoute.profile, method, payload)
+                  requestGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile, method, payload)
               : requestGateway,
             params,
             prepared.platformOwner,

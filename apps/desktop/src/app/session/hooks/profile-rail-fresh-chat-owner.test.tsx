@@ -4,6 +4,7 @@ import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { useEffect, useMemo, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 
+import { platformAccountActions } from '@/api/platform'
 import { createSessionRpcDispatcher } from '@/app/contrib/session-rpc-dispatcher'
 import type { HermesApiRequest } from '@/global'
 import { getSession } from '@/hermes'
@@ -15,11 +16,14 @@ import {
   configureGatewayRegistry,
   setPrimaryGateway
 } from '@/store/gateway'
+import { clearGatewayManagedCapabilities, recordGatewayReadyCapability } from '@/store/gateway-managed-capability'
+import { platformModelCatalog } from '@/store/platform-models'
 import {
   $activeGatewayProfile,
   $newChatConnectionId,
   $newChatProfile,
   $newChatRoute,
+  $profiles,
   ensureGatewayAgent,
   newSessionInProfile,
   selectProfile
@@ -37,11 +41,16 @@ import {
   setAwaitingResponse,
   setBusy,
   setConnection,
+  setCurrentModel,
+  setCurrentModelSource,
+  setCurrentPlatformOwner,
+  setCurrentProvider,
   setMessages,
   setSelectedStoredSessionId,
   setSessions
 } from '@/store/session'
 import { foregroundSessionScopes } from '@/store/session-states'
+import { platformModel, platformSnapshot } from '@/test/platform-model'
 import type { SessionInfo } from '@/types/hermes'
 
 import type { ClientSessionState } from '../../types'
@@ -131,13 +140,17 @@ function answer(socket: MockGateway, method: string, params: Record<string, unkn
 
     runtimeOwner = socket
 
-    return { info: {}, session_id: mintedRuntimeId, stored_session_id: mintedStoredId }
+    return { info: params.model_source === 'aino' ? { model_source: 'aino', model_id: params.model_id, provider: 'aino' } : {}, session_id: mintedRuntimeId, stored_session_id: mintedStoredId }
   }
 
   if (sessionScoped(params) && socket !== runtimeOwner) {
     throw new Error(
       `Session not found on concrete owner: ${String(params.session_id)} (socket ${socket.connectUrl}, ${method})`
     )
+  }
+
+  if (method === 'session.managed_model_ticket') {
+    return { managed_model_binding: 1, session_ticket: 'profile-ticket' }
   }
 
   if (method === 'prompt.submit') {
@@ -424,6 +437,12 @@ describe('profile rail: a fresh Omar chat keeps its exact registry owner across 
     $newChatRoute.set(null)
     $newChatConnectionId.set(null)
     $activeGatewayProfile.set('default')
+    $profiles.set([])
+    clearGatewayManagedCapabilities()
+    setCurrentModel('')
+    setCurrentProvider('')
+    setCurrentPlatformOwner('')
+    setCurrentModelSource('')
     vi.clearAllMocks()
     delete (window as unknown as { hermesDesktop?: unknown }).hermesDesktop
   })
@@ -705,7 +724,7 @@ describe('profile rail: a fresh Omar chat keeps its exact registry owner across 
     expectUninterruptedOwner({ ambientRequest: ambientRequest as GatewayRequestMock, omarSocket, primary })
   })
 
-  it('a pick on the explicit `local` source is a legacy profile pick: create and both turns ride the ONE v1 omar socket', async () => {
+  it.each([false, true])('a local profile draft and both turns keep the same socket (managed=%s)', async managed => {
     const primary = makePrimary()
     setPrimaryGateway(primary as never, 'default')
 
@@ -740,6 +759,28 @@ describe('profile rail: a fresh Omar chat keeps its exact registry owner across 
     expect(activeGateway()).toBe(v1Socket as never)
     expect(sockets.some(socket => socket.connectUrl?.includes(`:${OMAR_PORT}`))).toBe(false)
 
+    if (managed) {
+      const account = platformSnapshot()
+      const owner = { user_id: 'user-a', platform_origin: 'http://127.0.0.1:1234' }
+      const bridge = { status: async () => account, capabilities: async () => ({}), onChanged: () => () => undefined }
+      Object.assign(desktop, {
+        platformAccount: bridge,
+        platformModels: {
+          list: async () => [platformModel()], owner: async () => owner,
+          bind: vi.fn(async () => ({ ok: true, ready: true, model_id: 'catalog-a', billing_source: 'aino', expires_at: 'later' })),
+          clear: vi.fn()
+        }
+      })
+      $profiles.set([{ name: 'default' }, { name: 'omar' }] as never)
+      await platformAccountActions(bridge as never).refresh()
+      await platformModelCatalog().load()
+      recordGatewayReadyCapability({ profile: 'omar' }, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+      setCurrentModel('catalog-a')
+      setCurrentProvider('aino')
+      setCurrentPlatformOwner(owner.user_id, owner.platform_origin)
+      setCurrentModelSource('manual')
+    }
+
     // The legacy door's create legitimately rides the ambient dispatcher: the
     // active socket IS the owner (no route, no registry entry to name).
     const ambientRequest = vi.fn(async (method: string, params?: Record<string, unknown>) =>
@@ -757,10 +798,16 @@ describe('profile rail: a fresh Omar chat keeps its exact registry owner across 
     await settleTurn(handle!)
 
     await expect(handle!.submitText('second prompt')).resolves.toBe(true)
-    expect(desktop.api).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ profile: 'omar', path: '/api/model/info' })
-    )
-    expect(vi.mocked(desktop.api).mock.calls[0]?.[0]).not.toHaveProperty('connectionId')
+
+    if (managed) {
+      expect(desktop.platformModels!.bind).toHaveBeenCalledWith(expect.objectContaining({ connection_id: '', profile: 'omar' }))
+      expect(calls(v1Socket!).filter(method => method === 'session.managed_model_ticket').length).toBeGreaterThan(0)
+    } else {
+      expect(desktop.api).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ profile: 'omar', path: '/api/model/info' })
+      )
+      expect(vi.mocked(desktop.api).mock.calls[0]?.[0]).not.toHaveProperty('connectionId')
+    }
 
     // The legacy owner is the bare profile: no registry route, no hint — the
     // row's profile names the same v1 pool entry that minted the runtime, and
