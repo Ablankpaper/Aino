@@ -11,6 +11,7 @@ HELPER = Path(__file__).resolve().parents[3] / "scripts/desktop-update/runtime-l
 
 
 @pytest.mark.windows_only
+@pytest.mark.live_system_guard_bypass  # Invoke-HermesStep is a stub; it never launches an updater.
 @pytest.mark.parametrize("repair_code", [None, 0, 7])
 def test_runtime_repair_precedes_update_and_propagates_failure(tmp_path, repair_code):
     root = str(tmp_path).replace("'", "''")
