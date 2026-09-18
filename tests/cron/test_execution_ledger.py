@@ -397,46 +397,27 @@ def test_external_provider_start_recovers_interrupted_records(monkeypatch):
     assert events == ["recover", "reconcile"]
 
 
-class _TrackingConnection:
-    """Delegates to a real sqlite3.Connection while recording close() calls.
-
-    sqlite3.Connection is a static C type: it has no per-instance __dict__
-    and its class methods can't be monkeypatched, so open/close tracking is
-    done via a delegating wrapper returned in place of the real connection.
-    """
-
-    def __init__(self, real, closed_ids):
-        object.__setattr__(self, "_real", real)
-        object.__setattr__(self, "_closed_ids", closed_ids)
-
-    def close(self):
-        self._closed_ids.append(id(self._real))
-        self._real.close()
-
-    def __enter__(self):
-        self._real.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        return self._real.__exit__(exc_type, exc, tb)
-
-    def __getattr__(self, name):
-        return getattr(self._real, name)
-
-    def __setattr__(self, name, value):
-        setattr(self._real, name, value)
-
-
 def _count_open_connections(executions, monkeypatch):
     """Wrap sqlite3.connect to track open/close balance for the ledger module."""
+    from hermes_cli.sqlite_safe_read import TrackedConnection
+
     opened_ids = []
     closed_ids = []
     real_connect = sqlite3.connect
 
+    class CountingConnection(TrackedConnection):
+        def close(self):
+            closed_ids.append(id(self))
+            return super().close()
+
     def tracking_connect(*args, **kwargs):
+        # connect_tracked supplies its own tracking factory. Replace that
+        # injected class with a real TrackedConnection subclass so the
+        # production registry and close lifecycle remain exercised.
+        kwargs["factory"] = CountingConnection
         conn = real_connect(*args, **kwargs)
         opened_ids.append(id(conn))
-        return _TrackingConnection(conn, closed_ids)
+        return conn
 
     monkeypatch.setattr(executions.sqlite3, "connect", tracking_connect)
     return opened_ids, closed_ids
@@ -497,16 +478,23 @@ def test_schema_init_failure_still_closes_connection(monkeypatch, tmp_path):
     closed_ids = []
     real_connect = sqlite3.connect
 
-    class _FailingSchemaConnection(_TrackingConnection):
+    from hermes_cli.sqlite_safe_read import TrackedConnection
+
+    class _FailingSchemaConnection(TrackedConnection):
+        def close(self):
+            closed_ids.append(id(self))
+            return super().close()
+
         def execute(self, sql, *args, **kwargs):
             if "CREATE TABLE" in sql:
                 raise sqlite3.OperationalError("simulated schema init failure")
-            return self._real.execute(sql, *args, **kwargs)
+            return super().execute(sql, *args, **kwargs)
 
     def tracking_connect(*args, **kwargs):
+        kwargs["factory"] = _FailingSchemaConnection
         conn = real_connect(*args, **kwargs)
         opened_ids.append(id(conn))
-        return _FailingSchemaConnection(conn, closed_ids)
+        return conn
 
     monkeypatch.setattr(executions.sqlite3, "connect", tracking_connect)
 
