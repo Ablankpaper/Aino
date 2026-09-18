@@ -9,10 +9,10 @@
 
 ## 完整性与配置
 
-- 转移完成时，Aino 的 49 条 Git 引用逐项一致：32 个分支、2 个标签、14 个 PR 引用和 HEAD；Aino-API 的两个分支与 HEAD 共 3 条引用逐项一致。后续迁移地址提交会正常推进活动分支，不重写历史。
+- 转移完成时，Aino 的 49 条 Git 引用逐项一致：32 个分支、1 个注释标签及其解引用共 2 条、14 个 PR 引用和 HEAD；Aino-API 的两个分支与 HEAD 共 3 条引用逐项一致。后续迁移地址提交会正常推进活动分支，不重写历史。
 - Aino 原有 8 个 PR（其中 6 个开放）、Aino-API 无 PR；两个仓库当时均无 Releases。历史证据仍归属原运行版本，不改写提交、作者或历史验收回执。
 - 本地 `origin` 和 `gh` 默认仓库均改为新账号；默认推送为 `origin`。NousResearch/hermes-agent 和 Wei-Shaw/sub2api 保留为只拉取的上游。
-- 命令行已登录 OneWhitepaper，并核实其对两个仓库均有管理员权限。
+- 命令行已登录 OneWhitepaper，并核实其对两个仓库均有管理员权限。新账号成功推送后，已移除 GitHub 自动保留的 Ablankpaper 协作者写权限；这不会删除旧账号或其无关项目。
 - 迁移后发现两仓库原本启用的 secret scanning 和 push protection 被关闭，已恢复为 enabled。其余安全功能按原配置保留。
 - GitHub 的旧仓库 URL 保留重定向，便于历史链接和旧克隆继续定位同一个仓库；后续配置以新地址为准。
 
@@ -22,6 +22,6 @@ Aino 桌面的统一品牌仓库地址、package repository、bootstrap 安装�
 
 相关验证：桌面产品身份与 bootstrap 21 项、官方 Python runner 的 banner 9 项、Rust 安装脚本 12 项通过。初次 JS 依赖路径准备失败及 Rust lockfile 准备失败有本地日志留存，最终检查使用既有依赖和 CI 对应的 lib test 流程；不将这些定向测试视为正式安装包验收。
 
-Aino-API 的受控源码在 main 和业务分支均未引用旧账号，不需要批量改写代码。它已有的 Sub2API 安装、更新和容器发布通道属于独立的发行配置：当前无 Aino-API Release，不能把地址机械替换为尚不存在的发行制品。本次未发布软件、部署服务或迁移无关账号级容器包。
+Aino-API 的受控源码在 main 和业务分支均未引用旧账号，不需要批量改写代码。它已有的 Sub2API 安装、更新和容器发布通道属于独立的发行配置：当前无 Aino-API Release，不能把地址机械替换为尚不存在的发行制品。本次未发布软件、部署服务或迁移无关账号级容器包。迁移前可见的 container 包仅有两个无关的 aera 包；新令牌缺少 read:packages，未宣称穷尽验证账号级包资源。
 
 迁移前后清单及日志留存在本机 `/private/tmp/aino-owner-migration-g8m_139r/`，原生所有权转移由仓库 ID、分支/标签 SHA 和新账号权限共同核验。历史 Actions/PR 链接可继续使用 GitHub 重定向；它们不是新的旧账号依赖。
