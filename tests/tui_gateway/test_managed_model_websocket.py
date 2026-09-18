@@ -10,12 +10,19 @@ from datetime import datetime, timedelta, timezone
 from starlette.applications import Starlette
 from starlette.routing import WebSocketRoute
 
+from hermes_state_registry import acquire
+from tui_gateway import server as gateway_server
 from tui_gateway.managed_model_runtime import get_registry
 from tui_gateway.ws import handle_ws
 
 
-def test_actual_websocket_delegation_and_disconnect(tmp_path, monkeypatch, caplog):
+def test_actual_websocket_delegation_and_disconnect(tmp_path, monkeypatch, caplog, request):
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    # Pin the real shared DB to the directory inspected for leaked credentials,
+    # and release its reference before interpreter teardown can run __del__.
+    database = acquire(tmp_path / "state.db")
+    request.addfinalizer(database.close)
+    monkeypatch.setattr(gateway_server, "_db", database)
     main_finished = threading.Event()
 
     async def endpoint(ws):
