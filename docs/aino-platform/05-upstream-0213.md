@@ -144,6 +144,7 @@ Failed runs retain product logs as well as the test transcript and recording.
 
 | Check | Revision And Result |
 | --- | --- |
+| Three-platform install/update matrix | `0f6f684577`, [run 35317189840](https://github.com/Ablankpaper/Aino/actions/runs/35317189840): all 25 executable routes passed; 18 first-attempt successes and 7 recovered historical failures |
 | Linux install/update matrix | `c8500cc125`, [run 35311606869](https://github.com/Ablankpaper/Aino/actions/runs/35311606869): 6 first-attempt successes, 2 recovered historical failures |
 | Windows install/update matrix | `2f05e1500f`, [run 35313398692](https://github.com/Ablankpaper/Aino/actions/runs/35313398692): 6 first-attempt successes, 3 recovered historical failures |
 | Native Windows runtime handoff | `babfdb2103`, [run 35314271282](https://github.com/Ablankpaper/Aino/actions/runs/35314271282): all steps passed, including 4 new runtime handoff cases |
@@ -151,6 +152,26 @@ Failed runs retain product logs as well as the test transcript and recording.
 | Updater stale-module regression suites | 76 passed |
 | Cron tracked-connection regressions | 26 passed through `scripts/run_tests.sh`; scoped Ruff passed |
 | Update notification and startup regressions | 35 passed; Electron TypeScript and scoped ESLint passed |
+| Host-isolated regression fixtures | 118 passed across the seven changed files; independent review found no concrete regression |
+| Native process cleanup and adjacent file operations | 131 passed, 2 Windows-only skips on macOS; Ruff and Windows footgun scan passed |
+
+The complete three-platform matrix includes eight Linux, nine Windows and eight
+macOS routes. Each OS has six first-attempt successes; Linux and macOS each have
+two recovered historical failures, and Windows has three. Both previously failing
+macOS desktop-update routes now pass. Unavailable bootstrap and unsupported route
+combinations remain skipped, not counted among those 25 successes.
+
+A later complete local Python run covered 4,179 files: 49,359 passed, 11 failed,
+571 skipped. Seven failure files depended on host proxy/DNS state, filesystem case
+rules, available archive tools, GNU-only process inspection or a fake SDK's real
+installation metadata. Their fixtures now isolate those inputs while preserving
+the behavior assertions. The eighth failure exposed a real macOS process-exit
+race: signaling an exited but unreaped process group can report `EPERM`. Cleanup
+now reaps the child and suppresses that error only after the whole group is
+confirmed absent. Native search also caches its new session's process-group ID
+before a short-lived child can exit. Real macOS regressions cover both unreaped
+and already-reaped children; permission denial while a group still exists remains
+an error. The final full-suite receipt is recorded in PR #8.
 
 The macOS diagnostic [run 35314445388](https://github.com/Ablankpaper/Aino/actions/runs/35314445388)
 passed six routes and failed two app-update routes after their update transactions

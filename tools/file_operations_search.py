@@ -341,6 +341,8 @@ class SearchMixin:
                 args, cwd=cwd, env=_make_run_env(self.env.env), stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT if merge_stderr else subprocess.DEVNULL,
                 start_new_session=True)
+            # setsid makes PID == PGID; keep it if rg exits before cleanup's getpgid.
+            proc._hermes_pgid = proc.pid
         except OSError as exc:
             return ExecuteResult(stdout=f"rg: {exc}", exit_code=2)
 
