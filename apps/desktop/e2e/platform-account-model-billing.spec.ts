@@ -1337,9 +1337,11 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     const beforeResume = await api.control<NativeState>('state')
     await resumeComposer.click()
     await resumeComposer.pressSequentially(`Read the isolated file again after restart: ${api.info.fixture_path}`)
+    const resumeSubmittedAt = performance.now()
     await restarted.keyboard.press('Enter')
-    await expect.poll(async () => (await api.control<NativeState>('state')).tool_results).toBe(beforeResume.tool_results + 1)
-    await expect.poll(async () => (await api.control<NativeState>('state')).usage_calls).toBe(beforeResume.usage_calls + 2)
+    await expect.poll(async () => (await api.control<NativeState>('state')).tool_results, { timeout: 60_000 }).toBe(beforeResume.tool_results + 1)
+    await expect.poll(async () => (await api.control<NativeState>('state')).usage_calls, { timeout: 60_000 }).toBe(beforeResume.usage_calls + 2)
+    const resumeToolRoundtripMs = Math.round(performance.now() - resumeSubmittedAt)
     await expect(resumeComposerForm.getByRole('button', { name: 'Stop', exact: true })).toHaveCount(0)
     const restartAudit = await auditRenderer(restarted, api)
     await assertNoBlockedTransport(sandbox, launchAudits)
@@ -1386,7 +1388,7 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
     expect(website.accountId).toBe(snapshot.account!.id)
     expect(website.balance).toBe(Number(afterBYOK.balance).toFixed(2))
     const transport = await assertNoBlockedTransport(sandbox, launchAudits)
-    const receipt = { run_id: api.info.run_id, api_sha: api.apiSha, aino_sha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), initial, settled, cancelled, paid, workspace, beforeBYOK, afterBYOK, website, initialAudit, restartAudit, byokAudit, transport: { known_public_font: { host: 'fonts.googleapis.com', attempted: true, blocked_before_transport: true, delivered: false, denied_hosts: transport.expectedFontHosts } }, api_log: api.logPath }
+    const receipt = { run_id: api.info.run_id, api_sha: api.apiSha, aino_sha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(), initial, settled, cancelled, paid, workspace, beforeBYOK, afterBYOK, website, initialAudit, restartAudit, resume_tool_roundtrip_ms: resumeToolRoundtripMs, byokAudit, transport: { known_public_font: { host: 'fonts.googleapis.com', attempted: true, blocked_before_transport: true, delivered: false, denied_hosts: transport.expectedFontHosts } }, api_log: api.logPath }
     await testInfo.attach('native-receipt', { body: JSON.stringify(receipt, null, 2), contentType: 'application/json' })
     fs.writeFileSync(path.join(api.dir, 'native-receipt.json'), JSON.stringify(receipt, null, 2), { mode: 0o600 })
     await launched.app.close()

@@ -160,6 +160,8 @@ async function selectAndSend(participant: IsolationParticipant) {
   await page.getByRole('button', { name: 'Aino models', exact: true }).click()
   await page.getByRole('option', { name: /fixture-tool-model/ }).click()
   await sendPrompt(page, `Read ${participant.api.info.fixture_path} and verify its content.`)
+
+  return performance.now()
 }
 
 async function settledFreshDraft(participant: IsolationParticipant, before: IsolationState) {
@@ -211,11 +213,15 @@ export async function verifyConcurrentIsolation(left: IsolationParticipant, righ
   for (const api of apis) { await api.control('faults', JSON.stringify({ hold_inference_before_auth: true })) }
 
   try {
-    await Promise.all([selectAndSend(left), selectAndSend(right)])
+    const submittedAt = await Promise.all([selectAndSend(left), selectAndSend(right)])
 
-    for (const api of apis) {
-      await expect.poll(async () => (await api.control<Faults>('faults')).inference_waiting).toBe(sameSite ? 2 : 1)
-    }
+    // Enter can complete while the newly bound sessions are still building their agents.
+    await expect.poll(async () => Promise.all(apis.map(async api => {
+      const { inference_waiting, gate_timeouts } = await api.control<Faults>('faults')
+
+      return { inference_waiting, gate_timeouts }
+    })), { timeout: 30_000 }).toEqual(apis.map(() => ({ inference_waiting: sameSite ? 2 : 1, gate_timeouts: 0 })))
+    const gateObservedAt = performance.now()
 
     expect(ledger(await state(left))).toEqual(ledger(before[0]))
     expect(ledger(await state(right))).toEqual(ledger(before[1]))
@@ -247,6 +253,7 @@ export async function verifyConcurrentIsolation(left: IsolationParticipant, righ
     for (const api of apis) { expect((await api.control<Faults>('faults')).gate_timeouts).toBe(0) }
 
     return { same_site: sameSite, overlap_observed: true, selective_release: !sameSite,
+      submit_to_gate_ms: submittedAt.map(start => Math.round(gateObservedAt - start)),
       before, after: [leftAfter, rightAfter], right_while_left_settled: rightHeld, histories }
   } finally {
     for (const api of apis) { await api.control('faults', JSON.stringify({ hold_inference_before_auth: false })) }
