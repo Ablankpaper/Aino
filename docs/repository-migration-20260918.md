@@ -16,6 +16,12 @@
 - 迁移后发现两仓库原本启用的 secret scanning 和 push protection 被关闭，已恢复为 enabled。其余安全功能按原配置保留。
 - GitHub 的旧仓库 URL 保留重定向，便于历史链接和旧克隆继续定位同一个仓库；后续配置以新地址为准。
 
+## 迁移后 CI 收尾
+
+- Aino 修复后的 `main` 提交 `9e1e57e149`：CI 运行 [35385547819](https://github.com/OneWhitepaper/Aino/actions/runs/35385547819) 最终成功，22 个任务通过、6 个规则性跳过；Nix 检查 [35385546903](https://github.com/OneWhitepaper/Aino/actions/runs/35385546903) 成功，Docker 检查也成功。此前唯一失败是迁移测试新增的 `package.json` 静态导入未列入 Electron composite TypeScript 项目；补入 include 后三套类型检查通过，旧失败运行已停止并保留日志。
+- Aino-API 业务提交 `d15c202c6` 的 CI [35347336479](https://github.com/OneWhitepaper/Aino-API/actions/runs/35347336479) 和安全扫描 [35347336493](https://github.com/OneWhitepaper/Aino-API/actions/runs/35347336493) 重跑均成功。机器人 PR 的 `action_required` 属于独立 PR 检查，不阻塞迁移主分支，未自动审批或合并。
+- 迁移相关本地与云端检查已完成；未发布安装包、未部署服务、未执行真实付费或外部供应商操作。账号级 Packages 因新令牌缺少 `read:packages` 仍未做穷尽枚举，迁移前可见范围没有 Aino/Aino-API 相关包。
+
 ## 源码地址变更
 
 Aino 桌面的统一品牌仓库地址、package repository、bootstrap 安装器默认 raw 地址和当前文档链接已更新。既有应用 ID、协议、用户数据位置及历史版权/作者记录保留，避免把账号迁移变成已安装应用的身份变更。
