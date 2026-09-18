@@ -691,6 +691,18 @@ def _kill_process_group_posix(proc) -> None:
                 proc.wait(timeout=0.2)
     except ProcessLookupError:
         pass
+    except PermissionError as exc:
+        # Darwin reports EPERM for a group containing only an unreaped zombie.
+        # Reap our child, then require the whole group to be gone before ignoring it.
+        proc.poll()
+        try:
+            os.killpg(pgid, 0)  # windows-footgun: ok — POSIX only (see _IS_WINDOWS gate in caller)
+        except ProcessLookupError:
+            pass
+        except PermissionError:
+            raise exc
+        else:
+            raise
     _sweep_escaped_descendants(descendants, pgid)
 
 

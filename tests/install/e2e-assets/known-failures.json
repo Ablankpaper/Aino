@@ -1,5 +1,31 @@
 [
   {
+    "id": "windows-august-runtime-handoff",
+    "title": "August Windows app update requires a second handoff to replace its Python runtime",
+    "platforms": ["windows"],
+    "commits": ["5fc308a70719a83cccdbba4c0e39c23f5a8239d5"],
+    "cases": [["installer-script", "hermes-desktop-app-update"], ["installer-script+desktop", "hermes-desktop-app-update"], ["installer-script+desktop", "open-app-update"]],
+    "requireTarget": true,
+    "errors": ["^E2E ASSERTION FAILED: updater result ok=true$", "^E2E ASSERTION FAILED: app driven via captured hermes desktop spec; update completed$"],
+    "log": "handoff",
+    "signatures": ["gateway auto-restart failed: cannot import name 'base_url_origin' from 'utils'", "SQLite runtime repair deferred: the updater itself runs from the live venv it must replace", "SQLite 3\\.45\\.1 still has the WAL-reset corruption bug", "retry exit code: 1(?:\\r?\\n|$)"],
+    "explanation": "The released PowerShell handoff keeps running its loaded script after the checkout changes and retries from the venv it must replace. This leg preserves that failed attempt, invokes the newly installed handoff separately, and requires a safe SQLite runtime, successful completion receipt, target checkout and usable desktop. It is a recovered historical failure, not a successful first app update; failed recovery keeps the job red.",
+    "evidence": "https://github.com/Ablankpaper/Aino/actions/runs/35308900820/job/105486691491"
+  },
+  {
+    "id": "august-cli-stale-utils",
+    "title": "August CLI update needs a fresh process after the checkout changes",
+    "platforms": ["linux", "macos"],
+    "commits": ["5fc308a70719a83cccdbba4c0e39c23f5a8239d5"],
+    "cases": [["installer-script", "hermes-update"], ["installer-script+desktop", "hermes-update"]],
+    "requireTarget": true,
+    "errors": ["^hermes update exited [1-9][0-9]*$"],
+    "log": "update",
+    "signatures": ["Update complete! \\(v0\\.20\\.6", "gateway auto-restart failed: cannot import name 'base_url_origin' from 'utils'"],
+    "explanation": "The released CLI keeps its old utils module in memory after pulling the new checkout. The first attempt failed; this leg separately retries from a fresh process and requires the full post-update checks to pass. A failed recovery still fails the job.",
+    "evidence": "https://github.com/Ablankpaper/Aino/actions/runs/35308900820/job/105486691268"
+  },
+  {
     "id": "windows-launcher-self-lock",
     "title": "Released Windows updater locks its own console launcher",
     "commits": ["a370ab8391ca5f8de7ebbc449f05cb0df36ade7c", "86960cdbb0148145890e2ee90b4e157fa899f6e1"],

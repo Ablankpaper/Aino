@@ -13,17 +13,20 @@
  * Usage (from the scratch dir where the driver installed @playwright/test):
  *   node launch-from-spec.mjs --spec /path/launch-spec.json \
  *     [--result $HERMES_HOME/.hermes-update-result.json] \
- *     [--expect-sha <sha> --repo-dir <install dir>] [--no-update]
+ *     [--expect-sha <sha> --repo-dir <install dir>] [--no-update] \
+ *     [--launch-capture-dir /path/to/e2e-assets/launch-capture] \
+ *     [--diagnostics-dir /path/to/ci-artifacts/launch-diagnostics]
  *
  * --no-update: prove the main renderer, Settings navigation, and backend
  * status RPC, then close. The smoke arm.
- * Otherwise: click Update now, then poll for completion. Two signals,
- * either satisfies (poll whichever are given, first hit wins):
- *   --result      the windows hand-off's result file
- *                 (HERMES_HOME/.hermes-update-result.json)
- *   --expect-sha  the installed checkout reaching the expected commit -
- *                 the source-install signal, where the About pane's update
- *                 runs `hermes update` and no result file exists.
+ * Otherwise: click Update now, then poll until the update marker clears.
+ *   --result      require a fresh successful hand-off result, captured from
+ *                 this file or this run's appended desktop log if consumed
+ *   --expect-sha  also require the installed checkout to reach this commit
+ *                 (requires --repo-dir). Without --result, the captured
+ *                 spec must provide HERMES_HOME for marker observation.
+ * When both are given, both conditions must pass. Result observation starts
+ * before the click and retains evidence across file writes and consumption.
  * The Playwright close event is unreliable across the update handoff, so
  * neither signal is an app event.
  */
@@ -35,6 +38,8 @@ import { parseArgs } from 'node:util';
 import { _electron } from '@playwright/test';
 import { prepareWindowForInput } from './window-input.cjs';
 import launchAcceptance from './launch-acceptance.cjs';
+import { captureUpdatedDesktopLaunch, refreshPackagedLaunchSpec } from './desktop-artifact.cjs';
+import { createUpdateCompletionObserver } from './update-completion.cjs';
 
 const { acceptDesktopLaunch, withOwnedApplication } = launchAcceptance;
 
@@ -111,6 +116,8 @@ async function main() {
       result: { type: 'string' },
       'expect-sha': { type: 'string' },
       'repo-dir': { type: 'string' },
+      'launch-capture-dir': { type: 'string' },
+      'diagnostics-dir': { type: 'string' },
       'no-update': { type: 'boolean', default: false },
       'timeout-ms': { type: 'string', default: '600000' },
     },
@@ -120,15 +127,28 @@ async function main() {
   const spec = JSON.parse(fs.readFileSync(values.spec, 'utf8'));
   const launch = resolveLaunch(spec);
   const expectSha = values['expect-sha'];
+  const repoDir = values['repo-dir'];
   log(`launching ${launch.executablePath} (shape: ${spec.matchedShape})`);
 
+  const launchElectron = async (options, label) => {
+    if (process.platform !== 'darwin' || process.env.GITHUB_ACTIONS !== 'true') {
+      return _electron.launch(options);
+    }
+    const { diagnoseSlowMacosLaunch } = await import('./macos-launch-diagnostics.cjs');
+    return diagnoseSlowMacosLaunch(() => _electron.launch(options), {
+      executablePath: options.executablePath,
+      outputPrefix: path.join(values['diagnostics-dir'] || path.dirname(values.spec), label),
+      log,
+    });
+  };
+
   phase('launch');
-  const app = await _electron.launch({
+  const app = await launchElectron({
     executablePath: launch.executablePath,
     args: launch.args,
     cwd: launch.cwd,
     env: launch.env,
-  });
+  }, 'initial-launch');
   const primaryResult = await withOwnedApplication(app, 'initial app teardown', async () => {
     const accepted = await acceptDesktopLaunch(app, { prepareWindowForInput, log });
     const window = accepted.window;
@@ -178,14 +198,9 @@ async function main() {
       log(`[update-status] ${JSON.stringify(status)}`);
       throw e;
     }
-    await updateNow.click();
-    phase('update-poll');
-    log('clicked Update now; polling for result file');
-
     // The app may relaunch/exit during the update; completion signals are
     // product state, not Playwright events.
     const resultPath = values.result;
-    const repoDir = values['repo-dir'];
     /** @returns {string} */
     const headSha = () => {
       try {
@@ -196,20 +211,27 @@ async function main() {
         return '';
       }
     };
-    for (;;) {
-      if (resultPath && fs.existsSync(resultPath)) {
-        log(`update result present: ${fs.readFileSync(resultPath, 'utf8').slice(0, 200)}`);
-        break;
+    const completion = createUpdateCompletionObserver({
+      resultPath, expectedSha: expectSha, hermesHome: spec.env.HERMES_HOME,
+    });
+    try {
+      await updateNow.click();
+      phase('update-poll');
+      log('clicked Update now; observing this update outcome and marker');
+      for (;;) {
+        const status = completion.check(expectSha ? headSha() : undefined);
+        if (status.complete) {
+          log(`update complete: ${status.evidence || `checkout reached ${expectSha}`}; marker cleared`);
+          break;
+        }
+        if (Date.now() > deadline) {
+          await window.screenshot({ path: `${values.spec}.timeout.png` }).catch(() => {});
+          throw new Error(`update completion signal never appeared: ${status.pendingReason}`);
+        }
+        await new Promise((r) => setTimeout(r, 2_000));
       }
-      if (expectSha && repoDir && headSha() === expectSha) {
-        log(`checkout reached expected sha ${expectSha}`);
-        break;
-      }
-      if (Date.now() > deadline) {
-        await window.screenshot({ path: `${values.spec}.timeout.png` }).catch(() => {});
-        throw new Error('update completion signal never appeared (result file / expected sha)');
-      }
-      await new Promise((r) => setTimeout(r, 2_000));
+    } finally {
+      completion.close();
     }
 
     // ── Post-update: observe the hand-off state, then relaunch and verify ──
@@ -232,18 +254,33 @@ async function main() {
 
   if (primaryResult.noUpdate) process.exit(0);
 
-  // Relaunch from the same captured spec - the leg's own launch mechanism -
-  // and require the main renderer plus backend to come up on the updated
-  // checkout. The renderer's DOM also carries the running build's short sha
-  // when launched from a git checkout (statusbar/About), so log that signal.
+  // Resolve the updated product identity. Linux must also run the CLI's
+  // sandbox preparation again: packaging resets the helper's permissions.
+  // Require the main renderer, Settings navigation, and backend to come up
+  // on the updated checkout; log the optional short SHA from the UI too.
   phase('relaunch');
   log('relaunching the updated app (the "reopen Hermes" step)');
-  const relaunch = await _electron.launch({
-    executablePath: launch.executablePath,
-    args: launch.args,
-    cwd: launch.cwd,
-    env: launch.env,
-  });
+  let updatedSpec = repoDir ? refreshPackagedLaunchSpec(spec, repoDir) : spec;
+  if (process.platform === 'linux' && repoDir) {
+    const captureDir = values['launch-capture-dir'];
+    if (!captureDir) throw new Error('--launch-capture-dir is required to prepare the updated Linux desktop');
+    log('capturing the updated hermes desktop launch after product startup preparation');
+    updatedSpec = captureUpdatedDesktopLaunch({
+      hermesPath: path.join(repoDir, 'venv', 'bin', 'hermes'),
+      installDir: repoDir,
+      captureDir,
+      specPath: `${values.spec}.updated.json`,
+      env: spec.env,
+    });
+  }
+  const updatedLaunch = resolveLaunch(updatedSpec);
+  log(`updated executable: ${updatedLaunch.executablePath}`);
+  const relaunch = await launchElectron({
+    executablePath: updatedLaunch.executablePath,
+    args: updatedLaunch.args,
+    cwd: updatedLaunch.cwd,
+    env: updatedLaunch.env,
+  }, 'updated-launch');
   await withOwnedApplication(relaunch, 'relaunch teardown', async () => {
     const relaunched = await acceptDesktopLaunch(relaunch, { prepareWindowForInput, log });
     const window2 = relaunched.window;

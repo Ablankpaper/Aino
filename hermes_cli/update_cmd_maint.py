@@ -25,9 +25,9 @@ logger = logging.getLogger("hermes_cli.update_cmd")
 
 _UPDATE_RUNTIME_RELOAD_MODULES = "hermes_constants", "tools.environments.local", "tools.lazy_deps"
 
-#: Package prefixes whose cached modules go stale when the checkout changes under this
+#: Module roots whose cached modules go stale when the checkout changes under this
 #: process; purged (not reloaded) so any LATER import chain resolves against fresh source.
-_STALE_PURGE_PREFIXES = "hermes_cli", "gateway", "tools", "tui_gateway", "agent"
+_STALE_PURGE_PREFIXES = "hermes_cli", "gateway", "tools", "tui_gateway", "agent", "utils"
 
 #: Modules EXECUTING the update survive the purge: evicting them buys nothing (running frames
 #: keep them alive) and reloading them mid-flight is the one genuinely unsafe move.

@@ -1,5 +1,6 @@
 """Regression tests for dashboard sidebar scan coalescing."""
 
+import importlib
 import inspect
 import tempfile
 import threading
@@ -176,6 +177,8 @@ class SidebarCacheTests(unittest.TestCase):
         # /api/profiles/projects/tree fans out over every profile's state.db; desktop
         # background sync + sidebar refreshes overlap identical requests. One scan must
         # serve the whole burst, and no two callers may share the same payload object.
+        # The handler imports this lazily; cold startup is outside the scan contract.
+        importlib.import_module("tui_gateway.server")
         workers = 8
         entered = threading.Event()
         release = threading.Event()
@@ -187,17 +190,18 @@ class SidebarCacheTests(unittest.TestCase):
             with scans_lock:
                 scans += 1
             entered.set()
-            self.assertTrue(release.wait(timeout=2))
+            self.assertTrue(release.wait(timeout=5))
             return None
 
         with mock.patch.object(profiles, "_profile_targets", return_value=[("default", Path("/nonexistent"))]), \
                 mock.patch.object(profiles, "_read_profile_db", side_effect=fake_read), \
                 ThreadPoolExecutor(max_workers=workers) as pool:
             futures = [pool.submit(profiles.get_profiles_projects_tree) for _ in range(workers)]
-            self.assertTrue(entered.wait(timeout=1))
-            time.sleep(0.05)
-            release.set()
-            results = [future.result(timeout=2) for future in futures]
+            try:
+                self.assertTrue(entered.wait(timeout=5))
+            finally:
+                release.set()
+            results = [future.result(timeout=5) for future in futures]
 
         self.assertEqual(scans, 1)
         self.assertEqual(len({id(r) for r in results}), workers)

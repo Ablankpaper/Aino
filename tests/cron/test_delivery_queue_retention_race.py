@@ -7,6 +7,7 @@ import sys
 
 def test_enqueue_during_retention_never_recreates_delivered_request(tmp_path, monkeypatch):
     from cron import delivery_queue as queue
+    from hermes_cli.sqlite_safe_read import TrackedConnection
 
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     db = tmp_path / "deliveries.db"
@@ -17,7 +18,7 @@ def test_enqueue_during_retention_never_recreates_delivered_request(tmp_path, mo
     connect = sqlite3.connect
     prunes = []
 
-    class InterleavedConnection(sqlite3.Connection):
+    class InterleavedConnection(TrackedConnection):
         def execute(self, sql, parameters=()):
             cursor = super().execute(sql, parameters)
             if sql.startswith("SELECT terminal_status, finished_at FROM delivery_tombstones"):
@@ -43,11 +44,12 @@ except sqlite3.OperationalError as exc:
                 prunes.append(result.returncode)
             return cursor
 
+    def interleaved_connect(*args, **kwargs):
+        kwargs["factory"] = InterleavedConnection
+        return connect(*args, **kwargs)
+
     with monkeypatch.context() as patch:
-        patch.setattr(
-            queue.sqlite3, "connect",
-            lambda *args, **kwargs: connect(*args, **kwargs, factory=InterleavedConnection),
-        )
+        patch.setattr(queue.sqlite3, "connect", interleaved_connect)
         replay = queue.enqueue("execution", {"id": "job"}, "duplicate")
 
     assert prunes, "the concurrent retention path must actually be attempted"

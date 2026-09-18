@@ -267,21 +267,40 @@ def test_malformed_quoted_executable_payloads_fail_closed(command):
     assert description == "command parser limit or malformed executable payload"
 
 
+@pytest.mark.parametrize("separator", [";", "\n"])
+@pytest.mark.parametrize("label_before_verb", [False, True])
+def test_launchctl_label_order_preserves_legacy_approval_key(separator, label_before_verb):
+    from tools.approval_detection import _approval_key_aliases
+
+    command = (
+        f'label=ai.hermes.gateway{separator}launchctl bootout "$label"'
+        if label_before_verb
+        else f"printf ready{separator}launchctl bootout ai.hermes.gateway"
+    )
+    dangerous, key, _ = detect_dangerous_command(command)
+
+    assert dangerous is True
+    legacy_key = r"launchctl\s+(?:stop|kickstart|bootout|unload|kill|disable|remove)"
+    assert key in _approval_key_aliases(legacy_key)
+    assert legacy_key in _approval_key_aliases(key)
+
+
 def _time_benign_segments(count):
     command = ";".join(f"printf segment-{index}" for index in range(count))
-    started = time.perf_counter()
+    started = time.process_time()
     result = detect_dangerous_command(command)
-    return time.perf_counter() - started, result
+    return time.process_time() - started, result
 
 
 def test_benign_segment_scaling_benchmark():
-    """Retain real metrics without making correctness depend on wall-clock ratios."""
-    small, small_result = _time_benign_segments(2_000)
-    large, large_result = _time_benign_segments(4_000)
-
-    assert small_result == (False, None, None)
-    assert large_result == (False, None, None)
-    print(f"benign segment benchmark: 2k={small:.3f}s, 4k={large:.3f}s")
+    """Catch repeated whole-input scans without charging scheduler stalls."""
+    for count in (2_000, 4_000):
+        elapsed, result = _time_benign_segments(count)
+        assert result == (False, None, None)
+        # The unanchored launchctl lookaheads spent tens of CPU seconds rescanning
+        # every suffix. Leave ample headroom for slower hosts after the linear fix.
+        assert elapsed < 10.0, f"{count} benign segments took {elapsed:.3f}s CPU"
+        print(f"benign segment benchmark: {count}={elapsed:.3f}s CPU")
 
 
 def test_max_accepted_separator_free_input_is_fast():

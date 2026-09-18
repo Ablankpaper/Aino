@@ -277,13 +277,23 @@ function Get-InstalledHead {
 }
 
 function Get-DesktopExe {
-    foreach ($c in @(
-        (Join-Path $InstallDir "apps\desktop\release\win-unpacked\Hermes.exe"),
-        (Join-Path $InstallDir "apps\desktop\release\win-arm64-unpacked\Hermes.exe")
-    )) {
-        if (Test-Path -LiteralPath $c) { return $c }
-    }
+    $node = Get-ManagedNode
+    $resolver = Join-Path $AssetsDir "desktop-artifact.cjs"
+    $resolved = & $node -e 'const r = require(process.argv[1]).resolveDesktopArtifact(process.argv[2]); if (r) console.log(r.executablePath)' $resolver $InstallDir
+    Assert-True ($LASTEXITCODE -eq 0) "desktop artifact resolver completed"
+    if ($resolved) { return $resolved.Trim() }
     return $null
+}
+
+function Get-DesktopAppProcesses([string]$ExecutablePath = "") {
+    $releaseRoot = (Join-Path $InstallDir "apps\desktop\release") + "\"
+    Get-Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.Path -and $(if ($ExecutablePath) {
+            $_.Path -eq $ExecutablePath
+        } else {
+            $_.Path.StartsWith($releaseRoot, [StringComparison]::OrdinalIgnoreCase)
+        })
+    }
 }
 
 # Install-side state snapshot, taken BEFORE Test-HermesRuns can throw: on
@@ -389,15 +399,16 @@ function Invoke-HermesUpdate {
     Assert-True ($updateExit -eq 0) "hermes update exited $updateExit (expected 0)"
 }
 
-function Invoke-HermesDesktopAppUpdate([string]$TargetSha) {
+function Invoke-HermesDesktopAppUpdate([string]$TargetSha, [switch]$SmokeOnly) {
     # The hermes-desktop launch surface: `hermes desktop` runs its whole
     # real pipeline; the driver intercepts the product's final spawn
     # (argv/cwd/env captured by e2e-assets/launch-capture/sitecustomize.py)
     # and re-executes it under Playwright, which clicks Update now.
     $hermesExe = Join-Path $InstallDir "venv\Scripts\hermes.exe"
-    $spec = Join-Path $WorkRoot "launch-spec.json"
+    $launchLabel = if ($SmokeOnly) { "recovery-launch" } else { "launch" }
+    $spec = Join-Path $WorkRoot "$launchLabel-spec.json"
     New-Item -ItemType Directory -Path (Join-Path $WorkRoot "logs") -Force | Out-Null
-    $log = Join-Path $WorkRoot "logs\desktop-launch-capture.log"
+    $log = Join-Path $WorkRoot "logs\desktop-$launchLabel-capture.log"
 
     $capDir = Join-Path $AssetsDir "launch-capture"
     $prevPy = $env:PYTHONPATH
@@ -437,19 +448,24 @@ function Invoke-HermesDesktopAppUpdate([string]$TargetSha) {
     Copy-Item (Join-Path $AssetsDir "launch-from-spec.mjs") (Join-Path $driverDir "launch-from-spec.mjs") -Force
     Copy-Item (Join-Path $AssetsDir "launch-acceptance.cjs") (Join-Path $driverDir "launch-acceptance.cjs") -Force
     Copy-Item (Join-Path $AssetsDir "window-input.cjs") (Join-Path $driverDir "window-input.cjs") -Force
+    Copy-Item (Join-Path $AssetsDir "desktop-artifact.cjs") (Join-Path $driverDir "desktop-artifact.cjs") -Force
+    Copy-Item (Join-Path $AssetsDir "update-completion.cjs") (Join-Path $driverDir "update-completion.cjs") -Force
     $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
     Push-Location $driverDir
     try {
-        & $node "launch-from-spec.mjs" --spec $spec `
-            --result (Join-Path $HermesHome ".hermes-update-result.json") `
-            --expect-sha $TargetSha --repo-dir $InstallDir 2>&1 |
+        $driveArgs = @("launch-from-spec.mjs", "--spec", $spec,
+            "--result", (Join-Path $HermesHome ".hermes-update-result.json"),
+            "--expect-sha", $TargetSha, "--repo-dir", $InstallDir)
+        if ($SmokeOnly) { $driveArgs += "--no-update" }
+        & $node @driveArgs 2>&1 |
             ForEach-Object { Write-Host "  pw| $_" }
         $driveExit = $LASTEXITCODE
     } finally {
         Pop-Location
         $ErrorActionPreference = $prevEap
     }
-    Assert-True ($driveExit -eq 0) "app driven via captured hermes desktop spec; update completed"
+    $driveAssertion = if ($SmokeOnly) { "recovered desktop rendered its window" } else { "app driven via captured hermes desktop spec; update completed" }
+    Assert-True ($driveExit -eq 0) $driveAssertion
 }
 
 function Save-DesktopScreenshot([string]$OutFile) {
@@ -505,14 +521,13 @@ function Stop-DesktopRecorder($proc, [string]$OutDir) {
 }
 
 function Stop-HermesAppProcesses([string]$Label) {
-    # Close the desktop app the blunt way between phases (a user quitting).
-    # Only Hermes.exe (Electron) -- never hermes.exe (the venv CLI shim).
-    $procs = @(Get-Process -Name "Hermes" -ErrorAction SilentlyContinue)
+    # Scope cleanup to this install's packaged apps, including the old brand.
+    $procs = @(Get-DesktopAppProcesses)
     foreach ($p in $procs) {
         try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
     }
     if ($procs.Count -gt 0) {
-        Write-Host "  [$Label] stopped $($procs.Count) Hermes.exe process(es)"
+        Write-Host "  [$Label] stopped $($procs.Count) packaged desktop process(es)"
         Start-Sleep -Seconds 3
     }
 }
@@ -667,7 +682,7 @@ function Invoke-PhaseInstallGui {
 
         # The Launch hand-off under test: the app the installer spawned must
         # actually be running.
-        Assert-True ($null -ne (Get-Process -Name "Hermes" -ErrorAction SilentlyContinue)) "Hermes.exe process is running (installer Launch hand-off worked)"
+        Assert-True ($null -ne (Get-DesktopAppProcesses (Get-DesktopExe))) "installed desktop process is running (installer Launch hand-off worked)"
 
         # Installer should have exited after Launch.
         if (-not $installer.HasExited) {
@@ -699,7 +714,7 @@ function Invoke-PhaseInstallGui {
         Assert-True ($installedSha -ne $state.current) "installed checkout differs from HEAD (an update is genuinely available)"
     }
     Test-HermesRuns "post-$Mode-gui"
-    Assert-True ($null -ne (Get-DesktopExe)) "packaged Desktop Hermes.exe exists"
+    Assert-True ($null -ne (Get-DesktopExe)) "packaged desktop matches the installed product"
 
     # Seed a provider so the update leg meets the ready app shell, not the
     # onboarding overlay (an updating user has a configured provider).
@@ -726,7 +741,7 @@ function Invoke-GuiUpdateDesktopRoute([string]$TargetSha) {
     Write-Host "  serve.git main advanced to $TargetSha"
 
     $desktopExe = Get-DesktopExe
-    Assert-True ($null -ne $desktopExe) "packaged Hermes.exe present before update"
+    Assert-True ($null -ne $desktopExe) "packaged desktop present before update"
 
     $resultPath = Join-Path $HermesHome ".hermes-update-result.json"
     $markerPath = Join-Path $HermesHome ".hermes-update-in-progress"
@@ -835,15 +850,16 @@ function Invoke-GuiUpdateDesktopRoute([string]$TargetSha) {
 
         Assert-True ((Get-InstalledHead) -eq $TargetSha) "checkout landed on target commit"
         Test-HermesRuns "post-update"
-        Assert-True ($null -ne (Get-DesktopExe)) "Hermes.exe still present after update"
+        $updatedExe = Get-DesktopExe
+        Assert-True ($null -ne $updatedExe) "packaged desktop matches the updated product"
 
         # The production hand-off relaunches the desktop (RelaunchExe).
         # A relaunched window is the user-visible proof the update loop closed.
-        Write-Host "  waiting for the relaunched Hermes.exe ..."
+        Write-Host "  waiting for the relaunched desktop: $updatedExe ..."
         $rDeadline = (Get-Date).AddMinutes(5)
         $relaunched = $null
         while ((Get-Date) -lt $rDeadline) {
-            $relaunched = Get-Process -Name "Hermes" -ErrorAction SilentlyContinue
+            $relaunched = Get-DesktopAppProcesses $updatedExe
             if ($relaunched) { break }
             Start-Sleep -Seconds 5
         }
@@ -853,7 +869,7 @@ function Invoke-GuiUpdateDesktopRoute([string]$TargetSha) {
         # captures IT, not whatever else is on top (the full-desktop grab is
         # otherwise at the mercy of z-order -- an earlier run caught VS Code).
         try {
-            $mainProc = Get-Process -Name "Hermes" -ErrorAction SilentlyContinue |
+            $mainProc = Get-DesktopAppProcesses $updatedExe |
                 Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
             if ($mainProc) {
                 Add-Type -Namespace HdE2E -Name Win -MemberDefinition @'
@@ -971,10 +987,54 @@ function Invoke-PhaseUpdate {
     Test-HermesRuns "post-update"
 }
 
+function Invoke-RecoveredRuntimeHandoff {
+    $state = Read-State
+    $markerPath = Join-Path $HermesHome ".hermes-update-in-progress"
+    Assert-True (-not (Test-Path -LiteralPath $markerPath)) "failed historical updater released its marker"
+    Stop-HermesAppProcesses "runtime-recovery"
+    $logDir = Join-Path $WorkRoot "logs"
+    $resultPath = Join-Path $HermesHome ".hermes-update-result.json"
+    if (Test-Path -LiteralPath $resultPath) {
+        Copy-Item -LiteralPath $resultPath -Destination (Join-Path $logDir "update-result.first-attempt.json") -Force
+        Remove-Item -LiteralPath $resultPath -Force
+    }
+    Copy-Item -LiteralPath (Join-Path $HermesHome "logs\desktop-update-handoff.log") -Destination (Join-Path $logDir "handoff.first-attempt.log") -Force
+
+    Write-Step "RECOVERY: invoke the newly installed desktop handoff after the released updater exited"
+    $handoff = Join-Path $InstallDir "scripts\desktop-update\windows.ps1"
+    $recoveryLog = Join-Path $logDir "update-recovery.log"
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $handoff -InstallRoot $InstallDir -Branch main -NoUi 2>&1 |
+            Add-TsPrefix | Out-File -Encoding UTF8 $recoveryLog
+        $recoveryExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
+    Write-LogGroup "separate runtime recovery transcript" $recoveryLog
+    Assert-True ($recoveryExit -eq 0) "new handoff recovery exited $recoveryExit (expected 0)"
+    $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
+    Assert-True ($result.ok -eq $true) "recovery wrote a successful completion receipt"
+    Assert-True (-not (Test-Path -LiteralPath $markerPath)) "recovery released its update marker"
+    Assert-True ((Get-InstalledHead) -eq $state.current) "recovered checkout landed on HEAD"
+    $python = Join-Path $InstallDir "venv\Scripts\python.exe"
+    Push-Location $InstallDir
+    try {
+        & $python -c "import sqlite3; from hermes_cli.sqlite_runtime import is_sqlite_wal_reset_vulnerable; assert not is_sqlite_wal_reset_vulnerable(sqlite3.sqlite_version_info), sqlite3.sqlite_version"
+        Assert-True ($LASTEXITCODE -eq 0) "recovered runtime has safe SQLite"
+    } finally {
+        Pop-Location
+    }
+    Test-HermesRuns "post-recovery"
+    Assert-DesktopArtifact "recovered HEAD"
+    Invoke-HermesDesktopAppUpdate $state.current -SmokeOnly
+}
+
 function Invoke-CheckedPhaseUpdate {
     Remove-Item -LiteralPath (Join-Path $WorkRoot "known-failure.json") -Force -ErrorAction SilentlyContinue
     # Only evidence produced by this update attempt can match an exception.
-    foreach ($oldLog in @((Join-Path $WorkRoot "logs\update.log"), (Join-Path $HermesHome "logs\desktop.log"))) {
+    foreach ($oldLog in @((Join-Path $WorkRoot "logs\update.log"), (Join-Path $HermesHome "logs\desktop.log"), (Join-Path $HermesHome "logs\desktop-update-handoff.log"))) {
         if (Test-Path -LiteralPath $oldLog) { Move-Item -LiteralPath $oldLog -Destination "$oldLog.before-update" -Force }
     }
     try {
@@ -982,12 +1042,16 @@ function Invoke-CheckedPhaseUpdate {
     } catch {
         $failure = $_
         $node = Get-ManagedNode
-        $classification = & $node (Join-Path $AssetsDir "known-failures.cjs") $WorkRoot $InstallMethod $Route $failure.Exception.Message
+        $checkout = Get-InstalledHead
+        $classification = & $node (Join-Path $AssetsDir "known-failures.cjs") $WorkRoot $InstallMethod $Route $failure.Exception.Message $checkout
         $classificationExit = $LASTEXITCODE
         if ($classificationExit -ne 0) { throw $failure }
         $receipt = ($classification | Out-String) | ConvertFrom-Json
         Write-Host "KNOWN FAILURE [$($receipt.id)]: $($receipt.title)"
         Write-Host "  $($receipt.explanation)"
+        if ($receipt.id -eq "windows-august-runtime-handoff") {
+            Invoke-RecoveredRuntimeHandoff
+        }
         if ($env:GITHUB_OUTPUT) {
             Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "known_failure=$($receipt.id)" -Encoding UTF8
         }

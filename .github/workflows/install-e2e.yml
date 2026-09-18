@@ -26,6 +26,9 @@ name: Install & Update E2E
 # next to each driver, never here and never in the generator: declaring a
 # method is a spec edit, implementing one is flipping the run workflow's
 # gate.
+# Published desktop bootstraps are repository-specific. Forks enable those
+# legs with INSTALL_E2E_SETUP_EXE_URL / INSTALL_E2E_DMG_URL repository variables;
+# only NousResearch/hermes-agent uses the upstream website defaults.
 #
 # The starting versions are chosen at runtime from the repo's release tags
 # (scripts/sandbox/pick-release-tags.sh): newest, oldest, and a spread
@@ -191,6 +194,7 @@ jobs:
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.windows) }}
     uses: ./.github/workflows/install-e2e-windows-run.yml
     with:
+      setup-exe-url: ${{ vars.INSTALL_E2E_SETUP_EXE_URL }}
       install-method: ${{ matrix.install_method }}
       update-method: ${{ matrix.update_method }}
       install-ref: ${{ matrix.install_ref }}
@@ -208,6 +212,7 @@ jobs:
     # and the published-dmg GUI driver; the run workflow routes.
     uses: ./.github/workflows/install-e2e-macos-run.yml
     with:
+      dmg-url: ${{ vars.INSTALL_E2E_DMG_URL }}
       install-method: ${{ matrix.install_method }}
       update-method: ${{ matrix.update_method }}
       install-ref: ${{ matrix.install_ref }}
@@ -259,10 +264,19 @@ jobs:
           sparse-checkout-cone-mode: false
       - env:
           GH_TOKEN: ${{ github.token }}
+          WINDOWS_BOOTSTRAP_AVAILABLE: ${{ github.repository == 'NousResearch/hermes-agent' || vars.INSTALL_E2E_SETUP_EXE_URL != '' }}
+          MACOS_BOOTSTRAP_AVAILABLE: ${{ github.repository == 'NousResearch/hermes-agent' || vars.INSTALL_E2E_DMG_URL != '' }}
         run: |
           set -euo pipefail
           {
             echo "OS jobs: linux ${{ needs.linux.result }}, windows ${{ needs.windows.result }}, macos ${{ needs.macos.result }}"
+            echo
+            if [ "$WINDOWS_BOOTSTRAP_AVAILABLE" != true ]; then
+              echo '- Published Windows installer unavailable: all legs installing or updating via desktop-installer@latest are excluded. Set repository variable INSTALL_E2E_SETUP_EXE_URL to a bootstrap published for this repository to enable them.'
+            fi
+            if [ "$MACOS_BOOTSTRAP_AVAILABLE" != true ]; then
+              echo '- Published macOS installer unavailable: all legs installing via desktop-installer@latest are excluded. Set repository variable INSTALL_E2E_DMG_URL to a bootstrap published for this repository to enable them.'
+            fi
             echo
             # The tag annotations let the chart say WHY a cell skipped
             # (pre-desktop vs declared TODO) instead of a flat "skip".

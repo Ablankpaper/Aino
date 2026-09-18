@@ -13,6 +13,16 @@ _ADAPTER_FILES = sorted(
 )
 
 
+@pytest.fixture(autouse=True)
+def isolated_proxy_sources(monkeypatch):
+    for key in (
+        "HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy",
+        "ALL_PROXY", "all_proxy", "NO_PROXY", "no_proxy",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(gw_base, "_detect_macos_system_proxy", lambda: None)
+
+
 def _write_config(tmp_path, monkeypatch, body: str) -> None:
     # load_config caches on (path, mtime) — a fresh tmp HERMES_HOME per test is a fresh cache key.
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
@@ -57,17 +67,19 @@ class TestResolveProxyUrlMultiplexScope:
             reset_secret_scope(token)
             set_multiplex_active(False)
 
-    def test_scoped_profile_without_own_value_does_not_borrow_default(self, monkeypatch):
+    @pytest.mark.parametrize("system_proxy", [None, "http://system-proxy:8080"])
+    def test_scoped_profile_without_own_value_does_not_borrow_default(self, monkeypatch, system_proxy):
         from agent.secret_scope import reset_secret_scope, set_multiplex_active, set_secret_scope
 
         monkeypatch.setenv("DISCORD_PROXY", "http://default-profile-proxy:8080")
+        monkeypatch.setattr(gw_base, "_detect_macos_system_proxy", lambda: system_proxy)
         monkeypatch.delenv("NO_PROXY", raising=False)
         monkeypatch.delenv("no_proxy", raising=False)
 
         set_multiplex_active(True)
         token = set_secret_scope({})
         try:
-            assert gw_base.resolve_proxy_url("DISCORD_PROXY") is None
+            assert gw_base.resolve_proxy_url("DISCORD_PROXY") == system_proxy
         finally:
             reset_secret_scope(token)
             set_multiplex_active(False)

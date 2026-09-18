@@ -43,10 +43,10 @@ on:
         required: true
         type: string
       dmg-url:
-        description: 'Bootstrap dmg to install OLD with. Default: the latest published one — what a user downloads today.'
+        description: 'Published bootstrap dmg URL. Only NousResearch/hermes-agent defaults to its published installer; forks must supply their own URL for desktop-installer legs.'
         required: false
         type: string
-        default: https://hermes-assets.nousresearch.com/Hermes-Setup.dmg
+        default: ''
       timeout-minutes:
         description: 'Job timeout. App-update legs do a full Electron build.'
         required: false
@@ -83,8 +83,11 @@ jobs:
     if: >-
       inputs.install-method == 'desktop-installer@latest' && inputs.tag-has-desktop
       && contains(fromJSON('["open-app-update", "hermes-desktop-app-update", "hermes-update", "installer-script", "installer-script+desktop"]'), inputs.update-method)
+      && (inputs.dmg-url != '' || github.repository == 'NousResearch/hermes-agent')
     runs-on: macos-latest
     timeout-minutes: ${{ inputs.timeout-minutes }}
+    env:
+      DMG_URL: ${{ inputs.dmg-url || (github.repository == 'NousResearch/hermes-agent' && 'https://hermes-assets.nousresearch.com/Hermes-Setup.dmg' || '') }}
 
     steps:
       # Full history: the driver bare-clones this checkout as the repo the
@@ -105,7 +108,7 @@ jobs:
           tests/install/macos-desktop-e2e.sh --phase stage \
             --update-method '${{ inputs.update-method }}' \
             --install-ref '${{ inputs.install-ref }}' \
-            --dmg-url '${{ inputs.dmg-url }}'
+            --dmg-url "$DMG_URL"
         env:
           HERMES_E2E_LOG_DIR: ${{ runner.temp }}/e2e-logs
 
@@ -115,7 +118,7 @@ jobs:
           tests/install/macos-desktop-e2e.sh --phase install \
             --update-method '${{ inputs.update-method }}' \
             --install-ref '${{ inputs.install-ref }}' \
-            --dmg-url '${{ inputs.dmg-url }}'
+            --dmg-url "$DMG_URL"
         env:
           HERMES_E2E_LOG_DIR: ${{ runner.temp }}/e2e-logs
 
@@ -125,7 +128,7 @@ jobs:
           tests/install/macos-desktop-e2e.sh --phase update \
             --update-method '${{ inputs.update-method }}' \
             --install-ref '${{ inputs.install-ref }}' \
-            --dmg-url '${{ inputs.dmg-url }}'
+            --dmg-url "$DMG_URL"
         env:
           HERMES_E2E_LOG_DIR: ${{ runner.temp }}/e2e-logs
 

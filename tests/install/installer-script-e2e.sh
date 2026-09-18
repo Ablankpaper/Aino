@@ -205,6 +205,25 @@ mkdir -p "$HERMES_HOME"
 
 INSTALL_DIR="$HERMES_HOME/hermes-agent"
 
+collect_install_logs() {
+  local dest="$LOG_DIR/install-logs"
+  mkdir -p "$dest"
+  cp -R "$HERMES_HOME/logs" "$dest/hermes-logs" 2>/dev/null || true
+  if [ -n "${XDG_DATA_HOME:-}" ]; then
+    cp -R "$XDG_DATA_HOME/hermes/logs" "$dest/desktop-userdata-logs" 2>/dev/null || true
+  fi
+  cp "$HERMES_HOME/.hermes-update-result.json" "$dest" 2>/dev/null || true
+  ls -la "$HERMES_HOME" > "$dest/hermes-home-ls.txt" 2>/dev/null || true
+  ls -la "$INSTALL_DIR/venv/bin" > "$dest/venv-bin-ls.txt" 2>/dev/null || true
+}
+
+cleanup() {
+  # Failed app launches need product logs too, before the mock is stopped.
+  collect_install_logs
+  if declare -F mock_stop >/dev/null; then mock_stop; fi
+}
+trap cleanup EXIT
+
 # Does the installer script at REF accept FLAG? Read that ref's own
 # install.sh rather than assuming this checkout's flag set: the point of the
 # matrix is to install releases from months back, whose installers predate
@@ -253,20 +272,9 @@ run_installer() {
 assert_desktop_artifact() {
   # $1: label. After a +desktop install the built app must exist under the
   # checkout -- install.sh builds it there and registers no OS entry point.
-  local release_dir="$INSTALL_DIR/apps/desktop/release"
-  local found=""
-  local cand
-  for cand in \
-    "$release_dir/linux-unpacked/Hermes" \
-    "$release_dir/linux-unpacked/hermes" \
-    "$release_dir/mac-arm64/Hermes.app" \
-    "$release_dir/mac/Hermes.app"; do
-    if [ -x "$cand" ] || [ -d "$cand" ]; then
-      found="$cand"
-      break
-    fi
-  done
-  [ -n "$found" ] || fail "no desktop app under $release_dir after $1 (+desktop install)"
+  local found
+  found="$(node "$REPO_ROOT/tests/install/e2e-assets/desktop-artifact.cjs" "$INSTALL_DIR")" \
+    || fail "no desktop app matching the installed package after $1 (+desktop install)"
   ok "desktop app built by installer at $1: $found"
 }
 
@@ -344,7 +352,27 @@ case "$UPDATE_METHOD" in
     rc=0
     (cd "$INSTALL_DIR" && "${update_cmd[@]}" < /dev/null 2>&1 | ts_prefix > "$LOG_DIR/update.log") || rc=$?
     log_group "hermes update transcript" "$LOG_DIR/update.log"
-    [ "$rc" -eq 0 ] || fail "hermes update exited $rc; transcript above, log at $LOG_DIR/update.log"
+    if [ "$rc" -ne 0 ]; then
+      # OLD's loaded updater cannot see a fix to its own cache purge. Preserve
+      # the failed attempt and permit one fresh-process recovery only on proof.
+      node - "$REPO_ROOT/tests/install/e2e-assets/known-failures.cjs" "$LOG_DIR" \
+        "$OLD_SHA" "$HEAD_SHA" "$(git -C "$INSTALL_DIR" rev-parse HEAD)" \
+        "$INSTALL_REF" "$INSTALL_METHOD" "$UPDATE_METHOD" "$rc" <<'NODE' \
+        || fail "hermes update exited $rc; transcript above, log at $LOG_DIR/update.log"
+const fs = require('node:fs');
+const path = require('node:path');
+const [helper, logDir, old, current, checkout, old_ref, install, update, code] = process.argv.slice(2);
+const receipt = require(helper).classifyPosixUpdate(
+  logDir, {old, current, checkout, old_ref}, install, update, `hermes update exited ${code}`);
+if (!receipt) process.exit(1);
+fs.writeFileSync(path.join(logDir, 'known-failure.json'), JSON.stringify(receipt, null, 2) + '\n');
+console.log(`::warning::${receipt.title}. Testing one fresh-process recovery; first attempt remains a known failure.`);
+NODE
+      rc=0
+      (cd "$INSTALL_DIR" && "${update_cmd[@]}" < /dev/null 2>&1 | ts_prefix > "$LOG_DIR/update-recovery.log") || rc=$?
+      log_group "fresh-process update recovery transcript" "$LOG_DIR/update-recovery.log"
+      [ "$rc" -eq 0 ] || fail "update recovery exited $rc; original and recovery transcripts retained"
+    fi
     ;;
   installer-script)
     # A user re-running the one-liner today gets the CURRENT script.
@@ -373,7 +401,6 @@ case "$UPDATE_METHOD" in
     # surface is real too.
     source "$ASSETS/mock-provider.sh"
     mock_start "$WORK_ROOT"
-    trap mock_stop EXIT
 
     step "capturing the hermes desktop launch spec (build runs for real)"
     rc=0
@@ -397,12 +424,16 @@ case "$UPDATE_METHOD" in
     (cd "$PW_DIR" && npm install --no-save --no-audit --no-fund \
       "@playwright/test@1.58.2" 2>&1 | ts_prefix > "$LOG_DIR/playwright-install.log") \
       || { log_group "playwright install transcript" "$LOG_DIR/playwright-install.log"; fail "playwright install failed"; }
-    cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/launch-acceptance.cjs" "$ASSETS/window-input.cjs" "$PW_DIR/"
+    cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/launch-acceptance.cjs" "$ASSETS/window-input.cjs" \
+      "$ASSETS/desktop-artifact.cjs" "$ASSETS/update-completion.cjs" \
+      "$ASSETS/macos-launch-diagnostics.cjs" "$PW_DIR/"
     rc=0
     (cd "$PW_DIR" && node launch-from-spec.mjs \
       --spec "$SPEC" \
       --result "$HERMES_HOME/.hermes-update-result.json" \
       --expect-sha "$HEAD_SHA" \
+      --launch-capture-dir "$ASSETS/launch-capture" \
+      --diagnostics-dir "$LOG_DIR/launch-diagnostics" \
       --repo-dir "$INSTALL_DIR" 2>&1 \
       | ts_prefix > "$LOG_DIR/app-update.log") || rc=$?
     log_group "app update (Playwright) transcript" "$LOG_DIR/app-update.log"
@@ -464,23 +495,6 @@ case "$UPDATE_METHOD" in
     ok "node_modules cleared for the head desktop smoke"
     ;;
 esac
-
-# Install-side state BEFORE the post-update assertions: on app-update legs
-# the updater's transcript is streamed into the app UI (or runs detached)
-# and is otherwise lost, so snapshot every place it also lands — product
-# logs, update hand-off files, the venv's entry-point dir — while the
-# install is still there to inspect. The assertions below can `fail` out
-# of the driver; the evidence must already be on disk when they do.
-ildest="$LOG_DIR/install-logs"
-mkdir -p "$ildest"
-cp -R "$HERMES_HOME/logs" "$ildest/hermes-logs" 2>/dev/null || true
-if [ -n "${XDG_DATA_HOME:-}" ]; then
-  cp -R "$XDG_DATA_HOME/hermes/logs" "$ildest/desktop-userdata-logs" 2>/dev/null || true
-fi
-cp "$HERMES_HOME/.hermes-update-result.json" "$ildest" 2>/dev/null || true
-ls -la "$HERMES_HOME" > "$ildest/hermes-home-ls.txt" 2>/dev/null || true
-ls -la "$INSTALL_DIR/venv/bin" > "$ildest/venv-bin-ls.txt" 2>/dev/null || true
-ok "collected install-side logs to $ildest"
 
 assert_checkout "$HEAD_SHA" HEAD
 smoke_desktop head

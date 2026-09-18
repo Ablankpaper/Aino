@@ -68,10 +68,10 @@ on:
         required: true
         type: string
       setup-exe-url:
-        description: 'Bootstrap installer to install OLD with. Default: the latest published one — what a user downloads today.'
+        description: 'Published bootstrap installer URL. Only NousResearch/hermes-agent defaults to its published installer; forks must supply their own URL for desktop-installer legs.'
         required: false
         type: string
-        default: https://hermes-assets.nousresearch.com/Hermes-Setup.exe
+        default: ''
       timeout-minutes:
         description: 'Job timeout. The install leg does real toolchain work and the update leg a full Electron rebuild.'
         required: false
@@ -99,6 +99,8 @@ jobs:
         || (contains(fromJSON('["installer-script+desktop", "hermes-desktop-app-update", "desktop-installer@latest"]'), inputs.update-method) && inputs.tag-has-desktop)
         || (inputs.update-method == 'open-app-update' && inputs.tag-has-desktop
             && contains(fromJSON('["desktop-installer@latest", "installer-script+desktop"]'), inputs.install-method)))
+      && ((inputs.install-method != 'desktop-installer@latest' && inputs.update-method != 'desktop-installer@latest')
+        || inputs.setup-exe-url != '' || github.repository == 'NousResearch/hermes-agent')
     runs-on: windows-latest
     timeout-minutes: ${{ inputs.timeout-minutes }}
 
@@ -109,6 +111,7 @@ jobs:
       # available in job-level env (only github/inputs/matrix/needs/
       # secrets/strategy/vars).
       HERMES_E2E_WORKROOT: ${{ github.workspace }}\..\hermes-desktop-gui-e2e
+      SETUP_EXE_URL: ${{ inputs.setup-exe-url || (github.repository == 'NousResearch/hermes-agent' && 'https://hermes-assets.nousresearch.com/Hermes-Setup.exe' || '') }}
 
     steps:
       # Full history: the driver bare-clones this checkout as the repo the
@@ -130,16 +133,16 @@ jobs:
 
       - name: Stage serve repo (main -> ${{ inputs.install-ref }})
         shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\install\windows-e2e.ps1 -Phase stage -InstallMethod "${{ inputs.install-method }}" -Route "${{ inputs.update-method }}" -InstallRef "${{ inputs.install-ref }}" -SetupExeUrl ${{ inputs.setup-exe-url }}
+        run: '& tests\install\windows-e2e.ps1 -Phase stage -InstallMethod "${{ inputs.install-method }}" -Route "${{ inputs.update-method }}" -InstallRef "${{ inputs.install-ref }}" -SetupExeUrl $env:SETUP_EXE_URL'
 
       - name: Install ${{ inputs.install-ref }} (${{ inputs.install-method }})
         shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\install\windows-e2e.ps1 -Phase install -InstallMethod "${{ inputs.install-method }}" -Route "${{ inputs.update-method }}" -InstallRef "${{ inputs.install-ref }}" -SetupExeUrl ${{ inputs.setup-exe-url }}
+        run: '& tests\install\windows-e2e.ps1 -Phase install -InstallMethod "${{ inputs.install-method }}" -Route "${{ inputs.update-method }}" -InstallRef "${{ inputs.install-ref }}" -SetupExeUrl $env:SETUP_EXE_URL'
 
       - name: Update ${{ inputs.install-ref }} -> HEAD (${{ inputs.update-method }})
         id: update
         shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\install\windows-e2e.ps1 -Phase update -InstallMethod "${{ inputs.install-method }}" -Route "${{ inputs.update-method }}" -InstallRef "${{ inputs.install-ref }}" -SetupExeUrl ${{ inputs.setup-exe-url }}
+        run: '& tests\install\windows-e2e.ps1 -Phase update -InstallMethod "${{ inputs.install-method }}" -Route "${{ inputs.update-method }}" -InstallRef "${{ inputs.install-ref }}" -SetupExeUrl $env:SETUP_EXE_URL'
 
       - name: Stage known-failure receipt
         if: steps.update.outputs.known_failure != ''

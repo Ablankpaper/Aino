@@ -90,6 +90,24 @@ log_group() {
   printf '::endgroup::\n'
 }
 
+collect_install_logs() {
+  local dest="$LOG_DIR/install-logs"
+  mkdir -p "$dest"
+  cp -R "$HERMES_HOME/logs" "$dest/hermes-logs" 2>/dev/null || true
+  local ud="$HOME_SANDBOX/Library/Application Support/Hermes"
+  [ -d "$ud" ] && cp -R "$ud" "$dest/desktop-userdata" 2>/dev/null || true
+  cp "$HERMES_HOME/.hermes-update-result.json" "$dest" 2>/dev/null || true
+  ls -la "$HERMES_HOME" > "$dest/hermes-home-ls.txt" 2>/dev/null || true
+  ls -la "$INSTALL_DIR/venv/bin" > "$dest/venv-bin-ls.txt" 2>/dev/null || true
+  ls -la "$INSTALL_DIR/venv" > "$dest/venv-ls.txt" 2>/dev/null || true
+  ok "collected install-side logs to $dest"
+}
+
+cleanup_update() {
+  collect_install_logs
+  mock_stop
+}
+
 # Every phase runs in its own process (separate CI steps), so the redirect
 # env is re-established here, not inherited.
 arm_redirect() {
@@ -192,16 +210,7 @@ phase_stage() {
 }
 
 find_installed_app() {
-  # The bootstrap installs the packaged app; look where the product puts it
-  # (the checkout's release dir), plus /Applications for a copied bundle.
-  local cand
-  for cand in \
-    "$INSTALL_DIR/apps/desktop/release/mac-arm64/Hermes.app" \
-    "$INSTALL_DIR/apps/desktop/release/mac/Hermes.app" \
-    "/Applications/Hermes.app"; do
-    [ -d "$cand" ] && { printf '%s' "$cand"; return 0; }
-  done
-  return 1
+  node "$ASSETS/desktop-artifact.cjs" "$INSTALL_DIR" darwin
 }
 
 phase_install() {
@@ -306,12 +315,16 @@ run_playwright_update() {
   local spec="$1"
   local pw_dir
   pw_dir="$(ensure_playwright)"
-  cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/launch-acceptance.cjs" "$ASSETS/window-input.cjs" "$pw_dir/"
+  cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/launch-acceptance.cjs" "$ASSETS/window-input.cjs" \
+    "$ASSETS/desktop-artifact.cjs" "$ASSETS/update-completion.cjs" \
+    "$ASSETS/macos-launch-diagnostics.cjs" "$pw_dir/"
   local rc=0
   (cd "$pw_dir" && node launch-from-spec.mjs \
     --spec "$spec" \
     --result "$HERMES_HOME/.hermes-update-result.json" \
     --expect-sha "$HEAD_SHA" \
+    --launch-capture-dir "$ASSETS/launch-capture" \
+    --diagnostics-dir "$LOG_DIR/launch-diagnostics" \
     --repo-dir "$INSTALL_DIR" 2>&1 \
     | ts_prefix > "$LOG_DIR/app-update.log") || rc=$?
   log_group "app update (Playwright) transcript" "$LOG_DIR/app-update.log"
@@ -333,7 +346,7 @@ phase_update() {
   # shellcheck source=../install/e2e-assets/mock-provider.sh
   source "$ASSETS/mock-provider.sh"
   mock_start "$WORK_ROOT"
-  trap mock_stop EXIT
+  trap cleanup_update EXIT
   case "$UPDATE_METHOD" in
     hermes-update)
       # The CLI route a dmg user takes from a terminal. `--yes` reaches the
@@ -355,13 +368,8 @@ phase_update() {
     installer-script+desktop)
       run_installer "$HEAD_SHA" head desktop
       # The desktop stage is this leg's claim: the rebuilt app must exist.
-      head_app=""
-      for cand in \
-        "$INSTALL_DIR/apps/desktop/release/mac-arm64/Hermes.app" \
-        "$INSTALL_DIR/apps/desktop/release/mac/Hermes.app"; do
-        [ -d "$cand" ] && { head_app="$cand"; break; }
-      done
-      [ -n "$head_app" ] || fail "no built Hermes.app under the checkout after the +desktop update"
+      head_app="$(find_installed_app)" \
+        || fail "no built app matching the installed package after the +desktop update"
       ok "rebuilt app present: $head_app"
       ;;
     open-app-update)
@@ -405,23 +413,6 @@ PYEOF
   got="$(git -C "$INSTALL_DIR" rev-parse HEAD)"
   [ "$got" = "$HEAD_SHA" ] || fail "checkout is $got, expected HEAD ($HEAD_SHA)"
   ok "checkout landed on HEAD ($HEAD_SHA)"
-
-  # Install-side state BEFORE the post-update smoke: on app-update legs the
-  # updater's own transcript is streamed into the app UI and otherwise lost,
-  # so snapshot every place it also lands (product logs, update hand-off
-  # files, the venv's entry-point dir) while the install is still there to
-  # inspect — the smoke assertion below can `fail` out of the driver, and the
-  # evidence must already be on disk when it does.
-  local ildest="$LOG_DIR/install-logs"
-  mkdir -p "$ildest"
-  cp -R "$HOME_SANDBOX/.hermes/logs" "$ildest/hermes-logs" 2>/dev/null || true
-  local ud="$HOME_SANDBOX/Library/Application Support/Hermes"
-  [ -d "$ud" ] && cp -R "$ud" "$ildest/desktop-userdata" 2>/dev/null || true
-  cp "$HERMES_HOME/.hermes-update-result.json" "$ildest" 2>/dev/null || true
-  ls -la "$HERMES_HOME" > "$ildest/hermes-home-ls.txt" 2>/dev/null || true
-  ls -la "$INSTALL_DIR/venv/bin" > "$ildest/venv-bin-ls.txt" 2>/dev/null || true
-  ls -la "$INSTALL_DIR/venv" > "$ildest/venv-ls.txt" 2>/dev/null || true
-  ok "collected install-side logs to $ildest"
 
   "$INSTALL_DIR/venv/bin/hermes" --version 2>&1 | ts_prefix > "$LOG_DIR/version-head.log" \
     || fail "hermes --version failed after update"

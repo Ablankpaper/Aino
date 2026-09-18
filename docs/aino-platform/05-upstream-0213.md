@@ -121,6 +121,114 @@ by `git diff --check`.
 
 This update does not modify Aino-API or establish a new production API pairing.
 Native coverage here uses test services, not live SMS, paid inference or payment
-settlement. Windows/Linux execution, signing, notarization, packaged distribution
-and production deployment are outside this update. Earlier delivery receipts
+settlement. Signing, notarization, published installer distribution and production
+deployment are outside this update. Earlier delivery receipts
 remain historical evidence for their recorded revisions.
+
+## Install And Update CI Follow-up
+
+The inherited install matrix exposed executable discovery that still required
+Hermes although the package produces Aino. Production discovery now accepts the
+Aino artifact and legacy Hermes installs; the test drivers resolve artifacts from
+the installed package metadata. Linux relaunch validation uses the actual updated
+`hermes desktop` launch specification and its sandbox preparation.
+
+An updater that changes the checkout must also evict the root `utils` module.
+Otherwise its old module remains loaded while new gateway code imports
+`base_url_origin`. The purge now includes `utils`, with a real reimport regression.
+
+Completion verification starts before clicking Update and rejects stale results.
+It retains completion evidence if the app consumes the result file, waits for
+marker clearance, and checks the exact requested commit before relaunching.
+Failed runs retain product logs as well as the test transcript and recording.
+
+| Check | Revision And Result |
+| --- | --- |
+| Three-platform install/update matrix | `0f6f684577`, [run 35317189840](https://github.com/Ablankpaper/Aino/actions/runs/35317189840): all 25 executable routes passed; 18 first-attempt successes and 7 recovered historical failures |
+| Linux install/update matrix | `c8500cc125`, [run 35311606869](https://github.com/Ablankpaper/Aino/actions/runs/35311606869): 6 first-attempt successes, 2 recovered historical failures |
+| Windows install/update matrix | `2f05e1500f`, [run 35313398692](https://github.com/Ablankpaper/Aino/actions/runs/35313398692): 6 first-attempt successes, 3 recovered historical failures |
+| Native Windows runtime handoff | `babfdb2103`, [run 35314271282](https://github.com/Ablankpaper/Aino/actions/runs/35314271282): all steps passed, including 4 new runtime handoff cases |
+| Focused desktop launcher suite | 58 passed, 15 native-platform skips on macOS |
+| Updater stale-module regression suites | 76 passed |
+| Cron tracked-connection regressions | 26 passed through `scripts/run_tests.sh`; scoped Ruff passed |
+| Update notification and startup regressions | 35 passed; Electron TypeScript and scoped ESLint passed |
+| Host-isolated regression fixtures | 118 passed across the seven changed files; independent review found no concrete regression |
+| Native process cleanup and adjacent file operations | 131 passed, 2 Windows-only skips on macOS; Ruff and Windows footgun scan passed |
+
+The complete three-platform matrix includes eight Linux, nine Windows and eight
+macOS routes. Each OS has six first-attempt successes; Linux and macOS each have
+two recovered historical failures, and Windows has three. Both previously failing
+macOS desktop-update routes now pass. Unavailable bootstrap and unsupported route
+combinations remain skipped, not counted among those 25 successes.
+
+A later complete local Python run covered 4,179 files: 49,359 passed, 11 failed,
+571 skipped. Seven failure files depended on host proxy/DNS state, filesystem case
+rules, available archive tools, GNU-only process inspection or a fake SDK's real
+installation metadata. Their fixtures now isolate those inputs while preserving
+the behavior assertions. The eighth failure exposed a real macOS process-exit
+race: signaling an exited but unreaped process group can report `EPERM`. Cleanup
+now reaps the child and suppresses that error only after the whole group is
+confirmed absent. Native search also caches its new session's process-group ID
+before a short-lived child can exit. Real macOS regressions cover both unreaped
+and already-reaped children; permission denial while a group still exists remains
+an error. The final full-suite receipt is recorded in PR #8.
+
+The macOS diagnostic [run 35314445388](https://github.com/Ablankpaper/Aino/actions/runs/35314445388)
+passed six routes and failed two app-update routes after their update transactions
+had already succeeded. Both reopened Aino processes were sampled inside
+`NSAlert runModal`. The manual-action completion notice used an unparented
+`dialog.showMessageBox`; Electron's macOS implementation runs that notice in a
+blocking native modal loop even through its Promise API. The failure notice used
+the synchronous `showErrorBox` path.
+
+Both notices now wait for the main window to become visible and use a parented
+message box. Backend startup does not wait for acknowledgement. Behavior tests
+cover visible and initially hidden windows, both result types, single delivery,
+window closure and notification failure. The diagnostic screenshots also contain
+a macOS local-network permission prompt; that observation alone does not identify
+the application's modal stack as the system permission prompt.
+
+The Linux Python CI also exposed five cron test failures caused by obsolete
+SQLite test doubles. Tests now use real `TrackedConnection` subclasses and
+replace the injected connection factory without duplicate arguments. They still
+exercise real connection closure and a competing SQLite writer. Final full-suite
+and post-fix install/update receipts are linked from
+[PR #8](https://github.com/Ablankpaper/Aino/pull/8).
+
+The two recovered Linux cases start at the exact `v2026.8.27` release commit
+`5fc308a70719a83cccdbba4c0e39c23f5a8239d5`. Its already-running updater cannot
+benefit from the new purge during that attempt. Recovery is allowed only when
+the target checkout has landed and the log contains that specific missing-symbol
+failure. The original transcript is preserved, a fresh updater runs once, and
+all post-update assertions must pass. Reports call these known historical
+failures, not first-attempt successes; failed recovery remains a failed job.
+
+Windows desktop updates now prepare an isolated repair environment, exit the live
+interpreter, synchronously repair the runtime from outside the live venv, and
+only then run the normal updater. The existing transactional replacement and
+SQLite checks remain authoritative. Native tests verify a real Win32 directory
+sharing violation, release-before-cutover, SQLite rollback and PowerShell failure
+propagation.
+
+The three recovered Windows app-update cases also start at the exact August
+release commit above. That release keeps its already-loaded PowerShell handoff
+and retries from the venv it must replace. Recovery requires the expected old
+module and runtime-refusal signatures plus the requested checkout already being
+present. A separate invocation of the newly installed production handoff then
+upgrades SQLite from 3.45.1 to 3.53.1. Each case verifies a fresh successful
+receipt, cleared marker, target SHA, safe SQLite, working CLI and a rendered Aino
+window. These are recovered historical failures, not first-attempt app updates;
+the window smoke does not establish authenticated business-flow coverage.
+
+This scope limit applies to every OS: install/update desktop smoke checks prove
+that the updated application renders its window, not that authenticated business
+flows work. The separately recorded native account/chat fixtures above provide
+their own narrower business-flow evidence. The inherited general CI Desktop E2E
+job is disabled upstream; its skipped status is not a desktop verification result.
+
+Aino has no published signed bootstrap installer. Windows and macOS tests that
+download a bootstrap are therefore unavailable until the repository variables
+`INSTALL_E2E_SETUP_EXE_URL` and `INSTALL_E2E_DMG_URL` point to Aino installers.
+Only the upstream repository defaults to the upstream Hermes download URLs.
+Skipped bootstrap routes are disclosed in the matrix summary and are not Aino
+installer coverage.

@@ -163,6 +163,27 @@ def test_stale_symbol_scenario_end_to_end():
             sys.modules[name] = real
 
 
+def test_purge_evicts_root_utils_before_new_import():
+    """A root-level helper module must rebuild after update just like a package module."""
+    name = "utils"
+    real = sys.modules.get(name)
+    stale = types.ModuleType(name)
+    sys.modules[name] = stale
+    try:
+        with pytest.raises(ImportError):
+            from utils import base_url_origin  # noqa: F401
+
+        cli_main._purge_stale_hermes_modules()
+
+        fresh = importlib.import_module(name)
+        assert fresh is not stale
+        assert callable(fresh.base_url_origin)
+    finally:
+        sys.modules.pop(name, None)
+        if real is not None:
+            sys.modules[name] = real
+
+
 def test_purge_keeps_plan_record_class_identity():
     # The pre-update plan is built BEFORE the purge; reconciliation after it filters with
     # ``isinstance(r, RuntimeRecord)``. An evicted ``update_inventory`` yields a fresh class,
