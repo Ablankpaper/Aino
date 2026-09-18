@@ -15,7 +15,8 @@
  *     [--result $HERMES_HOME/.hermes-update-result.json] \
  *     [--expect-sha <sha> --repo-dir <install dir>] [--no-update]
  *
- * --no-update: launch + wait for the window + close. The smoke arm.
+ * --no-update: prove the main renderer, Settings navigation, and backend
+ * status RPC, then close. The smoke arm.
  * Otherwise: click Update now, then poll for completion. Two signals,
  * either satisfies (poll whichever are given, first hit wins):
  *   --result      the windows hand-off's result file
@@ -33,6 +34,9 @@ import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { _electron } from '@playwright/test';
 import { prepareWindowForInput } from './window-input.cjs';
+import launchAcceptance from './launch-acceptance.cjs';
+
+const { acceptDesktopLaunch } = launchAcceptance;
 
 /**
  * @typedef {{argv: string[], cwd: string, env: Record<string, string>,
@@ -124,38 +128,13 @@ async function main() {
     cwd: launch.cwd,
     env: launch.env,
   });
-  // The app spawns several BrowserWindows (wake indicator, helper surfaces)
-  // and firstWindow() grabs whichever webContents came first, which is not
-  // always the main app window. Pick the window that actually renders the
-  // app UI (a button renders only in the real renderer), retrying as
-  // windows appear.
-  await app.firstWindow({ timeout: 120_000 });
-  let window = null;
-  const windowDeadline = Date.now() + 120_000;
-  while (!window) {
-    for (const candidate of app.windows()) {
-      const hasUi = await candidate
-        .evaluate(() => document.querySelector('button') !== null)
-        .catch(() => false);
-      if (hasUi) { window = candidate; break; }
-    }
-    if (!window) {
-      if (Date.now() > windowDeadline) {
-        for (const c of app.windows()) log(`  window seen: url=${c.url()}`);
-        throw new Error('no window with app UI (a <button>) appeared within 120s');
-      }
-      await new Promise((r) => setTimeout(r, 1_000));
-    }
-  }
-  await window.waitForLoadState('domcontentloaded');
-  log(`window up: ${await window.title()} (${app.windows().length} windows, picked url=${window.url()})`);
+  const accepted = await acceptDesktopLaunch(app, { prepareWindowForInput, log });
+  const window = accepted.window;
+  log(`main renderer accepted: ${await window.title()} (${app.windows().length} windows, Settings open, backend ${accepted.status.version})`);
   await window.screenshot({ path: `${values.spec}.window.png` }).catch(() => {});
 
-  await prepareWindowForInput(app, window);
-  log('[zoom] app window prepared at 100%');
-
   if (values['no-update']) {
-    log('smoke mode: window proven, closing');
+    log('smoke mode: main renderer, Settings navigation, and backend RPC proven; closing');
     await app.close().catch(() => {});
     process.exit(0);
   }
@@ -165,86 +144,6 @@ async function main() {
   }
   const deadline = Date.now() + Number(values['timeout-ms']);
 
-
-  // Dismiss the onboarding overlay when present. The drivers seed a
-  // provider so the overlay SHOULD never mount, but it has a real boot
-  // window: the renderer inits `configured` from a localStorage cache
-  // (null on a fresh install) and only flips after gateway probes, so the
-  // overlay can mount late - first as a buttonless boot-progress card,
-  // then as the provider picker with the real escape hatch, "I'll choose
-  // a provider later" (i18n en: chooseLater). Two traps this loop avoids:
-  // a one-shot dismiss probe loses to the late mount, and visibility is
-  // the wrong readiness signal - the settings gear is "visible" UNDER the
-  // fullscreen overlay while the overlay intercepts every click. So:
-  // alternate short-timeout dismiss clicks with short-timeout settings
-  // clicks until a settings click actually LANDS (Playwright's hit-target
-  // check makes a landed click proof the overlay is gone).
-  phase('overlay-loop');
-  const later = window.getByRole('button', { name: /choose a provider later|skip/i }).first()
-  const settingsButton = window.getByRole('button', { name: /open settings|settings/i }).first()
-
-  const overlayDeadline = Date.now() + 180_000
-  let settingsOpened = false
-  const brief = (e) => String(e && e.message || e).split('\n').slice(0, 25).join(' | ')
-  // When a settings click fails, record what wins the hit-test at the
-  // button's center plus the titlebar geometry, so a CI-only interception
-  // is attributable from the log alone.
-  const hitDump = () => window.evaluate(() => {
-    const describe = (el) => el ? {
-      tag: el.tagName,
-      cls: (typeof el.className === 'string' ? el.className : '').slice(0, 110),
-      aria: el.getAttribute?.('aria-label') || null,
-      z: (() => { try { return getComputedStyle(el).zIndex } catch { return null } })(),
-    } : null
-    const settings = document.querySelector('button[aria-label="Open settings"]')
-    const r = settings?.getBoundingClientRect()
-    const cluster = settings?.closest('div[class*="fixed"]')
-    const bar = document.querySelector('div[class*="h-[34px]"]')
-    const cs = getComputedStyle(document.documentElement)
-    const rect = (el) => { if (!el) return null; const b = el.getBoundingClientRect(); return `${Math.round(b.x)},${Math.round(b.y)} ${Math.round(b.width)}x${Math.round(b.height)}` }
-    return {
-      settingsRect: rect(settings),
-      stack: r ? document.elementsFromPoint(r.x + r.width / 2, r.y + r.height / 2).slice(0, 6).map(describe) : null,
-      cluster: cluster ? { rect: rect(cluster), z: getComputedStyle(cluster).zIndex, cls: (cluster.className || '').slice(0, 120) } : null,
-      bar: bar ? { rect: rect(bar), z: getComputedStyle(bar).zIndex } : null,
-      vars: {
-        controlsLeft: cs.getPropertyValue('--titlebar-controls-left'),
-        toolsRight: cs.getPropertyValue('--titlebar-tools-right'),
-        toolsWidth: cs.getPropertyValue('--titlebar-tools-width'),
-      },
-      win: `${window.innerWidth}x${window.innerHeight} dpr=${window.devicePixelRatio}`,
-    }
-  }).then((d) => JSON.stringify(d)).catch((e) => `hit-dump failed: ${e.message}`)
-  for (let iter = 1; ; iter++) {
-    await prepareWindowForInput(app, window);
-    await later
-      .click({ timeout: 2_000 })
-      .then(async () => {
-        log('dismissed onboarding overlay')
-        await later.waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {})
-      })
-      .catch((e) => log(`[overlay] iter ${iter} chooseLater click failed: ${brief(e)}`))
-    try {
-      await settingsButton.click({ timeout: 4_000 })
-      // A landed click during shell hydration can be lost on a remount.
-      // Confirm the destination before looking for its About control.
-      await window.waitForURL(/[#/]settings(?:[/?]|$)/, { timeout: 4_000 })
-      settingsOpened = true
-      break
-    } catch (e) {
-      log(`[overlay] iter ${iter} settings click failed: ${brief(e)}`)
-      // Every 5th failure, log the hit-test stack (every iteration would be
-      // noise; the interceptor identity is what matters, not its frequency).
-      if (iter === 1 || iter % 5 === 0) {
-        log(`[overlay] iter ${iter} hit-test: ${await hitDump()}`)
-      }
-    }
-    if (Date.now() > overlayDeadline) break
-  }
-  if (!settingsOpened) {
-    await window.screenshot({ path: `${values.spec}.overlay-stuck.png` }).catch(() => {})
-    throw new Error('onboarding overlay never cleared: Settings not clickable within 180s')
-  }
 
   phase('about-update');
   // Settings is open: About -> Update now.
@@ -402,10 +301,9 @@ async function main() {
   await boundedClose(app, 'updated-app teardown');
 
   // Relaunch from the same captured spec - the leg's own launch mechanism -
-  // and require the UI to come up on the updated checkout. Verification:
-  // the renderer's DOM carries the running build's short sha when launched
-  // from a git checkout (statusbar/About); require the EXPECTED sha's short
-  // form, or at minimum a live UI window, logging what we saw.
+  // and require the main renderer plus backend to come up on the updated
+  // checkout. The renderer's DOM also carries the running build's short sha
+  // when launched from a git checkout (statusbar/About), so log that signal.
   phase('relaunch');
   log('relaunching the updated app (the "reopen Hermes" step)');
   const relaunch = await _electron.launch({
@@ -414,28 +312,21 @@ async function main() {
     cwd: launch.cwd,
     env: launch.env,
   });
-  let window2 = null;
-  const relaunchDeadline = Date.now() + 120_000;
-  while (!window2 && Date.now() < relaunchDeadline) {
-    for (const candidate of relaunch.windows()) {
-      const hasUi = await candidate
-        .evaluate(() => document.querySelector('button') !== null)
-        .catch(() => false);
-      if (hasUi) { window2 = candidate; break; }
-    }
-    if (!window2) await new Promise((r) => setTimeout(r, 1_000));
-  }
-  if (!window2) {
+  let relaunched;
+  try {
+    relaunched = await acceptDesktopLaunch(relaunch, { prepareWindowForInput, log });
+  } catch (error) {
     await boundedClose(relaunch, 'relaunch teardown');
-    throw new Error('relaunched app never presented a UI window within 120s - updated build may be broken');
+    throw error;
   }
+  const window2 = relaunched.window;
   // Give the shell a moment to paint the statusbar/version chrome.
   await new Promise((r) => setTimeout(r, 10_000));
   const shortSha = (expectSha || '').slice(0, 7);
   const verdict = await window2.evaluate((sha) => {
     const text = document.body ? document.body.innerText : ''
     const version = (text.match(/v\d+\.\d+\.\d+[^\n]*/) || [null])[0]
-    return { version, hasSha: sha ? text.includes(sha) : false, sample: text.slice(-200) }
+    return { version, hasSha: sha ? text.includes(sha) : false }
   }, shortSha).catch(() => null);
   await window2.screenshot({ path: `${values.spec}.relaunched.png` }).catch(() => {});
   log(`relaunched app: version="${verdict?.version || 'unseen'}" expectedSha(${shortSha}) in DOM=${verdict?.hasSha}`);
@@ -449,7 +340,7 @@ async function main() {
     // user-facing contract; log loudly so a human can tighten this later.
     log(`NOTE: expected short sha ${shortSha} not found in relaunched DOM; version line was "${verdict.version}"`);
   }
-  log('relaunch verification complete: updated app boots and presents UI');
+  log(`relaunch verification complete: updated app opened Settings and backend ${relaunched.status.version} answered`);
   await boundedClose(relaunch, 'relaunch teardown');
   // Explicit exit: SIGKILLed Electron leaves driver connections holding
   // the event loop; falling off main() never terminates.
