@@ -7,6 +7,48 @@ const SETTINGS_URL = /[#/]settings(?:[/?]|$)/
 /** @param {number} ms */
 const defaultSleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
+/** @param {number} pid */
+function defaultIsPidAlive(pid) {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error?.code === 'EPERM'
+  }
+}
+
+/** @param {number} timeoutMs */
+function descendantSnapshotCommand(timeoutMs) {
+  return {
+    file: 'ps',
+    args: ['-eo', 'pid=,ppid='],
+    options: { encoding: 'utf8', timeout: timeoutMs },
+  }
+}
+
+/** @param {number} timeoutMs */
+function windowsDescendantSnapshotCommand(timeoutMs) {
+  return {
+    file: 'powershell.exe',
+    args: [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId | ConvertTo-Json -Compress',
+    ],
+    options: { encoding: 'utf8', timeout: timeoutMs, windowsHide: true },
+  }
+}
+
+/** @param {number} rootPid @param {number} timeoutMs */
+function windowsTreeKillCommand(rootPid, timeoutMs) {
+  return {
+    file: 'taskkill.exe',
+    args: ['/PID', String(rootPid), '/T', '/F'],
+    options: { encoding: 'utf8', timeout: timeoutMs, windowsHide: true },
+  }
+}
+
 /** @param {unknown} value */
 function isValidBackendStatus(value) {
   return Boolean(
@@ -60,6 +102,36 @@ function descendantPids(output, rootPid) {
   return descendants
 }
 
+/** @param {string} output @param {number} rootPid */
+function windowsDescendantPids(output, rootPid) {
+  const decoded = JSON.parse(output)
+  const rows = Array.isArray(decoded) ? decoded : [decoded]
+  const pairs = rows.map(row => `${Number(row?.ProcessId)} ${Number(row?.ParentProcessId)}`).join('\n')
+  return descendantPids(pairs, rootPid)
+}
+
+/**
+ * @param {number[]} pids
+ * @param {{
+ *   isPidAlive: (pid: number) => boolean,
+ *   pollIntervalMs: number,
+ *   sleep: (ms: number) => Promise<void>,
+ *   timeoutMs: number,
+ * }} options
+ */
+async function waitForProcessTreeExit(pids, options) {
+  const pollIntervalMs = Math.max(1, options.pollIntervalMs)
+  const timeoutMs = Math.max(0, options.timeoutMs)
+  const attempts = Math.max(1, Math.ceil(timeoutMs / pollIntervalMs))
+  let remaining = pids
+  for (let attempt = 0; attempt <= attempts; attempt += 1) {
+    remaining = pids.filter(pid => options.isPidAlive(pid))
+    if (!remaining.length || attempt === attempts) return remaining
+    await options.sleep(Math.min(pollIntervalMs, timeoutMs))
+  }
+  return remaining
+}
+
 /**
  * Close an application and only the process descendants rooted at its own PID.
  * @param {any} application
@@ -67,10 +139,15 @@ function descendantPids(output, rootPid) {
  * @param {{
  *   closeTimeoutMs?: number,
  *   descendantGraceMs?: number,
+ *   discoveryTimeoutMs?: number,
  *   execFileSync?: typeof nodeExecFileSync,
+ *   forceTimeoutMs?: number,
+ *   isPidAlive?: (pid: number) => boolean,
  *   kill?: typeof process.kill,
  *   log?: (message: string) => void,
  *   platform?: string,
+ *   quiescencePollMs?: number,
+ *   quiescenceTimeoutMs?: number,
  *   sleep?: (ms: number) => Promise<void>,
  *   termTimeoutMs?: number,
  * }} [options]
@@ -78,10 +155,15 @@ function descendantPids(output, rootPid) {
 async function boundedClose(application, label, options = {}) {
   const closeTimeoutMs = options.closeTimeoutMs ?? 15_000
   const descendantGraceMs = options.descendantGraceMs ?? 5_000
+  const discoveryTimeoutMs = options.discoveryTimeoutMs ?? 5_000
   const execFileSync = options.execFileSync ?? nodeExecFileSync
+  const forceTimeoutMs = options.forceTimeoutMs ?? 10_000
+  const isPidAlive = options.isPidAlive ?? defaultIsPidAlive
   const kill = options.kill ?? process.kill.bind(process)
   const log = options.log ?? (() => undefined)
   const platform = options.platform ?? process.platform
+  const quiescencePollMs = options.quiescencePollMs ?? 100
+  const quiescenceTimeoutMs = options.quiescenceTimeoutMs ?? 5_000
   const sleep = options.sleep ?? defaultSleep
   const termTimeoutMs = options.termTimeoutMs ?? 10_000
 
@@ -89,10 +171,18 @@ async function boundedClose(application, label, options = {}) {
   try { proc = application.process() } catch { /* connection gone */ }
   const rootPid = proc?.pid
   let descendants = []
-  if (rootPid && platform !== 'win32') {
+  let cleanupError = null
+  if (rootPid) {
     try {
-      descendants = descendantPids(execFileSync('ps', ['-eo', 'pid=,ppid='], { encoding: 'utf8' }), rootPid)
+      const command = platform === 'win32'
+        ? windowsDescendantSnapshotCommand(discoveryTimeoutMs)
+        : descendantSnapshotCommand(discoveryTimeoutMs)
+      const output = execFileSync(command.file, command.args, command.options)
+      descendants = platform === 'win32'
+        ? windowsDescendantPids(output, rootPid)
+        : descendantPids(output, rootPid)
     } catch (error) {
+      cleanupError = `${label}: descendant snapshot failed`
       log(`${label}: descendant snapshot failed (continuing): ${String(error).slice(0, 120)}`)
     }
   }
@@ -109,8 +199,17 @@ async function boundedClose(application, label, options = {}) {
   ])
 
   if (!closed) {
-    log(`${label}: graceful close failed or timed out after ${closeTimeoutMs}ms - SIGTERM, then SIGKILL if needed`)
-    if (proc) {
+    if (rootPid && platform === 'win32') {
+      log(`${label}: graceful close failed or timed out after ${closeTimeoutMs}ms - terminating owned Windows process tree`)
+      const command = windowsTreeKillCommand(rootPid, forceTimeoutMs)
+      try {
+        execFileSync(command.file, command.args, command.options)
+      } catch {
+        cleanupError = `${label}: Windows owned process tree termination failed`
+        log(`${label}: Windows owned process tree termination failed or timed out after ${forceTimeoutMs}ms`)
+      }
+    } else if (proc) {
+      log(`${label}: graceful close failed or timed out after ${closeTimeoutMs}ms - SIGTERM, then SIGKILL if needed`)
       try { proc.kill('SIGTERM') } catch { /* already gone */ }
       const terminated = await Promise.race([
         new Promise(resolve => {
@@ -123,11 +222,12 @@ async function boundedClose(application, label, options = {}) {
         try { proc.kill('SIGKILL') } catch { /* already gone */ }
       }
     } else {
-      log(`${label}: no process handle to signal - relying on descendant sweep`)
+      cleanupError = `${label}: graceful close failed and no owned process handle was available`
+      log(`${label}: no process handle to signal - cleanup cannot be verified`)
     }
   }
 
-  if (descendants.length) {
+  if (platform !== 'win32' && descendants.length) {
     for (const pid of descendants) {
       try { kill(pid, 'SIGTERM') } catch { /* raced exit */ }
     }
@@ -138,6 +238,18 @@ async function boundedClose(application, label, options = {}) {
     }
     log(`${label}: swept ${descendants.length} descendant process(es) (${killed} needed SIGKILL)`)
   }
+
+  const ownedPids = rootPid ? [rootPid, ...descendants] : descendants
+  const remaining = await waitForProcessTreeExit([...new Set(ownedPids)], {
+    isPidAlive,
+    pollIntervalMs: quiescencePollMs,
+    sleep,
+    timeoutMs: quiescenceTimeoutMs,
+  })
+  if (remaining.length) {
+    throw new Error(`${label}: owned process tree did not exit within ${quiescenceTimeoutMs}ms (${remaining.length} process(es) remain)`)
+  }
+  if (cleanupError) throw new Error(cleanupError)
 }
 
 /**
@@ -269,7 +381,10 @@ async function acceptDesktopLaunch(app, options) {
 module.exports = {
   acceptDesktopLaunch,
   boundedClose,
+  descendantSnapshotCommand,
   isValidBackendStatus,
   readBackendStatus,
+  windowsDescendantSnapshotCommand,
+  windowsTreeKillCommand,
   withOwnedApplication,
 }

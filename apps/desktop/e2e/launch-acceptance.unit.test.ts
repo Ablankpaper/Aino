@@ -2,7 +2,14 @@ import { createRequire } from 'node:module'
 
 import { expect, test } from 'vitest'
 
-const { acceptDesktopLaunch, withOwnedApplication } = createRequire(import.meta.url)(
+const {
+  acceptDesktopLaunch,
+  boundedClose,
+  descendantSnapshotCommand,
+  windowsDescendantSnapshotCommand,
+  windowsTreeKillCommand,
+  withOwnedApplication,
+} = createRequire(import.meta.url)(
   '../../../tests/install/e2e-assets/launch-acceptance.cjs',
 )
 
@@ -103,6 +110,7 @@ test('skips an auxiliary renderer before accepting the main Settings window', as
 })
 
 test('rejection closes only the supplied application process tree', async () => {
+  const discoveryCommands: unknown[][] = []
   const rootSignals: string[] = []
   const descendantSignals: Array<[number, string]> = []
   const processHandle = {
@@ -122,15 +130,25 @@ test('rejection closes only the supplied application process tree', async () => 
     {
       closeTimeoutMs: 1,
       descendantGraceMs: 0,
-      execFileSync: () => '100 1\n101 100\n102 101\n200 1\n',
+      discoveryTimeoutMs: 321,
+      execFileSync: (...args: unknown[]) => {
+        discoveryCommands.push(args)
+        return '100 1\n101 100\n102 101\n200 1\n'
+      },
       kill: (pid: number, signal: string) => { descendantSignals.push([pid, signal]) },
       log: () => undefined,
       platform: 'darwin',
+      isPidAlive: () => false,
       sleep: async () => undefined,
       termTimeoutMs: 1,
     },
   )).rejects.toThrow('acceptance rejected')
 
+  expect(discoveryCommands).toEqual([[
+    'ps',
+    ['-eo', 'pid=,ppid='],
+    { encoding: 'utf8', timeout: 321 },
+  ]])
   expect(rootSignals).toEqual(['SIGTERM', 'SIGKILL'])
   expect(descendantSignals).toEqual([
     [101, 'SIGTERM'],
@@ -138,4 +156,133 @@ test('rejection closes only the supplied application process tree', async () => 
     [101, 'SIGKILL'],
     [102, 'SIGKILL'],
   ])
+})
+
+test('process cleanup commands use bounded argv without a shell', () => {
+  expect(descendantSnapshotCommand(321)).toEqual({
+    file: 'ps',
+    args: ['-eo', 'pid=,ppid='],
+    options: { encoding: 'utf8', timeout: 321 },
+  })
+  expect(windowsTreeKillCommand(456, 654)).toEqual({
+    file: 'taskkill.exe',
+    args: ['/PID', '456', '/T', '/F'],
+    options: { encoding: 'utf8', timeout: 654, windowsHide: true },
+  })
+  expect(windowsDescendantSnapshotCommand(987)).toEqual({
+    file: 'powershell.exe',
+    args: [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId | ConvertTo-Json -Compress',
+    ],
+    options: { encoding: 'utf8', timeout: 987, windowsHide: true },
+  })
+})
+
+test('descendant discovery timeout prevents cleanup success', async () => {
+  const app = {
+    close: async () => undefined,
+    process: () => ({ pid: 100 }),
+  }
+
+  await expect(boundedClose(app, 'unverified launch', {
+    discoveryTimeoutMs: 321,
+    execFileSync: () => { throw new Error('ETIMEDOUT') },
+    isPidAlive: () => false,
+    platform: 'darwin',
+    sleep: async () => undefined,
+  })).rejects.toThrow(/descendant snapshot failed/i)
+})
+
+test('windows forced cleanup runs the bounded owned-tree command', async () => {
+  const commands: unknown[][] = []
+  const app = {
+    close: async () => { throw new Error('renderer rejected close') },
+    process: () => ({ pid: 456 }),
+  }
+
+  await boundedClose(app, 'windows launch', {
+    closeTimeoutMs: 1,
+    discoveryTimeoutMs: 987,
+    execFileSync: (...args: unknown[]) => {
+      commands.push(args)
+      return args[0] === 'powershell.exe'
+        ? JSON.stringify({ ProcessId: 456, ParentProcessId: 1 })
+        : ''
+    },
+    forceTimeoutMs: 654,
+    isPidAlive: () => false,
+    platform: 'win32',
+    sleep: async () => undefined,
+  })
+
+  expect(commands).toEqual([[
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId | ConvertTo-Json -Compress',
+    ],
+    { encoding: 'utf8', timeout: 987, windowsHide: true },
+  ], [
+    'taskkill.exe',
+    ['/PID', '456', '/T', '/F'],
+    { encoding: 'utf8', timeout: 654, windowsHide: true },
+  ]])
+})
+
+test('windows cleanup rejects when the root exits but an owned child remains', async () => {
+  const livenessChecks: number[] = []
+  const app = {
+    close: async () => { throw new Error('renderer rejected close') },
+    process: () => ({ pid: 456 }),
+  }
+  const processTable = JSON.stringify([
+    { ProcessId: 456, ParentProcessId: 1 },
+    { ProcessId: 457, ParentProcessId: 456 },
+    { ProcessId: 999, ParentProcessId: 1 },
+  ])
+
+  await expect(boundedClose(app, 'windows child stuck', {
+    closeTimeoutMs: 1,
+    execFileSync: (file: string) => file === 'powershell.exe' ? processTable : '',
+    isPidAlive: (pid: number) => {
+      livenessChecks.push(pid)
+      return pid === 457
+    },
+    platform: 'win32',
+    quiescencePollMs: 1,
+    quiescenceTimeoutMs: 2,
+    sleep: async () => undefined,
+  })).rejects.toThrow(/owned process tree did not exit within 2ms/i)
+
+  expect(livenessChecks).toContain(457)
+  expect(livenessChecks).not.toContain(999)
+})
+
+test('forced cleanup rejects when the owned process tree does not exit', async () => {
+  const app = {
+    close: async () => { throw new Error('renderer rejected close') },
+    process: () => ({
+      pid: 100,
+      kill: () => undefined,
+      once: () => undefined,
+    }),
+  }
+
+  await expect(boundedClose(app, 'stuck launch', {
+    closeTimeoutMs: 1,
+    descendantGraceMs: 0,
+    execFileSync: () => '100 1\n101 100\n',
+    isPidAlive: () => true,
+    kill: () => undefined,
+    platform: 'darwin',
+    quiescencePollMs: 1,
+    quiescenceTimeoutMs: 2,
+    sleep: async () => undefined,
+    termTimeoutMs: 1,
+  })).rejects.toThrow(/owned process tree did not exit within 2ms/i)
 })
