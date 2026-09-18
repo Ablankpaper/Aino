@@ -20,6 +20,7 @@
     "electron",
     "shared",
     "brand.json",
+    "package.json",
     "../shared/src/data-url-read-max.ts",
     "../shared/src/translucency.ts",
     "../shared/src/json-rpc-gateway.ts",
