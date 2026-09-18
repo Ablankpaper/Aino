@@ -145,8 +145,34 @@ Failed runs retain product logs as well as the test transcript and recording.
 | Check | Revision And Result |
 | --- | --- |
 | Linux install/update matrix | `c8500cc125`, [run 35311606869](https://github.com/Ablankpaper/Aino/actions/runs/35311606869): 6 first-attempt successes, 2 recovered historical failures |
+| Windows install/update matrix | `2f05e1500f`, [run 35313398692](https://github.com/Ablankpaper/Aino/actions/runs/35313398692): 6 first-attempt successes, 3 recovered historical failures |
+| Native Windows runtime handoff | `babfdb2103`, [run 35314271282](https://github.com/Ablankpaper/Aino/actions/runs/35314271282): all steps passed, including 4 new runtime handoff cases |
 | Focused desktop launcher suite | 58 passed, 15 native-platform skips on macOS |
 | Updater stale-module regression suites | 76 passed |
+| Cron tracked-connection regressions | 26 passed through `scripts/run_tests.sh`; scoped Ruff passed |
+| Update notification and startup regressions | 35 passed; Electron TypeScript and scoped ESLint passed |
+
+The macOS diagnostic [run 35314445388](https://github.com/Ablankpaper/Aino/actions/runs/35314445388)
+passed six routes and failed two app-update routes after their update transactions
+had already succeeded. Both reopened Aino processes were sampled inside
+`NSAlert runModal`. The manual-action completion notice used an unparented
+`dialog.showMessageBox`; Electron's macOS implementation runs that notice in a
+blocking native modal loop even through its Promise API. The failure notice used
+the synchronous `showErrorBox` path.
+
+Both notices now wait for the main window to become visible and use a parented
+message box. Backend startup does not wait for acknowledgement. Behavior tests
+cover visible and initially hidden windows, both result types, single delivery,
+window closure and notification failure. The diagnostic screenshots also contain
+a macOS local-network permission prompt; that observation alone does not identify
+the application's modal stack as the system permission prompt.
+
+The Linux Python CI also exposed five cron test failures caused by obsolete
+SQLite test doubles. Tests now use real `TrackedConnection` subclasses and
+replace the injected connection factory without duplicate arguments. They still
+exercise real connection closure and a competing SQLite writer. Final full-suite
+and post-fix install/update receipts are linked from
+[PR #8](https://github.com/Ablankpaper/Aino/pull/8).
 
 The two recovered Linux cases start at the exact `v2026.8.27` release commit
 `5fc308a70719a83cccdbba4c0e39c23f5a8239d5`. Its already-running updater cannot
@@ -155,6 +181,29 @@ the target checkout has landed and the log contains that specific missing-symbol
 failure. The original transcript is preserved, a fresh updater runs once, and
 all post-update assertions must pass. Reports call these known historical
 failures, not first-attempt successes; failed recovery remains a failed job.
+
+Windows desktop updates now prepare an isolated repair environment, exit the live
+interpreter, synchronously repair the runtime from outside the live venv, and
+only then run the normal updater. The existing transactional replacement and
+SQLite checks remain authoritative. Native tests verify a real Win32 directory
+sharing violation, release-before-cutover, SQLite rollback and PowerShell failure
+propagation.
+
+The three recovered Windows app-update cases also start at the exact August
+release commit above. That release keeps its already-loaded PowerShell handoff
+and retries from the venv it must replace. Recovery requires the expected old
+module and runtime-refusal signatures plus the requested checkout already being
+present. A separate invocation of the newly installed production handoff then
+upgrades SQLite from 3.45.1 to 3.53.1. Each case verifies a fresh successful
+receipt, cleared marker, target SHA, safe SQLite, working CLI and a rendered Aino
+window. These are recovered historical failures, not first-attempt app updates;
+the window smoke does not establish authenticated business-flow coverage.
+
+This scope limit applies to every OS: install/update desktop smoke checks prove
+that the updated application renders its window, not that authenticated business
+flows work. The separately recorded native account/chat fixtures above provide
+their own narrower business-flow evidence. The inherited general CI Desktop E2E
+job is disabled upstream; its skipped status is not a desktop verification result.
 
 Aino has no published signed bootstrap installer. Windows and macOS tests that
 download a bootstrap are therefore unavailable until the repository variables
