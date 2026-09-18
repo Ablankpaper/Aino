@@ -23,7 +23,10 @@ const { prepareWindowForInput } = require(
 ) as { prepareWindowForInput: (app: ElectronApplication, page: Page) => Promise<void> }
 
 test('installer launch gate accepts the isolated Aino renderer and backend', async () => {
-  const fixture = await setupMockBackend({ extraDisplayConfig: '  language: en' })
+  const fixture = await setupMockBackend({
+    extraDisplayConfig: '  language: en',
+    extraConfig: 'account:\n  dev_mode: true',
+  })
 
   try {
     const accepted = await acceptDesktopLaunch(fixture.app, {
