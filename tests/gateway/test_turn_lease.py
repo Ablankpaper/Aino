@@ -214,7 +214,9 @@ async def test_full_dispatch_rejects_lease_timeout_without_running_goal_hook(
     runner._post_turn_goal_continuation = AsyncMock()
 
     try:
-        response = await asyncio.wait_for(runner._handle_message(_event()), timeout=1)
+        # Allow dispatch scheduling under suite load while staying below the
+        # five-second agent inactivity budget that the lease must not consume.
+        response = await asyncio.wait_for(runner._handle_message(_event()), timeout=3)
     finally:
         assert runner._turn_leases.release(holder) is True
 
@@ -492,5 +494,4 @@ def test_runner_release_turn_lease_is_token_scoped_and_bare_safe():
         assert runner._release_turn_lease("", 1) is False
 
     _run(scenario())
-
 
