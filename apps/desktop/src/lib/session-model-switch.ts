@@ -223,7 +223,11 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
 
   const targetSupportsReasoning =
     selection.provider !== 'aino' ||
-    Boolean(platformModelCatalog().state.get().models.find(model => model.id === selection.model)?.capabilities.reasoning)
+    Boolean(
+      platformModelCatalog()
+        .state.get()
+        .models.find(model => model.id === selection.model)?.capabilities.reasoning
+    )
 
   const paintTarget = () => paint(selection.model, selection.provider, targetPlatform)
   let accepted = false
@@ -275,13 +279,14 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
   }
 
   const reconcile = async () => {
-    const { session_info: info, providers } = await request<
-      ModelOptionsResult & { session_info?: SessionRuntimeInfo }
-    >('model.options', {
-      session_id: sessionId,
-      profile,
-      include_session_info: true
-    })
+    const { session_info: info, providers } = await request<ModelOptionsResult & { session_info?: SessionRuntimeInfo }>(
+      'model.options',
+      {
+        session_id: sessionId,
+        profile,
+        include_session_info: true
+      }
+    )
 
     if (!current()) {
       return false
@@ -299,7 +304,10 @@ export async function switchSessionModel(options: SwitchOptions): Promise<boolea
       ? {
           ...patch.platformModel,
           ownerUserId: patch.platformModel.ownerUserId || targetPlatform?.ownerUserId || previous.owner,
-          platformOrigin: patch.platformModel.platformOrigin || targetPlatform?.platformOrigin || previous.platformModel?.platformOrigin
+          platformOrigin:
+            patch.platformModel.platformOrigin ||
+            targetPlatform?.platformOrigin ||
+            previous.platformModel?.platformOrigin
         }
       : null
 

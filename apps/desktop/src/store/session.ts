@@ -1235,9 +1235,7 @@ function rescopeComposerSelection(nextScope: string | null, preserveLegacyLocalS
   // bridge after boot may have already painted that same local backend from the
   // legacy bare scope. This promotion preserves the user's existing intent.
   const preserveSelection =
-    preserveLegacyLocalSelection &&
-    composerSelectionScope === '' &&
-    nextScope === LOCAL_DEFAULT_REGISTRY_COMPOSER_SCOPE
+    preserveLegacyLocalSelection && composerSelectionScope === '' && nextScope === LOCAL_DEFAULT_REGISTRY_COMPOSER_SCOPE
 
   const previous = preserveSelection
     ? {
@@ -1306,7 +1304,6 @@ export const setConnection = (next: Updater<HermesConnection | null>) => {
   if (mode) {
     setApiRequestLocalMode(mode === 'local')
   }
-
 }
 
 export const setGatewayState = (next: Updater<ConnectionState>) => updateAtom($gatewayState, next)

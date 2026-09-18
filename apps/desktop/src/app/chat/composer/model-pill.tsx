@@ -187,8 +187,8 @@ export function ModelPill({
   const baseTitle = modelDefaultUnavailable
     ? copy.openModelPicker
     : currentProvider
-    ? copy.modelTitle(currentProvider, currentModel || copy.modelNone)
-    : copy.switchModel
+      ? copy.modelTitle(currentProvider, currentModel || copy.modelNone)
+      : copy.switchModel
 
   const title = pinnedOverride ? `${baseTitle} — ${copy.modelPinned}` : baseTitle
 
@@ -236,7 +236,9 @@ export function ModelPill({
             restoreSelection.current = null
           }
         }}
-        onInteractOutside={() => { restoreSelection.current = null }}
+        onInteractOutside={() => {
+          restoreSelection.current = null
+        }}
         side="top"
         sideOffset={8}
       >

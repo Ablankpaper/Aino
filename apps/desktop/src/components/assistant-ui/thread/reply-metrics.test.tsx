@@ -30,20 +30,22 @@ it('neutrally labels explicit non-Aino calls without claiming a local provider c
 it('keeps the Aino cost surface alongside a mixed-turn non-Aino disclosure', () => {
   render(
     <I18nProvider configClient={null} initialLocale="zh">
-      <ReplyMetrics metrics={{
-        duration_s: 2,
-        non_aino_model_calls: true,
-        billing: {
-          source: 'aino',
-          user_id: '17',
-          session_id: '6ccf86e3-f42c-4d1b-9fbe-9b7ea58a03ca',
-          turn_id: 'b8664a58-472a-4ba6-b853-94aadee41bb1',
-          status: 'pending',
-          calls: [{ call_id: 'cbec3bce-4de2-4fbe-a6ee-5ab3e7d990cb', purpose: 'chat' }],
-          calls_complete: true,
-          revision: 2
-        }
-      }} />
+      <ReplyMetrics
+        metrics={{
+          duration_s: 2,
+          non_aino_model_calls: true,
+          billing: {
+            source: 'aino',
+            user_id: '17',
+            session_id: '6ccf86e3-f42c-4d1b-9fbe-9b7ea58a03ca',
+            turn_id: 'b8664a58-472a-4ba6-b853-94aadee41bb1',
+            status: 'pending',
+            calls: [{ call_id: 'cbec3bce-4de2-4fbe-a6ee-5ab3e7d990cb', purpose: 'chat' }],
+            calls_complete: true,
+            revision: 2
+          }
+        }}
+      />
     </I18nProvider>
   )
 

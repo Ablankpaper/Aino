@@ -55,9 +55,7 @@ export function ReplyMetrics({ metrics, durationS }: ReplyMetricsProps) {
 
   const className = 'w-full min-w-0 text-[0.75rem] leading-5 text-muted-foreground tabular-nums'
 
-  const nonAinoModelCalls = metrics?.non_aino_model_calls
-    ? <div>{copy.nonAinoModelCalls}</div>
-    : null
+  const nonAinoModelCalls = metrics?.non_aino_model_calls ? <div>{copy.nonAinoModelCalls}</div> : null
 
   if (!details.length) {
     return (

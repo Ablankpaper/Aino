@@ -3745,10 +3745,14 @@ describe('platform model attachment capability', () => {
     await installPlatformModel(false)
     $composerDraft.set('keep this draft')
     $composerAttachments.set([image])
-    const requestGateway = vi.fn(async () => ({} as never))
+    const requestGateway = vi.fn(async () => ({}) as never)
     let handle: HarnessHandle | null = null
     await actRender(
-      <Harness onReady={value => (handle = value)} refreshSessions={async () => undefined} requestGateway={requestGateway} />
+      <Harness
+        onReady={value => (handle = value)}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+      />
     )
 
     expect(await handle!.submitText('describe it')).toBe(false)
@@ -3775,7 +3779,11 @@ describe('platform model attachment capability', () => {
 
     let handle: HarnessHandle | null = null
     await actRender(
-      <Harness onReady={value => (handle = value)} refreshSessions={async () => undefined} requestGateway={requestGateway} />
+      <Harness
+        onReady={value => (handle = value)}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+      />
     )
 
     expect(await handle!.submitText('describe it')).toBe(true)

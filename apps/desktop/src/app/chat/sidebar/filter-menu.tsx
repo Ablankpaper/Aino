@@ -208,6 +208,7 @@ export function SidebarFilterMenu({
     ...localizeFilterOption(option, filterLabels),
     ...(option.id === 'profile' ? { label: t.sidebar.gatewayGroups.grouping } : {})
   }))
+
   const groupingLabel = groupings.find(option => option.id === recentGrouping)?.label
 
   // Two options are conditional: dragging a row is what picks manual, so it

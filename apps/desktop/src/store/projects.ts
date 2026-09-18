@@ -359,6 +359,7 @@ function stillOnProjectsContext(context: ActiveProjectsContext): boolean {
 
 async function activeProjectsContext(profile = projectProfile()): Promise<ActiveProjectsContext> {
   const scope = $profileScope.get()
+
   if (!profile || profile === ALL_PROFILES) {
     throw new Error(translateNow('sidebar.projects.unavailableAllProfiles'))
   }

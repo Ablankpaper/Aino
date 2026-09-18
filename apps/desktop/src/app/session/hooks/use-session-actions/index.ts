@@ -306,7 +306,11 @@ function reconcileAuthoritativeMessages(
 async function desktopSessionCreateParams(
   cwd: string,
   capturedRoute = resolveNewChatOwnerRoute()
-): Promise<{ params: Record<string, unknown>; platformAuthority: PlatformDraftAuthority | null; platformOwner: string }> {
+): Promise<{
+  params: Record<string, unknown>
+  platformAuthority: PlatformDraftAuthority | null
+  platformOwner: string
+}> {
   // Send captures user intent before any I/O. Manual selections never join
   // default resolution; their provider, owner, effort and fast mode travel
   // together even if another pick arrives during profile readiness.
@@ -329,7 +333,9 @@ async function desktopSessionCreateParams(
     ? { connectionId: capturedRoute.connectionId, profile: capturedRoute.targetProfile || profile }
     : profile
 
-  const managedRoute = capturedRoute ? { connectionId: capturedRoute.connectionId, profile } : platformDefaultScope(profile).route
+  const managedRoute = capturedRoute
+    ? { connectionId: capturedRoute.connectionId, profile }
+    : platformDefaultScope(profile).route
 
   if (selectionSource !== 'manual') {
     // A persisted default or a live session's footer is not billing authority.
@@ -398,7 +404,8 @@ async function desktopSessionCreateParams(
   )
 
   const reasoningEffort =
-    selection.provider !== 'aino' || verifiedPlatformModel(selection.model, platformOwner, platformOrigin)?.capabilities.reasoning
+    selection.provider !== 'aino' ||
+    verifiedPlatformModel(selection.model, platformOwner, platformOrigin)?.capabilities.reasoning
       ? selection.effort
       : ''
 
@@ -661,8 +668,15 @@ export function useSessionActions({
         // reduce the owner to a bare profile name that later RPCs dial on a
         // different socket than the one that minted the runtime.
         const capturedRoute = resolveNewChatOwnerRoute()
-        const { params: baseParams, platformAuthority, platformOwner } = await desktopSessionCreateParams(cwd, capturedRoute)
-        const params: Record<string, unknown> = { ...baseParams, ...sessionCreateOverrideParams(createOverrides, seedMessages) }
+        const {
+          params: baseParams,
+          platformAuthority,
+          platformOwner
+        } = await desktopSessionCreateParams(cwd, capturedRoute)
+        const params: Record<string, unknown> = {
+          ...baseParams,
+          ...sessionCreateOverrideParams(createOverrides, seedMessages)
+        }
 
         // Lease the owner socket for the whole create → owner-publication
         // sequence (#93602 primitive). The per-request lease inside
@@ -673,9 +687,10 @@ export function useSessionActions({
         const managedProfileOnly = !capturedRoute && params.model_source === 'aino'
         const createProfile = capturedRoute?.profile || String(params.profile || 'default')
 
-        const releaseCreateLease = capturedRoute || managedProfileOnly
-          ? await retainGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile)
-          : () => undefined
+        const releaseCreateLease =
+          capturedRoute || managedProfileOnly
+            ? await retainGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile)
+            : () => undefined
 
         let created: SessionCreateResponse
         let stored: null | string
@@ -733,11 +748,12 @@ export function useSessionActions({
             // Close on the backend that minted the session: the ambient socket
             // is a different machine/profile for a routed create and would
             // 4001 while the orphan lives on (and later ws-orphan-reaps) there.
-            const closeCreated = capturedRoute || managedProfileOnly
-              ? requestGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile, 'session.close', {
-                  session_id: created.session_id
-                })
-              : requestGateway('session.close', { session_id: created.session_id })
+            const closeCreated =
+              capturedRoute || managedProfileOnly
+                ? requestGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile, 'session.close', {
+                    session_id: created.session_id
+                  })
+                : requestGateway('session.close', { session_id: created.session_id })
 
             await closeCreated.catch(() => undefined)
 
@@ -900,9 +916,10 @@ export function useSessionActions({
         const managedProfileOnly = !capturedRoute && prepared.params.model_source === 'aino'
         const createProfile = capturedRoute?.profile || String(prepared.params.profile || 'default')
 
-        const releaseCreateLease = capturedRoute || managedProfileOnly
-          ? await retainGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile)
-          : () => undefined
+        const releaseCreateLease =
+          capturedRoute || managedProfileOnly
+            ? await retainGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile)
+            : () => undefined
 
         let created: SessionCreateResponse
         let stored: string | undefined
@@ -934,11 +951,12 @@ export function useSessionActions({
           }
 
           if (!stored) {
-            const closeCreated = capturedRoute || managedProfileOnly
-              ? requestGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile, 'session.close', {
-                  session_id: created.session_id
-                })
-              : requestGateway('session.close', { session_id: created.session_id })
+            const closeCreated =
+              capturedRoute || managedProfileOnly
+                ? requestGatewayForAgent(capturedRoute?.connectionId ?? null, createProfile, 'session.close', {
+                    session_id: created.session_id
+                  })
+                : requestGateway('session.close', { session_id: created.session_id })
 
             await closeCreated.catch(() => undefined)
             notify({ kind: 'error', title: copy.sessionUnavailable, message: copy.createSessionFailed })

@@ -877,6 +877,7 @@ interface ToolRunState {
 // when a call arrives or one finishes; cache on exactly that.
 function useToolRun(startIndex: number, endIndex: number, copy: ToolRunCopy): ToolRunState {
   const { locale } = useI18n()
+
   const cache = useRef<null | {
     copy: ToolRunCopy
     signature: string
