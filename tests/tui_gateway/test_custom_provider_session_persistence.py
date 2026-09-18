@@ -731,6 +731,44 @@ def _agent_like(model="deepseek/deepseek-v4-flash-0731", provider=""):
 
 
 class TestRuntimeModelConfigDropsStaleKeys:
+    def test_managed_config_preserves_session_runtime_without_secrets(self):
+        from tui_gateway.server import _runtime_model_config
+
+        agent = _agent_like()
+        agent._managed_model_metadata = {
+            "model_source": "aino",
+            "model_id": "fixture-a",
+            "model": "fixture-upstream",
+            "api_mode": "anthropic_messages",
+            "platform_owner": {"platform_origin": "https://aino.example", "user_id": "user-one"},
+            "api_key": "managed-secret",
+            "base_url": "https://aino.example/v1",
+            "credential_id": "credential-secret",
+        }
+        existing = {
+            "max_iterations": 4,
+            "reasoning_config": {"enabled": False},
+            "max_tokens": 1024,
+            "yolo_mode": True,
+            "_delegate_from": "parent-session",
+            "api_key": "existing-secret",
+            "base_url": "https://existing-secret.example/v1",
+        }
+
+        assert _runtime_model_config(agent, existing) == {
+            "max_iterations": 4,
+            "reasoning_config": {"enabled": False},
+            "max_tokens": 1024,
+            "yolo_mode": True,
+            "_delegate_from": "parent-session",
+            "model_source": "aino",
+            "model_id": "fixture-a",
+            "model": "fixture-upstream",
+            "api_mode": "anthropic_messages",
+            "platform_owner": {"platform_origin": "https://aino.example", "user_id": "user-one"},
+            "provider": "aino",
+        }
+
     def test_falsy_provider_drops_stale_existing_provider(self):
         """Agent inherits the profile default (empty provider): the previously
         persisted provider must NOT survive the merge."""
@@ -845,5 +883,4 @@ class TestRuntimeModelConfigDropsStaleKeys:
         config = _runtime_model_config(_agent_like(provider="nous"), None)
 
         assert config == {"model": "deepseek/deepseek-v4-flash-0731", "provider": "nous"}
-
 

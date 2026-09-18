@@ -174,6 +174,7 @@ def _expensive_model_confirm(result, current_base_url: str, current_api_key, age
 
 def _commit_agent_switch(sid: str, session: dict, agent, result, current_model: str, snapshot):
     """Swap the live agent in place, then restart/persist/mark/announce; a failed swap aborts."""
+    managed_transition = result.target_provider == "aino" or bool(session.get("managed_model_params"))
     try:
         agent.switch_model(
             new_model=result.new_model, new_provider=result.target_provider, api_key=result.api_key,
@@ -194,6 +195,8 @@ def _commit_agent_switch(sid: str, session: dict, agent, result, current_model: 
     elif session.get("managed_model_params") and result.target_provider != "aino":
         from .managed_session import release_selection
         release_selection(sid, session)
+    if managed_transition:
+        _sync_agent_session_model_config(agent)
     _restart_slash_worker(sid, session)
     _persist_live_session_runtime(session)
     _persist_live_session_system_prompt(session)

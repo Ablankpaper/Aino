@@ -1579,7 +1579,8 @@ def _runtime_model_config(agent, existing: dict | None = None) -> dict:
     from .managed_session import managed_metadata
     if managed := managed_metadata(getattr(agent, "_managed_model_metadata", None)):
         return {**{k: v for k, v in config.items() if k in (
-            "_branched_from", "room_plumbing", "follow_profile_config", "reasoning_config", "service_tier")},
+            "_branched_from", "_delegate_from", "room_plumbing", "follow_profile_config",
+            "max_iterations", "reasoning_config", "max_tokens", "yolo_mode", "service_tier")},
             **managed, "provider": "aino"}
     for key in ("model_source", "platform_owner", "model_id"):
         config.pop(key, None)
@@ -1606,6 +1607,12 @@ def _runtime_model_config(agent, existing: dict | None = None) -> dict:
         else:
             config.pop(key, None)
     return config
+
+
+def _sync_agent_session_model_config(agent) -> None:
+    """Keep compression/child persistence on the gateway's canonical runtime projection."""
+    agent._session_init_model_config = _runtime_model_config(
+        agent, getattr(agent, "_session_init_model_config", None))
 
 
 def _persist_live_session_runtime(session: dict | None) -> None:
@@ -2400,6 +2407,7 @@ def _make_agent(
         **_agent_cbs(sid))
     if managed_model_params:
         agent._managed_model_metadata = managed_metadata(managed_model_params)
+        _sync_agent_session_model_config(agent)
     if context_cwd_is_launch_artifact is None:
         context_cwd_is_launch_artifact = _context_cwd_is_launch_artifact(session)
     agent._context_cwd_is_launch_artifact = bool(context_cwd_is_launch_artifact)

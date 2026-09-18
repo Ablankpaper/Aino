@@ -234,43 +234,128 @@ def test_managed_refusals_are_not_replayed_or_sent_to_byok(managed_gateway, stat
     assert not any(r[1] == "Bearer byok-fixture-key" for r in f.requests)
 
 
+@pytest.mark.parametrize("protocol", ["chat_completions", "anthropic_messages", "responses"])
 @pytest.mark.parametrize("named_profile", [False, True])
-def test_billing_identity_survives_compression_resume_but_not_a_branch(managed_gateway, tmp_path, named_profile):
+def test_billing_identity_survives_compression_resume_but_not_a_branch(
+        managed_gateway, tmp_path, named_profile, protocol):
     import json
+    import yaml
+    from agent.context_compressor import is_compaction_summary_message
     from hermes_cli.profiles import get_profile_dir
     from tests.tui_gateway.test_managed_model_agent import result
     from tui_gateway import server as srv
-    from tui_gateway.managed_session import runtime_for_session
+
     f = managed_gateway
+
+    def normalize_headers(headers):
+        return {key.lower(): value for key, value in headers.items()}
+
+    config_path = tmp_path / "config.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config.setdefault("compression", {})["in_place"] = False
+    config_path.write_text(yaml.safe_dump(config))
+    f.protocol = protocol
     if named_profile:
         f.profile = "billing-fixture"
         profile = get_profile_dir(f.profile)
         assert profile.is_relative_to(tmp_path)
         profile.mkdir(parents=True)
-        (profile / "config.yaml").write_text((tmp_path / "config.yaml").read_text())
+        (profile / "config.yaml").write_text(config_path.read_text())
+
     draft = f.create()
-    sid, stored = draft["session_id"], draft["stored_session_id"]
+    sid, parent = draft["session_id"], draft["stored_session_id"]
     f.bind(sid)
-    f.submit(sid, "Read the fixture file")
-    _, runtime = runtime_for_session(sid)
-    initial = runtime["api_key"].session_id
+    compressible_context = "retain this compression probe context " * 700
+    for prompt in ("Read the fixture file", "Explain its contents: " + compressible_context,
+                   "Check it once more"):
+        f.submit(sid, prompt)
+
+    with srv._sessions[sid]["history_lock"]:
+        pre_compression_history = list(srv._sessions[sid]["history"])
+    captured_before_compression = len(f.requests)
+    captured = [
+        (normalize_headers(headers), body)
+        for headers, (_, _, body) in zip(f.request_headers, f.requests)
+    ]
+    baseline_headers, _ = next(
+        (headers, body) for headers, body in captured
+        if headers.get("x-aino-purpose") == "chat"
+    )
+    billing_session_id = baseline_headers["x-aino-session-id"]
+    baseline_turn_id = baseline_headers["x-aino-turn-id"]
+    baseline_call_id = baseline_headers["x-aino-call-id"]
+
+    compressed = result(f.call("session.compress", session_id=sid))
+    assert compressed["status"] == "compressed"
+    tip = srv._sessions[sid]["session_key"]
+    assert tip != parent
     with srv._session_db(srv._sessions[sid]) as db:
-        metadata = json.loads(db.get_session(stored)["model_config"])
-        db.end_session(stored, "compression")
-        result(f.call("session.close", session_id=sid))
-        assert db.get_session(stored)["end_reason"] == "compression"
-        tip = "fixture-compressed-" + str(UUID(initial))
-        db.create_session(tip, source="desktop", parent_session_id=stored,
-                          model="fixture-upstream", model_config=metadata)
-        assert db.get_compression_lineage(tip) == [stored, tip]
-        resumed = result(f.call("session.resume", session_id=tip, source="desktop", lazy=True))
-        sid = resumed["session_id"]
-        f.sessions.append(sid)
-        f.bind(sid)
-        _, runtime = runtime_for_session(sid)
-        assert runtime["api_key"].session_id == initial
-        branch = result(f.call("session.branch", session_id=sid, name="separate billing"))
-        f.sessions.append(branch["session_id"])
-        f.bind(branch["session_id"])
-        _, runtime = runtime_for_session(branch["session_id"])
-        assert runtime["api_key"].session_id != initial
+        assert db.get_session(parent)["end_reason"] == "compression"
+        assert db.get_compression_lineage(tip) == [parent, tip]
+    with srv._sessions[sid]["history_lock"]:
+        compressed_history = list(srv._sessions[sid]["history"])
+    assert len(compressed_history) < len(pre_compression_history)
+    assert any(is_compaction_summary_message(message) for message in compressed_history)
+
+    compression_headers = [
+        headers for headers in map(normalize_headers, f.request_headers[captured_before_compression:])
+        if headers.get("x-aino-purpose") == "compression"
+    ]
+    assert compression_headers
+    compression = compression_headers[0]
+    assert compression["x-aino-session-id"] == billing_session_id
+    assert compression["x-aino-turn-id"]
+    assert compression["x-aino-call-id"]
+    assert compression["x-aino-turn-id"] != baseline_turn_id
+    assert compression["x-aino-call-id"] != baseline_call_id
+
+    result(f.call("session.close", session_id=sid))
+    resumed = result(f.call("session.resume", session_id=tip, source="desktop"))
+    resumed_sid = resumed["session_id"]
+    f.sessions.append(resumed_sid)
+    with srv._sessions[resumed_sid]["history_lock"]:
+        restored_history = list(srv._sessions[resumed_sid]["history"])
+    assert len(restored_history) < len(pre_compression_history)
+    assert any(is_compaction_summary_message(message) for message in restored_history)
+
+    f.bind(resumed_sid)
+    resumed_start = len(f.requests)
+    f.submit(resumed_sid, "Continue from the compacted handoff")
+    resumed_requests = [
+        (headers, body)
+        for headers, (_, _, body) in zip(
+            map(normalize_headers, f.request_headers[resumed_start:]), f.requests[resumed_start:])
+        if headers.get("x-aino-purpose") == "chat"
+    ]
+    resumed_handoff = next((
+        (headers, body) for headers, body in resumed_requests
+        if "CONTEXT COMPACTION" in json.dumps(body)
+    ), None)
+    assert resumed_handoff is not None
+    resumed_headers, resumed_body = resumed_handoff
+    assert resumed_headers["x-aino-session-id"] == billing_session_id
+    assert resumed_headers["x-aino-turn-id"]
+    assert resumed_headers["x-aino-turn-id"] not in {
+        baseline_turn_id, compression["x-aino-turn-id"]}
+    assert resumed_headers["x-aino-call-id"]
+    assert resumed_headers["x-aino-call-id"] not in {
+        baseline_call_id, compression["x-aino-call-id"]}
+    assert "CONTEXT COMPACTION" in json.dumps(resumed_body)
+
+    branch = result(f.call("session.branch", session_id=resumed_sid, name="separate billing"))
+    branch_sid = branch["session_id"]
+    f.sessions.append(branch_sid)
+    f.bind(branch_sid)
+    branch_start = len(f.requests)
+    f.submit(branch_sid, "Read this branch independently")
+    branch_headers = next(
+        headers for headers in map(normalize_headers, f.request_headers[branch_start:])
+        if headers.get("x-aino-purpose") == "chat"
+    )
+    assert branch_headers["x-aino-session-id"] != billing_session_id
+    assert branch_headers["x-aino-turn-id"]
+    assert branch_headers["x-aino-turn-id"] not in {
+        baseline_turn_id, compression["x-aino-turn-id"], resumed_headers["x-aino-turn-id"]}
+    assert branch_headers["x-aino-call-id"]
+    assert branch_headers["x-aino-call-id"] not in {
+        baseline_call_id, compression["x-aino-call-id"], resumed_headers["x-aino-call-id"]}
