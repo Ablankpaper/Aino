@@ -1,6 +1,12 @@
 # D：验收、上线与交付 Implementation Plan
 
-## 本地收尾回写（2026-09-18）
+## 当前同步与配对回写（E42，2026-09-18）
+
+[E42](../implementation/aino-platform-integration-20260918.json) 记录 merge `7f63770421`、runtime 修复 `b94af3dd65` 与业务构建 `4a2fcaf2ad`／夹具 `b9249bf5a5`／API `d15c202c6` 的配对验收。核心、压缩恢复账本、迟到租约、同站点及跨站点隔离五条场景最终通过；初次同站点/core 5 秒超时保留，夹具修正后显式复验，无自动重试。分层检查与历史来源见交付报告及矩阵，不据此勾选全部 D。
+
+原生压缩账本缺口由 E42 关闭。I1 安装登录夹具为本轮范围外发行门禁；fresh SMS 不等于记住登录，签名/公证、其它平台/远程及真实服务仍待验收。推送事实留待实际执行后记录。
+
+## 前轮本地收尾回写（E38–E41，2026-09-18，历史）
 
 本次新增 E38–E40，详见[交付报告](../implementation/aino-platform-delivery.md)和[验收矩阵](../implementation/aino-platform-acceptance-matrix.md)：压缩恢复修复 6 项通过；上游合并后的配对 Aino `c0620226c0` / API `f2feefbfc3` 构建及两条关键原生业务切片通过；启动夹具 `0b30ad930c` 完成隔离开发登录后真实主窗口/设置/后台检查通过，并恢复 production main/preload。两个前置登录失败保留，不将单元绿灯冒充原生通过。
 
@@ -150,7 +156,7 @@ pnpm --dir frontend run build
 
 `make test` 包含默认Go测试和golangci-lint，不能代替unit/integration tags。生成后`git diff`若出现非任务生成漂移，定位原因，不能直接一起提交。
 
-- [ ] **Step 2：Aino质量门禁。** 本轮已完成下列计划范围Python、完整UI／Electron／types／lint及开发构建，原生按三条新切片执行，回执E31–E34；未将选择性原生运行标成整份spec重跑或正式包验收。在Aino根目录使用：
+- [ ] **Step 2：Aino质量门禁。** E42 实际完成 7 文件 Python 728 项、完整 UI 8,274 项、Electron 2,356 项/6 原有跳过、35 项安装 helper/driver 与 3 套 TS 检查，并完成五条配对原生场景；按各次运行源码保存结果。E31–E34 的历史广泛回归保留原归属；本次没有重跑下列完整 Python 目录或全部原生/正式包矩阵，不合并声称整套全绿。在 Aino 根目录使用：
 
 ```sh
 scripts/run_tests.sh tests/tui_gateway/ tests/agent/ tests/plugins/ tests/hermes_cli/
@@ -242,8 +248,8 @@ npx playwright test e2e/platform-account-model-billing.spec.ts
 ```
 
 - [ ] **Step 1：检查差异与提交范围。** 两仓库 `git diff --check`、branch diff、status；本地含秘密文件不入Git，sample配置无真实密钥/手机号；lockfiles与生成物可解释。没有把未提交用户改动混进本任务。
-- [x] **Step 2：对照矩阵写报告。** E18–E37 保留各自历史源码与证据；本次 E38 实际压缩恢复、E39 当前配对构建与核心/迟到租约原生、E40 启动修复及 production bundle 恢复均有脱敏回执。报告区分前置登录失败与后续成功、历史全量与当前定向验证、开发构建与正式包；签名发行、其余原生/多平台及真实服务门禁仍未完成，不因报告完成而勾选整个 D。
-- [ ] **Step 3：交付用户。** 给出两仓库分支/commit、阅读入口、安装包/启动方式、已完成与待联调项；有推送授权才推到自有origin，未授权只提供本地结果。
+- [x] **Step 2：对照矩阵写报告。** E42 追加当前同步、runtime P2 关闭、五条配对原生场景和各组分层检查；E18–E41 的原源码、失败与覆盖边界不改写。初次同站点/core 5 秒超时与夹具修正后的显式复验分别保留；I1 安装登录夹具、正式签名、其它平台/远程及真实服务仍开放，不因报告完成勾选全部 D。
+- [ ] **Step 3：交付用户。** 给出两仓分支/提交、实际构建戳、E42 阅读入口与剩余门禁；按已有授权推送自有 origin 业务分支后才记录推送事实。源码交付不等于安装包/生产发行，未执行的动作不标完成。
 - [ ] **Step 4：Codex接手时检查以下实质问题。** 这一步是后续复核责任，不在没有执行结果时打勾通过。
 
 | 复核重点 | 必看证据/红线 |

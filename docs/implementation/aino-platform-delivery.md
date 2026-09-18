@@ -1,6 +1,12 @@
 # Aino 平台接入交付报告
 
-## 本次交付摘要（2026-09-18）
+## 当前交付摘要（E42，2026-09-18）
+
+业务分支已整合 main v0.21.3 修复（`7f63770421`）。[E42](aino-platform-integration-20260918.json) 记录业务构建 `4a2fcaf2ad`／原生夹具 `b9249bf5a5` 与 API `d15c202c6` 的配对来源：核心业务、压缩恢复与账本、迟到租约、同站点及跨站点隔离五条原生场景最终通过。`b94af3dd65` 关闭模型切换/一次覆盖还原后的压缩快照 P2；相关 Python 728 项、完整 UI 8,274 项、Electron 2,356 项/6 原有跳过、35 项安装 helper/driver 与 3 套 TS 检查通过，具体范围及运行源码分开保存。
+
+首次同站点/core 5 秒超时保留；修正冷初始化等待夹具后显式复验，无自动重试。最后 cross/core 联合命令 exit 0，外层命令耗时 287,393 ms（Playwright 内部统计为 287,078.681 ms）；运行后源码 clean、两端 dist 不变，随后 production bundle 恢复及 assert-dist 检查 exit 0。重启使用 fresh SMS，供应商为 loopback 替身。I1 安装登录夹具、正式包签名/公证、其它平台及真实服务仍开放；本次是源码同步与隔离业务验收，不是完整安装/更新或上线通过单。历史 E38–E41 如下，推送状态按实际执行另行记录。
+
+## 前轮交付摘要（E38–E41，2026-09-18，历史）
 
 最新修复检查点 `ec33331aa6`：[E41](aino-platform-compression-status-20260918.json) 关闭防增长压缩的错误成功反馈。后端 667 项、桌面 150 项定向回归通过（依据实现报告，无原始日志），类型检查/scoped lint 通过，独立复核无问题；没有改变压缩政策或历史。以下 E38–E40 的构建和运行来源保持不变，原生压缩结算另行验收。
 
@@ -78,10 +84,10 @@
 
 | 仓库 | 分支 | 本次恢复基线 | 最新已核对提交 |
 | --- | --- | --- | --- |
-| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | 业务构建 `c0620226c03d30cbbe0a47845f935efe1b9dae2e`；启动夹具与 production main 恢复 `0b30ad930c19a5731f33ad62a6ef813be9112e73`；本报告提交不改变业务源码 |
-| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | `f2feefbfc3f58f035bb1ef053c5a1826e33dd602`，已合并上游 v0.2.5；旧结果保留原配对，不声明合并后的全部质量门禁通过 |
+| Aino | `codex/aino-platform-identity-models-billing` | `ba76603774` | E42 业务构建 `4a2fcaf2ad`；原生夹具 `b9249bf5a5`；合并 `7f63770421`、运行时修复 `b94af3dd65`；文档提交不重记构建戳 |
+| Aino-API | `codex/aino-platform-identity-models-billing` | `f6b8849e0` | E42 夹具 `d15c202c6`；生产基线 `f2feefbfc3` 已合并上游 v0.2.5，其后两提交仅改 native fixture；历史全量结果保留原配对 |
 
-当前 A1–A6、B1–B5、C1–C4 本地实现与已有复核保留；B6 主流程和 D1 现有原生用例已获得复验。D1–D4 完整矩阵仍有未验收条件，不能用单条成功路径全选通过。两仓库没有推送、合并 main、部署生产或进行真实短信、付费模型和支付调用。
+当前 A1–A6、B1–B5、C1–C4 本地实现与已有复核保留；E42 补充当前配对的五条原生复验。D1–D4 完整矩阵仍有未验收条件，不能全选通过。本轮合并方向为 main → 业务分支，没有将业务合并回 main、部署生产或调用真实短信、付费模型与支付服务；推送以实际回执为准。
 
 历史核心原生证据：`/private/tmp/aino-native-final-verified-Os7n6L/`（命令/退出码/精确源码 diff/367 个构建文件哈希）；API `aino-native-api-9efh0G`。原始回执 SHA-256 `7b5872bb4a94e3700e07f7246a330fd4d5e082b6f9612f0137bd0ee729b9d80c`；[脱敏受控副本](aino-platform-native-acceptance-20260917.json)随源码保存。测试时为 `3e62f7803d` 加记录的 test-only diff，随后提交为 `32c0ca8eae`。重启使用 fresh SMS 重新登录，不宣称“记住登录”自动恢复。本轮工作区、跨端充值及 UI 的独立证据入口见矩阵 E21–E25。
 
@@ -193,7 +199,9 @@ Ent 下载和缺失 go.sum 已解决，原锁定版本成功生成并提交实�
 4. 正式签名发行仍未验收：E37 已在历史 Aino `a2ff532db2` / API `93082b333` 的未签名 macOS 包证明默认 Chromium sandbox 下业务可运行，不再只有早期 `--no-sandbox` 烟测。E40 是开发登录夹具的主窗口/设置/后台验收及 production bundle 恢复，不是新签名包。签名/公证包、生产备份截止点、真实渠道与生产回退仍待验证。
 5. 本地配对业务/夹具提交、开发构建清单、配置和部署回退说明已记录；正式发行制品与线上配置仍须按操作单核对，新增 SQL 保持 forward-only。
 6. 缺少外部材料或授权的项目列为人工验收项，完成其余本地开发；不盲目重复受阻命令。
-7. `session.compress` 对 `would_grow` 的返回状态和桌面反馈已由 E41 关闭；E38 只证明实际压缩、恢复和协议回放，原生账本结算仍待验收。
+7. `would_grow` 状态反馈由 E41 关闭；原生压缩恢复与 API 账本结算已由 E42 关闭，E38 的原分层边界保持不变。fresh SMS 重启不是记住登录，真实供应商结算仍待验收。
+8. **I1 安装登录夹具：** packaged install driver 尚缺隔离账户登录前置条件；这是本轮范围外的发行门禁，不绕过鉴权、不削弱 Settings/backend 检查。35 项 helper/driver 测试及历史 main 安装矩阵不能替代当前集成树的 packaged install/update 验收。
+9. **压缩计数待核查：** 模型切换的真实集成 harness 曾观察到内存历史 6 条、持久历史从 10 条压缩为 7 条，但 RPC `removed=-1`。本次修复只关闭运行时路由快照问题，未修改该计数边界；尚未证明原生用户影响或其是否仅由测试构造触发。本次原生压缩回执为 12→10、`removed=2`，不外推到所有模型切换场景。
 
 ## 发布判断
 

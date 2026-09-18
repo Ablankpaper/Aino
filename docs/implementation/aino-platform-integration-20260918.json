@@ -1,0 +1,989 @@
+{
+  "evidence_id": "E42",
+  "date": "2026-09-18",
+  "status": "authorized_source_integration_and_selected_paired_validation_complete",
+  "scope": "Merge verified main into the Aino business branch and validate paired login, tool chat, compression recovery, account isolation and usage accounting. No release, deployment, real SMS, model charges or payments.",
+  "provenance": {
+    "branch": "codex/aino-platform-identity-models-billing",
+    "original_aino_head": "286716fddaf0497348cd4e650aa3e54f49159c5d",
+    "incorporated_main": "0ca10ab1a539a4559797ec2cffa5fcf0794a4767",
+    "merge_commit": "7f637704219728fde75f72bb2c6a7cc7cf23ef2f",
+    "runtime_fix": "b94af3dd65bfa291794c4884527b41ef4f9ccc9d",
+    "aino_build_source": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+    "final_native_fixture_source": "b9249bf5a5b35e3b2347d8ee0a231d0345f26ae1",
+    "api_source": "d15c202c665db26a8ce1aec0629193633d5e887e",
+    "api_production_baseline": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602",
+    "api_changes_after_baseline": "Two integration/nativeconsumer fixture-only commits; production API unchanged.",
+    "original_pending_patch": {
+      "sha256": "6d0c3d25e640b55aeae3c3f855cebf66c717ddfa597ff0819d87be6d3bada27b",
+      "preserved_stash": "620df6d187f13b138c8b300744a216d74b2d776f",
+      "local_backup": "/private/tmp/aino-business-integration-original.patch",
+      "resolution": "Preserved separately; committed fixture 4a2fcaf2ad places the long second turn in the actual compression window."
+    },
+    "distribution": "Receipt prepared before authorized normal fast-forward push to the two origin business branches. Final remote refs establish delivery; main is not a delivery target."
+  },
+  "fixes": [
+    {
+      "commit": "7f63770421",
+      "change": "Resolve installation merge conflicts while retaining authenticated Settings/backend launch acceptance, fresh update receipts, SHA progression, process cleanup and artifact recapture.",
+      "validation": "Initial launch driver unit fixture failed; corrected to real temporary Git commits and fresh update evidence. Final 24 helper and 11 driver/acceptance tests passed. This is not a packaged install/update matrix."
+    },
+    {
+      "commit": "b94af3dd65",
+      "change": "Synchronize compression runtime snapshots at the shared live-session persistence boundary so permanent model switches and --once restoration retain the correct model, provider and credential routing.",
+      "red_green": "Permanent BYOK B route failed on baseline; gate-only candidate failed --once restore; final shared persistence passed both real loopback/SQLite/compression/reopen cases."
+    },
+    {
+      "commit": "4a2fcaf2ad",
+      "change": "Keep short first and third native messages and a 400-repeat second message inside the real compression window. Compression, history removal, fresh binding and accounting assertions retained."
+    },
+    {
+      "commit": "b9249bf5a5",
+      "change": "Bound joint concurrent-arrival observation at 30 seconds and each resumed tool/usage poll at 60 seconds; keep exact overlap, zero gate timeout, owner and ledger assertions. No production or API gate changes.",
+      "timing_interpretation": "Successful reruns observed approximately 3.9–4.1 seconds to joint overlap and 2.936 seconds for resumed roundtrip; these do not themselves reproduce >5 seconds. Earlier successful initial core cold turn accepted after 6.437 seconds, supporting the diagnosed 5-second fixture budget problem."
+    }
+  ],
+  "validation": {
+    "python": {
+      "source_content_committed_as": "b94af3dd65",
+      "files": 7,
+      "passed": 728,
+      "failed": 0,
+      "file_retries": 0,
+      "duration_seconds": 38.6,
+      "command": "scripts/run_tests.sh tests/tui_gateway/test_model_switch_compression_runtime.py tests/tui_gateway/test_managed_model_agent.py tests/tui_gateway/test_managed_usage_correlation.py tests/tui_gateway/test_custom_provider_session_persistence.py tests/tui_gateway/test_model_switch_reasoning_flag.py tests/tui_gateway/test_tui_gateway_server.py tests/agent/test_switch_model_rollback.py --file-retries 0 -- --tb=short",
+      "scope": "Focused affected integration paths, not the full repository suite."
+    },
+    "desktop_ui": {
+      "source": "7f637704219728fde75f72bb2c6a7cc7cf23ef2f",
+      "files_passed": 939,
+      "passed": 8274,
+      "failed": 0,
+      "duration_seconds": 130.25,
+      "scope": "Full UI suite; renderer production source unchanged by later runtime/fixture commits."
+    },
+    "electron": {
+      "source": "7f637704219728fde75f72bb2c6a7cc7cf23ef2f",
+      "files_passed": 196,
+      "files_skipped": 2,
+      "passed": 2356,
+      "skipped": 6,
+      "failed": 0,
+      "duration_seconds": 5.79,
+      "scope": "Full Electron suite; six existing skipped cases remain unverified."
+    },
+    "installer_helpers": {
+      "source_content_committed_as": "7f63770421",
+      "helper_tests_passed": 24,
+      "driver_acceptance_tests_passed": 11,
+      "failed_after_fixture_repair": 0,
+      "not_a_native_installer_matrix": true
+    },
+    "static_checks": {
+      "desktop_three_ts_configs": "passed",
+      "native_fixture_e2e_ts_and_scoped_eslint": "passed at b9249bf5a5",
+      "runtime_ruff": "passed",
+      "merge_shell_and_js_syntax": "passed",
+      "diff_check": "passed"
+    },
+    "api": {
+      "source": "d15c202c665db26a8ce1aec0629193633d5e887e",
+      "dependency_install": "CI=true corepack pnpm@9.15.9 install --frozen-lockfile",
+      "locale_tests_passed": 3,
+      "typecheck": "passed",
+      "vite_build": "passed",
+      "production_source_changed": false,
+      "environment_note": "Initial global pnpm 11 altered the lockfile; only that generated change was restored, then pinned pnpm 9.15.9 dependencies and checks were used."
+    }
+  },
+  "builds": {
+    "source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+    "desktop_files": 421,
+    "desktop_native_manifest_sha256": "6d65df1555f70b9850d7576e7fabe1a86e30f9ed41b7b4c993d13a2a5375bf3b",
+    "api_files": 182,
+    "api_manifest_sha256": "2529701ad118d55d5281c9635d34d316b379473828aa90ee0cd54fb4ada8d5fc",
+    "native_mode": "Production renderer plus development Electron main/preload for isolated API-origin mapping.",
+    "source_and_dist_unchanged_through_native_runs": true,
+    "production_bundle_restored_after_native": {
+      "command": "node scripts/bundle-electron-main.mjs && node scripts/assert-dist-built.mjs",
+      "exit_code": 0
+    },
+    "packaging": "No new signed installer or release artifact generated."
+  },
+  "native": {
+    "schema_version": 1,
+    "sanitization": {
+      "method": "Explicit typed field allowlist; receipts are never copied wholesale.",
+      "included_account_identifier": "Only numeric fixture user_id where requested.",
+      "excluded": [
+        "credentials",
+        "access tokens",
+        "refresh tokens",
+        "SMS codes",
+        "account names",
+        "email addresses",
+        "phone numbers",
+        "origins",
+        "URLs",
+        "filesystem paths",
+        "runtime IDs",
+        "session IDs",
+        "turn IDs",
+        "call IDs",
+        "API key IDs",
+        "raw error text"
+      ]
+    },
+    "provenance": {
+      "initial_test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+      "rerun_test_source_sha": "b9249bf5a5b35e3b2347d8ee0a231d0345f26ae1",
+      "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+      "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+      "rerun_aino_dist_unchanged": true,
+      "rerun_api_dist_unchanged": true,
+      "initial_source_manifest_sha256": "8aaff93e10c9c8a45cb7c84d6c4b97576b4752e78ea1d68cd851a5e077729e1d",
+      "rerun_source_manifest_sha256": "c397ccfb8abb636d3f3fc42c920fb240a75e2fbb0b0c14f3f7708aa0d5381bf9",
+      "rerun_after_source_manifest_sha256": "c397ccfb8abb636d3f3fc42c920fb240a75e2fbb0b0c14f3f7708aa0d5381bf9",
+      "rerun_source_clean_and_dist_unchanged_after_tests": true
+    },
+    "initial_business_batch_passed": false,
+    "interpretation": "Initial failures and two unrun business cases are retained. Later reruns are separate evidence, not a claim that the initial batch passed.",
+    "latest_executed_scenario_status": {
+      "compression": "passed",
+      "late_lease": "passed",
+      "same_site": "passed",
+      "core": "passed",
+      "cross_site": "passed"
+    },
+    "limitations": [
+      "Five selected native scenarios do not cover every compression boundary.",
+      "A separate runtime-switch diagnostic observed RPC removed-count disagreement when compression adopted longer durable history; that count boundary was not changed."
+    ],
+    "command_errors": [
+      {
+        "source_results_file": "compression-results.json",
+        "source_results_sha256": "74137bf3068edb2beccdf3377d82610cf36c375f6d27eb558384f7b2edef885f",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "test_title": null,
+        "execution_status": "command_error",
+        "duration_ms": 43.69999999999999,
+        "retry": null,
+        "reason": "Initial compression grep matched zero tests; Playwright reported No tests found.",
+        "matched_tests": 0
+      }
+    ],
+    "batches": [
+      {
+        "source_results_file": "compression-run-results.json",
+        "source_results_sha256": "9386a3854bc9fc8efed6998db0cd93e1587668527acd5720724ec3ba64c787d7",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "stats": {
+          "expected": 1,
+          "unexpected": 0,
+          "flaky": 0,
+          "skipped": 0,
+          "duration": 88217.695
+        },
+        "report_error_count": 0
+      },
+      {
+        "source_results_file": "business-results.json",
+        "source_results_sha256": "b5d8a7a97e66e7a516b012dfe7ce05eff37c6706cba11faf09d266a1505e446d",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "stats": {
+          "expected": 1,
+          "unexpected": 1,
+          "flaky": 0,
+          "skipped": 2,
+          "duration": 63935.261999999995
+        },
+        "report_error_count": 1
+      },
+      {
+        "source_results_file": "core-results.json",
+        "source_results_sha256": "61fd1c903aed1ad35da2bc1197841612b5288f3a713b776a180dd3123cb92c96",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "stats": {
+          "expected": 0,
+          "unexpected": 1,
+          "flaky": 0,
+          "skipped": 0,
+          "duration": 82320.834
+        },
+        "report_error_count": 1
+      },
+      {
+        "source_results_file": "same-site-rerun-results.json",
+        "source_results_sha256": "022391284bd1b7e9559e4b380633a9e138d97f71e0098b11c5d2b54ebb70613d",
+        "test_source_sha": "b9249bf5a5b35e3b2347d8ee0a231d0345f26ae1",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "stats": {
+          "expected": 1,
+          "unexpected": 0,
+          "flaky": 0,
+          "skipped": 0,
+          "duration": 84753.185
+        },
+        "report_error_count": 0
+      },
+      {
+        "source_results_file": "cross-core-rerun-results.json",
+        "source_results_sha256": "3ef81a63927a196fda07146434fab5cb9101d646cb45a29c31872fd2bc7c7d99",
+        "test_source_sha": "b9249bf5a5b35e3b2347d8ee0a231d0345f26ae1",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "stats": {
+          "expected": 2,
+          "unexpected": 0,
+          "flaky": 0,
+          "skipped": 0,
+          "duration": 287078.681
+        },
+        "report_error_count": 0
+      }
+    ],
+    "scenarios": [
+      {
+        "source_results_file": "compression-run-results.json",
+        "source_results_sha256": "9386a3854bc9fc8efed6998db0cd93e1587668527acd5720724ec3ba64c787d7",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "scenario": "compression",
+        "test_title": "native compression ledger survives close and resume with a fresh binding",
+        "playwright_test_status": "expected",
+        "execution_status": "passed",
+        "duration_ms": 87946,
+        "retry": 0,
+        "business_summary": {
+          "raw_before_messages": 12,
+          "raw_after_messages": 10,
+          "removed_messages": 2,
+          "before_rendered_user_messages": 3,
+          "after_rendered_user_messages": 2,
+          "compression_requests": 1,
+          "compression_handoff_requests": 2,
+          "amounts": {
+            "before_balance": "10.00000000",
+            "after_balance": "9.99903200",
+            "usage_cost": "0.0009680000"
+          },
+          "fresh_runtime_binding": true,
+          "binding_owner_unchanged": true,
+          "managed_source_preserved": true,
+          "resumed_ledger_rows": 2,
+          "resumed_ledger_owner_matches": true,
+          "billing_lineage_preserved": true,
+          "audits": {
+            "renderer": {
+              "leaked": false
+            },
+            "persisted": {
+              "leaked": false
+            }
+          }
+        }
+      },
+      {
+        "source_results_file": "business-results.json",
+        "source_results_sha256": "b5d8a7a97e66e7a516b012dfe7ce05eff37c6706cba11faf09d266a1505e446d",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "scenario": "late_lease",
+        "test_title": "native late lease cannot revive the signed-out account after replacement login",
+        "playwright_test_status": "expected",
+        "execution_status": "passed",
+        "duration_ms": 37274,
+        "retry": 0,
+        "business_summary": {
+          "late_response_delivered_after_switch": true,
+          "stale_binding_rejected_without_inference": true,
+          "explicit_new_chat_recovers": true,
+          "binding_completed": true,
+          "binding_ok": false,
+          "superseded_refusal": true,
+          "account_owner_changed": true,
+          "states": {
+            "old_account_before": {
+              "balance": "9.99980000",
+              "usage_cost": "0.0002000000",
+              "usage_calls": 2,
+              "usage_turns": 1,
+              "ledger_rows": 2,
+              "ledger_owner_matches": true
+            },
+            "replacement_account_before": {
+              "balance": "10.00000000",
+              "usage_cost": "0",
+              "usage_calls": 0,
+              "usage_turns": 0,
+              "ledger_rows": 0,
+              "ledger_owner_matches": null
+            },
+            "replacement_account_recovered": {
+              "balance": "9.99980000",
+              "usage_cost": "0.0002000000",
+              "usage_calls": 2,
+              "usage_turns": 1,
+              "ledger_rows": 2,
+              "ledger_owner_matches": true
+            }
+          },
+          "stale_release_did_not_add_inference": true,
+          "gate_timeouts": 0,
+          "charge": {
+            "elapsed_ms": 12,
+            "state_unchanged": true
+          },
+          "audits": {
+            "renderer": {
+              "leaked": false
+            },
+            "persisted": {
+              "leaked": false
+            }
+          }
+        }
+      },
+      {
+        "source_results_file": "business-results.json",
+        "source_results_sha256": "b5d8a7a97e66e7a516b012dfe7ce05eff37c6706cba11faf09d266a1505e446d",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "scenario": "same_site",
+        "test_title": "native concurrent isolation: two accounts on one site",
+        "playwright_test_status": "unexpected",
+        "execution_status": "failed",
+        "duration_ms": 26400,
+        "retry": 0,
+        "failure_summary": {
+          "default_5000ms_poll_timeout": true,
+          "stage": "overlapping-inference",
+          "states": [
+            {
+              "balance": "10.00000000",
+              "usage_cost": "0",
+              "usage_calls": 0,
+              "usage_turns": 0,
+              "tool_results": 0,
+              "model_calls": 0,
+              "user_id": 1,
+              "ledger_rows": 0,
+              "ledger_owner_matches": null
+            },
+            {
+              "balance": "10.00000000",
+              "usage_cost": "0",
+              "usage_calls": 0,
+              "usage_turns": 0,
+              "tool_results": 0,
+              "model_calls": 0,
+              "user_id": 2,
+              "ledger_rows": 0,
+              "ledger_owner_matches": null
+            }
+          ],
+          "faults": [
+            {
+              "inference_waiting": 0,
+              "inference_requests": 0,
+              "inference_responses": 0,
+              "authenticated_inference_attempts": 0,
+              "gate_timeouts": 0
+            }
+          ],
+          "expected_waiting": 2,
+          "observed_waiting": 0
+        }
+      },
+      {
+        "source_results_file": "business-results.json",
+        "source_results_sha256": "b5d8a7a97e66e7a516b012dfe7ce05eff37c6706cba11faf09d266a1505e446d",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "scenario": "cross_site",
+        "test_title": "native concurrent isolation: same numeric account on two sites",
+        "playwright_test_status": "skipped",
+        "execution_status": "not_run",
+        "duration_ms": null,
+        "retry": null
+      },
+      {
+        "source_results_file": "business-results.json",
+        "source_results_sha256": "b5d8a7a97e66e7a516b012dfe7ce05eff37c6706cba11faf09d266a1505e446d",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "scenario": "core",
+        "test_title": "real API account, native managed lease, Python tool roundtrip and wallet",
+        "playwright_test_status": "skipped",
+        "execution_status": "not_run",
+        "duration_ms": null,
+        "retry": null
+      },
+      {
+        "source_results_file": "core-results.json",
+        "source_results_sha256": "61fd1c903aed1ad35da2bc1197841612b5288f3a713b776a180dd3123cb92c96",
+        "test_source_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "scenario": "core",
+        "test_title": "real API account, native managed lease, Python tool roundtrip and wallet",
+        "playwright_test_status": "unexpected",
+        "execution_status": "failed",
+        "duration_ms": 82071,
+        "retry": 0,
+        "failure_summary": {
+          "default_5000ms_poll_timeout": true,
+          "stage": "restart-platform-history",
+          "expected_tool_results": 2,
+          "observed_tool_results": 1
+        }
+      },
+      {
+        "source_results_file": "same-site-rerun-results.json",
+        "source_results_sha256": "022391284bd1b7e9559e4b380633a9e138d97f71e0098b11c5d2b54ebb70613d",
+        "test_source_sha": "b9249bf5a5b35e3b2347d8ee0a231d0345f26ae1",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "scenario": "same_site",
+        "test_title": "native concurrent isolation: two accounts on one site",
+        "playwright_test_status": "expected",
+        "execution_status": "passed",
+        "duration_ms": 84384,
+        "retry": 0,
+        "business_summary": {
+          "same_site": true,
+          "overlap_observed": true,
+          "selective_release": false,
+          "submit_to_gate_ms": [
+            4083,
+            3869
+          ],
+          "before": [
+            {
+              "balance": "10.00000000",
+              "usage_cost": "0",
+              "usage_calls": 0,
+              "usage_turns": 0,
+              "tool_results": 0,
+              "model_calls": 0,
+              "user_id": 1,
+              "ledger_rows": 0,
+              "ledger_owner_matches": null
+            },
+            {
+              "balance": "10.00000000",
+              "usage_cost": "0",
+              "usage_calls": 0,
+              "usage_turns": 0,
+              "tool_results": 0,
+              "model_calls": 0,
+              "user_id": 2,
+              "ledger_rows": 0,
+              "ledger_owner_matches": null
+            }
+          ],
+          "after": [
+            {
+              "balance": "9.99980000",
+              "usage_cost": "0.0002000000",
+              "usage_calls": 2,
+              "usage_turns": 1,
+              "tool_results": 2,
+              "model_calls": 4,
+              "user_id": 1,
+              "ledger_rows": 2,
+              "ledger_owner_matches": true
+            },
+            {
+              "balance": "9.99980000",
+              "usage_cost": "0.0002000000",
+              "usage_calls": 2,
+              "usage_turns": 1,
+              "tool_results": 2,
+              "model_calls": 4,
+              "user_id": 2,
+              "ledger_rows": 2,
+              "ledger_owner_matches": true
+            }
+          ],
+          "runtime_owner_matches_account": [
+            true,
+            true
+          ],
+          "distinct_runtime_bindings": true,
+          "billing_sessions_disjoint": true,
+          "billing_turns_disjoint": true,
+          "account_key_ids_disjoint_within_same_site": true,
+          "right_while_left_settled": null,
+          "retained_history": {
+            "history_visible": true,
+            "rejected_before_credentials_and_inference": true,
+            "explicit_new_chat_recovers": true,
+            "owner_changed": true,
+            "read_only_denial_preserved_balances_and_usage": true,
+            "recovered": {
+              "balance": "9.99960000",
+              "usage_cost": "0.0004000000",
+              "usage_calls": 4,
+              "usage_turns": 2,
+              "tool_results": 3,
+              "model_calls": 6,
+              "user_id": 2,
+              "ledger_rows": 4,
+              "ledger_owner_matches": true
+            },
+            "recovered_owner_matches_current_account": true
+          },
+          "audits": {
+            "renderer": [
+              {
+                "leaked": false
+              },
+              {
+                "leaked": false
+              },
+              {
+                "leaked": false
+              }
+            ],
+            "persisted": [
+              {
+                "leaked": false
+              }
+            ]
+          }
+        }
+      },
+      {
+        "source_results_file": "cross-core-rerun-results.json",
+        "source_results_sha256": "3ef81a63927a196fda07146434fab5cb9101d646cb45a29c31872fd2bc7c7d99",
+        "test_source_sha": "b9249bf5a5b35e3b2347d8ee0a231d0345f26ae1",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "scenario": "cross_site",
+        "test_title": "native concurrent isolation: same numeric account on two sites",
+        "playwright_test_status": "expected",
+        "execution_status": "passed",
+        "duration_ms": 89728,
+        "retry": 0,
+        "business_summary": {
+          "same_site": false,
+          "overlap_observed": true,
+          "selective_release": true,
+          "submit_to_gate_ms": [
+            3920,
+            3869
+          ],
+          "before": [
+            {
+              "balance": "10.00000000",
+              "usage_cost": "0",
+              "usage_calls": 0,
+              "usage_turns": 0,
+              "tool_results": 0,
+              "model_calls": 0,
+              "user_id": 1,
+              "ledger_rows": 0,
+              "ledger_owner_matches": null
+            },
+            {
+              "balance": "10.00000000",
+              "usage_cost": "0",
+              "usage_calls": 0,
+              "usage_turns": 0,
+              "tool_results": 0,
+              "model_calls": 0,
+              "user_id": 1,
+              "ledger_rows": 0,
+              "ledger_owner_matches": null
+            }
+          ],
+          "after": [
+            {
+              "balance": "9.99980000",
+              "usage_cost": "0.0002000000",
+              "usage_calls": 2,
+              "usage_turns": 1,
+              "tool_results": 1,
+              "model_calls": 2,
+              "user_id": 1,
+              "ledger_rows": 2,
+              "ledger_owner_matches": true
+            },
+            {
+              "balance": "9.99980000",
+              "usage_cost": "0.0002000000",
+              "usage_calls": 2,
+              "usage_turns": 1,
+              "tool_results": 1,
+              "model_calls": 2,
+              "user_id": 1,
+              "ledger_rows": 2,
+              "ledger_owner_matches": true
+            }
+          ],
+          "runtime_owner_matches_account": [
+            true,
+            true
+          ],
+          "distinct_runtime_bindings": true,
+          "billing_sessions_disjoint": true,
+          "billing_turns_disjoint": true,
+          "account_key_ids_disjoint_within_same_site": null,
+          "right_while_left_settled": {
+            "balance": "10.00000000",
+            "usage_cost": "0",
+            "usage_calls": 0,
+            "usage_turns": 0,
+            "tool_results": 0,
+            "model_calls": 0,
+            "user_id": 1,
+            "ledger_rows": 0,
+            "ledger_owner_matches": null
+          },
+          "retained_history": {
+            "history_visible": true,
+            "rejected_before_credentials_and_inference": true,
+            "explicit_new_chat_recovers": true,
+            "owner_changed": true,
+            "read_only_denial_preserved_balances_and_usage": true,
+            "recovered": {
+              "balance": "9.99960000",
+              "usage_cost": "0.0004000000",
+              "usage_calls": 4,
+              "usage_turns": 2,
+              "tool_results": 2,
+              "model_calls": 4,
+              "user_id": 1,
+              "ledger_rows": 4,
+              "ledger_owner_matches": true
+            },
+            "recovered_owner_matches_current_account": true
+          },
+          "audits": {
+            "renderer": [
+              {
+                "leaked": false
+              },
+              {
+                "leaked": false
+              },
+              {
+                "leaked": false
+              },
+              {
+                "leaked": false
+              },
+              {
+                "leaked": false
+              }
+            ],
+            "persisted": [
+              {
+                "leaked": false
+              },
+              {
+                "leaked": false
+              }
+            ]
+          }
+        }
+      },
+      {
+        "source_results_file": "cross-core-rerun-results.json",
+        "source_results_sha256": "3ef81a63927a196fda07146434fab5cb9101d646cb45a29c31872fd2bc7c7d99",
+        "test_source_sha": "b9249bf5a5b35e3b2347d8ee0a231d0345f26ae1",
+        "business_build_sha": "4a2fcaf2adf05df39e32b1d57b83d2cd0f07969b",
+        "api_source_sha": "d15c202c665db26a8ce1aec0629193633d5e887e",
+        "scenario": "core",
+        "test_title": "real API account, native managed lease, Python tool roundtrip and wallet",
+        "playwright_test_status": "expected",
+        "execution_status": "passed",
+        "duration_ms": 196905,
+        "retry": 0,
+        "business_summary": {
+          "resume_tool_roundtrip_ms": 2936,
+          "states": {
+            "initial": {
+              "balance": "10.00000000",
+              "usage_cost": "0",
+              "usage_calls": 0,
+              "usage_turns": 0,
+              "tool_results": 0,
+              "model_calls": 0,
+              "user_id": 1,
+              "ledger_rows": 0,
+              "ledger_owner_matches": null
+            },
+            "settled": {
+              "balance": "9.99980000",
+              "usage_cost": "0.0002000000",
+              "usage_calls": 2,
+              "usage_turns": 1,
+              "tool_results": 1,
+              "model_calls": 2,
+              "user_id": 1,
+              "ledger_rows": 2,
+              "ledger_owner_matches": true
+            },
+            "cancelled": {
+              "balance": "9.99970000",
+              "usage_cost": "0.0003000000",
+              "usage_calls": 3,
+              "usage_turns": 2,
+              "tool_results": 1,
+              "model_calls": 3,
+              "user_id": 1,
+              "ledger_rows": 3,
+              "ledger_owner_matches": true
+            },
+            "paid": {
+              "balance": "12.79970000",
+              "usage_cost": "0.0003000000",
+              "usage_calls": 3,
+              "usage_turns": 2,
+              "tool_results": 1,
+              "model_calls": 3,
+              "user_id": 1,
+              "ledger_rows": 3,
+              "ledger_owner_matches": true
+            },
+            "beforeBYOK": {
+              "balance": "12.79930000",
+              "usage_cost": "0.0007000000",
+              "usage_calls": 7,
+              "usage_turns": 4,
+              "tool_results": 3,
+              "model_calls": 7,
+              "user_id": 1,
+              "ledger_rows": 7,
+              "ledger_owner_matches": true
+            },
+            "afterBYOK": {
+              "balance": "12.79930000",
+              "usage_cost": "0.0007000000",
+              "usage_calls": 7,
+              "usage_turns": 4,
+              "tool_results": 3,
+              "model_calls": 7,
+              "user_id": 1,
+              "ledger_rows": 7,
+              "ledger_owner_matches": true
+            },
+            "workspace_before": {
+              "balance": "12.79950000",
+              "usage_cost": "0.0005000000",
+              "usage_calls": 5,
+              "usage_turns": 3,
+              "tool_results": 2,
+              "model_calls": 5,
+              "user_id": 1,
+              "ledger_rows": 5,
+              "ledger_owner_matches": true
+            },
+            "workspace_after": {
+              "balance": "12.79930000",
+              "usage_cost": "0.0007000000",
+              "usage_calls": 7,
+              "usage_turns": 4,
+              "tool_results": 3,
+              "model_calls": 7,
+              "user_id": 1,
+              "ledger_rows": 7,
+              "ledger_owner_matches": true
+            }
+          },
+          "website_balance": "12.80",
+          "website_account_matches": true,
+          "byok_preserved_platform_balance_and_usage": true,
+          "audits": {
+            "initial_renderer": {
+              "leaked": false
+            },
+            "restart_renderer": {
+              "leaked": false
+            },
+            "byok_renderer": {
+              "leaked": false
+            }
+          },
+          "workspace_peer_audit": {
+            "leaked": false
+          },
+          "persisted_audit_boolean_in_receipt": null
+        }
+      }
+    ]
+  },
+  "remaining": [
+    {
+      "id": "I1",
+      "status": "open_release_gate",
+      "description": "Packaged install/update driver lacks an isolated authenticated account fixture before strict Settings/backend acceptance. Do not bypass authentication or transfer historical main matrix results to this integrated tree."
+    },
+    {
+      "id": "compression-count-diagnostic",
+      "status": "unresolved_separate_boundary",
+      "description": "Model-switch regression harness observed RPC removed-count disagreement when compression adopted longer durable history, although durable history actually shrank. Runtime routing fix and five native passes do not claim this metadata boundary fixed."
+    },
+    {
+      "id": "release_and_external_services",
+      "status": "outside_current_scope",
+      "description": "Fresh SMS restart is not Keychain remembered login. Signing/notarization, other OS/remote topologies, complete long-running/auxiliary native matrix, real SMS/captcha, billed suppliers and real payment/refund/deployment remain unverified."
+    }
+  ],
+  "independent_review": {
+    "merge_contracts": "approved",
+    "runtime_fix": "approved after red/green and 728-test regression",
+    "native_wait_fixture": "approved; strong overlap and accounting assertions retained",
+    "final_native_evidence": "approved; five selected scenarios have actual passes and prior failures remain recorded",
+    "final_documentation": "approved; provenance and sanitized native summary match reviewed source evidence",
+    "local_final_evidence_report": "/private/tmp/aino-e42-final-evidence-review.md"
+  },
+  "evidence_files": [
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/source-before.json",
+      "sha256": "8aaff93e10c9c8a45cb7c84d6c4b97576b4752e78ea1d68cd851a5e077729e1d",
+      "bytes": 408
+    },
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/source-initial-runs-after.json",
+      "sha256": "a07baf2152b9dd257e89e2a939d4691885edf37ca6a12b3816a9b3fa43e1fede",
+      "bytes": 236
+    },
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/source-reruns-before.json",
+      "sha256": "c397ccfb8abb636d3f3fc42c920fb240a75e2fbb0b0c14f3f7708aa0d5381bf9",
+      "bytes": 282
+    },
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/source-reruns-after.json",
+      "sha256": "c397ccfb8abb636d3f3fc42c920fb240a75e2fbb0b0c14f3f7708aa0d5381bf9",
+      "bytes": 282
+    },
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/desktop-build.log",
+      "sha256": "44f3caaf288d0029f5708f73021a7b5f8faa8c924677d26b65bb40df47aab0b8",
+      "bytes": 36219
+    },
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/desktop-typecheck.log",
+      "sha256": "53ec0b8507efb1890b0671507fd4c34c17db6e162d08ec4edea5ae3315d67cb9",
+      "bytes": 351
+    },
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/desktop-dev-bundle.log",
+      "sha256": "21efed007f989bed92a4b43d058b581c757ec16c07cb635c6e7e77f70483aab8",
+      "bytes": 501
+    },
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/restore-production-bundle.log",
+      "sha256": "70a75a047a821ae91f9cb0251fcdf9b8da6b40e93a3fe1b03368eefcfe541a48",
+      "bytes": 539
+    },
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/aino-dist-before.json",
+      "sha256": "6d65df1555f70b9850d7576e7fabe1a86e30f9ed41b7b4c993d13a2a5375bf3b",
+      "bytes": 44154
+    },
+    {
+      "path": "/private/tmp/aino-business-native-1pyc63/api-dist-before.json",
+      "sha256": "2529701ad118d55d5281c9635d34d316b379473828aa90ee0cd54fb4ada8d5fc",
+      "bytes": 20270
+    },
+    {
+      "path": "/private/tmp/aino-runtime-snapshot-red.log",
+      "sha256": "e7884a1895a4b8acbccfbe03c625f4a70c7c5ab52c1f60875a9e18c80d8c6332",
+      "bytes": 20494
+    },
+    {
+      "path": "/private/tmp/aino-runtime-snapshot-once-red.log",
+      "sha256": "b332686f77cdad0d1f1ab4339366ff3bafb36742950f4dcf435b9895f385ac05",
+      "bytes": 24509
+    },
+    {
+      "path": "/private/tmp/aino-runtime-snapshot-green.log",
+      "sha256": "8205bf532c7d80b9dda28cb85f74e48328911f75fc2a93c9b34c89bbe3fbab0c",
+      "bytes": 876
+    },
+    {
+      "path": "/private/tmp/aino-runtime-snapshot-regression.log",
+      "sha256": "a8e0c1dc97334c0fe34bf2631b2305f05fddde20cd3960a2a9883837c3027365",
+      "bytes": 2228
+    },
+    {
+      "path": "/private/tmp/aino-runtime-fix-review.md",
+      "sha256": "5e8d191ec106086f8ba299a5946501aa2eb1c5d3f49ca3f578076cc45363e833",
+      "bytes": 5290
+    },
+    {
+      "path": "/private/tmp/aino-install-merge-report.md",
+      "sha256": "98a5090bdf61d6087e5e346d86078b897c4e72fe4863138f07d9a27ea540f4b0",
+      "bytes": 5454
+    },
+    {
+      "path": "/private/tmp/aino-install-merge-review.md",
+      "sha256": "c74c19847341e9765cea895d2348cd8757f66b88fbc709a9cc169bf76398eabd",
+      "bytes": 9122
+    },
+    {
+      "path": "/private/tmp/aino-business-integration-full-ui.log",
+      "sha256": "5a6f6f6bab39ea8ef43ad8625bde3d26ed51057ca5def7dacfd04f78dbe7a487",
+      "bytes": 1538
+    },
+    {
+      "path": "/private/tmp/aino-business-integration-full-electron.log",
+      "sha256": "266057c1a28472793fbc834e091120f92e94c4e08d05e75176f1603686084d32",
+      "bytes": 1509
+    },
+    {
+      "path": "/private/tmp/aino-business-integration-api-deps.log",
+      "sha256": "5c58cba3cd752c182abe49d93223ba594a89bd91baa373997892578131e26afd",
+      "bytes": 2047
+    },
+    {
+      "path": "/private/tmp/aino-business-integration-api-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/private/tmp/aino-business-integration-api-i18n.log",
+      "sha256": "21997ac9e11b0bc6d2f7b8c1646c3bff2f54daaa4f27c3f7fc36daeb91da2271",
+      "bytes": 312
+    },
+    {
+      "path": "/private/tmp/aino-business-integration-api-build-pinned.log",
+      "sha256": "8cf386ce9d3a7ac24b0766b05548cd468494b21e43c3b08c75a29bee1ec2ee15",
+      "bytes": 42322
+    },
+    {
+      "path": "/private/tmp/aino-native-waits-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/private/tmp/aino-native-waits-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/private/tmp/aino-native-waits-review.md",
+      "sha256": "5b9c6aa4725654a49a170ed36007c66b21ce50e4a804626d8c8a9a18fb67a5f2",
+      "bytes": 5762
+    }
+  ]
+}
