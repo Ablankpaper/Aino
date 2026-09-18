@@ -4,11 +4,7 @@ import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
-import {
-  COMPLETION_SOUND_VARIANTS,
-  localizedCompletionSoundName,
-  previewCompletionSound
-} from '@/lib/completion-sound'
+import { COMPLETION_SOUND_VARIANTS, localizedCompletionSoundName, previewCompletionSound } from '@/lib/completion-sound'
 import { triggerHaptic } from '@/lib/haptics'
 import { Bell, Play } from '@/lib/icons'
 import { cn } from '@/lib/utils'

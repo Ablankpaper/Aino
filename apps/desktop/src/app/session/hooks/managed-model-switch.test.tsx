@@ -99,10 +99,7 @@ beforeEach(async () => {
   })
   await platformAccountActions(window.hermesDesktop.platformAccount).refresh()
   await platformModelCatalog().load()
-  recordGatewayReadyCapability(
-    { profile: 'default' },
-    { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
-  )
+  recordGatewayReadyCapability({ profile: 'default' }, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
   recordGatewayReadyCapability(
     { connectionId: 'connection-b', profile: 'profile-b' },
     { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
@@ -435,7 +432,9 @@ it('offers outstanding native cleanup after a lost reverse-switch acknowledgemen
   expect(nativeBindingRetained).toBe(true)
   await act(() => notices.notify.mock.calls.at(-1)?.[0]?.action.onClick())
   expect(nativeBindingRetained).toBe(false)
-  expect(request.mock.calls.filter(([method, params]) => method === 'config.set' && params.key === 'model')).toHaveLength(1)
+  expect(
+    request.mock.calls.filter(([method, params]) => method === 'config.set' && params.key === 'model')
+  ).toHaveLength(1)
   expect(request.mock.calls.some(([method]) => method === 'prompt.submit')).toBe(false)
 })
 
@@ -470,7 +469,9 @@ it('reconciles staged binding failure and retries authorization without replayin
   expect(retry).toBeDefined()
   await act(() => retry.onClick())
   expect($sessionStates.get()['runtime-a'].platformModel?.status).toBe('ready')
-  expect(request.mock.calls.filter(([method, params]) => method === 'config.set' && params.key === 'model')).toHaveLength(1)
+  expect(
+    request.mock.calls.filter(([method, params]) => method === 'config.set' && params.key === 'model')
+  ).toHaveLength(1)
   expect(request.mock.calls.some(([method]) => method === 'prompt.submit')).toBe(false)
 })
 

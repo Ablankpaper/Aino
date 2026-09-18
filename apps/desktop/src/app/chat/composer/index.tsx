@@ -151,7 +151,9 @@ export function ChatBar({
   // exact pass-through, so surfaces without contributions are byte-identical.
   const onSubmit = useCallback<ChatBarProps['onSubmit']>(
     async (value, options) => {
-      if (platformHistoryOwner(sessionId) !== null) {return false}
+      if (platformHistoryOwner(sessionId) !== null) {
+        return false
+      }
       // Bare stop phrase typed while the voice conversation is live: end the
       // conversation (mic off, pill dismissed) instead of sending "stop" to
       // the agent. Spoken transcripts are already stop-checked inside

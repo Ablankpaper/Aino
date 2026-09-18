@@ -623,6 +623,7 @@ const ChatViewContent = memo(function ChatViewContent({
   )
 
   const catalog = platformModelCatalog()
+
   const platformReasoning = useStoresSelector(
     [
       $sessionStates,
@@ -636,6 +637,7 @@ const ChatViewContent = memo(function ChatViewContent({
       if (currentProvider !== 'aino') {
         return false
       }
+
       const state = activeSessionId ? $sessionStates.get()[activeSessionId] : undefined
       const owner = state ? (state.platformModel?.ownerUserId ?? '') : $currentPlatformOwner.get()
       const origin = state ? state.platformModel?.platformOrigin : $currentPlatformOrigin.get()
@@ -643,6 +645,7 @@ const ChatViewContent = memo(function ChatViewContent({
       return Boolean(verifiedPlatformModel(currentModel, owner, origin)?.capabilities.reasoning)
     }
   )
+
   const supportsReasoning =
     currentProvider === 'aino'
       ? platformReasoning

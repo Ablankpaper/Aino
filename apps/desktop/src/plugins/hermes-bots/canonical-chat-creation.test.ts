@@ -21,16 +21,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RosterRow } from './types'
 
-const { botConnectionRouteMock, hostMock, persistMock, pluginCtx, requestForBotMock, saveBotMetaMock } = vi.hoisted(() => ({
-  botConnectionRouteMock: vi.fn(),
-  hostMock: { notify: vi.fn(), openSession: vi.fn(), request: vi.fn(), requestProfile: undefined as unknown },
-  persistMock: vi.fn(),
-  // Null unless a test installs one — the plugin ctx is genuinely absent until
-  // register() runs, which is why every read of it carries an English floor.
-  pluginCtx: { current: null as null | { i18n?: { t: (key: string, ...args: unknown[]) => string } } },
-  requestForBotMock: vi.fn(),
-  saveBotMetaMock: vi.fn()
-}))
+const { botConnectionRouteMock, hostMock, persistMock, pluginCtx, requestForBotMock, saveBotMetaMock } = vi.hoisted(
+  () => ({
+    botConnectionRouteMock: vi.fn(),
+    hostMock: { notify: vi.fn(), openSession: vi.fn(), request: vi.fn(), requestProfile: undefined as unknown },
+    persistMock: vi.fn(),
+    // Null unless a test installs one — the plugin ctx is genuinely absent until
+    // register() runs, which is why every read of it carries an English floor.
+    pluginCtx: { current: null as null | { i18n?: { t: (key: string, ...args: unknown[]) => string } } },
+    requestForBotMock: vi.fn(),
+    saveBotMetaMock: vi.fn()
+  })
+)
 
 vi.mock('@hermes/plugin-sdk', () => ({
   BOT_CHAT_SESSION_HYDRATION_TIMEOUT_MS: 15_000,

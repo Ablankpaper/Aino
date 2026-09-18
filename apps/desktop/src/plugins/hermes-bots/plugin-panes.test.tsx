@@ -187,11 +187,12 @@ describe('the Bots pane dock', () => {
 
 describe('localized registration labels', () => {
   it('uses the active locale for the pane and palette labels', () => {
-    const harness = recordingContext(key =>
-      ({
-        'roster.title': 'Agent Hub',
-        'bot.newCommand': '新建机器人…'
-      })[key] ?? key
+    const harness = recordingContext(
+      key =>
+        ({
+          'roster.title': 'Agent Hub',
+          'bot.newCommand': '新建机器人…'
+        })[key] ?? key
     )
 
     plugin.register(harness.ctx)

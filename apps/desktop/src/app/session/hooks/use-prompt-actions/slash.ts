@@ -82,7 +82,10 @@ import {
 export const SESSION_COMPRESS_TIMEOUT_MS = 660_000
 const WAKE_START_TIMEOUT_MS = 180_000
 
-const wakeDeviceLabel = (device: WakeInputDeviceStatus | undefined, copy: Translations['desktop']['wakeStatus']): string => {
+const wakeDeviceLabel = (
+  device: WakeInputDeviceStatus | undefined,
+  copy: Translations['desktop']['wakeStatus']
+): string => {
   if (!device) {
     return copy.systemDefault
   }
@@ -358,9 +361,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           })
 
           if (queued !== 'idle') {
-            renderSlashOutput(
-              queued === 'queued' ? copy.sessionBusyQueued : copy.sessionBusyInterrupt
-            )
+            renderSlashOutput(queued === 'queued' ? copy.sessionBusyQueued : copy.sessionBusyInterrupt)
 
             return
           }
@@ -838,7 +839,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
               applyWakeStartResult(started)
 
               if (!started?.started) {
-                renderSlashOutput(copy.wakeStartFailed(started?.hint?.trim() || started?.reason?.trim() || copy.wakeStatus.unknown))
+                renderSlashOutput(
+                  copy.wakeStartFailed(started?.hint?.trim() || started?.reason?.trim() || copy.wakeStatus.unknown)
+                )
 
                 return
               }

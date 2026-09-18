@@ -140,7 +140,11 @@ function answer(socket: MockGateway, method: string, params: Record<string, unkn
 
     runtimeOwner = socket
 
-    return { info: params.model_source === 'aino' ? { model_source: 'aino', model_id: params.model_id, provider: 'aino' } : {}, session_id: mintedRuntimeId, stored_session_id: mintedStoredId }
+    return {
+      info: params.model_source === 'aino' ? { model_source: 'aino', model_id: params.model_id, provider: 'aino' } : {},
+      session_id: mintedRuntimeId,
+      stored_session_id: mintedStoredId
+    }
   }
 
   if (sessionScoped(params) && socket !== runtimeOwner) {
@@ -766,15 +770,25 @@ describe('profile rail: a fresh Omar chat keeps its exact registry owner across 
       Object.assign(desktop, {
         platformAccount: bridge,
         platformModels: {
-          list: async () => [platformModel()], owner: async () => owner,
-          bind: vi.fn(async () => ({ ok: true, ready: true, model_id: 'catalog-a', billing_source: 'aino', expires_at: 'later' })),
+          list: async () => [platformModel()],
+          owner: async () => owner,
+          bind: vi.fn(async () => ({
+            ok: true,
+            ready: true,
+            model_id: 'catalog-a',
+            billing_source: 'aino',
+            expires_at: 'later'
+          })),
           clear: vi.fn()
         }
       })
       $profiles.set([{ name: 'default' }, { name: 'omar' }] as never)
       await platformAccountActions(bridge as never).refresh()
       await platformModelCatalog().load()
-      recordGatewayReadyCapability({ profile: 'omar' }, { type: 'gateway.ready', payload: { managed_model_binding: 1 } })
+      recordGatewayReadyCapability(
+        { profile: 'omar' },
+        { type: 'gateway.ready', payload: { managed_model_binding: 1 } }
+      )
       setCurrentModel('catalog-a')
       setCurrentProvider('aino')
       setCurrentPlatformOwner(owner.user_id, owner.platform_origin)
@@ -800,7 +814,9 @@ describe('profile rail: a fresh Omar chat keeps its exact registry owner across 
     await expect(handle!.submitText('second prompt')).resolves.toBe(true)
 
     if (managed) {
-      expect(desktop.platformModels!.bind).toHaveBeenCalledWith(expect.objectContaining({ connection_id: '', profile: 'omar' }))
+      expect(desktop.platformModels!.bind).toHaveBeenCalledWith(
+        expect.objectContaining({ connection_id: '', profile: 'omar' })
+      )
       expect(calls(v1Socket!).filter(method => method === 'session.managed_model_ticket').length).toBeGreaterThan(0)
     } else {
       expect(desktop.api).toHaveBeenCalledExactlyOnceWith(

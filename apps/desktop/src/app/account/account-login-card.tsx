@@ -27,11 +27,7 @@ export interface AccountLoginCardProps {
   loading?: boolean
   onRequestPhoneCode: (phone: string) => Promise<PhoneChallengeDTO | null>
   onVerifyPhoneCode: (input: PhoneVerifyDTO) => Promise<PlatformAuthResult | null>
-  onLoginExisting: (input: {
-    email: string
-    password: string
-    remember: boolean
-  }) => Promise<PlatformAuthResult | null>
+  onLoginExisting: (input: { email: string; password: string; remember: boolean }) => Promise<PlatformAuthResult | null>
   onCompleteSecondFactor: (code: string) => Promise<unknown>
 }
 
@@ -66,8 +62,8 @@ export function AccountLoginCard({
 
   const invitationRequired = Boolean(
     capabilities?.registration_enabled &&
-      capabilities.phone_registration_enabled &&
-      capabilities.invitation_code_enabled
+    capabilities.phone_registration_enabled &&
+    capabilities.invitation_code_enabled
   )
 
   const phoneEnabled = capabilities?.phone_login_enabled === true
@@ -362,7 +358,13 @@ export function AccountLoginCard({
               {copy.continueExisting}
             </Button>
             {rememberControl}
-            <Button className="aino-account-back" onClick={() => setStep('phone')} size="inline" type="button" variant="text">
+            <Button
+              className="aino-account-back"
+              onClick={() => setStep('phone')}
+              size="inline"
+              type="button"
+              variant="text"
+            >
               {copy.back}
             </Button>
           </form>
@@ -391,7 +393,13 @@ export function AccountLoginCard({
               {loading && <Loader2 className="animate-spin" />}
               {copy.completeSecondFactor}
             </Button>
-            <Button className="aino-account-back" onClick={() => setStep('existing')} size="inline" type="button" variant="text">
+            <Button
+              className="aino-account-back"
+              onClick={() => setStep('existing')}
+              size="inline"
+              type="button"
+              variant="text"
+            >
               {copy.back}
             </Button>
           </form>
