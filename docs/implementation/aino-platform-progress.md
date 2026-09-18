@@ -308,6 +308,10 @@ A/B/C 本地实现与既有验收保留，本轮补齐压缩恢复缺陷、合�
 - **A3 checkpoint：** `b7f7ed951`（`feat(auth): complete phone login and account binding`）
 
 #### Remote配置
+
+下列为 2026-09-15 的历史核查；后续自有仓库地址为
+`https://github.com/OneWhitepaper/Aino.git` 与 `https://github.com/OneWhitepaper/Aino-API.git`。
+
 - **Aino origin：** `https://github.com/Ablankpaper/Aino.git`（2026-09-15 实际读取核实，原记录错误，并非远程配置错误）
 - **Aino-API origin：** `https://github.com/Ablankpaper/Aino-API.git`
 - **Aino-API upstream：** `https://github.com/Wei-Shaw/sub2api.git`

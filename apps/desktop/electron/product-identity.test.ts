@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 
 import { test } from 'vitest'
 
+import brand from '../brand.json'
+import desktopPackage from '../package.json'
+
 import {
   APP_ID,
   COMPANY_NAME,
@@ -14,6 +17,7 @@ import {
   PRIMARY_PROTOCOL,
   PRODUCT_NAME,
   REPOSITORY_SSH_URL,
+  REPOSITORY_URL,
   resolveAgentHomePath
 } from './product-identity'
 
@@ -24,7 +28,9 @@ test('Aino product identity is stable across desktop entry points', () => {
   assert.equal(COMPANY_NAME, 'Ablankpaper')
   assert.equal(LEGAL_COPYRIGHT, 'Copyright (c) 2026 Ablankpaper')
   assert.equal(PRIMARY_PROTOCOL, 'aino')
-  assert.equal(REPOSITORY_SSH_URL, 'git@github.com:Ablankpaper/Aino.git')
+  assert.equal(REPOSITORY_URL, brand.repositoryUrl)
+  assert.equal(desktopPackage.repository.url, `git+${REPOSITORY_URL}.git`)
+  assert.equal(REPOSITORY_SSH_URL, `git@github.com:${new URL(brand.repositoryUrl).pathname.slice(1)}.git`)
 })
 
 test('default agent home is isolated from the Hermes home on POSIX', () => {

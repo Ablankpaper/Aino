@@ -53,13 +53,13 @@ def test_get_git_banner_state_uses_release_baseline_for_aino_fork(tmp_path):
 
     repo_dir = tmp_path / "repo"
     (repo_dir / ".git").mkdir(parents=True)
-    (repo_dir / ".git" / "config").write_text("[remote \"origin\"]\n\turl = https://github.com/Ablankpaper/Aino.git\n")
+    (repo_dir / ".git" / "config").write_text("[remote \"origin\"]\n\turl = https://github.com/OneWhitepaper/Aino.git\n")
 
     release_ref = f"v{banner.RELEASE_DATE}^{{commit}}"
     release_sha = "a" * 40
     results = {
         ("git", "remote", "get-url", "origin"): MagicMock(
-            returncode=0, stdout="https://github.com/Ablankpaper/Aino.git\n"
+            returncode=0, stdout="https://github.com/OneWhitepaper/Aino.git\n"
         ),
         ("git", "rev-parse", "--verify", "--quiet", release_ref): MagicMock(
             returncode=0, stdout=f"{release_sha}\n"
@@ -94,14 +94,14 @@ def test_get_git_banner_state_falls_back_to_official_upstream_ref(tmp_path):
     repo_dir = tmp_path / "repo"
     (repo_dir / ".git").mkdir(parents=True)
     (repo_dir / ".git" / "config").write_text(
-        "[remote \"origin\"]\n\turl = https://github.com/Ablankpaper/Aino.git\n"
+        "[remote \"origin\"]\n\turl = https://github.com/OneWhitepaper/Aino.git\n"
         "[remote \"upstream\"]\n\turl = https://github.com/NousResearch/hermes-agent.git\n"
     )
 
     release_ref = f"v{banner.RELEASE_DATE}^{{commit}}"
     results = {
         ("git", "remote", "get-url", "origin"): MagicMock(
-            returncode=0, stdout="https://github.com/Ablankpaper/Aino.git\n"
+            returncode=0, stdout="https://github.com/OneWhitepaper/Aino.git\n"
         ),
         ("git", "rev-parse", "--verify", "--quiet", release_ref): MagicMock(
             returncode=1, stdout=""

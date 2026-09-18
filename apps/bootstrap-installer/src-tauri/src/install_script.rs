@@ -22,7 +22,7 @@ use tokio::io::AsyncWriteExt;
 
 use crate::paths;
 
-const AINO_RAW_REPOSITORY_BASE: &str = "https://raw.githubusercontent.com/Ablankpaper/Aino";
+const AINO_RAW_REPOSITORY_BASE: &str = "https://raw.githubusercontent.com/OneWhitepaper/Aino";
 const LEGACY_RAW_REPOSITORY_BASE: &str =
     "https://raw.githubusercontent.com/NousResearch/hermes-agent";
 
@@ -492,7 +492,7 @@ mod tests {
     #[test]
     fn repository_override_is_normalized_and_deduplicated() {
         assert_eq!(
-            repository_raw_bases(Some("https://github.com/Ablankpaper/Aino.git/")),
+            repository_raw_bases(Some("https://github.com/OneWhitepaper/Aino.git/")),
             vec![
                 AINO_RAW_REPOSITORY_BASE.to_string(),
                 LEGACY_RAW_REPOSITORY_BASE.to_string()

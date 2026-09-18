@@ -43,9 +43,13 @@ in this phase:
 
 `upstream` remains the Nous Research repository and is fetch-only. Aino changes
 land on purpose-named branches (`aino/<purpose>`), then can be synchronized with
-upstream manually. The desktop package points at the Ablankpaper/Aino repository;
+upstream manually. The desktop package points at the OneWhitepaper/Aino repository;
 release/update infrastructure should be treated as a separate follow-up before
 publishing production installers.
+
+The GitHub owner migration keeps the existing application IDs, publisher metadata,
+and contributor credit intact. Application IDs identify installed software, not
+the GitHub account used to fetch its source.
 
 This boundary is intentionally narrower than a repository-wide Hermes rename.
 Internal renaming, data migration, protocol migration, and a final logo are

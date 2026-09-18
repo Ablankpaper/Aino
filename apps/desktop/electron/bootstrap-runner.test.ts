@@ -19,6 +19,7 @@ import {
   resolveMarkerPinnedCommit,
   runBootstrap
 } from './bootstrap-runner'
+import { REPOSITORY_SSH_URL, REPOSITORY_URL } from './product-identity'
 
 const SCRIPT_NAME = process.platform === 'win32' ? 'install.ps1' : 'install.sh'
 const ZERO_COMMIT = '0000000000000000000000000000000000000000'
@@ -122,8 +123,8 @@ test('installer child environment points at the branded Aino repository', () => 
 
   assert.equal(env.PATH, '/usr/bin')
   assert.equal(env.HERMES_HOME, '/tmp/aino-home')
-  assert.equal(env.HERMES_INSTALL_REPOSITORY_URL, 'https://github.com/Ablankpaper/Aino')
-  assert.equal(env.HERMES_INSTALL_REPOSITORY_SSH_URL, 'git@github.com:Ablankpaper/Aino.git')
+  assert.equal(env.HERMES_INSTALL_REPOSITORY_URL, REPOSITORY_URL)
+  assert.equal(env.HERMES_INSTALL_REPOSITORY_SSH_URL, REPOSITORY_SSH_URL)
 })
 
 test('fallback install stamps use an unpinned branch ref', () => {

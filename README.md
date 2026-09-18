@@ -4,7 +4,7 @@
 
 # Aino ☤
 <p align="center">
-  <a href="https://github.com/Ablankpaper/Aino">Aino</a> | <a href="https://github.com/Ablankpaper/Aino/releases">Aino Desktop</a>
+  <a href="https://github.com/OneWhitepaper/Aino">Aino</a> | <a href="https://github.com/OneWhitepaper/Aino/releases">Aino Desktop</a>
 </p>
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
