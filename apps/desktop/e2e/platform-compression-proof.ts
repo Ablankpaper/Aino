@@ -197,13 +197,13 @@ async function compressionRpcResult(page: Page): Promise<CompressionRpcResult> {
 export async function verifyNativeCompressionBeforeRestart(page: Page, api: API): Promise<CompressionReceipt> {
   await selectFixtureModel(page)
   const before = await state(api)
+  const olderContext = 'NATIVE_COMPRESSION_OLDER_CONTEXT preserve this historical detail. '.repeat(400)
   await sendPrompt(page, `Read ${api.info.fixture_path} and verify its content for the first native turn.`)
   const first = await waitForToolTurn(page, api, before)
   const firstRows = first.usage_ledger.slice(before.usage_ledger.length)
-  const olderContext = 'NATIVE_COMPRESSION_OLDER_CONTEXT preserve this historical detail. '.repeat(700)
 
   const second = await (async () => {
-    await sendLargePrompt(page, `Read ${api.info.fixture_path} and verify its content.\n${olderContext}`)
+    await sendLargePrompt(page, `Read ${api.info.fixture_path} and verify its content for the second native turn.\n${olderContext}`)
 
     return waitForToolTurn(page, api, first)
   })()
