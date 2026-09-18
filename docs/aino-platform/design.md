@@ -25,6 +25,9 @@
 
 ### 2.1 仓库和线上状态
 
+后续开发以 `https://github.com/OneWhitepaper/Aino` 和
+`https://github.com/OneWhitepaper/Aino-API` 为自有仓库；下表保留迁移前的日期与核查事实。
+
 | 对象 | 2026-09-14 核查结果 | 执行时的含义 |
 | --- | --- | --- |
 | Aino | `/Users/zizimutou/Protect/Aino`；分支 `codex/hide-unsent-session-title`；HEAD `3bb72e32b1b2a83896439587651d73dd9a3d2319`；工作树干净 | 这是含已完成 UI 改动的已知基线，不能盲目从较旧 main 开始覆盖它 |
