@@ -50,10 +50,21 @@ export interface NativeState {
   usage_cost: string
   usage_calls: number
   usage_turns: number
+  usage_ledger: Array<{
+    user_id: number
+    api_key_id?: number
+    desktop_session_id: string
+    desktop_turn_id: string
+    desktop_call_id?: string
+    desktop_purpose?: string
+    actual_cost: string
+  }>
   orders: number
   model_calls: number
   payment_calls: number
   tool_results: number
+  compression_requests: number
+  compression_handoff_requests: number
   stream_started: number
   stream_cancelled: number
   downstream_disconnects: number

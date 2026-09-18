@@ -6,6 +6,7 @@ import { startMockServer } from '../../../tests-js/scripts/mock-server'
 
 import { buildAppEnv, createSandbox, waitForAppReady, writeEnvFile, writeMockProviderConfig } from './fixtures'
 import { assertEdgeAlerts, observeEdgeAlerts, observeNativeRuntime, sendPrompt, sendToolTurn, verifyConcurrentAccountLifecycle, verifyOfflineAndAuthorizationRecovery } from './platform-account-edge-proof'
+import { verifyNativeCompressionAfterRestart, verifyNativeCompressionBeforeRestart } from './platform-compression-proof'
 import { observeInferenceAlerts, verifyInferenceFailures } from './platform-inference-failure-proof'
 import { assertIsolationAlerts, type IsolationParticipant, observeIsolationAlerts, verifyConcurrentIsolation, verifyRetainedHistoryIsolation } from './platform-isolation-proof'
 import { assertLateLeaseAlerts, observeLateLeaseAlerts, verifyLateLeaseAcrossAccountSwitch } from './platform-late-lease-proof'
@@ -135,9 +136,11 @@ function assertNewGuardedBackend(sandbox: ReturnType<typeof createSandbox>, prio
 
 function prepareNativePlatformEnvironment(
   sandbox: ReturnType<typeof createSandbox>,
-  api: Awaited<ReturnType<typeof startRealPlatformAPI>>
+  api: Awaited<ReturnType<typeof startRealPlatformAPI>>,
+  options: { compressionInPlace?: boolean } = {}
 ) {
-  fs.writeFileSync(path.join(sandbox.hermesHome, 'config.yaml'), 'display:\n  language: en\nauxiliary:\n  title_generation:\n    enabled: false\n', { mode: 0o600 })
+  const compression = options.compressionInPlace === false ? 'compression:\n  in_place: false\n' : ''
+  fs.writeFileSync(path.join(sandbox.hermesHome, 'config.yaml'), `display:\n  language: en\n${compression}auxiliary:\n  title_generation:\n    enabled: false\n`, { mode: 0o600 })
   fs.writeFileSync(path.join(sandbox.hermesHome, '.env'), '', { mode: 0o600 })
   seedPlatformWorkspace(sandbox)
   fs.writeFileSync(path.join(sandbox.userDataDir, 'platform-development.json'), JSON.stringify({ enabled: true, origin: api.info.origin }), { mode: 0o600 })
@@ -510,6 +513,102 @@ test('real API workspace switch preserves platform account across native windows
   if (primaryError !== undefined) { throw primaryError }
 
   if (cleanupErrors.length > 0) { throw new AggregateError(cleanupErrors, 'Native workspace fixture cleanup failed') }
+})
+
+test('native compression ledger survives close and resume with a fresh binding', async ({ browserName: _browserName }, testInfo) => {
+  test.setTimeout(350_000)
+  const repoRoot = path.resolve(import.meta.dirname, '../../..')
+  const sandbox = createSandbox('platform-native-compression')
+  let api: Awaited<ReturnType<typeof startRealPlatformAPI>> | null = null
+  let launched: NativeLaunch | null = null
+  const consoleLines: string[] = []
+  const launchAudits: NativeTransportAudit[] = []
+  let primaryError: unknown
+  const cleanupErrors: unknown[] = []
+
+  try {
+    api = await startRealPlatformAPI(path.resolve(repoRoot, '../Aino-API'))
+    const prepared = prepareNativePlatformEnvironment(sandbox, api, { compressionInPlace: false })
+    launched = await launchGuardedDesktop(prepared.env, prepared.nodeGuard)
+    launchAudits.push(observeNativeLaunch(launched, consoleLines))
+    assertNativeGuardsReady(sandbox, launched.app)
+    await observeNativeRuntime(launched.page)
+    const firstCodeAt = await signInForThisSession(launched.page, api)
+    await waitForAppReady(launched as never, 120_000)
+    assertNewGuardedBackend(sandbox, prepared.pythonGuardPids)
+
+    const receipt = await verifyNativeCompressionBeforeRestart(launched.page, api)
+    const sessionUrl = launched.page.url()
+    await launched.app.close()
+    launched = null
+
+    const resumedPythonGuardPids = pythonGuardPids(sandbox)
+    launched = await launchGuardedDesktop(prepared.env, prepared.nodeGuard)
+    launchAudits.push(observeNativeLaunch(launched, consoleLines))
+    assertNativeGuardsReady(sandbox, launched.app)
+    await observeNativeRuntime(launched.page)
+    await signInForThisSession(launched.page, api, firstCodeAt)
+    await waitForAppReady(launched as never, 120_000)
+    assertNewGuardedBackend(sandbox, resumedPythonGuardPids)
+    await launched.page.goto(sessionUrl)
+    const resumed = await verifyNativeCompressionAfterRestart(launched.page, api, receipt)
+    const billing = await launched.page.evaluate(id => (window as unknown as NativeWindow).hermesDesktop.platformBilling.summary({ expected_user_id: id }), receipt.user_id)
+    expect(billing.balance).toBe(resumed.after.balance)
+
+    const rendererAudit = await auditRenderer(launched.page, api)
+    const transport = await assertNoBlockedTransport(sandbox, launchAudits)
+    await launched.app.close()
+    launched = null
+
+    const persistedAudit = await auditFixtureText(api, [
+      ...persistedFixtureText(sandbox.hermesHome),
+      ...persistedFixtureText(sandbox.userDataDir),
+      fs.readFileSync(api.logPath, 'utf8'),
+      ...consoleLines
+    ])
+
+    expect(persistedAudit.leaked).toBe(false)
+    await testInfo.attach('native-compression-ledger-receipt', {
+      body: JSON.stringify({
+        run_id: api.info.run_id,
+        user_id: receipt.user_id,
+        billing_session_id: receipt.billing_session_id,
+        first_turn_id: receipt.first_turn_id,
+        compression_turn_id: receipt.compression_turn_id,
+        compression_call_ids: receipt.compression_call_ids,
+        before_rendered_user_messages: receipt.before_rendered_user_messages,
+        after_rendered_user_messages: receipt.after_rendered_user_messages,
+        compression_requests: receipt.compression_requests,
+        compression_handoff_requests: resumed.after.compression_handoff_requests,
+        resumed_rows: resumed.rows,
+        amounts: { before_balance: receipt.before.balance, after_balance: resumed.after.balance, usage_cost: resumed.after.usage_cost },
+        binding: { initial: receipt.binding, resumed: resumed.binding },
+        billing_summary: billing,
+        audits: { renderer: rendererAudit, persisted: persistedAudit, transport: { denied_public_font_hosts: transport.expectedFontHosts, blocked_before_transport: true } }
+      }, null, 2),
+      contentType: 'application/json'
+    })
+  } catch (error) {
+    primaryError = error
+  } finally {
+    try { await launched?.app.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { await api?.close() } catch (error) { cleanupErrors.push(error) }
+
+    try { sandbox.cleanup() } catch (error) { cleanupErrors.push(error) }
+  }
+
+  if (primaryError !== undefined && cleanupErrors.length > 0) {
+    throw new AggregateError([primaryError, ...cleanupErrors], 'Native compression fixture and cleanup failed')
+  }
+
+  if (primaryError !== undefined) {
+    throw primaryError
+  }
+
+  if (cleanupErrors.length > 0) {
+    throw new AggregateError(cleanupErrors, 'Native compression fixture cleanup failed')
+  }
 })
 
 for (const scenario of [
