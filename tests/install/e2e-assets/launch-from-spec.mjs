@@ -119,6 +119,7 @@ async function main() {
   /** @type {LaunchSpec} */
   const spec = JSON.parse(fs.readFileSync(values.spec, 'utf8'));
   const launch = resolveLaunch(spec);
+  const expectSha = values['expect-sha'];
   log(`launching ${launch.executablePath} (shape: ${spec.matchedShape})`);
 
   phase('launch');
@@ -184,7 +185,6 @@ async function main() {
     // The app may relaunch/exit during the update; completion signals are
     // product state, not Playwright events.
     const resultPath = values.result;
-    const expectSha = values['expect-sha'];
     const repoDir = values['repo-dir'];
     /** @returns {string} */
     const headSha = () => {
