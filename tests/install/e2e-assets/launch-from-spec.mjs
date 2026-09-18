@@ -15,6 +15,7 @@
  *     [--result $HERMES_HOME/.hermes-update-result.json] \
  *     [--expect-sha <sha> --repo-dir <install dir>] [--no-update] \
  *     [--launch-capture-dir /path/to/e2e-assets/launch-capture]
+ *     [--diagnostics-dir /path/to/ci-artifacts/launch-diagnostics]
  *
  * --no-update: launch + wait for the window + close. The smoke arm.
  * Otherwise: click Update now, then poll until the update marker clears.
@@ -112,6 +113,7 @@ async function main() {
       'expect-sha': { type: 'string' },
       'repo-dir': { type: 'string' },
       'launch-capture-dir': { type: 'string' },
+      'diagnostics-dir': { type: 'string' },
       'no-update': { type: 'boolean', default: false },
       'timeout-ms': { type: 'string', default: '600000' },
     },
@@ -122,13 +124,25 @@ async function main() {
   const launch = resolveLaunch(spec);
   log(`launching ${launch.executablePath} (shape: ${spec.matchedShape})`);
 
+  const launchElectron = async (options, label) => {
+    if (process.platform !== 'darwin' || process.env.GITHUB_ACTIONS !== 'true') {
+      return _electron.launch(options);
+    }
+    const { diagnoseSlowMacosLaunch } = await import('./macos-launch-diagnostics.cjs');
+    return diagnoseSlowMacosLaunch(() => _electron.launch(options), {
+      executablePath: options.executablePath,
+      outputPrefix: path.join(values['diagnostics-dir'] || path.dirname(values.spec), label),
+      log,
+    });
+  };
+
   phase('launch');
-  const app = await _electron.launch({
+  const app = await launchElectron({
     executablePath: launch.executablePath,
     args: launch.args,
     cwd: launch.cwd,
     env: launch.env,
-  });
+  }, 'initial-launch');
   // The app spawns several BrowserWindows (wake indicator, helper surfaces)
   // and firstWindow() grabs whichever webContents came first, which is not
   // always the main app window. Pick the window that actually renders the
@@ -432,12 +446,12 @@ async function main() {
   }
   const updatedLaunch = resolveLaunch(updatedSpec);
   log(`updated executable: ${updatedLaunch.executablePath}`);
-  const relaunch = await _electron.launch({
+  const relaunch = await launchElectron({
     executablePath: updatedLaunch.executablePath,
     args: updatedLaunch.args,
     cwd: updatedLaunch.cwd,
     env: updatedLaunch.env,
-  });
+  }, 'updated-launch');
   let window2 = null;
   const relaunchDeadline = Date.now() + 120_000;
   while (!window2 && Date.now() < relaunchDeadline) {

@@ -63,6 +63,14 @@ jobs:
             "tests/hermes_cli/test_managed_uv.py::TestWindowsRuntimeSelfLock" \
             -o addopts= -v -p no:cacheprovider
 
+      - name: Run desktop runtime handoff live E2E
+        shell: bash
+        run: |
+          scripts/run_tests.sh \
+            tests/hermes_cli/test_update_runtime_windows_live.py \
+            tests/scripts/desktop_update/test_desktop_update_runtime_launch.py \
+            -m windows_only -v
+
       - name: Run Telegram CLOSE-WAIT reconnect live E2E (#87057)
         shell: bash
         run: |

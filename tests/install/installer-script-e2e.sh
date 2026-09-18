@@ -424,13 +424,14 @@ NODE
     (cd "$PW_DIR" && npm install --no-save --no-audit --no-fund \
       "@playwright/test@1.58.2" 2>&1 | ts_prefix > "$LOG_DIR/playwright-install.log") \
       || { log_group "playwright install transcript" "$LOG_DIR/playwright-install.log"; fail "playwright install failed"; }
-    cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/window-input.cjs" "$ASSETS/desktop-artifact.cjs" "$ASSETS/update-completion.cjs" "$PW_DIR/"
+    cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/window-input.cjs" "$ASSETS/desktop-artifact.cjs" "$ASSETS/update-completion.cjs" "$ASSETS/macos-launch-diagnostics.cjs" "$PW_DIR/"
     rc=0
     (cd "$PW_DIR" && node launch-from-spec.mjs \
       --spec "$SPEC" \
       --result "$HERMES_HOME/.hermes-update-result.json" \
       --expect-sha "$HEAD_SHA" \
       --launch-capture-dir "$ASSETS/launch-capture" \
+      --diagnostics-dir "$LOG_DIR/launch-diagnostics" \
       --repo-dir "$INSTALL_DIR" 2>&1 \
       | ts_prefix > "$LOG_DIR/app-update.log") || rc=$?
     log_group "app update (Playwright) transcript" "$LOG_DIR/app-update.log"

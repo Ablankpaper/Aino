@@ -121,6 +121,44 @@ by `git diff --check`.
 
 This update does not modify Aino-API or establish a new production API pairing.
 Native coverage here uses test services, not live SMS, paid inference or payment
-settlement. Windows/Linux execution, signing, notarization, packaged distribution
-and production deployment are outside this update. Earlier delivery receipts
+settlement. Signing, notarization, published installer distribution and production
+deployment are outside this update. Earlier delivery receipts
 remain historical evidence for their recorded revisions.
+
+## Install And Update CI Follow-up
+
+The inherited install matrix exposed executable discovery that still required
+Hermes although the package produces Aino. Production discovery now accepts the
+Aino artifact and legacy Hermes installs; the test drivers resolve artifacts from
+the installed package metadata. Linux relaunch validation uses the actual updated
+`hermes desktop` launch specification and its sandbox preparation.
+
+An updater that changes the checkout must also evict the root `utils` module.
+Otherwise its old module remains loaded while new gateway code imports
+`base_url_origin`. The purge now includes `utils`, with a real reimport regression.
+
+Completion verification starts before clicking Update and rejects stale results.
+It retains completion evidence if the app consumes the result file, waits for
+marker clearance, and checks the exact requested commit before relaunching.
+Failed runs retain product logs as well as the test transcript and recording.
+
+| Check | Revision And Result |
+| --- | --- |
+| Linux install/update matrix | `c8500cc125`, [run 35311606869](https://github.com/Ablankpaper/Aino/actions/runs/35311606869): 6 first-attempt successes, 2 recovered historical failures |
+| Focused desktop launcher suite | 58 passed, 15 native-platform skips on macOS |
+| Updater stale-module regression suites | 76 passed |
+
+The two recovered Linux cases start at the exact `v2026.8.27` release commit
+`5fc308a70719a83cccdbba4c0e39c23f5a8239d5`. Its already-running updater cannot
+benefit from the new purge during that attempt. Recovery is allowed only when
+the target checkout has landed and the log contains that specific missing-symbol
+failure. The original transcript is preserved, a fresh updater runs once, and
+all post-update assertions must pass. Reports call these known historical
+failures, not first-attempt successes; failed recovery remains a failed job.
+
+Aino has no published signed bootstrap installer. Windows and macOS tests that
+download a bootstrap are therefore unavailable until the repository variables
+`INSTALL_E2E_SETUP_EXE_URL` and `INSTALL_E2E_DMG_URL` point to Aino installers.
+Only the upstream repository defaults to the upstream Hermes download URLs.
+Skipped bootstrap routes are disclosed in the matrix summary and are not Aino
+installer coverage.

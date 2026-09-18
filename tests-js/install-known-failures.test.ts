@@ -22,6 +22,33 @@ const base = {
 }
 
 describe('known install failures', () => {
+  it('requires the exact released Windows handoff and completed checkout before runtime recovery', () => {
+    const sample = {
+      platform: 'windows', phase: 'update', commit: '5fc308a70719a83cccdbba4c0e39c23f5a8239d5',
+      checkout: 'f'.repeat(40), target: 'f'.repeat(40),
+      installMethod: 'installer-script+desktop', updateMethod: 'open-app-update',
+      error: 'E2E ASSERTION FAILED: updater result ok=true',
+      logs: { handoff: [
+        "gateway auto-restart failed: cannot import name 'base_url_origin' from 'utils'",
+        'SQLite runtime repair deferred: the updater itself runs from the live venv it must replace',
+        'SQLite 3.45.1 still has the WAL-reset corruption bug.',
+        'retry exit code: 1',
+      ].join('\n') },
+    }
+
+    expect(matchKnownFailure(sample)?.id).toBe('windows-august-runtime-handoff')
+
+    for (const change of [
+      { platform: 'linux' }, { commit: 'e'.repeat(40) }, { checkout: 'e'.repeat(40) },
+      { target: '' }, { updateMethod: 'hermes-update' }, { installMethod: 'desktop-installer@latest' },
+      { error: 'onboarding timed out' },
+      { logs: { handoff: sample.logs.handoff.replace('retry exit code: 1', 'retry exit code: 0') } },
+      { logs: { handoff: sample.logs.handoff.replace('the updater itself runs from the live venv it must replace', 'another process holds the venv') } },
+    ]) {
+      expect(matchKnownFailure({ ...sample, ...change })).toBeNull()
+    }
+  })
+
   it('allows fresh-process recovery only for the exact released cache failure after the target checkout lands', () => {
     const sample = {
       platform: 'linux', phase: 'update', commit: '5fc308a70719a83cccdbba4c0e39c23f5a8239d5',
@@ -32,6 +59,7 @@ describe('known install failures', () => {
     }
 
     expect(matchKnownFailure(sample)?.id).toBe('august-cli-stale-utils')
+
     for (const change of [
       { platform: 'windows' }, { commit: 'e'.repeat(40) }, { checkout: 'e'.repeat(40) },
       { target: '' }, { updateMethod: 'hermes-desktop-app-update' }, { error: 'hermes update exited 0' },

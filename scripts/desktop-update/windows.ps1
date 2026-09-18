@@ -1632,7 +1632,13 @@ try {
     }
     Write-HandoffLog ("running: python " + ($updateArgs -join " "))
     Publish-UiProgress "Updating code and dependencies"
-    $res = Invoke-HermesStep $pythonExe $updateArgs "update"
+    $runtimeLauncher = Join-Path $PSScriptRoot "runtime-launch.ps1"
+    if (Test-Path -LiteralPath $runtimeLauncher) {
+        . $runtimeLauncher
+        $res = Invoke-HermesRuntimeUpdate $pythonExe $updateArgs
+    } else {
+        $res = Invoke-HermesStep $pythonExe $updateArgs "update"
+    }
     Write-HandoffLog "hermes update exit code: $($res.Code)"
 
     $retryPolicyPath = Join-Path $PSScriptRoot "retry-policy.ps1"
@@ -1655,7 +1661,14 @@ try {
         # the remaining Desktop/skills stages of the full pipeline.
         Write-HandoffLog "first attempt left retryable update state; retrying once in a fresh process"
         Publish-UiProgress "Retrying update"
-        $res = Invoke-HermesStep $pythonExe $updateArgs "update"
+        # Resolve again after the checkout swap: the starting release may not
+        # have shipped the external runtime-repair helper.
+        if (Test-Path -LiteralPath $runtimeLauncher) {
+            . $runtimeLauncher
+            $res = Invoke-HermesRuntimeUpdate $pythonExe $updateArgs
+        } else {
+            $res = Invoke-HermesStep $pythonExe $updateArgs "update"
+        }
         Write-HandoffLog "retry exit code: $($res.Code)"
     }
 

@@ -36,13 +36,15 @@ function readOptional(file) {
   }
 }
 
-function classifyWorkRoot(root, installMethod, updateMethod, error) {
+function classifyWorkRoot(root, installMethod, updateMethod, error, checkout) {
   const state = JSON.parse(fs.readFileSync(path.join(root, 'shas.json'), 'utf8').replace(/^\uFEFF/, ''))
   const rule = matchKnownFailure({
     platform: 'windows', phase: 'update', commit: state.old, installMethod, updateMethod, error,
+    checkout, target: state.current,
     logs: {
       update: readOptional(path.join(root, 'logs', 'update.log')),
       desktop: readOptional(path.join(root, 'hermes-home', 'logs', 'desktop.log')),
+      handoff: readOptional(path.join(root, 'hermes-home', 'logs', 'desktop-update-handoff.log')),
     },
   })
   if (!rule) return null
@@ -56,9 +58,9 @@ function classifyWorkRoot(root, installMethod, updateMethod, error) {
 module.exports = { matchKnownFailure, classifyWorkRoot, classifyPosixUpdate, rules }
 
 if (require.main === module) {
-  const [root, install, update, error] = process.argv.slice(2)
+  const [root, install, update, error, checkout] = process.argv.slice(2)
   try {
-    const receipt = classifyWorkRoot(root, install, update, error)
+    const receipt = classifyWorkRoot(root, install, update, error, checkout)
     if (!receipt) process.exitCode = 1
     else {
       fs.writeFileSync(path.join(root, 'known-failure.json'), JSON.stringify(receipt, null, 2) + '\n')
