@@ -1,0 +1,1190 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-18",
+  "source": {
+    "aino": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+    "api": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602"
+  },
+  "scope": "Fresh native late-lease isolation and core desktop account/model/billing acceptance on a frozen paired source.",
+  "build": {
+    "desktop": {
+      "source": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+      "mode": "production renderer, development main/preload",
+      "steps": [
+        {
+          "command": "npm",
+          "args": [
+            "run",
+            "build"
+          ],
+          "exit": 0,
+          "signal": null,
+          "duration_ms": 38218,
+          "log": "1.log"
+        },
+        {
+          "command": "../../node_modules/.bin/tsc",
+          "args": [
+            "-p",
+            "tsconfig.electron.json"
+          ],
+          "exit": 0,
+          "signal": null,
+          "duration_ms": 9640,
+          "log": "2.log"
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/bundle-electron-main.mjs",
+            "--dev"
+          ],
+          "exit": 0,
+          "signal": null,
+          "duration_ms": 258,
+          "log": "3.log"
+        },
+        {
+          "command": "node",
+          "args": [
+            "scripts/assert-dist-built.mjs"
+          ],
+          "exit": 0,
+          "signal": null,
+          "duration_ms": 248,
+          "log": "4.log"
+        }
+      ],
+      "build_stamp": {
+        "schemaVersion": 1,
+        "commit": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+        "branch": "codex/aino-platform-identity-models-billing",
+        "builtAt": "2026-09-18T08:14:40.933Z",
+        "dirty": false,
+        "source": "local"
+      },
+      "unchanged_source": true,
+      "clean_source": true,
+      "file_count": 421,
+      "artifacts": [
+        {
+          "path": "/private/tmp/aino-sep18-acceptance.G69IaM/build-MKrF99/receipt.json",
+          "sha256": "07e73ff1ff15f1677c33bb99e4f5be4cf7c22bafdc6e807c535afcfdb4b6f233",
+          "bytes": 46247
+        },
+        {
+          "path": "/private/tmp/aino-sep18-acceptance.G69IaM/build-MKrF99/1.log",
+          "sha256": "7d422f2d299837c9c58a7e291d2d2dc97e8051efcb8e7b2c74687bdf1589255b",
+          "bytes": 36096
+        },
+        {
+          "path": "/private/tmp/aino-sep18-acceptance.G69IaM/build-MKrF99/2.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": "/private/tmp/aino-sep18-acceptance.G69IaM/build-MKrF99/3.log",
+          "sha256": "544191255dd1233eecabfe34a4e0038440ce9cbba24d07ff3db26f8711c9d511",
+          "bytes": 424
+        },
+        {
+          "path": "/private/tmp/aino-sep18-acceptance.G69IaM/build-MKrF99/4.log",
+          "sha256": "ba1527ec3cd13ca51f7aa050da6d7eb7369941894a8f2a0b508ca747c435a11d",
+          "bytes": 56
+        }
+      ]
+    },
+    "api_frontend": {
+      "source": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602",
+      "command": "pnpm",
+      "args": [
+        "--dir",
+        "frontend",
+        "run",
+        "build"
+      ],
+      "exit": 0,
+      "signal": null,
+      "duration_ms": 91160,
+      "unchanged_source": true,
+      "clean_source": true,
+      "file_count": 182,
+      "artifacts": [
+        {
+          "path": "/private/tmp/aino-sep18-acceptance.G69IaM/api-build-90WxtH/receipt.json",
+          "sha256": "b699d358875ee4b7ae3dc4ed8a7c478b90fb6ca3a2104022c00b3a7781a7ef6b",
+          "bytes": 20903
+        },
+        {
+          "path": "/private/tmp/aino-sep18-acceptance.G69IaM/api-build-90WxtH/build.log",
+          "sha256": "8bbb070c46c93d54489e8ecbc7e15c961a4ac3ee94db1a7b8d1107e3ab0dfc5c",
+          "bytes": 42905
+        }
+      ]
+    }
+  },
+  "late_lease": {
+    "source": {
+      "aino": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+      "api": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602",
+      "build_stamp": {
+        "schemaVersion": 1,
+        "commit": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+        "branch": "codex/aino-platform-identity-models-billing",
+        "builtAt": "2026-09-18T08:14:40.933Z",
+        "dirty": false,
+        "source": "local"
+      },
+      "bundle_mode": "production renderer plus development main/preload for explicit loopback origin fixture",
+      "build_limit": "Development main/preload intentionally rebuilt after production build for isolated loopback platform origin; Python loads the frozen checkout source.",
+      "product_changes_since_build": ""
+    },
+    "execution": {
+      "command": "../../node_modules/.bin/playwright",
+      "args": [
+        "test",
+        "e2e/platform-account-model-billing.spec.ts",
+        "--grep",
+        "native late lease cannot revive",
+        "--workers=1",
+        "--retries=0",
+        "--max-failures=1",
+        "--global-timeout=240000",
+        "--reporter=list,json",
+        "--output=/private/tmp/aino-sep18-acceptance.G69IaM/lease-TdxTPG/playwright"
+      ],
+      "exit": 0,
+      "signal": null,
+      "timedOut": false,
+      "duration_ms": 61243,
+      "unchanged_source": true,
+      "unchanged_desktop_dist": true,
+      "unchanged_api_frontend_dist": true
+    },
+    "test": {
+      "title": "native late lease cannot revive the signed-out account after replacement login",
+      "status": "passed",
+      "duration_ms": 60017,
+      "statistics": {
+        "startTime": "2026-09-18T08:15:37.900Z",
+        "duration": 60765.908,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "artifacts": [
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/lease-TdxTPG/source.json",
+        "sha256": "79511d88ee7c3c3fa9e6a2d3c69d9f6f89de259da147d0e44510e3ab98f03de1",
+        "bytes": 675
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/lease-TdxTPG/exit.json",
+        "sha256": "292e80a4a24dc2f2f280963bb90e508cd0dbacb7f5c385fc8f37fc1e81c5a223",
+        "bytes": 564
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/lease-TdxTPG/run.log",
+        "sha256": "e8b3c7cf79915956f6d3c187e2a78388743ab1d3fcad2b5cdeda8ae912c51e0c",
+        "bytes": 364
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/lease-TdxTPG/results.json",
+        "sha256": "2c67e57db67391eaf09e69678ea6c20cf87e20896a4e5183b042c8c0e615977f",
+        "bytes": 19204
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/lease-TdxTPG/desktop-dist.json",
+        "sha256": "969c5adf24a31dc1fd11db9f78cb282da5ff09965a318652514902180e56f8e6",
+        "bytes": 44153
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/lease-TdxTPG/api-frontend-dist.json",
+        "sha256": "318ff1c5a362f1606c6d0c5a07813375dc21a00447bcba63bb58b541b615b813",
+        "bytes": 20269
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/lease-TdxTPG/playwright/platform-account-model-bil-040f4-unt-after-replacement-login/test-finished-1.png",
+        "sha256": "ffe0fecd813c711f7502dd3dc98ba7d8efe6fc52f43b0b07ec81b33b0b259886",
+        "bytes": 191136
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/lease-TdxTPG/playwright/platform-account-model-bil-040f4-unt-after-replacement-login/trace.zip",
+        "sha256": "6afc248bd66eb7b78044dec587d76df7e28c577782c1b456bba79c06eaf1d5c1",
+        "bytes": 225728
+      }
+    ],
+    "receipt": {
+      "source": {
+        "aino": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+        "api": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602"
+      },
+      "run_id": "afededb5-5d58-43fc-afcf-8b6b6b2a58dc",
+      "proof": {
+        "old_owner": {
+          "platform_origin": "http://127.0.0.1:50591",
+          "user_id": "1"
+        },
+        "current_owner": {
+          "platform_origin": "http://127.0.0.1:50591",
+          "user_id": "2"
+        },
+        "old_runtime_id": "9531fe86",
+        "current_runtime_id": "f906d81b",
+        "signed_out_revision": 6,
+        "switched_revision": 8,
+        "late_response_delivered_after_switch": true,
+        "binding_result": {
+          "completed": true,
+          "ok": false,
+          "code": "auth_attempt_superseded"
+        },
+        "stale_binding_rejected_without_inference": true,
+        "explicit_new_chat_recovers": true,
+        "before": {
+          "balance": "9.99980000",
+          "usage_cost": "0.0002000000",
+          "usage_calls": 2,
+          "usage_turns": 1,
+          "usage_ledger": [
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "d8774e84-1458-5d46-8a51-06d154d929e1",
+              "desktop_turn_id": "41bf6366-5bea-4528-890d-c988106a27ff",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "d8774e84-1458-5d46-8a51-06d154d929e1",
+              "desktop_turn_id": "41bf6366-5bea-4528-890d-c988106a27ff",
+              "user_id": 1
+            }
+          ],
+          "orders": 0
+        },
+        "next_before": {
+          "balance": "10.00000000",
+          "usage_cost": "0",
+          "usage_calls": 0,
+          "usage_turns": 0,
+          "usage_ledger": [],
+          "orders": 0
+        },
+        "recovered": {
+          "balance": "9.99980000",
+          "usage_cost": "0.0002000000",
+          "usage_calls": 2,
+          "usage_turns": 1,
+          "usage_ledger": [
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 3,
+              "desktop_session_id": "0d5a5e5d-8da2-53e4-9d4e-266588a7568a",
+              "desktop_turn_id": "56895b0b-c5bc-4515-b60b-4b914efed36d",
+              "user_id": 2
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 3,
+              "desktop_session_id": "0d5a5e5d-8da2-53e4-9d4e-266588a7568a",
+              "desktop_turn_id": "56895b0b-c5bc-4515-b60b-4b914efed36d",
+              "user_id": 2
+            }
+          ],
+          "orders": 0
+        },
+        "faults": {
+          "before": {
+            "profile_401_for_current_access": false,
+            "offline": false,
+            "hold_refresh_response": false,
+            "hold_logout_response": false,
+            "hold_inference_before_auth": false,
+            "hold_credential_response": false,
+            "hold_credential_user_id": 0,
+            "profile_calls": 1,
+            "profile_401s": 0,
+            "network_drops": 0,
+            "refresh_started": 0,
+            "refresh_completed": 0,
+            "refresh_waiting": 0,
+            "refresh_responses": 0,
+            "logout_started": 0,
+            "logout_completed": 0,
+            "logout_waiting": 0,
+            "logout_responses": 0,
+            "credential_requests": 2,
+            "credential_successes": 2,
+            "credential_waiting": 0,
+            "credential_responses": 2,
+            "inference_requests": 2,
+            "inference_waiting": 0,
+            "inference_responses": 2,
+            "authenticated_inference_attempts": 2,
+            "inference_attempt_unix_millis": [
+              1789719391661,
+              1789719391850
+            ],
+            "provider_attempts": 2,
+            "provider_attempt_unix_millis": [
+              1789719391690,
+              1789719391864
+            ],
+            "inference_http_status": 0,
+            "inference_http_failures_remaining": 0,
+            "inference_retry_after_seconds": 0,
+            "inference_http_fault_responses": 0,
+            "inference_429s": 0,
+            "inference_503s": 0,
+            "gate_timeouts": 0,
+            "gate_cancellations": 0,
+            "gate_shutdowns": 0,
+            "session_revocations": 0,
+            "retired_lease_available": false,
+            "retired_lease_http_status": 0,
+            "retired_lease_error_code": ""
+          },
+          "held": {
+            "profile_401_for_current_access": false,
+            "offline": false,
+            "hold_refresh_response": false,
+            "hold_logout_response": false,
+            "hold_inference_before_auth": false,
+            "hold_credential_response": true,
+            "hold_credential_user_id": 1,
+            "profile_calls": 1,
+            "profile_401s": 0,
+            "network_drops": 0,
+            "refresh_started": 0,
+            "refresh_completed": 0,
+            "refresh_waiting": 0,
+            "refresh_responses": 0,
+            "logout_started": 0,
+            "logout_completed": 0,
+            "logout_waiting": 0,
+            "logout_responses": 0,
+            "credential_requests": 3,
+            "credential_successes": 3,
+            "credential_waiting": 1,
+            "credential_responses": 2,
+            "inference_requests": 2,
+            "inference_waiting": 0,
+            "inference_responses": 2,
+            "authenticated_inference_attempts": 2,
+            "inference_attempt_unix_millis": [
+              1789719391661,
+              1789719391850
+            ],
+            "provider_attempts": 2,
+            "provider_attempt_unix_millis": [
+              1789719391690,
+              1789719391864
+            ],
+            "inference_http_status": 0,
+            "inference_http_failures_remaining": 0,
+            "inference_retry_after_seconds": 0,
+            "inference_http_fault_responses": 0,
+            "inference_429s": 0,
+            "inference_503s": 0,
+            "gate_timeouts": 0,
+            "gate_cancellations": 0,
+            "gate_shutdowns": 0,
+            "session_revocations": 0,
+            "retired_lease_available": false,
+            "retired_lease_http_status": 0,
+            "retired_lease_error_code": ""
+          },
+          "before_release": {
+            "profile_401_for_current_access": false,
+            "offline": false,
+            "hold_refresh_response": false,
+            "hold_logout_response": false,
+            "hold_inference_before_auth": false,
+            "hold_credential_response": true,
+            "hold_credential_user_id": 1,
+            "profile_calls": 2,
+            "profile_401s": 0,
+            "network_drops": 0,
+            "refresh_started": 0,
+            "refresh_completed": 0,
+            "refresh_waiting": 0,
+            "refresh_responses": 0,
+            "logout_started": 1,
+            "logout_completed": 1,
+            "logout_waiting": 0,
+            "logout_responses": 1,
+            "credential_requests": 3,
+            "credential_successes": 3,
+            "credential_waiting": 1,
+            "credential_responses": 2,
+            "inference_requests": 2,
+            "inference_waiting": 0,
+            "inference_responses": 2,
+            "authenticated_inference_attempts": 2,
+            "inference_attempt_unix_millis": [
+              1789719391661,
+              1789719391850
+            ],
+            "provider_attempts": 2,
+            "provider_attempt_unix_millis": [
+              1789719391690,
+              1789719391864
+            ],
+            "inference_http_status": 0,
+            "inference_http_failures_remaining": 0,
+            "inference_retry_after_seconds": 0,
+            "inference_http_fault_responses": 0,
+            "inference_429s": 0,
+            "inference_503s": 0,
+            "gate_timeouts": 0,
+            "gate_cancellations": 0,
+            "gate_shutdowns": 0,
+            "session_revocations": 0,
+            "retired_lease_available": true,
+            "retired_lease_http_status": 0,
+            "retired_lease_error_code": ""
+          },
+          "rejected": {
+            "profile_401_for_current_access": false,
+            "offline": false,
+            "hold_refresh_response": false,
+            "hold_logout_response": false,
+            "hold_inference_before_auth": false,
+            "hold_credential_response": false,
+            "hold_credential_user_id": 0,
+            "profile_calls": 2,
+            "profile_401s": 0,
+            "network_drops": 0,
+            "refresh_started": 0,
+            "refresh_completed": 0,
+            "refresh_waiting": 0,
+            "refresh_responses": 0,
+            "logout_started": 1,
+            "logout_completed": 1,
+            "logout_waiting": 0,
+            "logout_responses": 1,
+            "credential_requests": 3,
+            "credential_successes": 3,
+            "credential_waiting": 0,
+            "credential_responses": 3,
+            "inference_requests": 2,
+            "inference_waiting": 0,
+            "inference_responses": 2,
+            "authenticated_inference_attempts": 2,
+            "inference_attempt_unix_millis": [
+              1789719391661,
+              1789719391850
+            ],
+            "provider_attempts": 2,
+            "provider_attempt_unix_millis": [
+              1789719391690,
+              1789719391864
+            ],
+            "inference_http_status": 0,
+            "inference_http_failures_remaining": 0,
+            "inference_retry_after_seconds": 0,
+            "inference_http_fault_responses": 0,
+            "inference_429s": 0,
+            "inference_503s": 0,
+            "gate_timeouts": 0,
+            "gate_cancellations": 0,
+            "gate_shutdowns": 0,
+            "session_revocations": 0,
+            "retired_lease_available": true,
+            "retired_lease_http_status": 0,
+            "retired_lease_error_code": ""
+          },
+          "final": {
+            "profile_401_for_current_access": false,
+            "offline": false,
+            "hold_refresh_response": false,
+            "hold_logout_response": false,
+            "hold_inference_before_auth": false,
+            "hold_credential_response": false,
+            "hold_credential_user_id": 0,
+            "profile_calls": 2,
+            "profile_401s": 0,
+            "network_drops": 0,
+            "refresh_started": 0,
+            "refresh_completed": 0,
+            "refresh_waiting": 0,
+            "refresh_responses": 0,
+            "logout_started": 1,
+            "logout_completed": 1,
+            "logout_waiting": 0,
+            "logout_responses": 1,
+            "credential_requests": 5,
+            "credential_successes": 5,
+            "credential_waiting": 0,
+            "credential_responses": 5,
+            "inference_requests": 4,
+            "inference_waiting": 0,
+            "inference_responses": 4,
+            "authenticated_inference_attempts": 4,
+            "inference_attempt_unix_millis": [
+              1789719391661,
+              1789719391850,
+              1789719395746,
+              1789719395885
+            ],
+            "provider_attempts": 4,
+            "provider_attempt_unix_millis": [
+              1789719391690,
+              1789719391864,
+              1789719395762,
+              1789719395903
+            ],
+            "inference_http_status": 0,
+            "inference_http_failures_remaining": 0,
+            "inference_retry_after_seconds": 0,
+            "inference_http_fault_responses": 0,
+            "inference_429s": 0,
+            "inference_503s": 0,
+            "gate_timeouts": 0,
+            "gate_cancellations": 0,
+            "gate_shutdowns": 0,
+            "session_revocations": 0,
+            "retired_lease_available": true,
+            "retired_lease_http_status": 0,
+            "retired_lease_error_code": ""
+          }
+        },
+        "audit": {
+          "expected_stale_alerts": 0,
+          "unexpected_alerts": 0
+        }
+      },
+      "charge": {
+        "elapsed_ms": 26,
+        "label": "Duration 0s\n· Used 30 token\n· Context 0%\n· 106 token/s\nCharged 0.0002 USD\nView details",
+        "state_unchanged": true
+      },
+      "rendererAudit": {
+        "checked_credentials": 10,
+        "leaked": false
+      },
+      "persistedAudit": {
+        "leaked": false,
+        "checked_credentials": 10,
+        "batches": 5,
+        "audited_bytes": 28162036
+      },
+      "transport": {
+        "expectedFontHosts": [
+          "fonts.googleapis.com"
+        ]
+      }
+    }
+  },
+  "core": {
+    "source": {
+      "aino": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+      "api": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602",
+      "build_stamp": {
+        "schemaVersion": 1,
+        "commit": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+        "branch": "codex/aino-platform-identity-models-billing",
+        "builtAt": "2026-09-18T08:14:40.933Z",
+        "dirty": false,
+        "source": "local"
+      },
+      "bundle_mode": "production renderer plus development main/preload for explicit loopback origin fixture",
+      "build_limit": "Development main/preload intentionally rebuilt after production build for isolated loopback platform origin; Python loads the frozen checkout source.",
+      "product_changes_since_build": ""
+    },
+    "execution": {
+      "command": "../../node_modules/.bin/playwright",
+      "args": [
+        "test",
+        "e2e/platform-account-model-billing.spec.ts",
+        "--grep",
+        "real API account, native managed lease, Python tool roundtrip and wallet",
+        "--workers=1",
+        "--retries=0",
+        "--max-failures=1",
+        "--global-timeout=540000",
+        "--reporter=list,json",
+        "--output=/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/playwright"
+      ],
+      "exit": 0,
+      "signal": null,
+      "timedOut": false,
+      "duration_ms": 220696,
+      "unchanged_source": true,
+      "unchanged_desktop_dist": true,
+      "unchanged_api_frontend_dist": true
+    },
+    "test": {
+      "title": "real API account, native managed lease, Python tool roundtrip and wallet",
+      "status": "passed",
+      "duration_ms": 218915,
+      "statistics": {
+        "startTime": "2026-09-18T08:17:14.407Z",
+        "duration": 220010.21,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "artifacts": [
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/source.json",
+        "sha256": "79511d88ee7c3c3fa9e6a2d3c69d9f6f89de259da147d0e44510e3ab98f03de1",
+        "bytes": 675
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/exit.json",
+        "sha256": "407c0b4c001a8c1be240fcbf450b611d65ac68638ab74a1edcc0bd4dd86d004d",
+        "bytes": 605
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/run.log",
+        "sha256": "c2cbe4456cd506c016f8d4a2b6969ef3b784ec5534a8f0ffa30f06ee6a3e931c",
+        "bytes": 359
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/results.json",
+        "sha256": "54bd200c256b0a1e7786f8b699b3277878a294fb978bb41a1be98bdc23c57fc0",
+        "bytes": 24962
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/desktop-dist.json",
+        "sha256": "969c5adf24a31dc1fd11db9f78cb282da5ff09965a318652514902180e56f8e6",
+        "bytes": 44153
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/api-frontend-dist.json",
+        "sha256": "318ff1c5a362f1606c6d0c5a07813375dc21a00447bcba63bb58b541b615b813",
+        "bytes": 20269
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/playwright/platform-account-model-bil-b5e94-n-tool-roundtrip-and-wallet/test-finished-2.png",
+        "sha256": "00244851d2fb5cffaa2cb840eac3cdf3f7db7f73bac67747af16db592aa5a5e4",
+        "bytes": 231161
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/playwright/platform-account-model-bil-b5e94-n-tool-roundtrip-and-wallet/test-finished-1.png",
+        "sha256": "ef2bd65e83f1f70e7353524709787855b2d6d5476c88d05d00c428beac24f33d",
+        "bytes": 200896
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/playwright/platform-account-model-bil-b5e94-n-tool-roundtrip-and-wallet/test-finished-3.png",
+        "sha256": "f865c5b5ba808a20a1dbaa901d56ca3d62360a3c0c5ed3ea891b0f549735c7dc",
+        "bytes": 163372
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/playwright/platform-account-model-bil-b5e94-n-tool-roundtrip-and-wallet/test-finished-5.png",
+        "sha256": "a7851649362815bd766734cdc94bcbb031cf41b098c45c87cc00ef457f72dbc5",
+        "bytes": 155715
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/playwright/platform-account-model-bil-b5e94-n-tool-roundtrip-and-wallet/test-finished-4.png",
+        "sha256": "96007e93f68cdd4fb8f88b1f0a506d7b876b9044050db28aa9b429a6d55cafee",
+        "bytes": 208757
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/core-XzabtO/playwright/platform-account-model-bil-b5e94-n-tool-roundtrip-and-wallet/trace.zip",
+        "sha256": "1f8f0b9dca3829f685a4a0028fe59fa961c4a4e680febe99a021bc02d4a2be8f",
+        "bytes": 4377235
+      }
+    ],
+    "receipt": {
+      "run_id": "f305eb61-08b1-4593-b421-debee4e8474a",
+      "api_sha": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602",
+      "aino_sha": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+      "initial": {
+        "balance": "10.00000000",
+        "credential_requests": 0,
+        "credential_successes": 0,
+        "downstream_disconnects": 0,
+        "inference_requests": 0,
+        "inference_responses": 0,
+        "model_calls": 0,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "f305eb61-08b1-4593-b421-debee4e8474a",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 0,
+        "usage_calls": 0,
+        "usage_cost": "0",
+        "usage_ledger": [],
+        "usage_turns": 0,
+        "user_id": 1
+      },
+      "settled": {
+        "balance": "9.99980000",
+        "credential_requests": 2,
+        "credential_successes": 2,
+        "downstream_disconnects": 0,
+        "inference_requests": 2,
+        "inference_responses": 2,
+        "model_calls": 2,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "f305eb61-08b1-4593-b421-debee4e8474a",
+        "stream_cancelled": 0,
+        "stream_drained": 0,
+        "stream_shutdowns": 0,
+        "stream_started": 0,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 2,
+        "usage_cost": "0.0002000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 1,
+        "user_id": 1
+      },
+      "cancelled": {
+        "balance": "9.99970000",
+        "credential_requests": 3,
+        "credential_successes": 3,
+        "downstream_disconnects": 1,
+        "inference_requests": 3,
+        "inference_responses": 3,
+        "model_calls": 3,
+        "orders": 0,
+        "payment_calls": 0,
+        "run_id": "f305eb61-08b1-4593-b421-debee4e8474a",
+        "stream_cancelled": 0,
+        "stream_drained": 1,
+        "stream_shutdowns": 0,
+        "stream_started": 1,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 3,
+        "usage_cost": "0.0003000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "add184b9-5c2a-4e2e-87d4-a6ad1d5fd55e",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 2,
+        "user_id": 1
+      },
+      "paid": {
+        "balance": "12.79970000",
+        "credential_requests": 3,
+        "credential_successes": 3,
+        "downstream_disconnects": 1,
+        "inference_requests": 3,
+        "inference_responses": 3,
+        "model_calls": 3,
+        "orders": 1,
+        "payment_calls": 1,
+        "run_id": "f305eb61-08b1-4593-b421-debee4e8474a",
+        "stream_cancelled": 0,
+        "stream_drained": 1,
+        "stream_shutdowns": 0,
+        "stream_started": 1,
+        "stream_timeouts": 0,
+        "tool_results": 1,
+        "usage_calls": 3,
+        "usage_cost": "0.0003000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "add184b9-5c2a-4e2e-87d4-a6ad1d5fd55e",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 2,
+        "user_id": 1
+      },
+      "workspace": {
+        "profile": "fixture-workspace",
+        "account_id": "1",
+        "distinct_guarded_backend": true,
+        "peer_account_matches": true,
+        "peer_wallet_matches": true,
+        "peerAudit": {
+          "checked_credentials": 11,
+          "leaked": false
+        },
+        "hide_show_preserves_account": true,
+        "hide_show_preserves_wallet": true,
+        "before": {
+          "balance": "12.79950000",
+          "credential_requests": 4,
+          "credential_successes": 4,
+          "downstream_disconnects": 1,
+          "inference_requests": 5,
+          "inference_responses": 5,
+          "model_calls": 5,
+          "orders": 1,
+          "payment_calls": 1,
+          "run_id": "f305eb61-08b1-4593-b421-debee4e8474a",
+          "stream_cancelled": 0,
+          "stream_drained": 1,
+          "stream_shutdowns": 0,
+          "stream_started": 1,
+          "stream_timeouts": 0,
+          "tool_results": 2,
+          "usage_calls": 5,
+          "usage_cost": "0.0005000000",
+          "usage_ledger": [
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "add184b9-5c2a-4e2e-87d4-a6ad1d5fd55e",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 2,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "78d9ec40-98cc-4b00-86f1-0bc3cae96a47",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 2,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "78d9ec40-98cc-4b00-86f1-0bc3cae96a47",
+              "user_id": 1
+            }
+          ],
+          "usage_turns": 3,
+          "user_id": 1
+        },
+        "after": {
+          "balance": "12.79930000",
+          "credential_requests": 6,
+          "credential_successes": 6,
+          "downstream_disconnects": 1,
+          "inference_requests": 7,
+          "inference_responses": 7,
+          "model_calls": 7,
+          "orders": 1,
+          "payment_calls": 1,
+          "run_id": "f305eb61-08b1-4593-b421-debee4e8474a",
+          "stream_cancelled": 0,
+          "stream_drained": 1,
+          "stream_shutdowns": 0,
+          "stream_started": 1,
+          "stream_timeouts": 0,
+          "tool_results": 3,
+          "usage_calls": 7,
+          "usage_cost": "0.0007000000",
+          "usage_ledger": [
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 1,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "add184b9-5c2a-4e2e-87d4-a6ad1d5fd55e",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 2,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "78d9ec40-98cc-4b00-86f1-0bc3cae96a47",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 2,
+              "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+              "desktop_turn_id": "78d9ec40-98cc-4b00-86f1-0bc3cae96a47",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 3,
+              "desktop_session_id": "eb8a95ff-90f4-50a0-b23c-2f8af50d6d6e",
+              "desktop_turn_id": "d1e854da-a6a5-4c79-add6-c3c52221ca46",
+              "user_id": 1
+            },
+            {
+              "actual_cost": "0.0001000000",
+              "api_key_id": 3,
+              "desktop_session_id": "eb8a95ff-90f4-50a0-b23c-2f8af50d6d6e",
+              "desktop_turn_id": "d1e854da-a6a5-4c79-add6-c3c52221ca46",
+              "user_id": 1
+            }
+          ],
+          "usage_turns": 4,
+          "user_id": 1
+        }
+      },
+      "beforeBYOK": {
+        "balance": "12.79930000",
+        "credential_requests": 6,
+        "credential_successes": 6,
+        "downstream_disconnects": 1,
+        "inference_requests": 7,
+        "inference_responses": 7,
+        "model_calls": 7,
+        "orders": 1,
+        "payment_calls": 1,
+        "run_id": "f305eb61-08b1-4593-b421-debee4e8474a",
+        "stream_cancelled": 0,
+        "stream_drained": 1,
+        "stream_shutdowns": 0,
+        "stream_started": 1,
+        "stream_timeouts": 0,
+        "tool_results": 3,
+        "usage_calls": 7,
+        "usage_cost": "0.0007000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "add184b9-5c2a-4e2e-87d4-a6ad1d5fd55e",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 2,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "78d9ec40-98cc-4b00-86f1-0bc3cae96a47",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 2,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "78d9ec40-98cc-4b00-86f1-0bc3cae96a47",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 3,
+            "desktop_session_id": "eb8a95ff-90f4-50a0-b23c-2f8af50d6d6e",
+            "desktop_turn_id": "d1e854da-a6a5-4c79-add6-c3c52221ca46",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 3,
+            "desktop_session_id": "eb8a95ff-90f4-50a0-b23c-2f8af50d6d6e",
+            "desktop_turn_id": "d1e854da-a6a5-4c79-add6-c3c52221ca46",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 4,
+        "user_id": 1
+      },
+      "afterBYOK": {
+        "balance": "12.79930000",
+        "credential_requests": 6,
+        "credential_successes": 6,
+        "downstream_disconnects": 1,
+        "inference_requests": 7,
+        "inference_responses": 7,
+        "model_calls": 7,
+        "orders": 1,
+        "payment_calls": 1,
+        "run_id": "f305eb61-08b1-4593-b421-debee4e8474a",
+        "stream_cancelled": 0,
+        "stream_drained": 1,
+        "stream_shutdowns": 0,
+        "stream_started": 1,
+        "stream_timeouts": 0,
+        "tool_results": 3,
+        "usage_calls": 7,
+        "usage_cost": "0.0007000000",
+        "usage_ledger": [
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "13256867-f482-4c99-b759-0e287103583c",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 1,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "add184b9-5c2a-4e2e-87d4-a6ad1d5fd55e",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 2,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "78d9ec40-98cc-4b00-86f1-0bc3cae96a47",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 2,
+            "desktop_session_id": "30a7cfb9-6f8c-553d-b367-c72cc32ab1f4",
+            "desktop_turn_id": "78d9ec40-98cc-4b00-86f1-0bc3cae96a47",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 3,
+            "desktop_session_id": "eb8a95ff-90f4-50a0-b23c-2f8af50d6d6e",
+            "desktop_turn_id": "d1e854da-a6a5-4c79-add6-c3c52221ca46",
+            "user_id": 1
+          },
+          {
+            "actual_cost": "0.0001000000",
+            "api_key_id": 3,
+            "desktop_session_id": "eb8a95ff-90f4-50a0-b23c-2f8af50d6d6e",
+            "desktop_turn_id": "d1e854da-a6a5-4c79-add6-c3c52221ca46",
+            "user_id": 1
+          }
+        ],
+        "usage_turns": 4,
+        "user_id": 1
+      },
+      "website": {
+        "accountId": "1",
+        "balance": "12.80",
+        "transport": {
+          "rejectedHTTP": [],
+          "rejectedHTTPCount": 0,
+          "rejectedWebSockets": [],
+          "rejectedWebSocketCount": 0
+        }
+      },
+      "initialAudit": {
+        "checked_credentials": 6,
+        "leaked": false
+      },
+      "restartAudit": {
+        "checked_credentials": 9,
+        "leaked": false
+      },
+      "byokAudit": {
+        "checked_credentials": 13,
+        "leaked": false
+      },
+      "transport": {
+        "known_public_font": {
+          "host": "fonts.googleapis.com",
+          "attempted": true,
+          "blocked_before_transport": true,
+          "delivered": false,
+          "denied_hosts": [
+            "fonts.googleapis.com",
+            "fonts.googleapis.com",
+            "fonts.googleapis.com",
+            "fonts.googleapis.com"
+          ]
+        }
+      },
+      "api_log": "/var/folders/d8/tb_9ybdj5xzg_l5451f5209c0000gn/T/aino-native-api-81vBl8/api.log"
+    }
+  },
+  "limitations": [
+    "Actual Electron/Python/API and isolated PostgreSQL/Redis, with loopback SMS/model/payment suppliers. No live SMS, paid inference or payment.",
+    "Production renderer with development main/preload permits the explicit loopback platform origin; not a production package or production TLS receipt.",
+    "Restart uses fresh authentication, not remembered-login restoration.",
+    "Website balance is displayed to two decimal places; final 12.79930000 USD is displayed as 12.80.",
+    "Known optional public-font requests are denied by transport guards, not successful external downloads.",
+    "Raw traces/logs may contain disposable fixture credentials and remain local; only structured receipts and artifact hashes are committed.",
+    "No fresh full Python/UI/Electron broad suite claim; prior broad receipts keep their own source versions."
+  ]
+}

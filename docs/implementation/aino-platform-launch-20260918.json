@@ -1,0 +1,454 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-18",
+  "source": {
+    "checkpoint": "0b30ad930c19a5731f33ad62a6ef813be9112e73",
+    "product_build": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+    "api": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602"
+  },
+  "scope": "Truthful main renderer/Settings/read-only backend acceptance, bounded owned-tree cleanup, and the corrected installer update/relaunch expected SHA scope.",
+  "native_launch": {
+    "source": {
+      "aino": "0b30ad930c19a5731f33ad62a6ef813be9112e73",
+      "api": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602",
+      "build_stamp": {
+        "schemaVersion": 1,
+        "commit": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+        "branch": "codex/aino-platform-identity-models-billing",
+        "builtAt": "2026-09-18T08:14:40.933Z",
+        "dirty": false,
+        "source": "local"
+      },
+      "bundle_mode": "production renderer plus development main/preload for explicit loopback origin fixture",
+      "build_limit": "Development main/preload intentionally rebuilt after production build for isolated loopback platform origin; Python loads the frozen checkout source.",
+      "product_changes_since_build": ""
+    },
+    "execution": {
+      "command": "../../node_modules/.bin/playwright",
+      "args": [
+        "test",
+        "e2e/launch-acceptance.spec.ts",
+        "--grep",
+        "installer launch gate",
+        "--workers=1",
+        "--retries=0",
+        "--max-failures=1",
+        "--global-timeout=180000",
+        "--reporter=list,json",
+        "--output=/private/tmp/aino-sep18-acceptance.G69IaM/launch-ckbKon/playwright"
+      ],
+      "exit": 0,
+      "signal": null,
+      "timedOut": false,
+      "duration_ms": 15204,
+      "unchanged_source": true,
+      "unchanged_desktop_dist": true,
+      "unchanged_api_frontend_dist": true
+    },
+    "test": {
+      "title": "installer launch gate accepts the isolated Aino renderer and backend",
+      "status": "passed",
+      "duration_ms": 14630,
+      "statistics": {
+        "startTime": "2026-09-18T09:06:09.647Z",
+        "duration": 14933.761,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "artifacts": [
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-ckbKon/source.json",
+        "sha256": "3b56a389739254a5b681d3270ee1cbf438d4c7ef448aef355b37bb5d3dfcc294",
+        "bytes": 675
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-ckbKon/exit.json",
+        "sha256": "43178e29377bec2cc6e245b8ee61cb1401c403ace4ff43a0e96298d02078953c",
+        "bytes": 542
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-ckbKon/run.log",
+        "sha256": "3da2c99523929494fe634945a857875f96b732fab38f6a300c6523565f9fe1ad",
+        "bytes": 341
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-ckbKon/results.json",
+        "sha256": "f14ec2007a657a3dd98f8b540bcf3079b5ba51118cb9d1c311070a82c4154df3",
+        "bytes": 3850
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-ckbKon/desktop-dist.json",
+        "sha256": "969c5adf24a31dc1fd11db9f78cb282da5ff09965a318652514902180e56f8e6",
+        "bytes": 44153
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-ckbKon/api-frontend-dist.json",
+        "sha256": "318ff1c5a362f1606c6d0c5a07813375dc21a00447bcba63bb58b541b615b813",
+        "bytes": 20269
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-ckbKon/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/test-finished-1.png",
+        "sha256": "70ca5bd1d839596f3326af68d8de4a7bd47ecaee9e764e87e09851fa990798ab",
+        "bytes": 19300
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-ckbKon/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/trace.zip",
+        "sha256": "566239f94daac842b234f910778e80d2a03b17479cf609fd99efbfd32de222e9",
+        "bytes": 24480
+      }
+    ]
+  },
+  "fixture_login_fix": {
+    "commit": "0b30ad930c19a5731f33ad62a6ef813be9112e73",
+    "predecessor": "0f8c30e6345669c5a85d6a41e743ed126712ade2",
+    "behavior": "Complete explicit isolated development login before Settings acceptance; production account and acceptance contracts unchanged.",
+    "focused_verification": "2 files / 13 unit tests passed; E2E TypeScript and diff checks passed; independent spec/quality scoped review approved.",
+    "storage_limit": "The legacy adapter ignores remember; unchecking it is not platform secure-storage or Keychain proof."
+  },
+  "prior_failed_launch": {
+    "source": {
+      "aino": "9f74c8699045bbdd20ccc09cdee21eb48b96dc19",
+      "api": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602",
+      "build_stamp": {
+        "schemaVersion": 1,
+        "commit": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+        "branch": "codex/aino-platform-identity-models-billing",
+        "builtAt": "2026-09-18T08:14:40.933Z",
+        "dirty": false,
+        "source": "local"
+      },
+      "bundle_mode": "production renderer plus development main/preload for explicit loopback origin fixture",
+      "build_limit": "Development main/preload intentionally rebuilt after production build for isolated loopback platform origin; Python loads the frozen checkout source.",
+      "product_changes_since_build": ""
+    },
+    "execution": {
+      "command": "../../node_modules/.bin/playwright",
+      "args": [
+        "test",
+        "e2e/launch-acceptance.spec.ts",
+        "--grep",
+        "installer launch gate",
+        "--workers=1",
+        "--retries=0",
+        "--max-failures=1",
+        "--global-timeout=180000",
+        "--reporter=list,json",
+        "--output=/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/playwright"
+      ],
+      "exit": 1,
+      "signal": null,
+      "timedOut": false,
+      "duration_ms": 71926,
+      "unchanged_source": true,
+      "unchanged_desktop_dist": true,
+      "unchanged_api_frontend_dist": true
+    },
+    "test": {
+      "title": "installer launch gate accepts the isolated Aino renderer and backend",
+      "status": "failed",
+      "duration_ms": 67666,
+      "statistics": {
+        "startTime": "2026-09-18T08:35:48.880Z",
+        "duration": 70019.018,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    },
+    "artifacts": [
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/source.json",
+        "sha256": "fc50b4d515b8e254c740a711b2199dbd534d7f2d2c3ce4417b131ea11f6dd71e",
+        "bytes": 675
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/exit.json",
+        "sha256": "3f3389c31b40336255fd829735cbec122b0f609bbb1c7be8fe44153880d5acd3",
+        "bytes": 542
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/run.log",
+        "sha256": "a50d7774ec262560ee5e7d0dfbc3072c991e8e27dc62f9a9cc95c82eeb4aad96",
+        "bytes": 3149
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/results.json",
+        "sha256": "4ee60551e3659448e171849061de1584fe1fdc2ff5238c5b10015dfa0d562ee4",
+        "bytes": 6710
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/desktop-dist.json",
+        "sha256": "969c5adf24a31dc1fd11db9f78cb282da5ff09965a318652514902180e56f8e6",
+        "bytes": 44153
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/api-frontend-dist.json",
+        "sha256": "318ff1c5a362f1606c6d0c5a07813375dc21a00447bcba63bb58b541b615b813",
+        "bytes": 20269
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/test-failed-1.png",
+        "sha256": "e67b4745fa5d8ab971dccaa8a4162ebf035165fe0a655ff4be4677c73ffc3eed",
+        "bytes": 65542
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/error-context.md",
+        "sha256": "8b021e100e10a5c32e329e8c9fcedf3a4657ebe9d72461763a534890834b0ada",
+        "bytes": 5581
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/error-context.md",
+        "sha256": "8b021e100e10a5c32e329e8c9fcedf3a4657ebe9d72461763a534890834b0ada",
+        "bytes": 5581
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-w6tukz/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/trace.zip",
+        "sha256": "f364a0d8c32c8826decaa3e80ca8e2e1e38539fd4d096cf9942a8c6e2bc65218",
+        "bytes": 86279
+      }
+    ],
+    "failure": "Settings navigation timeout while the independent login screen was visible: fixture configured mock inference without preparing account authentication.",
+    "repair": "Test-only account.dev_mode fixture opt-in selects the existing unpackaged-only legacy-development adapter. Production authentication and the launch acceptance helper are unchanged.",
+    "secondary_error": "Playwright maximum failure count stopped the run; no separate application exception."
+  },
+  "intermediate_failed_launch": {
+    "source": {
+      "aino": "0f8c30e6345669c5a85d6a41e743ed126712ade2",
+      "api": "f2feefbfc3f58f035bb1ef053c5a1826e33dd602",
+      "build_stamp": {
+        "schemaVersion": 1,
+        "commit": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+        "branch": "codex/aino-platform-identity-models-billing",
+        "builtAt": "2026-09-18T08:14:40.933Z",
+        "dirty": false,
+        "source": "local"
+      },
+      "bundle_mode": "production renderer plus development main/preload for explicit loopback origin fixture",
+      "build_limit": "Development main/preload intentionally rebuilt after production build for isolated loopback platform origin; Python loads the frozen checkout source.",
+      "product_changes_since_build": ""
+    },
+    "execution": {
+      "command": "../../node_modules/.bin/playwright",
+      "args": [
+        "test",
+        "e2e/launch-acceptance.spec.ts",
+        "--grep",
+        "installer launch gate",
+        "--workers=1",
+        "--retries=0",
+        "--max-failures=1",
+        "--global-timeout=180000",
+        "--reporter=list,json",
+        "--output=/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/playwright"
+      ],
+      "exit": 1,
+      "signal": null,
+      "timedOut": false,
+      "duration_ms": 65778,
+      "unchanged_source": true,
+      "unchanged_desktop_dist": true,
+      "unchanged_api_frontend_dist": true
+    },
+    "test": {
+      "title": "installer launch gate accepts the isolated Aino renderer and backend",
+      "status": "failed",
+      "duration_ms": 65150,
+      "statistics": {
+        "startTime": "2026-09-18T08:50:57.664Z",
+        "duration": 65474.217,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      }
+    },
+    "artifacts": [
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/source.json",
+        "sha256": "cf14b2a02d9b286671f37b833dd10eeda58f3d7cf19d4ee1e4351e6e2148a75c",
+        "bytes": 675
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/exit.json",
+        "sha256": "b2f0f483872d2f78301e37dee427a86aa0b1a312eee50159cf7ecd10f0a41ba4",
+        "bytes": 542
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/run.log",
+        "sha256": "63a7b4070376b35819d0c453435e06e1eac36fcd6544bf3f7987164c3ad390f0",
+        "bytes": 3149
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/results.json",
+        "sha256": "fe1f056c86212d11e568d5e9f030c68c7ccd85441385541dadd90dd1f3a08d7a",
+        "bytes": 6710
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/desktop-dist.json",
+        "sha256": "969c5adf24a31dc1fd11db9f78cb282da5ff09965a318652514902180e56f8e6",
+        "bytes": 44153
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/api-frontend-dist.json",
+        "sha256": "318ff1c5a362f1606c6d0c5a07813375dc21a00447bcba63bb58b541b615b813",
+        "bytes": 20269
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/test-failed-1.png",
+        "sha256": "a2585559d21631c88ee0184ea82bc7f1843c71020aa7e1b44ea15c14f10adac4",
+        "bytes": 83427
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/error-context.md",
+        "sha256": "8b021e100e10a5c32e329e8c9fcedf3a4657ebe9d72461763a534890834b0ada",
+        "bytes": 5581
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/error-context.md",
+        "sha256": "8b021e100e10a5c32e329e8c9fcedf3a4657ebe9d72461763a534890834b0ada",
+        "bytes": 5581
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/launch-DdYPzi/playwright/launch-acceptance-installe-61731-d-Aino-renderer-and-backend/trace.zip",
+        "sha256": "c8a6aa6d004e42393bb59a34d100c58250fe70f3e10e370653801103cfd46d3c",
+        "bytes": 103266
+      }
+    ],
+    "failure": "The explicit development adapter was selected, but the fixture had not completed a login. The development-code login screen remained visible.",
+    "conclusion": "Enabling development authentication alone is not authentication. The first fixture fix was incomplete; this failed result is retained rather than represented as success."
+  },
+  "production_restore": {
+    "source": "0b30ad930c19a5731f33ad62a6ef813be9112e73",
+    "mode": "production",
+    "steps": [
+      {
+        "command": "node",
+        "args": [
+          "scripts/bundle-electron-main.mjs"
+        ],
+        "exit": 0,
+        "signal": null,
+        "duration_ms": 140,
+        "log": "1.log"
+      },
+      {
+        "command": "node",
+        "args": [
+          "scripts/assert-dist-built.mjs"
+        ],
+        "exit": 0,
+        "signal": null,
+        "duration_ms": 158,
+        "log": "2.log"
+      }
+    ],
+    "build_stamp": {
+      "schemaVersion": 1,
+      "commit": "c0620226c03d30cbbe0a47845f935efe1b9dae2e",
+      "branch": "codex/aino-platform-identity-models-billing",
+      "builtAt": "2026-09-18T08:14:40.933Z",
+      "dirty": false,
+      "source": "local"
+    },
+    "unchanged_source": true,
+    "clean_source": true,
+    "file_count": 421,
+    "artifacts": [
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/production-restore-3Wlaji/receipt.json",
+        "sha256": "24c83a142c2ad73321172a4c95320f984c88b5788e18b8b512765d4ba486ae1e",
+        "bytes": 45794
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/production-restore-3Wlaji/1.log",
+        "sha256": "9b17835f1e95f15f9afcdced131ae19c8a9504199ec9a1e511780718121c9f4b",
+        "bytes": 405
+      },
+      {
+        "path": "/private/tmp/aino-sep18-acceptance.G69IaM/production-restore-3Wlaji/2.log",
+        "sha256": "ba1527ec3cd13ca51f7aa050da6d7eb7369941894a8f2a0b508ca747c435a11d",
+        "bytes": 56
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-review-report.md",
+      "sha256": "dc91c5c918b6af2369dbe2094a24d8bb765f2c3c9d8bf5c7abacfef8feff5a0c",
+      "bytes": 4164
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-fix-report.md",
+      "sha256": "3c05c3c7fcddb584075d5d688ef45d7e9ac323da786867e2c5e757dbebf8bd4a",
+      "bytes": 3197
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-fix-rereview-report.md",
+      "sha256": "cc0dd973fbd586224d9c9bbdc85fa4d0aca2bba47bff9b349d9795f9a14594bb",
+      "bytes": 2241
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/launch-auth-sep18-report.md",
+      "sha256": "217d577e6bd678abd235d0d2f13f7886d860f21681e7af36895d8e40b2df63e8",
+      "bytes": 4555
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/launch-auth-sep18-review.md",
+      "sha256": "6f123cd99215840f37c0ac08bdc58e05076717b73dbdc8bf7609e7849541a4db",
+      "bytes": 782
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/launch-auth-login-sep18-review.md",
+      "sha256": "56df048f080b9330706de6f2397f017f2b782058af3696829370feccb899060b",
+      "bytes": 1214
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-acceptance-syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-driver-syntax.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-e2e-types.log",
+      "sha256": "af7a52fb133875004a68763a8d476acd7ae5944e131474dd0fb1e56c1027ee23",
+      "bytes": 224
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-focused.log",
+      "sha256": "eca204b815bf099067ea272e6ea7c22ddc57c4638f3402ea8743d617a6721322",
+      "bytes": 934
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-green.log",
+      "sha256": "b52ae342f79297a300032d88456894470479949988d7a0976e80827562dcbd46",
+      "bytes": 866
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/final-sep18-red.log",
+      "sha256": "62ae10c84f84da5f3d7350671d5cd00bb7326648d9877cc58d60120f200efd4a",
+      "bytes": 2986
+    }
+  ],
+  "limitations": [
+    "Native launch uses the real Aino renderer/preload and controlled read-only backend fixture. It does not execute a real installer or checkout update.",
+    "This renderer/Settings/backend smoke uses explicit legacy-development authentication in an unpackaged app. It is not production platform-account login acceptance; separate core/late-lease receipts cover that account flow with loopback suppliers.",
+    "The installer driver still requires a signed-in or otherwise explicitly prepared account fixture to navigate Settings. A fresh logged-out production installer is not accepted by this smoke.",
+    "Update/relaunch regression uses controlled adapters; native Windows/Linux process-tree cleanup remains unverified.",
+    "Production main/preload restoration is a build check, not a fresh production-packaged native run. Renderer stamp remains the original clean product build commit.",
+    "Historical unsigned default-sandbox macOS package acceptance remains E37 at Aino a2ff532db2 / API 93082b333, not this pairing.",
+    "No signing, notarization, installation, production deployment, Git push or main merge."
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-18",
+  "source": {
+    "aino": "c0620226c03d30cbbe0a47845f935efe1b9dae2e"
+  },
+  "scope": "Actual gateway RPC and Agent/SDK HTTP compression, rotating child, close, non-lazy resume, renewed managed binding, resumed request and branch request across three protocols and two profiles.",
+  "protocols": [
+    "chat_completions",
+    "anthropic_messages",
+    "responses"
+  ],
+  "profiles": [
+    "default",
+    "named"
+  ],
+  "fixes": [
+    "Synchronize canonical allowlisted managed identity into the initialization projection used by compression children and managed/BYOK switching. No lease secrets are persisted.",
+    "Invalidate stale codex_message_items along with api_content when compression rewrites an assistant tail, so Responses replay carries the actual summary."
+  ],
+  "verification": {
+    "command": "HERMES_TEST_FILE_RETRIES=0 perl -e '$SIG{ALRM}=sub{kill q(TERM), getppid(); die qq(test timeout after 240s\\n)}; alarm 240; exec @ARGV' scripts/run_tests.sh tests/tui_gateway/test_managed_usage_correlation.py -k billing_identity_survives_compression_resume_but_not_a_branch -v --tb=long",
+    "exit": 0,
+    "files": 1,
+    "passed": 6,
+    "failed": 0,
+    "duration_seconds": 29.3,
+    "retries": 0,
+    "provenance": "Final raw runner output inspected by controller. Executed before checkpoint commit; tested source became c0620226c0."
+  },
+  "contracts": [
+    "Compressed child retains managed model/source/owner and restores a real summary-bearing history.",
+    "Resumed HTTP request contains the handoff for every protocol.",
+    "Original, compression and resumed calls share billing session identity; branch differs.",
+    "Turn/call IDs are nonempty and fresh against original/compression/resume as applicable."
+  ],
+  "earlier_verification": {
+    "provenance": "Implementer report only; raw output not retained, not represented as controller-run fresh checks.",
+    "managed_regression": "5 files / 71 passed",
+    "replay_compatibility": "2 files / 2 passed"
+  },
+  "artifacts": [
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/task-compression-acceptance-final.log",
+      "sha256": "60de0826c2ab74243b0ff0675ef91b31cd9056134cdfe7560b36df2bf0e6b8e6",
+      "bytes": 864
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/task-compression-acceptance-report.md",
+      "sha256": "e0f8ca97ec7fa409c4f448a2bddcb0a342f95566a0bffee4fb23a399009b693e",
+      "bytes": 6578
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/review-compression-final-report.md",
+      "sha256": "7408aadfa61306afe637cc4d5a989f7abe149be304442a4b9c36a7ab8e986683",
+      "bytes": 4421
+    },
+    {
+      "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/review-compression-assertions-report.md",
+      "sha256": "1eeab069a7471732bb12264a9f41fb0c941eb0d1f59b50b423921aaf810bc2b1",
+      "bytes": 937
+    }
+  ],
+  "limitations": [
+    "No Portal/API ledger ingestion or native compression settlement proof.",
+    "No paid supplier, proxy-retry or provider-native accounting acceptance.",
+    "Pre-existing session.compress compressed status when anti-growth returns would_grow was not changed."
+  ]
+}
