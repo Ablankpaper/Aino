@@ -11025,6 +11025,49 @@ def test_session_compress_reports_aborted_summary_without_success(monkeypatch):
         server._sessions.pop("sid", None)
 
 
+def test_session_compress_reports_would_grow_refusal_as_aborted(monkeypatch):
+    compression_state = types.SimpleNamespace(
+        _last_compress_aborted=False,
+        _last_compress_refused_would_grow=True,
+        _last_summary_fallback_used=False,
+        _last_summary_error=None,
+    )
+    agent = types.SimpleNamespace(
+        context_compressor=compression_state,
+        _cached_system_prompt="",
+        tools=None,
+    )
+    history = [{"role": "user", "content": f"m{i}"} for i in range(6)]
+    server._sessions["sid"] = _session(agent=agent, history=history)
+
+    monkeypatch.setattr(
+        server,
+        "_compress_session_history",
+        lambda session, focus_topic=None, **_kw: (0, {"total": 42}),
+    )
+    monkeypatch.setattr(server, "_session_info", lambda _agent, *a: {"model": "x"})
+
+    try:
+        with patch("tui_gateway.server._emit"):
+            resp = server.handle_request(
+                {
+                    "id": "1",
+                    "method": "session.compress",
+                    "params": {"session_id": "sid"},
+                }
+            )
+
+        result = resp["result"]
+        assert result["status"] == "aborted"
+        assert result["removed"] == 0
+        assert result["summary"]["refused_would_grow"] is True
+        assert result["messages"] == [
+            {"role": "user", "text": f"m{i}"} for i in range(6)
+        ]
+    finally:
+        server._sessions.pop("sid", None)
+
+
 def test_session_compress_syncs_session_key_after_rotation(monkeypatch):
     """LCM notification follows the TUI's final session-key transition."""
     from agent.conversation_compression import (

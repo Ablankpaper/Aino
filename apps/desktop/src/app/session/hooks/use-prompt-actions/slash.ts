@@ -710,7 +710,10 @@ export function useSlashCommand(deps: SlashCommandDeps) {
                 (line): line is string => Boolean(line)
               )
 
-              const aborted = result.status === 'aborted' || result.summary.aborted === true
+              const aborted =
+                result.status === 'aborted' ||
+                result.summary.aborted === true ||
+                result.summary.refused_would_grow === true
 
               if (!aborted) {
                 // Keep a durable record of a successful manual compression in

@@ -1866,7 +1866,8 @@ def _compress_live(rid, sid: str, session: dict, focus_topic: str) -> dict:
         _emit("session.info", sid, info)
         finalize_context_engine_compression_notification(agent, committed=True)
         return _ok(rid, {
-            "status": "aborted" if summary["aborted"] else "compressed", "removed": removed,
+            "status": "aborted" if summary["aborted"] or summary["refused_would_grow"] else "compressed",
+            "removed": removed,
             "before_messages": before_count, "after_messages": len(messages),
             "before_tokens": before_tokens, "after_tokens": after_tokens, "summary": summary,
             "usage": usage, "info": info, "messages": _history_to_messages(messages)})

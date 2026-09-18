@@ -1068,6 +1068,49 @@ describe('usePromptActions /compress', () => {
     )
   })
 
+  it('renders a would-grow compression refusal without durable success output', async () => {
+    const seeds: Record<string, unknown>[] = []
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.compress') {
+        return {
+          status: 'compressed',
+          summary: {
+            aborted: false,
+            headline: 'Compression refused: 6 messages preserved',
+            refused_would_grow: true
+          }
+        } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    await actRender(
+      <Harness
+        onReady={h => (handle = h)}
+        onSeedState={s => seeds.push(s)}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+      />
+    )
+
+    await handle!.submitText('/compress')
+
+    expect(renderedSeedTexts(seeds).some(text => text.includes('Compression refused'))).toBe(false)
+    expect($notifications.get()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'error', message: expect.stringContaining('Compression refused') })
+      ])
+    )
+    expect($notifications.get()).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'success', message: expect.stringContaining('Compression refused') })
+      ])
+    )
+  })
+
   it('passes a focus topic through as focus_topic', async () => {
     const requestGateway = vi.fn(
       async (_method: string, _params?: Record<string, unknown>, _timeoutMs?: number) => ({ removed: 0 }) as never
