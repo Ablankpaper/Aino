@@ -30,7 +30,21 @@ test('installer launch gate accepts the isolated Aino renderer and backend', asy
 
   try {
     const accepted = await acceptDesktopLaunch(fixture.app, {
-      prepareWindowForInput,
+      prepareWindowForInput: async (app, page) => {
+        await prepareWindowForInput(app, page)
+
+        const loginCard = page.locator('[data-account-login-card]')
+        await expect(loginCard).toBeVisible({ timeout: 120_000 })
+        await page.getByRole('textbox', { name: 'Phone number', exact: true }).fill('+8613800138000')
+        await page
+          .getByRole('checkbox', { name: 'Agree to the user agreement and privacy policy', exact: true })
+          .check()
+        await page.getByRole('checkbox', { name: 'Keep me signed in on this device', exact: true }).uncheck()
+        await page.getByRole('button', { name: 'Send code', exact: true }).click()
+        await page.getByRole('textbox', { name: 'Verification code', exact: true }).fill('1234')
+        await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+        await expect(loginCard).toHaveCount(0, { timeout: 120_000 })
+      },
       backendTimeoutMs: 15_000,
       navigationTimeoutMs: 60_000,
       windowTimeoutMs: 60_000,
