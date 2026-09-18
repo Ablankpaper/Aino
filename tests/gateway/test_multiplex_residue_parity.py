@@ -55,9 +55,17 @@ def test_per_turn_sessions_bridge_skips_secondary_scope(two_homes, monkeypatch):
     assert "HERMES_CJK_FTS" not in __import__("os").environ, "secondary scope must not write the process env"
 
 
-def test_resolve_proxy_url_reads_routed_profile_scope(two_homes, monkeypatch):
+@pytest.mark.parametrize("system_proxy", [None, "http://system-proxy:8080"])
+def test_resolve_proxy_url_reads_routed_profile_scope(two_homes, monkeypatch, system_proxy):
     root, alpha = two_homes
+    from gateway.platforms import base as gw_base
     from gateway.platforms.base import resolve_proxy_url
+    for key in (
+        "HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy",
+        "ALL_PROXY", "all_proxy", "NO_PROXY", "no_proxy",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(gw_base, "_detect_macos_system_proxy", lambda: system_proxy)
     monkeypatch.setenv("TELEGRAM_PROXY", "socks5://default-proxy:1080")  # launch profile's .env
     ss.set_multiplex_active(True)
     token = ss.set_secret_scope({"TELEGRAM_PROXY": "socks5://alpha-proxy:1080"})
@@ -67,8 +75,7 @@ def test_resolve_proxy_url_reads_routed_profile_scope(two_homes, monkeypatch):
         ss.reset_secret_scope(token)
     token = ss.set_secret_scope({})  # a served profile with NO proxy must not borrow the default's
     try:
-        monkeypatch.delenv("HTTPS_PROXY", raising=False)
-        assert resolve_proxy_url("TELEGRAM_PROXY") is None
+        assert resolve_proxy_url("TELEGRAM_PROXY") == system_proxy
     finally:
         ss.reset_secret_scope(token)
     ss.set_multiplex_active(False)

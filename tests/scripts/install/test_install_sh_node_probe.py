@@ -94,6 +94,7 @@ def _run_install_node(tmp_path: Path, node_body: str) -> tuple[int, str, str, li
         '    cp "$FIXTURE" "$4"\n'
         "else\n"
         "    echo 'node-v26.7.0-linux-x64.tar.xz'\n"
+        "    echo 'node-v26.7.0-linux-x64.tar.gz'\n"
         "fi\n",
     )
     _stub("sudo", "#!/bin/sh\nshift_if_env() { :; }\nexec env \"$@\"\n")

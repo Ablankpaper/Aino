@@ -385,10 +385,11 @@ class TestBackendSelection:
 class TestParallelClientConfig:
     """Test suite for Parallel client initialization."""
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def fake_parallel_sdk(self, monkeypatch):
         import tools.web_tools
-        tools.web_tools._parallel_client = None
-        os.environ.pop("PARALLEL_API_KEY", None)
+        monkeypatch.setattr(tools.web_tools, "_parallel_client", None)
+        monkeypatch.delenv("PARALLEL_API_KEY", raising=False)
         fake_parallel = types.ModuleType("parallel")
 
         class Parallel:
@@ -401,13 +402,9 @@ class TestParallelClientConfig:
 
         fake_parallel.Parallel = Parallel
         fake_parallel.AsyncParallel = AsyncParallel
-        sys.modules["parallel"] = fake_parallel
-
-    def teardown_method(self):
-        import tools.web_tools
-        tools.web_tools._parallel_client = None
-        os.environ.pop("PARALLEL_API_KEY", None)
-        sys.modules.pop("parallel", None)
+        monkeypatch.setitem(sys.modules, "parallel", fake_parallel)
+        # The fake SDK has no installed distribution for the lazy-dependency probe.
+        monkeypatch.setattr("tools.lazy_deps.feature_missing", lambda feature: ())
 
     def test_creates_client_with_key(self):
         """PARALLEL_API_KEY set → creates Parallel client."""

@@ -1,6 +1,7 @@
 """Tests for secret exfiltration prevention in browser and web tools."""
 
 import json
+import socket
 from unittest.mock import patch, MagicMock
 import pytest
 
@@ -36,7 +37,10 @@ class TestBrowserSecretExfil:
 
         url = "https://example.com/callback?token=opaque-oauth-code&signature=abc123"
         mock_result = {"success": True, "data": {"title": "ok", "url": url}}
-        with patch("tools.browser_tool_cloud._is_local_backend", return_value=False), \
+        # Keep real URL safety checks without depending on the host's DNS configuration.
+        public_addr_info = [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 0))]
+        with patch("tools.url_safety._getaddrinfo", return_value=public_addr_info), \
+             patch("tools.browser_tool_cloud._is_local_backend", return_value=False), \
              patch("tools.browser_tool._navigation_session_key", return_value="default"), \
              patch("tools.browser_tool_session._get_session_info", return_value={"_first_nav": False}), \
              patch("tools.browser_tool_session._run_browser_command", return_value=mock_result) as mock_run:
