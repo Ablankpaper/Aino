@@ -9,6 +9,7 @@ import { assertEdgeAlerts, observeEdgeAlerts, observeNativeRuntime, sendPrompt, 
 import { observeInferenceAlerts, verifyInferenceFailures } from './platform-inference-failure-proof'
 import { assertIsolationAlerts, type IsolationParticipant, observeIsolationAlerts, verifyConcurrentIsolation, verifyRetainedHistoryIsolation } from './platform-isolation-proof'
 import { assertLateLeaseAlerts, observeLateLeaseAlerts, verifyLateLeaseAcrossAccountSwitch } from './platform-late-lease-proof'
+import { seedOfflineUpdateCheckCache } from './platform-offline-update-cache'
 import { installPackagedPythonTransport, launchGuardedPackagedDesktop, PACKAGED_PLATFORM_ORIGIN } from './platform-packaged-api'
 import { auditFixtureText, fixtureEnvironment, installLoopbackNodeGuard, installLoopbackPythonGuard, isExpectedBlockedThemeFontRequest, KNOWN_BLOCKED_THEME_FONT_URL, launchGuardedDesktop, type NativeState, type NativeTransportAudit, persistedFixtureText, startRealPlatformAPI } from './platform-real-api'
 import { verifyWebsiteWallet } from './platform-website-wallet'
@@ -136,10 +137,17 @@ function prepareNativePlatformEnvironment(
   sandbox: ReturnType<typeof createSandbox>,
   api: Awaited<ReturnType<typeof startRealPlatformAPI>>
 ) {
-  fs.writeFileSync(path.join(sandbox.hermesHome, 'config.yaml'), 'auxiliary:\n  title_generation:\n    enabled: false\n', { mode: 0o600 })
+  fs.writeFileSync(path.join(sandbox.hermesHome, 'config.yaml'), 'display:\n  language: en\nauxiliary:\n  title_generation:\n    enabled: false\n', { mode: 0o600 })
   fs.writeFileSync(path.join(sandbox.hermesHome, '.env'), '', { mode: 0o600 })
   seedPlatformWorkspace(sandbox)
   fs.writeFileSync(path.join(sandbox.userDataDir, 'platform-development.json'), JSON.stringify({ enabled: true, origin: api.info.origin }), { mode: 0o600 })
+  // Electron keys this cache on HEAD, so the checkout must stay frozen across
+  // every restart in a native run.
+  seedOfflineUpdateCheckCache({
+    userDataDir: sandbox.userDataDir,
+    updateRoot: path.resolve(import.meta.dirname, '../../..'),
+    branch: 'main'
+  })
   const inherited = buildAppEnv(sandbox)
   const env: Record<string, string> = { ...fixtureEnvironment(), HOME: sandbox.root }
 
@@ -1242,7 +1250,7 @@ test('real API account, native managed lease, Python tool roundtrip and wallet',
 
     // The recovery pair above proves platform history and billing before any
     // custom provider exists. A third real launch is the supported reload path.
-    writeMockProviderConfig(sandbox.hermesHome, byok.url)
+    writeMockProviderConfig(sandbox.hermesHome, byok.url, '  language: en')
     writeEnvFile(sandbox.hermesHome)
     stage = 'custom-provider-restart'
     const byokPythonGuardPids = pythonGuardPids(sandbox)

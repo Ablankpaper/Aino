@@ -33,7 +33,7 @@ export const PLATFORM_WORKSPACE = 'fixture-workspace'
 export function seedPlatformWorkspace(sandbox: Sandbox) {
   const home = path.join(sandbox.hermesHome, 'profiles', PLATFORM_WORKSPACE)
   fs.mkdirSync(home, { recursive: true, mode: 0o700 })
-  fs.writeFileSync(path.join(home, 'config.yaml'), 'auxiliary:\n  title_generation:\n    enabled: false\n', { mode: 0o600 })
+  fs.writeFileSync(path.join(home, 'config.yaml'), 'display:\n  language: en\nauxiliary:\n  title_generation:\n    enabled: false\n', { mode: 0o600 })
   fs.writeFileSync(path.join(home, '.env'), '', { mode: 0o600 })
 }
 
