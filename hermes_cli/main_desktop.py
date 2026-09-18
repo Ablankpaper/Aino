@@ -19,6 +19,7 @@ import time as _time_mod
 
 from pathlib import Path
 from typing import Optional
+from hermes_cli.desktop_identity import DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME
 from hermes_cli.main_tui_launch import _npm_lifecycle_env
 from hermes_cli.main_web_build import (
     _hash_source_tree, _nixos_build_env, _stamp_is_current, _write_build_stamp)
@@ -133,14 +134,22 @@ def _desktop_packaged_executable_in(release_dir: Path) -> Optional[Path]:
     stage-and-swap staging dir (#86443).
     """
     if sys.platform == "darwin":
-        candidates = list(release_dir.glob("mac*/Hermes.app/Contents/MacOS/Hermes"))
+        candidates = [
+            candidate
+            for product_name in (DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME)
+            for candidate in release_dir.glob(f"mac*/{product_name}.app/Contents/MacOS/{product_name}")
+        ]
     elif sys.platform == "win32":
         candidates = [
-            release_dir / d / "Hermes.exe" for d in ("win-unpacked", "win-ia32-unpacked", "win-arm64-unpacked")
+            release_dir / d / f"{product_name}.exe"
+            for d in ("win-unpacked", "win-ia32-unpacked", "win-arm64-unpacked")
+            for product_name in (DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME)
         ]
     else:
         candidates = [
-            release_dir / d / n for d in ("linux-unpacked", "linux-arm64-unpacked") for n in ("hermes", "Hermes")
+            release_dir / d / n
+            for d in ("linux-unpacked", "linux-arm64-unpacked")
+            for n in (DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME, LEGACY_DESKTOP_PRODUCT_NAME.lower())
         ]
 
     existing = [p for p in candidates if p.exists()]
@@ -158,6 +167,12 @@ def _desktop_packaged_executable_in(release_dir: Path) -> Optional[Path]:
         matching = [p for p in existing if _pe_machine_or_none(p) in expected]
         if matching:
             existing = matching
+    # Aino is the current product identity. Prefer it over a stale Hermes tree
+    # when both are present, but only after the Windows architecture gate above
+    # has removed executables that this host cannot load.
+    primary = [p for p in existing if p.stem.casefold() == DESKTOP_PRODUCT_NAME.casefold()]
+    if primary:
+        existing = primary
     return max(existing, key=lambda p: p.stat().st_mtime)
 
 

@@ -253,20 +253,9 @@ run_installer() {
 assert_desktop_artifact() {
   # $1: label. After a +desktop install the built app must exist under the
   # checkout -- install.sh builds it there and registers no OS entry point.
-  local release_dir="$INSTALL_DIR/apps/desktop/release"
-  local found=""
-  local cand
-  for cand in \
-    "$release_dir/linux-unpacked/Hermes" \
-    "$release_dir/linux-unpacked/hermes" \
-    "$release_dir/mac-arm64/Hermes.app" \
-    "$release_dir/mac/Hermes.app"; do
-    if [ -x "$cand" ] || [ -d "$cand" ]; then
-      found="$cand"
-      break
-    fi
-  done
-  [ -n "$found" ] || fail "no desktop app under $release_dir after $1 (+desktop install)"
+  local found
+  found="$(node "$REPO_ROOT/tests/install/e2e-assets/desktop-artifact.cjs" "$INSTALL_DIR")" \
+    || fail "no desktop app matching the installed package after $1 (+desktop install)"
   ok "desktop app built by installer at $1: $found"
 }
 
@@ -397,7 +386,7 @@ case "$UPDATE_METHOD" in
     (cd "$PW_DIR" && npm install --no-save --no-audit --no-fund \
       "@playwright/test@1.58.2" 2>&1 | ts_prefix > "$LOG_DIR/playwright-install.log") \
       || { log_group "playwright install transcript" "$LOG_DIR/playwright-install.log"; fail "playwright install failed"; }
-    cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/window-input.cjs" "$PW_DIR/"
+    cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/window-input.cjs" "$ASSETS/desktop-artifact.cjs" "$PW_DIR/"
     rc=0
     (cd "$PW_DIR" && node launch-from-spec.mjs \
       --spec "$SPEC" \

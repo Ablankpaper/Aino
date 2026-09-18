@@ -192,16 +192,7 @@ phase_stage() {
 }
 
 find_installed_app() {
-  # The bootstrap installs the packaged app; look where the product puts it
-  # (the checkout's release dir), plus /Applications for a copied bundle.
-  local cand
-  for cand in \
-    "$INSTALL_DIR/apps/desktop/release/mac-arm64/Hermes.app" \
-    "$INSTALL_DIR/apps/desktop/release/mac/Hermes.app" \
-    "/Applications/Hermes.app"; do
-    [ -d "$cand" ] && { printf '%s' "$cand"; return 0; }
-  done
-  return 1
+  node "$ASSETS/desktop-artifact.cjs" "$INSTALL_DIR" darwin
 }
 
 phase_install() {
@@ -306,7 +297,7 @@ run_playwright_update() {
   local spec="$1"
   local pw_dir
   pw_dir="$(ensure_playwright)"
-  cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/window-input.cjs" "$pw_dir/"
+  cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/window-input.cjs" "$ASSETS/desktop-artifact.cjs" "$pw_dir/"
   local rc=0
   (cd "$pw_dir" && node launch-from-spec.mjs \
     --spec "$spec" \
@@ -355,13 +346,8 @@ phase_update() {
     installer-script+desktop)
       run_installer "$HEAD_SHA" head desktop
       # The desktop stage is this leg's claim: the rebuilt app must exist.
-      head_app=""
-      for cand in \
-        "$INSTALL_DIR/apps/desktop/release/mac-arm64/Hermes.app" \
-        "$INSTALL_DIR/apps/desktop/release/mac/Hermes.app"; do
-        [ -d "$cand" ] && { head_app="$cand"; break; }
-      done
-      [ -n "$head_app" ] || fail "no built Hermes.app under the checkout after the +desktop update"
+      head_app="$(find_installed_app)" \
+        || fail "no built app matching the installed package after the +desktop update"
       ok "rebuilt app present: $head_app"
       ;;
     open-app-update)

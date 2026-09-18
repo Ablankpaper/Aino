@@ -33,6 +33,7 @@ import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { _electron } from '@playwright/test';
 import { prepareWindowForInput } from './window-input.cjs';
+import { refreshPackagedLaunchSpec } from './desktop-artifact.cjs';
 
 /**
  * @typedef {{argv: string[], cwd: string, env: Record<string, string>,
@@ -286,6 +287,7 @@ async function main() {
   // The app may relaunch/exit during the update; completion signals are
   // product state, not Playwright events.
   const resultPath = values.result;
+  const markerPath = resultPath && path.join(path.dirname(resultPath), '.hermes-update-in-progress');
   const expectSha = values['expect-sha'];
   const repoDir = values['repo-dir'];
   /** @returns {string} */
@@ -300,11 +302,14 @@ async function main() {
   };
   for (;;) {
     if (resultPath && fs.existsSync(resultPath)) {
-      log(`update result present: ${fs.readFileSync(resultPath, 'utf8').slice(0, 200)}`);
-      break;
+      const result = JSON.parse(fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, ''));
+      log(`update result present: ${JSON.stringify(result).slice(0, 200)}`);
+      if (!result.ok) throw new Error(`updater failed: ${result.message || result.exit_code}`);
     }
-    if (expectSha && repoDir && headSha() === expectSha) {
-      log(`checkout reached expected sha ${expectSha}`);
+    // Git moves before dependencies and desktop packaging finish. Reopening
+    // while the marker exists can interrupt the updater or launch the old app.
+    if (expectSha && repoDir && headSha() === expectSha && markerPath && !fs.existsSync(markerPath)) {
+      log(`checkout reached expected sha ${expectSha} and update marker cleared`);
       break;
     }
     if (Date.now() > deadline) {
@@ -401,18 +406,21 @@ async function main() {
   };
   await boundedClose(app, 'updated-app teardown');
 
-  // Relaunch from the same captured spec - the leg's own launch mechanism -
-  // and require the UI to come up on the updated checkout. Verification:
+  // Keep the captured launch mechanism, resolving packaged executables from
+  // the updated manifest so a renamed app cannot relaunch OLD's artifact.
+  // Require the UI to come up on the updated checkout. Verification:
   // the renderer's DOM carries the running build's short sha when launched
   // from a git checkout (statusbar/About); require the EXPECTED sha's short
   // form, or at minimum a live UI window, logging what we saw.
   phase('relaunch');
   log('relaunching the updated app (the "reopen Hermes" step)');
+  const updatedLaunch = resolveLaunch(repoDir ? refreshPackagedLaunchSpec(spec, repoDir) : spec);
+  log(`updated executable: ${updatedLaunch.executablePath}`);
   const relaunch = await _electron.launch({
-    executablePath: launch.executablePath,
-    args: launch.args,
-    cwd: launch.cwd,
-    env: launch.env,
+    executablePath: updatedLaunch.executablePath,
+    args: updatedLaunch.args,
+    cwd: updatedLaunch.cwd,
+    env: updatedLaunch.env,
   });
   let window2 = null;
   const relaunchDeadline = Date.now() + 120_000;

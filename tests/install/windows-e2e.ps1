@@ -277,13 +277,23 @@ function Get-InstalledHead {
 }
 
 function Get-DesktopExe {
-    foreach ($c in @(
-        (Join-Path $InstallDir "apps\desktop\release\win-unpacked\Hermes.exe"),
-        (Join-Path $InstallDir "apps\desktop\release\win-arm64-unpacked\Hermes.exe")
-    )) {
-        if (Test-Path -LiteralPath $c) { return $c }
-    }
+    $node = Get-ManagedNode
+    $resolver = Join-Path $AssetsDir "desktop-artifact.cjs"
+    $resolved = & $node -e 'const r = require(process.argv[1]).resolveDesktopArtifact(process.argv[2]); if (r) console.log(r.executablePath)' $resolver $InstallDir
+    Assert-True ($LASTEXITCODE -eq 0) "desktop artifact resolver completed"
+    if ($resolved) { return $resolved.Trim() }
     return $null
+}
+
+function Get-DesktopAppProcesses([string]$ExecutablePath = "") {
+    $releaseRoot = (Join-Path $InstallDir "apps\desktop\release") + "\"
+    Get-Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.Path -and $(if ($ExecutablePath) {
+            $_.Path -eq $ExecutablePath
+        } else {
+            $_.Path.StartsWith($releaseRoot, [StringComparison]::OrdinalIgnoreCase)
+        })
+    }
 }
 
 # Install-side state snapshot, taken BEFORE Test-HermesRuns can throw: on
@@ -436,6 +446,7 @@ function Invoke-HermesDesktopAppUpdate([string]$TargetSha) {
 
     Copy-Item (Join-Path $AssetsDir "launch-from-spec.mjs") (Join-Path $driverDir "launch-from-spec.mjs") -Force
     Copy-Item (Join-Path $AssetsDir "window-input.cjs") (Join-Path $driverDir "window-input.cjs") -Force
+    Copy-Item (Join-Path $AssetsDir "desktop-artifact.cjs") (Join-Path $driverDir "desktop-artifact.cjs") -Force
     $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
     Push-Location $driverDir
     try {
@@ -504,14 +515,13 @@ function Stop-DesktopRecorder($proc, [string]$OutDir) {
 }
 
 function Stop-HermesAppProcesses([string]$Label) {
-    # Close the desktop app the blunt way between phases (a user quitting).
-    # Only Hermes.exe (Electron) -- never hermes.exe (the venv CLI shim).
-    $procs = @(Get-Process -Name "Hermes" -ErrorAction SilentlyContinue)
+    # Scope cleanup to this install's packaged apps, including the old brand.
+    $procs = @(Get-DesktopAppProcesses)
     foreach ($p in $procs) {
         try { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } catch {}
     }
     if ($procs.Count -gt 0) {
-        Write-Host "  [$Label] stopped $($procs.Count) Hermes.exe process(es)"
+        Write-Host "  [$Label] stopped $($procs.Count) packaged desktop process(es)"
         Start-Sleep -Seconds 3
     }
 }
@@ -666,7 +676,7 @@ function Invoke-PhaseInstallGui {
 
         # The Launch hand-off under test: the app the installer spawned must
         # actually be running.
-        Assert-True ($null -ne (Get-Process -Name "Hermes" -ErrorAction SilentlyContinue)) "Hermes.exe process is running (installer Launch hand-off worked)"
+        Assert-True ($null -ne (Get-DesktopAppProcesses (Get-DesktopExe))) "installed desktop process is running (installer Launch hand-off worked)"
 
         # Installer should have exited after Launch.
         if (-not $installer.HasExited) {
@@ -698,7 +708,7 @@ function Invoke-PhaseInstallGui {
         Assert-True ($installedSha -ne $state.current) "installed checkout differs from HEAD (an update is genuinely available)"
     }
     Test-HermesRuns "post-$Mode-gui"
-    Assert-True ($null -ne (Get-DesktopExe)) "packaged Desktop Hermes.exe exists"
+    Assert-True ($null -ne (Get-DesktopExe)) "packaged desktop matches the installed product"
 
     # Seed a provider so the update leg meets the ready app shell, not the
     # onboarding overlay (an updating user has a configured provider).
@@ -725,7 +735,7 @@ function Invoke-GuiUpdateDesktopRoute([string]$TargetSha) {
     Write-Host "  serve.git main advanced to $TargetSha"
 
     $desktopExe = Get-DesktopExe
-    Assert-True ($null -ne $desktopExe) "packaged Hermes.exe present before update"
+    Assert-True ($null -ne $desktopExe) "packaged desktop present before update"
 
     $resultPath = Join-Path $HermesHome ".hermes-update-result.json"
     $markerPath = Join-Path $HermesHome ".hermes-update-in-progress"
@@ -834,15 +844,16 @@ function Invoke-GuiUpdateDesktopRoute([string]$TargetSha) {
 
         Assert-True ((Get-InstalledHead) -eq $TargetSha) "checkout landed on target commit"
         Test-HermesRuns "post-update"
-        Assert-True ($null -ne (Get-DesktopExe)) "Hermes.exe still present after update"
+        $updatedExe = Get-DesktopExe
+        Assert-True ($null -ne $updatedExe) "packaged desktop matches the updated product"
 
         # The production hand-off relaunches the desktop (RelaunchExe).
         # A relaunched window is the user-visible proof the update loop closed.
-        Write-Host "  waiting for the relaunched Hermes.exe ..."
+        Write-Host "  waiting for the relaunched desktop: $updatedExe ..."
         $rDeadline = (Get-Date).AddMinutes(5)
         $relaunched = $null
         while ((Get-Date) -lt $rDeadline) {
-            $relaunched = Get-Process -Name "Hermes" -ErrorAction SilentlyContinue
+            $relaunched = Get-DesktopAppProcesses $updatedExe
             if ($relaunched) { break }
             Start-Sleep -Seconds 5
         }
@@ -852,7 +863,7 @@ function Invoke-GuiUpdateDesktopRoute([string]$TargetSha) {
         # captures IT, not whatever else is on top (the full-desktop grab is
         # otherwise at the mercy of z-order -- an earlier run caught VS Code).
         try {
-            $mainProc = Get-Process -Name "Hermes" -ErrorAction SilentlyContinue |
+            $mainProc = Get-DesktopAppProcesses $updatedExe |
                 Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
             if ($mainProc) {
                 Add-Type -Namespace HdE2E -Name Win -MemberDefinition @'
