@@ -1,0 +1,38 @@
+{
+  "evidence_id": "E41",
+  "date": "2026-09-18",
+  "aino_commit": "ec33331aa66c4f7c4fc934a1bcbcc61fa9958956",
+  "scope": "Manual compression anti-growth refusal status and desktop feedback only",
+  "behavior": {
+    "gateway": "summary.refused_would_grow returns the existing aborted status",
+    "desktop": "Refusal is non-success even if an older gateway returns compressed; no durable success chat output",
+    "history_policy_and_prompt_cache": "unchanged"
+  },
+  "implementer_report": {
+    "path": "/Users/zizimutou/Protect/Aino/.superpowers/sdd/implementation-plan/compression-status-report.md",
+    "sha256": "137ff69a8c259cd589645db54e34f28774ee23b44504cf43201c807a9bcfedec",
+    "raw_test_logs_retained": false,
+    "red": [
+      "Gateway regression failed: expected aborted, got compressed",
+      "Desktop regression failed: refusal headline persisted in durable output"
+    ],
+    "green": [
+      { "command": "scripts/run_tests.sh tests/tui_gateway/test_tui_gateway_server.py -k would_grow_refusal_as_aborted", "passed": 1, "failed": 0 },
+      { "command": "npx vitest run src/app/session/hooks/use-prompt-actions/index.test.tsx -t 'would-grow compression refusal'", "passed": 1, "failed": 0 },
+      { "command": "scripts/run_tests.sh tests/tui_gateway/test_tui_gateway_server.py tests/tui_gateway/test_compute_host_late_compress_ack.py tests/tui_gateway/test_compress_lock_skip.py", "passed": 667, "failed": 0 },
+      { "command": "npx vitest run src/app/session/hooks/use-prompt-actions/index.test.tsx", "passed": 150, "failed": 0 }
+    ]
+  },
+  "controller_checks": [
+    { "command": "npx tsc --noEmit -p tsconfig.json", "cwd": "apps/desktop", "exit": 0 },
+    { "command": "npx eslint src/app/session/hooks/use-prompt-actions/slash.ts src/app/session/hooks/use-prompt-actions/index.test.tsx src/app/types.ts", "cwd": "apps/desktop", "exit": 0, "errors": 0, "preexisting_hook_warnings": 2 },
+    { "command": "git diff --cached --check", "exit": 0 }
+  ],
+  "independent_review": { "spec": "approved", "quality": "approved", "actionable_findings": 0, "tests_rerun_by_reviewer": false },
+  "limits": [
+    "Focused regression results above are retained in the implementer report, not raw logs",
+    "No native UI run or API ledger settlement in this receipt",
+    "No new production build, signed package or external supplier verification",
+    "No push, merge, deployment or paid operations"
+  ]
+}
