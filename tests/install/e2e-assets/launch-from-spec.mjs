@@ -36,7 +36,7 @@ import { _electron } from '@playwright/test';
 import { prepareWindowForInput } from './window-input.cjs';
 import launchAcceptance from './launch-acceptance.cjs';
 
-const { acceptDesktopLaunch } = launchAcceptance;
+const { acceptDesktopLaunch, withOwnedApplication } = launchAcceptance;
 
 /**
  * @typedef {{argv: string[], cwd: string, env: Record<string, string>,
@@ -128,177 +128,109 @@ async function main() {
     cwd: launch.cwd,
     env: launch.env,
   });
-  const accepted = await acceptDesktopLaunch(app, { prepareWindowForInput, log });
-  const window = accepted.window;
-  log(`main renderer accepted: ${await window.title()} (${app.windows().length} windows, Settings open, backend ${accepted.status.version})`);
-  await window.screenshot({ path: `${values.spec}.window.png` }).catch(() => {});
+  const primaryResult = await withOwnedApplication(app, 'initial app teardown', async () => {
+    const accepted = await acceptDesktopLaunch(app, { prepareWindowForInput, log });
+    const window = accepted.window;
+    log(`main renderer accepted: ${await window.title()} (${app.windows().length} windows, Settings open, backend ${accepted.status.version})`);
+    await window.screenshot({ path: `${values.spec}.window.png` }).catch(() => {});
 
-  if (values['no-update']) {
-    log('smoke mode: main renderer, Settings navigation, and backend RPC proven; closing');
-    await app.close().catch(() => {});
-    process.exit(0);
-  }
+    if (values['no-update']) {
+      log('smoke mode: main renderer, Settings navigation, and backend RPC proven; closing');
+      return { noUpdate: true };
+    }
 
-  if (!values.result && !(values['expect-sha'] && values['repo-dir'])) {
-    throw new Error('need --result and/or --expect-sha + --repo-dir unless --no-update');
-  }
-  const deadline = Date.now() + Number(values['timeout-ms']);
+    if (!values.result && !(values['expect-sha'] && values['repo-dir'])) {
+      throw new Error('need --result and/or --expect-sha + --repo-dir unless --no-update');
+    }
+    const deadline = Date.now() + Number(values['timeout-ms']);
 
-
-  phase('about-update');
-  // Settings is open: About -> Update now.
-  await window.getByRole('tab', { name: /about/i }).or(
-    window.getByRole('button', { name: /about/i })).first().click();
-  const updateNow = window.getByRole('button', { name: /update now/i }).first();
-  // "Update now" only renders once a check reports behind > 0, and the
-  // About panel starts at "Last checked: never". The boot-time auto-check
-  // can also fail transiently and latch the error UI, while a fresh check
-  // succeeds. Nudge like an impatient user: click Check now whenever it is
-  // clickable (not a spinner), re-test Update now, 3 minute ceiling.
-  const checkNow = window.getByRole('button', { name: /check now/i }).first();
-  const nudgeDeadline = Date.now() + 180_000;
-  let updateVisible = await updateNow.isVisible().catch(() => false);
-  while (!updateVisible && Date.now() < nudgeDeadline) {
-    await checkNow.click({ timeout: 5_000 })
-      .then(() => log('nudged Check now'))
-      .catch(() => {}); // spinner or mid-transition - fine, just wait
-    await window.waitForTimeout(15_000);
-    updateVisible = await updateNow.isVisible().catch(() => false);
-  }
-  try {
-    await updateNow.waitFor({ state: 'visible', timeout: 15_000 });
-  } catch (e) {
-    // The About UI flattens every check failure to a generic "couldn't
-    // reach the update server", hiding the git stderr the main process
-    // captured. Pull the full status over the same IPC the panel uses so
-    // the log names the real error.
-    const status = await window.evaluate(() =>
-      window.hermesDesktop?.updates?.check?.() ?? Promise.resolve('no updates.check bridge')
-    ).catch((err) => `updates.check failed: ${err?.message || err}`);
-    log(`[update-status] ${JSON.stringify(status)}`);
-    throw e;
-  }
-  await updateNow.click();
-  phase('update-poll');
-  log('clicked Update now; polling for result file');
-
-  // The app may relaunch/exit during the update; completion signals are
-  // product state, not Playwright events.
-  const resultPath = values.result;
-  const expectSha = values['expect-sha'];
-  const repoDir = values['repo-dir'];
-  /** @returns {string} */
-  const headSha = () => {
+    phase('about-update');
+    // Settings is open: About -> Update now.
+    await window.getByRole('tab', { name: /about/i }).or(
+      window.getByRole('button', { name: /about/i })).first().click();
+    const updateNow = window.getByRole('button', { name: /update now/i }).first();
+    // "Update now" only renders once a check reports behind > 0, and the
+    // About panel starts at "Last checked: never". The boot-time auto-check
+    // can also fail transiently and latch the error UI, while a fresh check
+    // succeeds. Nudge like an impatient user: click Check now whenever it is
+    // clickable (not a spinner), re-test Update now, 3 minute ceiling.
+    const checkNow = window.getByRole('button', { name: /check now/i }).first();
+    const nudgeDeadline = Date.now() + 180_000;
+    let updateVisible = await updateNow.isVisible().catch(() => false);
+    while (!updateVisible && Date.now() < nudgeDeadline) {
+      await checkNow.click({ timeout: 5_000 })
+        .then(() => log('nudged Check now'))
+        .catch(() => {}); // spinner or mid-transition - fine, just wait
+      await window.waitForTimeout(15_000);
+      updateVisible = await updateNow.isVisible().catch(() => false);
+    }
     try {
-      return execFileSync('git', ['-C', /** @type {string} */ (repoDir), 'rev-parse', 'HEAD'], {
-        encoding: 'utf8',
-      }).trim();
-    } catch {
-      return '';
+      await updateNow.waitFor({ state: 'visible', timeout: 15_000 });
+    } catch (e) {
+      // The About UI flattens every check failure to a generic "couldn't
+      // reach the update server", hiding the git stderr the main process
+      // captured. Pull the full status over the same IPC the panel uses so
+      // the log names the real error.
+      const status = await window.evaluate(() =>
+        window.hermesDesktop?.updates?.check?.() ?? Promise.resolve('no updates.check bridge')
+      ).catch((err) => `updates.check failed: ${err?.message || err}`);
+      log(`[update-status] ${JSON.stringify(status)}`);
+      throw e;
     }
-  };
-  for (;;) {
-    if (resultPath && fs.existsSync(resultPath)) {
-      log(`update result present: ${fs.readFileSync(resultPath, 'utf8').slice(0, 200)}`);
-      break;
-    }
-    if (expectSha && repoDir && headSha() === expectSha) {
-      log(`checkout reached expected sha ${expectSha}`);
-      break;
-    }
-    if (Date.now() > deadline) {
-      await window.screenshot({ path: `${values.spec}.timeout.png` }).catch(() => {});
-      throw new Error('update completion signal never appeared (result file / expected sha)');
-    }
-    await new Promise((r) => setTimeout(r, 2_000));
-  }
+    await updateNow.click();
+    phase('update-poll');
+    log('clicked Update now; polling for result file');
 
-  // ── Post-update: observe the hand-off state, then relaunch and verify ──
-  // On CI runners the rebuilt app cannot self-relaunch (chrome-sandbox needs
-  // root ownership; user namespaces are restricted), so the product parks on
-  // an "update complete, reopen Hermes to finish" overlay and never exits;
-  // a bare app.close() would wait on it forever. Record the hand-off state,
-  // close with a bounded teardown, then do what the overlay asks (the real
-  // user journey) and assert the relaunched app runs the updated code.
-  phase('post-update');
-  const handoff = await window.evaluate(() => {
-    const text = document.body ? document.body.innerText : ''
-    const m = text.match(/[^\n]*(update complete|reopen|relaunch)[^\n]*/i)
-    return m ? m[0].trim().slice(0, 200) : null
-  }).catch(() => null);
-  log(handoff ? `post-update hand-off state: "${handoff}"` : 'post-update: no hand-off overlay observed (app may self-relaunch)');
-  await window.screenshot({ path: `${values.spec}.post-update.png` }).catch(() => {});
-
-  const boundedClose = async (application, label) => {
-    // ElectronApplication.process() can throw on darwin once the app has
-    // started tearing down; never assume it is callable.
-    let proc = null;
-    try { proc = application.process(); } catch { /* connection gone */ }
-    const rootPid = proc?.pid;
-    // Snapshot descendants BEFORE closing: once the root dies its children
-    // reparent to init and a PPID walk can no longer find them.
-    let doomed = [];
-    if (rootPid && process.platform !== 'win32') {
+    // The app may relaunch/exit during the update; completion signals are
+    // product state, not Playwright events.
+    const resultPath = values.result;
+    const expectSha = values['expect-sha'];
+    const repoDir = values['repo-dir'];
+    /** @returns {string} */
+    const headSha = () => {
       try {
-        const out = execFileSync('ps', ['-eo', 'pid=,ppid='], { encoding: 'utf8' });
-        const children = new Map();
-        for (const line of out.trim().split('\n')) {
-          const [pid, ppid] = line.trim().split(/\s+/).map(Number);
-          if (!children.has(ppid)) children.set(ppid, []);
-          children.get(ppid).push(pid);
-        }
-        const queue = [rootPid];
-        while (queue.length) {
-          const next = queue.shift();
-          for (const child of children.get(next) || []) {
-            doomed.push(child);
-            queue.push(child);
-          }
-        }
-      } catch (e) {
-        log(`${label}: descendant snapshot failed (continuing): ${String(e).slice(0, 120)}`);
+        return execFileSync('git', ['-C', /** @type {string} */ (repoDir), 'rev-parse', 'HEAD'], {
+          encoding: 'utf8',
+        }).trim();
+      } catch {
+        return '';
       }
+    };
+    for (;;) {
+      if (resultPath && fs.existsSync(resultPath)) {
+        log(`update result present: ${fs.readFileSync(resultPath, 'utf8').slice(0, 200)}`);
+        break;
+      }
+      if (expectSha && repoDir && headSha() === expectSha) {
+        log(`checkout reached expected sha ${expectSha}`);
+        break;
+      }
+      if (Date.now() > deadline) {
+        await window.screenshot({ path: `${values.spec}.timeout.png` }).catch(() => {});
+        throw new Error('update completion signal never appeared (result file / expected sha)');
+      }
+      await new Promise((r) => setTimeout(r, 2_000));
     }
-    const closed = await Promise.race([
-      application.close().then(() => true).catch(() => true),
-      new Promise((r) => setTimeout(() => r(false), 15_000)),
-    ]);
-    if (!closed) {
-      // SIGTERM first: Electron runs its exit handlers, and any npm/node
-      // children the in-app update spawned get a chance to settle instead
-      // of leaving node_modules half-written.
-      log(`${label}: graceful close timed out after 15s - SIGTERM, then SIGKILL if needed`);
-      if (proc) {
-        try { proc.kill('SIGTERM'); } catch { /* already gone */ }
-        const terminated = await new Promise((r) => {
-          const timer = setTimeout(() => r(false), 10_000);
-          proc.once('exit', () => { clearTimeout(timer); r(true); });
-        });
-        if (!terminated) {
-          log(`${label}: SIGTERM ignored after 10s - SIGKILL`);
-          try { proc.kill('SIGKILL'); } catch { /* already gone */ }
-        }
-      } else {
-        log(`${label}: no process handle to signal - relying on descendant sweep`);
-      }
-    }
-    // Killing the Electron root does not cascade: the spawned backend
-    // (`hermes serve` python + node helpers) survives and keeps writing
-    // under the install dir. SIGTERM the snapshot first (orderly backend
-    // shutdown), then SIGKILL stragglers.
-    if (doomed.length) {
-      for (const pid of doomed) {
-        try { process.kill(pid, 'SIGTERM'); } catch { /* raced exit - fine */ }
-      }
-      await new Promise((r) => setTimeout(r, 5_000));
-      let killed = 0;
-      for (const pid of doomed) {
-        try { process.kill(pid, 'SIGKILL'); killed++; } catch { /* exited on TERM */ }
-      }
-      log(`${label}: swept ${doomed.length} descendant process(es) (${killed} needed SIGKILL)`);
-    }
-  };
-  await boundedClose(app, 'updated-app teardown');
+
+    // ── Post-update: observe the hand-off state, then relaunch and verify ──
+    // On CI runners the rebuilt app cannot self-relaunch (chrome-sandbox needs
+    // root ownership; user namespaces are restricted), so the product parks on
+    // an "update complete, reopen Hermes to finish" overlay and never exits;
+    // a bare app.close() would wait on it forever. Record the hand-off state,
+    // close with a bounded teardown, then do what the overlay asks (the real
+    // user journey) and assert the relaunched app runs the updated code.
+    phase('post-update');
+    const handoff = await window.evaluate(() => {
+      const text = document.body ? document.body.innerText : ''
+      const m = text.match(/[^\n]*(update complete|reopen|relaunch)[^\n]*/i)
+      return m ? m[0].trim().slice(0, 200) : null
+    }).catch(() => null);
+    log(handoff ? `post-update hand-off state: "${handoff}"` : 'post-update: no hand-off overlay observed (app may self-relaunch)');
+    await window.screenshot({ path: `${values.spec}.post-update.png` }).catch(() => {});
+    return { noUpdate: false };
+  }, { log });
+
+  if (primaryResult.noUpdate) process.exit(0);
 
   // Relaunch from the same captured spec - the leg's own launch mechanism -
   // and require the main renderer plus backend to come up on the updated
@@ -312,36 +244,30 @@ async function main() {
     cwd: launch.cwd,
     env: launch.env,
   });
-  let relaunched;
-  try {
-    relaunched = await acceptDesktopLaunch(relaunch, { prepareWindowForInput, log });
-  } catch (error) {
-    await boundedClose(relaunch, 'relaunch teardown');
-    throw error;
-  }
-  const window2 = relaunched.window;
-  // Give the shell a moment to paint the statusbar/version chrome.
-  await new Promise((r) => setTimeout(r, 10_000));
-  const shortSha = (expectSha || '').slice(0, 7);
-  const verdict = await window2.evaluate((sha) => {
-    const text = document.body ? document.body.innerText : ''
-    const version = (text.match(/v\d+\.\d+\.\d+[^\n]*/) || [null])[0]
-    return { version, hasSha: sha ? text.includes(sha) : false }
-  }, shortSha).catch(() => null);
-  await window2.screenshot({ path: `${values.spec}.relaunched.png` }).catch(() => {});
-  log(`relaunched app: version="${verdict?.version || 'unseen'}" expectedSha(${shortSha}) in DOM=${verdict?.hasSha}`);
-  if (!verdict) {
-    await boundedClose(relaunch, 'relaunch teardown');
-    throw new Error('relaunched app UI came up but could not be read');
-  }
-  if (shortSha && !verdict.hasSha) {
-    // Not fatal on its own: packaged builds do not always surface the sha in
-    // the DOM. The window came up on the updated install dir, which is the
-    // user-facing contract; log loudly so a human can tighten this later.
-    log(`NOTE: expected short sha ${shortSha} not found in relaunched DOM; version line was "${verdict.version}"`);
-  }
-  log(`relaunch verification complete: updated app opened Settings and backend ${relaunched.status.version} answered`);
-  await boundedClose(relaunch, 'relaunch teardown');
+  await withOwnedApplication(relaunch, 'relaunch teardown', async () => {
+    const relaunched = await acceptDesktopLaunch(relaunch, { prepareWindowForInput, log });
+    const window2 = relaunched.window;
+    // Give the shell a moment to paint the statusbar/version chrome.
+    await new Promise((r) => setTimeout(r, 10_000));
+    const shortSha = (expectSha || '').slice(0, 7);
+    const verdict = await window2.evaluate((sha) => {
+      const text = document.body ? document.body.innerText : ''
+      const version = (text.match(/v\d+\.\d+\.\d+[^\n]*/) || [null])[0]
+      return { version, hasSha: sha ? text.includes(sha) : false }
+    }, shortSha).catch(() => null);
+    await window2.screenshot({ path: `${values.spec}.relaunched.png` }).catch(() => {});
+    log(`relaunched app: version="${verdict?.version || 'unseen'}" expectedSha(${shortSha}) in DOM=${verdict?.hasSha}`);
+    if (!verdict) {
+      throw new Error('relaunched app UI came up but could not be read');
+    }
+    if (shortSha && !verdict.hasSha) {
+      // Not fatal on its own: packaged builds do not always surface the sha in
+      // the DOM. The window came up on the updated install dir, which is the
+      // user-facing contract; log loudly so a human can tighten this later.
+      log(`NOTE: expected short sha ${shortSha} not found in relaunched DOM; version line was "${verdict.version}"`);
+    }
+    log(`relaunch verification complete: updated app opened Settings and backend ${relaunched.status.version} answered`);
+  }, { log });
   // Explicit exit: SIGKILLed Electron leaves driver connections holding
   // the event loop; falling off main() never terminates.
   process.exit(0);

@@ -1,6 +1,11 @@
 // @ts-check
 
+const { execFileSync: nodeExecFileSync } = require('node:child_process')
+
 const SETTINGS_URL = /[#/]settings(?:[/?]|$)/
+
+/** @param {number} ms */
+const defaultSleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 /** @param {unknown} value */
 function isValidBackendStatus(value) {
@@ -31,6 +36,124 @@ function withTimeout(promise, timeoutMs, message) {
       error => { clearTimeout(timer); reject(error) },
     )
   })
+}
+
+/** @param {string} output @param {number} rootPid */
+function descendantPids(output, rootPid) {
+  const children = new Map()
+  for (const line of output.trim().split('\n')) {
+    const [pid, ppid] = line.trim().split(/\s+/).map(Number)
+    if (!Number.isInteger(pid) || !Number.isInteger(ppid)) continue
+    if (!children.has(ppid)) children.set(ppid, [])
+    children.get(ppid).push(pid)
+  }
+
+  const descendants = []
+  const queue = [rootPid]
+  while (queue.length) {
+    const parent = queue.shift()
+    for (const child of children.get(parent) || []) {
+      descendants.push(child)
+      queue.push(child)
+    }
+  }
+  return descendants
+}
+
+/**
+ * Close an application and only the process descendants rooted at its own PID.
+ * @param {any} application
+ * @param {string} label
+ * @param {{
+ *   closeTimeoutMs?: number,
+ *   descendantGraceMs?: number,
+ *   execFileSync?: typeof nodeExecFileSync,
+ *   kill?: typeof process.kill,
+ *   log?: (message: string) => void,
+ *   platform?: string,
+ *   sleep?: (ms: number) => Promise<void>,
+ *   termTimeoutMs?: number,
+ * }} [options]
+ */
+async function boundedClose(application, label, options = {}) {
+  const closeTimeoutMs = options.closeTimeoutMs ?? 15_000
+  const descendantGraceMs = options.descendantGraceMs ?? 5_000
+  const execFileSync = options.execFileSync ?? nodeExecFileSync
+  const kill = options.kill ?? process.kill.bind(process)
+  const log = options.log ?? (() => undefined)
+  const platform = options.platform ?? process.platform
+  const sleep = options.sleep ?? defaultSleep
+  const termTimeoutMs = options.termTimeoutMs ?? 10_000
+
+  let proc = null
+  try { proc = application.process() } catch { /* connection gone */ }
+  const rootPid = proc?.pid
+  let descendants = []
+  if (rootPid && platform !== 'win32') {
+    try {
+      descendants = descendantPids(execFileSync('ps', ['-eo', 'pid=,ppid='], { encoding: 'utf8' }), rootPid)
+    } catch (error) {
+      log(`${label}: descendant snapshot failed (continuing): ${String(error).slice(0, 120)}`)
+    }
+  }
+
+  let closeAttempt
+  try {
+    closeAttempt = Promise.resolve(application.close()).then(() => true, () => false)
+  } catch {
+    closeAttempt = Promise.resolve(false)
+  }
+  const closed = await Promise.race([
+    closeAttempt,
+    sleep(closeTimeoutMs).then(() => false),
+  ])
+
+  if (!closed) {
+    log(`${label}: graceful close failed or timed out after ${closeTimeoutMs}ms - SIGTERM, then SIGKILL if needed`)
+    if (proc) {
+      try { proc.kill('SIGTERM') } catch { /* already gone */ }
+      const terminated = await Promise.race([
+        new Promise(resolve => {
+          try { proc.once('exit', () => resolve(true)) } catch { resolve(true) }
+        }),
+        sleep(termTimeoutMs).then(() => false),
+      ])
+      if (!terminated) {
+        log(`${label}: SIGTERM ignored after ${termTimeoutMs}ms - SIGKILL`)
+        try { proc.kill('SIGKILL') } catch { /* already gone */ }
+      }
+    } else {
+      log(`${label}: no process handle to signal - relying on descendant sweep`)
+    }
+  }
+
+  if (descendants.length) {
+    for (const pid of descendants) {
+      try { kill(pid, 'SIGTERM') } catch { /* raced exit */ }
+    }
+    await sleep(descendantGraceMs)
+    let killed = 0
+    for (const pid of descendants) {
+      try { kill(pid, 'SIGKILL'); killed += 1 } catch { /* exited on TERM */ }
+    }
+    log(`${label}: swept ${descendants.length} descendant process(es) (${killed} needed SIGKILL)`)
+  }
+}
+
+/**
+ * @template T
+ * @param {any} application
+ * @param {string} label
+ * @param {() => Promise<T>} work
+ * @param {Parameters<typeof boundedClose>[2]} [closeOptions]
+ * @returns {Promise<T>}
+ */
+async function withOwnedApplication(application, label, work, closeOptions) {
+  try {
+    return await work()
+  } finally {
+    await boundedClose(application, label, closeOptions)
+  }
 }
 
 /** @param {any} window @param {number} timeoutMs */
@@ -67,6 +190,9 @@ async function findMainRenderer(app, options) {
 
   do {
     for (const candidate of app.windows()) {
+      try {
+        if (new URL(candidate.url()).searchParams.has('win')) continue
+      } catch { /* let the renderer markers decide non-standard URLs */ }
       const remainingMs = Math.max(1, deadline - Date.now())
       const marker = await withTimeout(
         candidate.evaluate(() => ({
@@ -140,4 +266,10 @@ async function acceptDesktopLaunch(app, options) {
   throw new Error('main renderer did not navigate to Settings before launch timeout')
 }
 
-module.exports = { acceptDesktopLaunch, isValidBackendStatus, readBackendStatus }
+module.exports = {
+  acceptDesktopLaunch,
+  boundedClose,
+  isValidBackendStatus,
+  readBackendStatus,
+  withOwnedApplication,
+}
