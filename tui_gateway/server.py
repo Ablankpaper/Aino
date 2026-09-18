@@ -1616,7 +1616,10 @@ def _sync_agent_session_model_config(agent) -> None:
 
 
 def _persist_live_session_runtime(session: dict | None) -> None:
-    """Persist active session runtime so future resumes restore the same footer."""
+    """Persist the active runtime for resume and future compression children."""
+    agent = (session or {}).get("agent")
+    if agent is not None:
+        _sync_agent_session_model_config(agent)
     live = _live_session_agent_db(session)
     if live is None:
         return
