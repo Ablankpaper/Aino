@@ -297,12 +297,13 @@ run_playwright_update() {
   local spec="$1"
   local pw_dir
   pw_dir="$(ensure_playwright)"
-  cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/window-input.cjs" "$ASSETS/desktop-artifact.cjs" "$pw_dir/"
+  cp "$ASSETS/launch-from-spec.mjs" "$ASSETS/window-input.cjs" "$ASSETS/desktop-artifact.cjs" "$ASSETS/update-completion.cjs" "$pw_dir/"
   local rc=0
   (cd "$pw_dir" && node launch-from-spec.mjs \
     --spec "$spec" \
     --result "$HERMES_HOME/.hermes-update-result.json" \
     --expect-sha "$HEAD_SHA" \
+    --launch-capture-dir "$ASSETS/launch-capture" \
     --repo-dir "$INSTALL_DIR" 2>&1 \
     | ts_prefix > "$LOG_DIR/app-update.log") || rc=$?
   log_group "app update (Playwright) transcript" "$LOG_DIR/app-update.log"

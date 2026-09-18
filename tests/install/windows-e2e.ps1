@@ -447,6 +447,7 @@ function Invoke-HermesDesktopAppUpdate([string]$TargetSha) {
     Copy-Item (Join-Path $AssetsDir "launch-from-spec.mjs") (Join-Path $driverDir "launch-from-spec.mjs") -Force
     Copy-Item (Join-Path $AssetsDir "window-input.cjs") (Join-Path $driverDir "window-input.cjs") -Force
     Copy-Item (Join-Path $AssetsDir "desktop-artifact.cjs") (Join-Path $driverDir "desktop-artifact.cjs") -Force
+    Copy-Item (Join-Path $AssetsDir "update-completion.cjs") (Join-Path $driverDir "update-completion.cjs") -Force
     $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
     Push-Location $driverDir
     try {

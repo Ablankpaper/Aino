@@ -4,6 +4,25 @@ These failures cannot be repaired by changing the update target: the failing cod
 
 The machine-readable rules in `e2e-assets/known-failures.json` own the matcher and report footnote text. This document explains their historical evidence. Logs are rotated before each attempt so an earlier failure cannot classify a later one.
 
+## August CLI retains the old utils module
+
+Starting release: `v2026.8.27` (`v0.20.6`), commit `5fc308a70719a83cccdbba4c0e39c23f5a8239d5`.
+
+The released updater purges packages after pulling but leaves the root `utils` module cached.
+The new gateway import chain reaches `agent.auxiliary_client`, which needs `utils.base_url_origin`.
+That symbol is absent from the cached release module, so the update ends with a gateway restart
+failure even though code and dependencies reached the target. Changing the target's purge list
+protects future updates but cannot replace the already executing release function.
+
+The POSIX CLI driver requires the exact starting commit, target checkout, method pair,
+nonzero exit, and both completion and missing-symbol messages before attempting recovery.
+It retains the original transcript, starts the updater once in a fresh process, and still
+requires all checkout and desktop checks to pass. The chart records a known failure, not a
+first-attempt pass; a failed recovery remains red.
+
+Evidence: [Linux CLI job](https://github.com/Ablankpaper/Aino/actions/runs/35308900820/job/105486691268).
+Windows app updates and generic import errors are not covered by this rule.
+
 ## Windows launcher self-lock
 
 Classification: **unfixable in the update target for the exact released `hermes.exe update` path**.

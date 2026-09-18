@@ -13,16 +13,18 @@
  * Usage (from the scratch dir where the driver installed @playwright/test):
  *   node launch-from-spec.mjs --spec /path/launch-spec.json \
  *     [--result $HERMES_HOME/.hermes-update-result.json] \
- *     [--expect-sha <sha> --repo-dir <install dir>] [--no-update]
+ *     [--expect-sha <sha> --repo-dir <install dir>] [--no-update] \
+ *     [--launch-capture-dir /path/to/e2e-assets/launch-capture]
  *
  * --no-update: launch + wait for the window + close. The smoke arm.
- * Otherwise: click Update now, then poll for completion. Two signals,
- * either satisfies (poll whichever are given, first hit wins):
- *   --result      the windows hand-off's result file
- *                 (HERMES_HOME/.hermes-update-result.json)
- *   --expect-sha  the installed checkout reaching the expected commit -
- *                 the source-install signal, where the About pane's update
- *                 runs `hermes update` and no result file exists.
+ * Otherwise: click Update now, then poll until the update marker clears.
+ *   --result      require a fresh successful hand-off result, captured from
+ *                 this file or this run's appended desktop log if consumed
+ *   --expect-sha  also require the installed checkout to reach this commit
+ *                 (requires --repo-dir). Without --result, the captured
+ *                 spec must provide HERMES_HOME for marker observation.
+ * When both are given, both conditions must pass. Result observation starts
+ * before the click and retains evidence across file writes and consumption.
  * The Playwright close event is unreliable across the update handoff, so
  * neither signal is an app event.
  */
@@ -33,7 +35,8 @@ import { execFileSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { _electron } from '@playwright/test';
 import { prepareWindowForInput } from './window-input.cjs';
-import { refreshPackagedLaunchSpec } from './desktop-artifact.cjs';
+import { captureUpdatedDesktopLaunch, refreshPackagedLaunchSpec } from './desktop-artifact.cjs';
+import { createUpdateCompletionObserver } from './update-completion.cjs';
 
 /**
  * @typedef {{argv: string[], cwd: string, env: Record<string, string>,
@@ -108,6 +111,7 @@ async function main() {
       result: { type: 'string' },
       'expect-sha': { type: 'string' },
       'repo-dir': { type: 'string' },
+      'launch-capture-dir': { type: 'string' },
       'no-update': { type: 'boolean', default: false },
       'timeout-ms': { type: 'string', default: '600000' },
     },
@@ -280,14 +284,9 @@ async function main() {
     log(`[update-status] ${JSON.stringify(status)}`);
     throw e;
   }
-  await updateNow.click();
-  phase('update-poll');
-  log('clicked Update now; polling for result file');
-
   // The app may relaunch/exit during the update; completion signals are
   // product state, not Playwright events.
   const resultPath = values.result;
-  const markerPath = resultPath && path.join(path.dirname(resultPath), '.hermes-update-in-progress');
   const expectSha = values['expect-sha'];
   const repoDir = values['repo-dir'];
   /** @returns {string} */
@@ -300,23 +299,27 @@ async function main() {
       return '';
     }
   };
-  for (;;) {
-    if (resultPath && fs.existsSync(resultPath)) {
-      const result = JSON.parse(fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, ''));
-      log(`update result present: ${JSON.stringify(result).slice(0, 200)}`);
-      if (!result.ok) throw new Error(`updater failed: ${result.message || result.exit_code}`);
+  const completion = createUpdateCompletionObserver({
+    resultPath, expectedSha: expectSha, hermesHome: spec.env.HERMES_HOME,
+  });
+  try {
+    await updateNow.click();
+    phase('update-poll');
+    log('clicked Update now; observing this update outcome and marker');
+    for (;;) {
+      const status = completion.check(expectSha ? headSha() : undefined);
+      if (status.complete) {
+        log(`update complete: ${status.evidence || `checkout reached ${expectSha}`}; marker cleared`);
+        break;
+      }
+      if (Date.now() > deadline) {
+        await window.screenshot({ path: `${values.spec}.timeout.png` }).catch(() => {});
+        throw new Error(`update completion signal never appeared: ${status.pendingReason}`);
+      }
+      await new Promise((r) => setTimeout(r, 2_000));
     }
-    // Git moves before dependencies and desktop packaging finish. Reopening
-    // while the marker exists can interrupt the updater or launch the old app.
-    if (expectSha && repoDir && headSha() === expectSha && markerPath && !fs.existsSync(markerPath)) {
-      log(`checkout reached expected sha ${expectSha} and update marker cleared`);
-      break;
-    }
-    if (Date.now() > deadline) {
-      await window.screenshot({ path: `${values.spec}.timeout.png` }).catch(() => {});
-      throw new Error('update completion signal never appeared (result file / expected sha)');
-    }
-    await new Promise((r) => setTimeout(r, 2_000));
+  } finally {
+    completion.close();
   }
 
   // ── Post-update: observe the hand-off state, then relaunch and verify ──
@@ -406,15 +409,28 @@ async function main() {
   };
   await boundedClose(app, 'updated-app teardown');
 
-  // Keep the captured launch mechanism, resolving packaged executables from
-  // the updated manifest so a renamed app cannot relaunch OLD's artifact.
+  // Resolve the updated product identity. Linux must also run the CLI's
+  // sandbox preparation again: packaging resets the helper's permissions.
   // Require the UI to come up on the updated checkout. Verification:
   // the renderer's DOM carries the running build's short sha when launched
   // from a git checkout (statusbar/About); require the EXPECTED sha's short
   // form, or at minimum a live UI window, logging what we saw.
   phase('relaunch');
   log('relaunching the updated app (the "reopen Hermes" step)');
-  const updatedLaunch = resolveLaunch(repoDir ? refreshPackagedLaunchSpec(spec, repoDir) : spec);
+  let updatedSpec = repoDir ? refreshPackagedLaunchSpec(spec, repoDir) : spec;
+  if (process.platform === 'linux' && repoDir) {
+    const captureDir = values['launch-capture-dir'];
+    if (!captureDir) throw new Error('--launch-capture-dir is required to prepare the updated Linux desktop');
+    log('capturing the updated hermes desktop launch after product startup preparation');
+    updatedSpec = captureUpdatedDesktopLaunch({
+      hermesPath: path.join(repoDir, 'venv', 'bin', 'hermes'),
+      installDir: repoDir,
+      captureDir,
+      specPath: `${values.spec}.updated.json`,
+      env: spec.env,
+    });
+  }
+  const updatedLaunch = resolveLaunch(updatedSpec);
   log(`updated executable: ${updatedLaunch.executablePath}`);
   const relaunch = await _electron.launch({
     executablePath: updatedLaunch.executablePath,

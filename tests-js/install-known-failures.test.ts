@@ -22,6 +22,26 @@ const base = {
 }
 
 describe('known install failures', () => {
+  it('allows fresh-process recovery only for the exact released cache failure after the target checkout lands', () => {
+    const sample = {
+      platform: 'linux', phase: 'update', commit: '5fc308a70719a83cccdbba4c0e39c23f5a8239d5',
+      checkout: 'f'.repeat(40), target: 'f'.repeat(40),
+      installMethod: 'installer-script', updateMethod: 'hermes-update',
+      error: 'hermes update exited 1',
+      logs: { update: "Update complete! (v0.20.6 -> v0.21.3)\ngateway auto-restart failed: cannot import name 'base_url_origin' from 'utils'" },
+    }
+
+    expect(matchKnownFailure(sample)?.id).toBe('august-cli-stale-utils')
+    for (const change of [
+      { platform: 'windows' }, { commit: 'e'.repeat(40) }, { checkout: 'e'.repeat(40) },
+      { target: '' }, { updateMethod: 'hermes-desktop-app-update' }, { error: 'hermes update exited 0' },
+      { logs: { update: "gateway auto-restart failed: cannot import name 'base_url_origin' from 'utils'" } },
+      { logs: { update: 'Update complete! (v0.20.6 -> v0.21.3)\ngateway auto-restart failed: service unavailable' } },
+    ]) {
+      expect(matchKnownFailure({ ...sample, ...change })).toBeNull()
+    }
+  })
+
   it('recognizes the released launcher self-lock, not generic access denied', () => {
     expect(matchKnownFailure(base)?.id).toBe('windows-launcher-self-lock')
     expect(matchKnownFailure({ ...base, logs: { update: lockedLog.replaceAll('hermes.exe', 'other.exe') } })).toBeNull()
@@ -73,11 +93,12 @@ it('renders known receipts as footnotes, without suppressing a red job', async (
   const modulePath = new URL('../scripts/sandbox/generate-e2e-matrix.mjs', import.meta.url).href
   const { renderMarkdownResults, legId } = await import(/* @vite-ignore */ modulePath)
   const name = 'windows: installer-script -> hermes-update (v2026.3.12 -> HEAD)'
-  const artifacts = new Map([[`install-e2e-known-${rules[0].id}--${legId(name)}`, 42]])
+  const rule = rules.find((item: { id: string }) => item.id === 'windows-launcher-self-lock')
+  const artifacts = new Map([[`install-e2e-known-${rule.id}--${legId(name)}`, 42]])
   const known = renderMarkdownResults([{ name: name + ' / e2e', conclusion: 'success' }], [], artifacts)
   expect(known).toContain('0 passed, 0 failed, 1 known failures')
   expect(known).toContain('known [^1]')
-  expect(known).toContain(`[^1]: **${rules[0].title}.**`)
+  expect(known).toContain(`[^1]: **${rule.title}.**`)
   const failed = renderMarkdownResults([{ name: name + ' / e2e', conclusion: 'failure' }], [], artifacts)
   expect(failed).toContain('0 passed, 1 failed, 0 known failures')
   expect(failed).not.toContain('known [^1]')

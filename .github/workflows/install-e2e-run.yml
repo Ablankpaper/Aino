@@ -123,6 +123,24 @@ jobs:
           mode: stop
           output: ${{ runner.temp }}/e2e-logs/recording.mkv
 
+      - name: Identify recovered historical failure
+        id: known
+        if: success()
+        env:
+          RECEIPT: ${{ runner.temp }}/e2e-logs/known-failure.json
+        run: |
+          if [ -f "$RECEIPT" ]; then
+            node -e 'const fs = require("node:fs"); const receipt = JSON.parse(fs.readFileSync(process.env.RECEIPT, "utf8")); fs.appendFileSync(process.env.GITHUB_OUTPUT, `id=${receipt.id}\n`);'
+          fi
+
+      - name: Upload recovered historical failure
+        if: steps.known.outputs.id != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: install-e2e-known-${{ steps.known.outputs.id }}--${{ inputs.leg-id }}
+          path: ${{ runner.temp }}/e2e-logs/known-failure.json
+          retention-days: 14
+
       # Browsers cannot play Matroska: remux (copy codec, no re-encode) so
       # the artifact zip feeds the static playback.html leg player directly.
       - name: Remux recording for browser playback

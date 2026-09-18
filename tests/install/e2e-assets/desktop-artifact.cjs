@@ -1,5 +1,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const { execFileSync } = require('node:child_process')
 
 const platforms = {
   linux: { key: 'linux', directories: ['linux-unpacked', 'linux-arm64-unpacked', 'linux-armv7l-unpacked'] },
@@ -42,7 +43,28 @@ function refreshPackagedLaunchSpec(spec, installDir, platform = process.platform
   }
 }
 
-module.exports = { resolveDesktopArtifact, refreshPackagedLaunchSpec }
+function captureUpdatedDesktopLaunch({ hermesPath, installDir, captureDir, specPath, env }) {
+  fs.rmSync(specPath, { force: true })
+  fs.rmSync(`${specPath}.captured`, { force: true })
+  // The real CLI prepares the rebuilt sandbox helper before its final spawn.
+  // Intercept only that spawn; do not replay pre-update launch assumptions.
+  execFileSync(hermesPath, ['desktop', '--skip-build'], {
+    cwd: installDir,
+    env: {
+      ...env,
+      PYTHONPATH: [captureDir, env.PYTHONPATH].filter(Boolean).join(path.delimiter),
+      HERMES_E2E_CAPTURE_LAUNCH: specPath,
+    },
+    stdio: ['ignore', 'inherit', 'inherit'],
+    timeout: 5 * 60 * 1000,
+  })
+  if (!fs.existsSync(`${specPath}.captured`)) {
+    throw new Error('updated hermes desktop exited successfully but no launch was captured')
+  }
+  return JSON.parse(fs.readFileSync(specPath, 'utf8'))
+}
+
+module.exports = { resolveDesktopArtifact, refreshPackagedLaunchSpec, captureUpdatedDesktopLaunch }
 
 if (require.main === module) {
   const [installDir, platform = process.platform, field = 'artifact'] = process.argv.slice(2)
