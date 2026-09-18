@@ -25,6 +25,8 @@ export interface CompressionReceipt {
   first_turn_id: string
   compression_turn_id: string
   compression_call_ids: string[]
+  raw_before_messages: number
+  raw_after_messages: number
   before_rendered_user_messages: number
   after_rendered_user_messages: number
   compression_requests: number
@@ -51,8 +53,7 @@ function settledCost(rows: NativeState['usage_ledger']): bigint {
 }
 
 function renderedUserMessageCount(page: Page): Promise<number> {
-  // User messages carry this stable timeline identity in the production renderer.
-  return page.locator('[data-slot="aui_thread-viewport"] [data-message-id]').count()
+  return page.locator('[data-slot="aui_thread-viewport"] [data-message-id][data-role="user"]').count()
 }
 
 async function selectFixtureModel(page: Page) {
@@ -224,6 +225,8 @@ export async function verifyNativeCompressionBeforeRestart(page: Page, api: API)
   expect(rpc.summary?.noop).not.toBe(true)
   expect(rpc.removed).toBeGreaterThan(0)
   expect(rpc.before_messages).toBeGreaterThan(rpc.after_messages ?? Number.MAX_SAFE_INTEGER)
+  const rawBeforeMessages = rpc.before_messages!
+  const rawAfterMessages = rpc.after_messages!
   await expect.poll(() => renderedUserMessageCount(page), { timeout: 30_000 })
     .toBeLessThan(beforeRenderedUserMessages)
   const afterRenderedUserMessages = await renderedUserMessageCount(page)
@@ -268,6 +271,7 @@ export async function verifyNativeCompressionBeforeRestart(page: Page, api: API)
     user_id: String(compressed.user_id), billing_session_id: billingSessionId, first_turn_id: firstTurn,
     compression_turn_id: compressionRows[0]!.desktop_turn_id,
     compression_call_ids: compressionRows.map(row => row.desktop_call_id!),
+    raw_before_messages: rawBeforeMessages, raw_after_messages: rawAfterMessages,
     before_rendered_user_messages: beforeRenderedUserMessages,
     after_rendered_user_messages: afterRenderedUserMessages, compression_requests: compressed.compression_requests,
     compression_handoff_requests: compressed.compression_handoff_requests, before, compressed, binding
