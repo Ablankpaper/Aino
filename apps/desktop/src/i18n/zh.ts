@@ -3995,7 +3995,7 @@ export const zh = defineLocale({
     projects: {
       showAllSessions: '显示所有会话',
       sectionLabel: '项目',
-      empty: '暂无项目',
+      empty: '暂无打开的项目',
       home: '主页',
       autoDiscovered: '自动发现',
       newButton: '新建项目',
@@ -4100,6 +4100,7 @@ export const zh = defineLocale({
       keepOneFolder: '至少保留一个文件夹',
       contextChanged: '会话或工作区已切换，请重新打开此窗口后操作。',
       menuSetActive: '设为活动',
+      menuClose: '关闭项目',
       menuDelete: '移除项目',
       moveToProject: '移动到项目',
       movedTo: name => `已移动到 ${name}`,

@@ -135,6 +135,10 @@ one-off at the call site.
   per entry point.
 - **Projects own workspace cwd.** Use Sidebar → Projects for local folders and
   worktrees; do not reintroduce a per-session/right-sidebar folder-picker flow.
+  The sidebar lists only projects explicitly opened or created in Desktop,
+  remembered per connection and profile. Discovery and saved registrations do
+  not open projects. Closing a project removes it from this list, preserving
+  its registration, files and conversations; its unpinned chats return to Recent.
   Project menus own folder membership and the primary folder. Removing a project
   or folder registration never deletes files or conversation history. Profile
   management lives under Settings → Advanced workspaces; All profiles is a browse

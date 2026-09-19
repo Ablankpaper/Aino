@@ -40,7 +40,6 @@ import { $activeConnectionId } from '@/store/connections'
 import { $cronJobs } from '@/store/cron'
 import { $bindings } from '@/store/keybinds'
 import {
-  $dismissedAutoProjectIds,
   $panesFlipped,
   $pinnedSessionIds,
   $sidebarCardRows,
@@ -63,7 +62,6 @@ import {
   $sidebarStatusFilter,
   $sidebarWorkspaceOrderIds,
   $sidebarWorkspaceParentOrderIds,
-  filterVisibleProjects,
   pinSession,
   SESSION_SEARCH_FOCUS_EVENT,
   setPinnedSessionOrder,
@@ -91,6 +89,7 @@ import {
 } from '@/store/profile'
 import {
   $activeProjectId,
+  $openedProjectTree,
   $projects,
   $projectScope,
   $projectTree,
@@ -447,6 +446,7 @@ export function ChatSidebar({
   const projectOrderIds = useStore($sidebarProjectOrderIds)
   const projects = useStore($projects)
   const projectTree = useStore($projectTree)
+  const openedProjectTree = useStore($openedProjectTree)
 
   // The persisted project filter's storage is shared across profiles, so ids
   // picked in another profile don't resolve in the active one and the raw
@@ -464,7 +464,6 @@ export function ChatSidebar({
   const projectScope = useStore($projectScope)
   const currentCwd = useStore($currentCwd)
   const gatewayState = useStore($gatewayState)
-  const dismissedAutoProjects = useStore($dismissedAutoProjectIds)
   const newSessionCombo = useStore($bindings)['session.new']?.[0]
   const newSessionKbd = newSessionCombo ? comboTokens(newSessionCombo) : []
   const [searchQuery, setSearchQuery] = useState('')
@@ -760,15 +759,8 @@ export function ChatSidebar({
   const agentSessions = unpinnedAgentSessions
 
   const displayAgentSessions = useMemo(
-    () =>
-      showArchived
-        ? agentSessions
-        : recentSessionsOutsideProjects(
-            agentSessions,
-            projects,
-            filterVisibleProjects(projectTree, dismissedAutoProjects)
-          ),
-    [agentSessions, projects, projectTree, dismissedAutoProjects, showArchived]
+    () => (showArchived ? agentSessions : recentSessionsOutsideProjects(agentSessions, projects, openedProjectTree)),
+    [agentSessions, projects, openedProjectTree, showArchived]
   )
 
   // Recents are local-only: messaging-platform sessions are fetched as their
@@ -972,11 +964,11 @@ export function ChatSidebar({
   // ── Projects: the single top-level model (authoritative, from the backend) ──
   // `projects.tree` already unifies explicit projects + auto repos and folds
   // linked worktrees under their main repo. The desktop only layers local view
-  // state on top: dismissed auto-projects, persisted repo/lane order, and the
+  // state on top: opened projects, persisted repo/lane order, and the
   // overview sort. Membership is the backend tree's — never re-derived here.
   const projectModel = useMemo<SidebarProjectTree[]>(() => {
     const sorted = sortProjectsForOverview(
-      filterVisibleProjects(projectTree, dismissedAutoProjects)
+      openedProjectTree
         // A filtered-out project drops its whole lane, header included — hiding
         // only its rows would leave a row of empty folders behind.
         .filter(project => !project.isNoProject && (!projectFilter.length || projectFilter.includes(project.id)))
@@ -999,16 +991,7 @@ export function ChatSidebar({
     // (default) returns `sorted` untouched; projects the user hasn't ordered yet
     // keep their sorted position rather than jumping the hand-picked list.
     return orderProjectsByIds(sorted, projectOrderIds)
-  }, [
-    projectTree,
-    dismissedAutoProjects,
-    orderRepos,
-    activeProjectId,
-    projectFilter,
-    projectOrderIds,
-    isHiddenFromProjects,
-    s
-  ])
+  }, [openedProjectTree, orderRepos, activeProjectId, projectFilter, projectOrderIds, isHiddenFromProjects, s])
 
   // The overview only renders in grouped mode; the model stays live regardless
   // so scoping is consistent across views.

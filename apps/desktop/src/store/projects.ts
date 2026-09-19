@@ -1,4 +1,4 @@
-import { atom } from 'nanostores'
+import { atom, computed } from 'nanostores'
 
 import type { NewSessionPlacement } from '@/app/chat/new-session-drag'
 import {
@@ -17,6 +17,12 @@ import { persistentAtom } from '@/lib/persisted'
 import { $gateway, activeGateway, ensureActiveGatewayOpen } from '@/store/gateway'
 import { $sidebarShowAllSessions, setSidebarAgentsGrouped, setWorkspaceNodeOpen } from '@/store/layout'
 import { notify } from '@/store/notifications'
+import {
+  $openedProjects,
+  forgetOpenProject,
+  reconcileOpenProjectPaths,
+  rememberOpenProject
+} from '@/store/open-projects'
 import {
   $activeGatewayProfile,
   $profileScope,
@@ -51,6 +57,20 @@ export const $activeProjectId = atom<null | string>(null)
 // fetched lazily on drill-in via `fetchProjectSessions`. This is the single
 // source of project membership — the desktop no longer derives it.
 export const $projectTree = atom<SidebarProjectTree[]>([])
+export const $openedProjectTree = computed([$projectTree, $openedProjects], (tree, opened) => {
+  const byId = new Map(tree.map(project => [project.id, project]))
+
+  // All-profile trees can choose a different project's ID for the same folder.
+  // Prefer exact IDs so an optimistic adoption never paints both old and new rows.
+  const ids = new Set(
+    opened.map(
+      entry =>
+        byId.get(entry.id)?.id ?? (entry.path ? tree.find(project => project.path === entry.path)?.id : undefined)
+    )
+  )
+
+  return tree.filter(project => !project.isNoProject && ids.has(project.id))
+})
 // Initial read only. A resolved empty tree stays visible during background refreshes.
 export const $projectTreeLoading = atom(false)
 
@@ -97,6 +117,12 @@ let projectNavigationGeneration = 0
 // point). Never opens a session.
 export function enterProject(id: string): void {
   projectNavigationGeneration += 1
+  const project = $projectTree.get().find(node => node.id === id)
+
+  if (id !== NO_PROJECT_ID) {
+    rememberOpenProject({ id, path: project?.path ?? null })
+  }
+
   setWorkspaceNodeOpen('section:projects', true)
   $projectScope.set(id)
 
@@ -111,6 +137,15 @@ export function enterProject(id: string): void {
 export function exitProjectScope(): void {
   projectNavigationGeneration += 1
   $projectScope.set(ALL_PROJECTS)
+}
+
+export function closeProject(id: string): void {
+  const project = $projectTree.get().find(node => node.id === id)
+  forgetOpenProject({ id, path: project?.path ?? null })
+
+  if ($projectScope.get() === id) {
+    exitProjectScope()
+  }
 }
 
 // A project's working root: its primary folder, else the first repo that has
@@ -167,7 +202,7 @@ export function resolveNewSessionCwd(): string {
   }
 
   if (scope !== ALL_PROJECTS) {
-    const cwd = projectRootCwd($projectTree.get().find(node => node.id === scope))
+    const cwd = projectRootCwd($openedProjectTree.get().find(node => node.id === scope))
 
     if (cwd) {
       return cwd
@@ -246,10 +281,9 @@ export function projectNameForCwd(cwd: string): null | string {
 
 // The active session's agent relocated itself (created/entered another repo or
 // worktree via the terminal — backend re-anchors its cwd and emits session.info).
-// Re-pull projects + tree so a freshly created/auto project and the relocated
-// session row show live, then follow the view into the session's new project
-// (from the overview or a now-stale project alike). Caller gates this on a real
-// same-session cwd move, so a plain session switch never reaches here.
+// Refresh membership and follow the view only when the destination project is
+// already open. Caller gates this on a real same-session cwd move, so a plain
+// session switch never reaches here.
 export async function followActiveSessionCwd(cwd: string): Promise<void> {
   const target = cwd.trim()
 
@@ -281,7 +315,7 @@ export async function followActiveSessionCwd(cwd: string): Promise<void> {
   }
 
   // Resolve only after the refresh, so a just-created/auto project is in the tree.
-  const projectId = projectIdForCwd(target)
+  const projectId = projectIdForCwd(target, $openedProjectTree.get())
 
   if (projectId) {
     // The Projects tree only renders in grouped mode, so flip the sidebar into
@@ -359,6 +393,7 @@ function stillOnProjectsContext(context: ActiveProjectsContext): boolean {
 
 async function activeProjectsContext(profile = projectProfile()): Promise<ActiveProjectsContext> {
   const scope = $profileScope.get()
+
   if (!profile || profile === ALL_PROFILES) {
     throw new Error(translateNow('sidebar.projects.unavailableAllProfiles'))
   }
@@ -455,6 +490,12 @@ function applyProjectTreePayload(res: ProjectTreePayload, context: ProjectTreeCo
   resolvedProjectTreeContext = context
   const scoped = new Set(res.scoped_session_ids ?? [])
   $projectTree.set(res.projects ?? [])
+
+  // Merged all-profile IDs cannot identify the owner of a saved open record.
+  if (context.profile) {
+    reconcileOpenProjectPaths(context.profile, res.projects ?? [])
+  }
+
   $activeProjectId.set(res.active_id ?? null)
   const tombstones = $removedSessionIds.get()
 
@@ -997,6 +1038,8 @@ export async function createProject(input: CreateProjectInput): Promise<ProjectI
   const created = res.project
 
   if (created) {
+    rememberOpenProject({ id: created.id, path: created.primary_path ?? created.folders?.[0]?.path ?? null })
+
     if (input.idea) {
       void writeProjectIdea(created.primary_path ?? created.folders?.[0]?.path ?? input.primaryPath, input.idea)
     }
@@ -1491,8 +1534,8 @@ export async function pickProjectFolder(): Promise<null | string> {
 }
 
 // ⌘O / palette "Open folder…": open a folder AS a project, upserting. A folder
-// already covered by a project (explicit or auto) just enters it; anything else
-// becomes a new project named after the folder. Either way the sidebar scopes
+// already covered by a saved project just enters it; anything else becomes a
+// saved project named after the folder. Either way the sidebar scopes
 // to the project and a fresh session draft lands anchored at the folder — the
 // one-keystroke version of new project → enter → new session. Like goToProject,
 // this is an open-from-nowhere: an occupied main gets a stacked tab, not stolen.
@@ -1519,8 +1562,8 @@ export async function openFolderAsProject(
     setShowAllProfiles(false)
   }
 
-  // Refresh first so the membership check runs against live truth — a repo
-  // cloned since the last scan should enter its auto project, not double-create.
+  // Refresh first so an existing registration is reused even if another surface
+  // created it since the last read.
   const context = await activeProjectsContext()
   let tree: SidebarProjectTree[] | null
 
@@ -1540,7 +1583,12 @@ export async function openFolderAsProject(
     return
   }
 
-  const existing = projectIdForCwd(target, tree)
+  // An explicit open must survive the discovery cache being disabled or rebuilt.
+  const existing = projectIdForCwd(
+    target,
+    tree.filter(project => !project.isAuto)
+  )
+
   let projectId = existing ?? undefined
 
   if (existing) {
@@ -1567,6 +1615,10 @@ export async function openFolderAsProject(
 
   if (!isCurrent()) {
     return
+  }
+
+  if (projectId) {
+    rememberOpenProject({ id: projectId, path: tree.find(project => project.id === projectId)?.path ?? target })
   }
 
   if (options) {

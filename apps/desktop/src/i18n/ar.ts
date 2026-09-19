@@ -1988,6 +1988,7 @@ export const ar = defineLocale({
     projects: {
       showAllSessions: 'عرض جميع الجلسات',
       sectionLabel: 'المشاريع',
+      empty: 'لا توجد مشاريع مفتوحة',
       home: 'الرئيسية',
       autoDiscovered: 'مكتشف تلقائيًا',
       newButton: 'مشروع جديد',
@@ -2018,6 +2019,7 @@ export const ar = defineLocale({
       keepOneFolder: 'احتفظ بمجلد واحد على الأقل',
       contextChanged: 'تغيّرت المحادثة أو مساحة العمل. أعد فتح هذه النافذة للمتابعة.',
       menuSetActive: 'تعيين كنشط',
+      menuClose: 'إغلاق المشروع',
       menuDelete: 'إزالة المشروع',
       reveal: 'إظهار في المجلد',
       copyPath: 'نسخ المسار',

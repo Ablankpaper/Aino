@@ -2626,7 +2626,7 @@ export const ja = defineLocale({
     projects: {
       showAllSessions: 'すべてのセッションを表示',
       sectionLabel: 'プロジェクト',
-      empty: 'プロジェクトはまだありません',
+      empty: '開いているプロジェクトはありません',
       home: 'ホーム',
       autoDiscovered: '自動検出',
       newButton: '新規プロジェクト',
@@ -2658,6 +2658,7 @@ export const ja = defineLocale({
       keepOneFolder: '少なくとも1つのフォルダを残してください',
       contextChanged: '会話またはワークスペースが変更されました。このダイアログを開き直してください。',
       menuSetActive: 'アクティブに設定',
+      menuClose: 'プロジェクトを閉じる',
       menuDelete: 'プロジェクトの登録を解除',
       reveal: 'フォルダで表示',
       copyPath: 'パスをコピー',

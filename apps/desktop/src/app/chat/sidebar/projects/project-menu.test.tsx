@@ -2,13 +2,15 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { setShowAllProfiles } from '@/store/profile'
+import { closeProject, deleteProject } from '@/store/projects'
 
-import { ProjectMenu } from './project-menu'
+import { ProjectContextMenu, ProjectMenu } from './project-menu'
 import type { SidebarProjectTree } from './workspace-groups'
 
 afterEach(() => {
   cleanup()
   setShowAllProfiles(false)
+  vi.clearAllMocks()
 })
 
 // jsdom doesn't implement ResizeObserver; Radix's PopoverContent/Arrow use it
@@ -38,11 +40,11 @@ vi.mock('@/i18n', () => ({
           menuAddFolder: 'Add folder',
           manageFolders: 'Manage folders',
           menuAppearance: 'Appearance',
+          menuClose: 'Close project',
           menuDelete: 'Delete',
           menuRename: 'Rename',
           menuSetActive: 'Set active',
           noColor: 'No color',
-          removeFromSidebar: 'Remove from sidebar',
           reveal: 'Reveal in file manager'
         }
       }
@@ -59,11 +61,11 @@ vi.mock('@/store/layout', () => ({
 
       return () => {}
     }
-  },
-  dismissAutoProject: vi.fn()
+  }
 }))
 
 vi.mock('@/store/projects', () => ({
+  closeProject: vi.fn(),
   copyPath: vi.fn(),
   deleteProject: vi.fn(),
   openProjectAddFolder: vi.fn(),
@@ -95,6 +97,33 @@ const openTriggerMenu = (trigger: HTMLElement) => {
 }
 
 describe('ProjectMenu', () => {
+  it.each([
+    { isAuto: false, menu: 'kebab' },
+    { isAuto: true, menu: 'kebab' },
+    { isAuto: false, menu: 'context' },
+    { isAuto: true, menu: 'context' }
+  ])('closes a project without deleting its registration ($menu, auto: $isAuto)', ({ isAuto, menu }) => {
+    const openedProject = { ...project, isAuto }
+
+    if (menu === 'kebab') {
+      render(<ProjectMenu isActive={false} project={openedProject} />)
+      openTriggerMenu(screen.getByRole('button', { name: 'Actions' }))
+    } else {
+      render(
+        <ProjectContextMenu isActive={false} project={openedProject}>
+          <button type="button">Project row</button>
+        </ProjectContextMenu>
+      )
+      fireEvent.contextMenu(screen.getByRole('button', { name: 'Project row' }))
+    }
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Close project' }))
+
+    expect(closeProject).toHaveBeenCalledExactlyOnceWith(project.id)
+    expect(deleteProject).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
   it('does not send mutations for owner-ambiguous projects in the all-workspaces browse scope', () => {
     setShowAllProfiles(true)
     render(<ProjectMenu isActive={false} project={project} />)

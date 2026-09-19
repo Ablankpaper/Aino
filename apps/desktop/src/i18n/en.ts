@@ -3730,7 +3730,7 @@ export const en: Translations = {
     projects: {
       showAllSessions: 'Show all sessions',
       sectionLabel: 'Projects',
-      empty: 'No projects yet',
+      empty: 'No open projects',
       home: 'Home',
       autoDiscovered: 'Auto-discovered',
       newButton: 'New project',
@@ -3835,6 +3835,7 @@ export const en: Translations = {
       keepOneFolder: 'Keep at least one folder',
       contextChanged: 'The conversation or workspace changed. Reopen this dialog to continue.',
       menuSetActive: 'Set active',
+      menuClose: 'Close project',
       menuDelete: 'Remove project',
       moveToProject: 'Move to project',
       movedTo: name => `Moved to ${name}`,

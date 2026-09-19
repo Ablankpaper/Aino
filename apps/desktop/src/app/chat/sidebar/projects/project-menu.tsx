@@ -22,9 +22,10 @@ import {
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
-import { $panesFlipped, dismissAutoProject } from '@/store/layout'
+import { $panesFlipped } from '@/store/layout'
 import { $profileScope, ALL_PROFILES } from '@/store/profile'
 import {
+  closeProject,
   copyPath,
   deleteProject,
   openProjectAddFolder,
@@ -39,11 +40,8 @@ import { ProjectAppearancePicker } from './project-appearance'
 import type { SidebarProjectTree } from './workspace-groups'
 
 // Shared per-project state + handlers, so the kebab dropdown and the row's
-// right-click menu drive the exact same actions. Modeled on git GUIs (GitHub
-// Desktop / GitKraken): reveal in the file manager, copy path, and "Remove from
-// sidebar" (never deletes files — auto projects are dismissed, explicit ones
-// drop their entry). Explicit projects additionally get rename / add folder /
-// set active.
+// right-click menu drive the exact same actions. Closing a project only changes
+// the opened list; removing an explicit registration remains separate.
 function useProjectActions({
   project,
   isActive,
@@ -60,14 +58,6 @@ function useProjectActions({
   const target = { id: project.id, name: project.label }
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const readOnly = useStore($profileScope) === ALL_PROFILES
-
-  const removeAuto = () => {
-    dismissAutoProject(project.id)
-
-    if (scoped) {
-      onExitScope?.()
-    }
-  }
 
   const confirmDelete = async () => {
     await deleteProject(project.id)
@@ -130,8 +120,15 @@ function useProjectActions({
     }
   ]
 
-  const dangerItem: ActionItemSpec = project.isAuto
-    ? { icon: 'trash', key: 'remove', label: p.removeFromSidebar, onSelect: removeAuto, variant: 'destructive' }
+  const closeItem: ActionItemSpec = {
+    icon: 'close',
+    key: 'close',
+    label: p.menuClose,
+    onSelect: () => closeProject(project.id)
+  }
+
+  const dangerItem: ActionItemSpec | null = project.isAuto
+    ? null
     : {
         disabled: readOnly,
         icon: 'trash',
@@ -153,7 +150,7 @@ function useProjectActions({
     />
   )
 
-  return { confirmDialog, dangerItem, identityItems, pathItems, readOnly }
+  return { closeItem, confirmDialog, dangerItem, identityItems, pathItems, readOnly }
 }
 
 // Per-project actions. The kebab keeps its row-anchored Appearance popover; the
@@ -185,7 +182,7 @@ export function ProjectMenu({
   // when the panes are flipped (sidebar on the right).
   const panesFlipped = useStore($panesFlipped)
 
-  const { confirmDialog, dangerItem, identityItems, pathItems, readOnly } = useProjectActions({
+  const { closeItem, confirmDialog, dangerItem, identityItems, pathItems, readOnly } = useProjectActions({
     isActive,
     onExitScope,
     project,
@@ -272,7 +269,8 @@ export function ProjectMenu({
           )}
           {pathItems.map(item => renderActionItem(DROPDOWN_KIT, item))}
           <DropdownMenuSeparator />
-          {renderActionItem(DROPDOWN_KIT, dangerItem)}
+          {renderActionItem(DROPDOWN_KIT, closeItem)}
+          {dangerItem && renderActionItem(DROPDOWN_KIT, dangerItem)}
         </DropdownMenuContent>
       </DropdownMenu>
       <PopoverContent
@@ -316,7 +314,7 @@ export function ProjectContextMenu({
   const { t } = useI18n()
   const p = t.sidebar.projects
 
-  const { confirmDialog, dangerItem, identityItems, pathItems, readOnly } = useProjectActions({
+  const { closeItem, confirmDialog, dangerItem, identityItems, pathItems, readOnly } = useProjectActions({
     isActive,
     onExitScope,
     project,
@@ -353,7 +351,8 @@ export function ProjectContextMenu({
       {(identityItems.length > 0 || canTheme) && <kit.Separator />}
       {pathItems.map(item => renderActionItem(kit, item))}
       <kit.Separator />
-      {renderActionItem(kit, dangerItem)}
+      {renderActionItem(kit, closeItem)}
+      {dangerItem && renderActionItem(kit, dangerItem)}
     </>
   )
 

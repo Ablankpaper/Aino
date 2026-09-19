@@ -2610,7 +2610,7 @@ export const zhHant = defineLocale({
     projects: {
       showAllSessions: '顯示所有工作階段',
       sectionLabel: '專案',
-      empty: '尚無專案',
+      empty: '尚無開啟的專案',
       home: '主頁',
       autoDiscovered: '自動探索',
       newButton: '新增專案',
@@ -2641,6 +2641,7 @@ export const zhHant = defineLocale({
       keepOneFolder: '至少保留一個資料夾',
       contextChanged: '對話或工作區已切換，請重新開啟此視窗後操作。',
       menuSetActive: '設為使用中',
+      menuClose: '關閉專案',
       menuDelete: '移除專案',
       reveal: '在資料夾中顯示',
       copyPath: '複製路徑',

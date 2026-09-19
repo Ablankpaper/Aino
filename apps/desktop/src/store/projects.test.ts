@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { NO_PROJECT_ID, type SidebarProjectTree } from '@/app/chat/sidebar/projects/workspace-groups'
 import { $sidebarAgentsGrouped, $sidebarWorkspaceNodeOpen, setSidebarAgentsGrouped } from '@/store/layout'
+import { $openProjectsByProfile } from '@/store/open-projects'
 import {
   $activeGatewayProfile,
   $profileScope,
@@ -22,6 +23,7 @@ import {
 
 import {
   $activeProjectId,
+  $openedProjectTree,
   $projects,
   $projectScope,
   $projectsRpcAvailable,
@@ -30,6 +32,7 @@ import {
   $startWorkSessionRequest,
   $worktreeRefreshToken,
   ALL_PROJECTS,
+  closeProject,
   createProject,
   enterProject,
   exitProjectScope,
@@ -106,6 +109,8 @@ const hermes = await import('@/hermes')
 const getHermesConfig = vi.mocked(hermes.getHermesConfig)
 const notifications = await import('@/store/notifications')
 const notify = vi.mocked(notifications.notify)
+
+beforeEach(() => $openProjectsByProfile.set({}))
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -282,7 +287,7 @@ describe('following the active workspace', () => {
     }
   })
 
-  it('still follows the current session into its newly discovered project', async () => {
+  it('follows workspace moves only into projects the user has opened', async () => {
     const request = vi.fn(async (method: string) =>
       method === 'projects.tree'
         ? { active_id: null, projects: [project], scoped_session_ids: [] }
@@ -297,8 +302,19 @@ describe('following the active workspace', () => {
 
     await followActiveSessionCwd(project.path!)
 
+    expect($projectScope.get()).toBe(ALL_PROJECTS)
+    expect($openedProjectTree.get()).toEqual([])
+
+    enterProject(project.id)
+    exitProjectScope()
+    await followActiveSessionCwd(project.path!)
     expect($projectScope.get()).toBe(project.id)
     expect($currentCwd.get()).toBe(project.path)
+
+    closeProject(project.id)
+    await followActiveSessionCwd(project.path!)
+    expect($projectScope.get()).toBe(ALL_PROJECTS)
+    expect($openedProjectTree.get()).toEqual([])
   })
 })
 
@@ -523,7 +539,7 @@ describe('pickProjectFolder', () => {
     await expect(pickProjectFolder()).resolves.toBeNull()
   })
 
-  it('leaves all-profiles browsing before opening a folder as a project', async () => {
+  it('opens a discovered folder as a durable project in the writable profile', async () => {
     setShowAllProfiles(true)
     $startWorkSessionRequest.set(null)
     $projectsRpcAvailable.set(null)
@@ -542,7 +558,10 @@ describe('pickProjectFolder', () => {
 
         return {
           active_id: treeReads === 1 ? null : 'p_demo',
-          projects: treeReads === 1 ? [] : [treeProject],
+          projects:
+            treeReads === 1
+              ? [{ id: '/srv/demo', label: 'demo', path: '/srv/demo', isAuto: true, repos: [], sessionCount: 0 }]
+              : [treeProject],
           scoped_session_ids: []
         }
       }
@@ -559,6 +578,10 @@ describe('pickProjectFolder', () => {
     expect($showAllProfiles.get()).toBe(false)
     expect(request).toHaveBeenCalledWith('projects.create', expect.objectContaining({ profile: 'default' }))
     expect($startWorkSessionRequest.get()).toMatchObject({ path: '/srv/demo', openTab: true })
+    expect($openedProjectTree.get().map(project => project.id)).toEqual(['p_demo'])
+    await openFolderAsProject('/srv/demo')
+    expect($openedProjectTree.get().map(project => project.id)).toEqual(['p_demo'])
+    expect(request.mock.calls.filter(([method]) => method === 'projects.create')).toHaveLength(1)
     expect(notify).not.toHaveBeenCalled()
   })
 })
@@ -1140,6 +1163,52 @@ describe('project tree profile isolation', () => {
     $activeGatewayProfile.set('default')
     $projects.set([])
     $projectTree.set([])
+  })
+
+  it('keeps an opened project on its current folder when all-profile trees merge its ID', async () => {
+    const defaultOpened = { id: 'p_default_other', path: '/default/other' }
+    const missingOpened = { id: 'p_temporarily_missing', path: '/coder/missing' }
+    const movedProject = { id: 'p_coder', label: 'App', path: '/new/app', repos: [], sessionCount: 0 }
+    const unopenedProject = { id: 'p_unopened', label: 'Unopened', path: '/new/other', repos: [], sessionCount: 0 }
+
+    const request = vi.fn().mockResolvedValue({
+      active_id: null,
+      projects: [movedProject, unopenedProject],
+      scoped_session_ids: []
+    })
+
+    const gateway = { connectionState: 'open', request }
+    activeGateway.mockReturnValue(gateway as never)
+    gatewayAtom.set(gateway as never)
+    $activeGatewayProfile.set('coder')
+    $openProjectsByProfile.set({
+      default: [defaultOpened],
+      coder: [{ id: movedProject.id, path: '/old/app' }, missingOpened]
+    })
+
+    await refreshProjectTree()
+    const refreshedOpenState = $openProjectsByProfile.get()
+    await refreshProjectTree()
+    expect($openProjectsByProfile.get()).toBe(refreshedOpenState)
+
+    const mergedProject = { ...movedProject, id: 'p_default' }
+    vi.mocked(hermes.hermesApi).mockResolvedValue({
+      active_id: null,
+      projects: [mergedProject, { ...movedProject, id: '/old/app', path: '/old/app', isAuto: true }, unopenedProject],
+      scoped_session_ids: []
+    })
+    setShowAllProfiles(true)
+    await refreshProjectTree()
+
+    expect($openedProjectTree.get()).toEqual([mergedProject])
+    expect($openProjectsByProfile.get()).toEqual({
+      default: [defaultOpened],
+      coder: [{ id: movedProject.id, path: movedProject.path }, missingOpened]
+    })
+
+    closeProject(mergedProject.id)
+    expect($openedProjectTree.get()).toEqual([])
+    expect($openProjectsByProfile.get()).toEqual({ default: [defaultOpened], coder: [missingOpened] })
   })
 
   it('retries a dropped projects.tree request once on the active gateway', async () => {

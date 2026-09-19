@@ -16,8 +16,18 @@ import {
   $sidebarWorkspaceNodeOpen,
   setSidebarGrouping
 } from '@/store/layout'
+import { $openProjectsByProfile } from '@/store/open-projects'
 import { $activeGatewayProfile } from '@/store/profile'
-import { $projectDialog, $projects, $projectScope, $projectTree, ALL_PROJECTS } from '@/store/projects'
+import {
+  $projectDialog,
+  $projects,
+  $projectScope,
+  $projectTree,
+  ALL_PROJECTS,
+  closeProject,
+  enterProject,
+  exitProjectScope
+} from '@/store/projects'
 import { $selectedStoredSessionId, $sessions } from '@/store/session'
 import { $removedSessionIds } from '@/store/session-removal'
 import { makeSessionInfo } from '@/test/session-info'
@@ -114,6 +124,7 @@ describe('ChatSidebar navigation activity', () => {
     setSidebarGrouping('date')
     $sidebarWorkspaceNodeOpen.set({})
     $projects.set([])
+    $openProjectsByProfile.set({})
     $projectTree.set([])
     $projectScope.set(ALL_PROJECTS)
     $projectDialog.set(null)
@@ -242,7 +253,7 @@ describe('ChatSidebar navigation activity', () => {
     }
   })
 
-  it('separates project sessions from recent chats while preserving empty projects', () => {
+  it('shows only opened projects and keeps other project history reachable in recent chats', () => {
     const projectSession = makeSessionInfo({ id: 'project-chat', cwd: '/work/app', title: 'Build the app' })
     $projects.set([
       {
@@ -261,16 +272,36 @@ describe('ChatSidebar navigation activity', () => {
     ])
     $projectTree.set([
       { id: 'p_app', label: 'App', path: '/work/app', repos: [], sessionCount: 1, previewSessions: [projectSession] },
-      { id: 'p_empty', label: 'Empty project', path: '/work/empty', repos: [], sessionCount: 0, previewSessions: [] }
+      { id: 'p_empty', label: 'Empty project', path: '/work/empty', repos: [], sessionCount: 0, previewSessions: [] },
+      {
+        id: '/work/discovered',
+        label: 'Discovered repo',
+        path: '/work/discovered',
+        isAuto: true,
+        repos: [],
+        sessionCount: 0
+      }
     ])
     $sessions.set([...sessionRows, projectSession])
     renderSidebar('/', 'chat')
 
     const recents = screen.getByRole('button', { name: 'Recent' }).closest('[data-sidebar-section]') as HTMLElement
+    expect(screen.queryByRole('button', { name: 'Open App' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Open Empty project' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Open Discovered repo' })).toBeNull()
+    expect(within(recents).getByText('Build the app')).toBeTruthy()
+
+    act(() => {
+      enterProject('p_app')
+      enterProject('p_empty')
+      exitProjectScope()
+    })
+
     expect(within(recents).queryByText('Build the app')).toBeNull()
     expect(within(recents).getByText('Tile one')).toBeTruthy()
     expect(screen.getByText('Build the app')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Open Empty project' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Open Discovered repo' })).toBeNull()
 
     act(() => $pinnedSessionIds.set(['project-chat']))
     const pins = screen.getByRole('button', { name: 'Pinned' }).closest('[data-sidebar-section]') as HTMLElement
@@ -280,6 +311,22 @@ describe('ChatSidebar navigation activity', () => {
     act(() => $pinnedSessionIds.set([]))
     expect(screen.queryByRole('button', { name: 'Pinned' })).toBeNull()
     expect(screen.getAllByText('Build the app')).toHaveLength(1)
+
+    act(() => closeProject('p_app'))
+    expect(screen.queryByRole('button', { name: 'Open App' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Open Empty project' })).toBeTruthy()
+    expect(within(recents).getByText('Build the app')).toBeTruthy()
+    expect($projects.get().some(project => project.id === 'p_app')).toBe(true)
+    expect($projectTree.get().some(project => project.id === 'p_app')).toBe(true)
+
+    act(() => {
+      enterProject('p_app')
+      closeProject('p_app')
+      closeProject('p_empty')
+    })
+    expect($projectScope.get()).toBe(ALL_PROJECTS)
+    expect(screen.queryByRole('button', { name: 'Open Empty project' })).toBeNull()
+    expect(within(recents).getByText('Build the app')).toBeTruthy()
   })
 
   it('starts ordinary chat without the previously selected project folder', () => {

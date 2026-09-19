@@ -2538,6 +2538,7 @@ export const ru = defineLocale({
     projects: {
       showAllSessions: 'Показать все сессии',
       sectionLabel: 'Проекты',
+      empty: 'Нет открытых проектов',
       home: 'Главная',
       newButton: 'Новый проект',
       createTitle: 'Новый проект',
@@ -2567,6 +2568,7 @@ export const ru = defineLocale({
       keepOneFolder: 'Оставьте хотя бы одну папку',
       contextChanged: 'Разговор или рабочая область изменились. Откройте это окно заново.',
       menuSetActive: 'Сделать активным',
+      menuClose: 'Закрыть проект',
       menuDelete: 'Убрать проект',
       moveToProject: 'Переместить в проект',
       movedTo: name => `Перемещено в ${name}`,
